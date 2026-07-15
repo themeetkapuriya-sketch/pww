@@ -161,7 +161,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex bg-slate-50">
+<body class="min-h-screen md:flex bg-slate-50">
 
     <!-- Sidebar Navigation -->
     <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-30 shadow-sm transition-transform duration-300 transform -translate-x-full">
@@ -285,7 +285,7 @@
     </aside>
 
     <!-- Floating Sidebar Toggle Button -->
-    <button id="sidebarToggle" class="fixed top-4 left-4 z-40 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 p-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-200 focus:outline-none hidden">
+    <button id="sidebarToggle" class="fixed top-4 left-4 z-40 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 p-2.5 rounded-xl border border-slate-200 shadow-sm transition-all duration-200 focus:outline-none md:hidden">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
@@ -303,7 +303,7 @@
             </div>
         </div>
 
-        <div class="p-8 flex-grow space-y-6">
+        <div class="p-4 md:p-8 flex-grow space-y-6">
             @yield('content')
         </div>
     </div>
@@ -447,57 +447,40 @@
             return window.innerWidth >= 768;
         }
 
-        // Apply pinned state
-        function pinSidebar() {
-            sidebar.classList.remove('sidebar-collapsed');
-            sidebar.classList.remove('-translate-x-full');
-            sidebar.classList.add('translate-x-0');
-            
+        // Apply visual states without side-effects on localStorage
+        function applySidebarState(pinned) {
             if (isDesktop()) {
-                mainContent.classList.add('pl-64');
-                mainContent.classList.remove('pl-[72px]', 'pl-0');
+                if (pinned) {
+                    sidebar.classList.remove('sidebar-collapsed');
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    mainContent.classList.add('pl-64');
+                    mainContent.classList.remove('pl-[72px]', 'pl-0');
+                    if (sidebarPinDot) {
+                        sidebarPinDot.classList.remove('bg-transparent', 'scale-0');
+                        sidebarPinDot.classList.add('bg-blue-500', 'scale-100');
+                    }
+                } else {
+                    sidebar.classList.add('sidebar-collapsed');
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    mainContent.classList.add('pl-[72px]');
+                    mainContent.classList.remove('pl-64', 'pl-0');
+                    if (sidebarPinDot) {
+                        sidebarPinDot.classList.remove('bg-blue-500', 'scale-100');
+                        sidebarPinDot.classList.add('bg-transparent', 'scale-0');
+                    }
+                }
+                sidebarToggle.classList.add('hidden');
             } else {
-                mainContent.classList.add('pl-0');
-                mainContent.classList.remove('pl-64', 'pl-[72px]');
-            }
-            
-            if (sidebarPinDot) {
-                sidebarPinDot.classList.remove('bg-transparent', 'scale-0');
-                sidebarPinDot.classList.add('bg-blue-500', 'scale-100');
-            }
-            sidebarToggle.classList.add('hidden');
-            localStorage.setItem('sidebar_pinned', 'true');
-        }
-
-        // Apply unpinned/collapsed state
-        function unpinSidebar() {
-            sidebar.classList.add('sidebar-collapsed');
-            sidebar.classList.remove('-translate-x-full');
-            sidebar.classList.add('translate-x-0');
-            
-            if (isDesktop()) {
-                mainContent.classList.add('pl-[72px]');
-                mainContent.classList.remove('pl-64', 'pl-0');
-            } else {
-                mainContent.classList.add('pl-0');
-                mainContent.classList.remove('pl-64', 'pl-[72px]');
-                // On mobile, completely hide it off-screen when unpinned
+                // Mobile layout: always start with sidebar hidden offscreen
+                sidebar.classList.add('sidebar-collapsed');
                 sidebar.classList.add('-translate-x-full');
                 sidebar.classList.remove('translate-x-0');
-            }
-            
-            if (sidebarPinDot) {
-                sidebarPinDot.classList.remove('bg-blue-500', 'scale-100');
-                sidebarPinDot.classList.add('bg-transparent', 'scale-0');
-            }
-            
-            if (!isDesktop()) {
+                mainContent.classList.add('pl-0');
+                mainContent.classList.remove('pl-64', 'pl-[72px]');
                 sidebarToggle.classList.remove('hidden');
-            } else {
-                sidebarToggle.classList.add('hidden');
             }
-            
-            localStorage.setItem('sidebar_pinned', 'false');
         }
 
         // Handle sidebar open on mobile (via mobile toggle button)
@@ -509,30 +492,38 @@
 
         // Initialize state
         const isPinned = localStorage.getItem('sidebar_pinned') !== 'false'; // Default to true (pinned)
-
-        if (isPinned) {
-            pinSidebar();
-        } else {
-            unpinSidebar();
-        }
+        applySidebarState(isPinned);
 
         // Pin toggle click event
         if (sidebarPinToggle) {
             sidebarPinToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const currentPinned = localStorage.getItem('sidebar_pinned') !== 'false';
-                if (currentPinned) {
-                    unpinSidebar();
-                } else {
-                    pinSidebar();
-                }
+                const newPinned = !currentPinned;
+                localStorage.setItem('sidebar_pinned', newPinned ? 'true' : 'false');
+                applySidebarState(newPinned);
             });
         }
 
         // Mobile toggle button click
         if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', openMobileSidebar);
+            sidebarToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openMobileSidebar();
+            });
         }
+
+        // Close sidebar on option select (for mobile)
+        const navLinks = sidebar.querySelectorAll('.nav-link-item, .sidebar-logout-btn, .sidebar-footer a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (!isDesktop()) {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                    sidebarToggle.classList.remove('hidden');
+                }
+            });
+        });
 
         // Click outside to close on mobile
         document.addEventListener('click', (e) => {
@@ -546,18 +537,7 @@
         // Resize handler
         window.addEventListener('resize', () => {
             const currentPinned = localStorage.getItem('sidebar_pinned') !== 'false';
-            if (isDesktop()) {
-                if (currentPinned) {
-                    pinSidebar();
-                } else {
-                    unpinSidebar();
-                }
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                if (sidebarToggle) sidebarToggle.classList.remove('hidden');
-                mainContent.classList.remove('pl-64', 'pl-[72px]');
-                mainContent.classList.add('pl-0');
-            }
+            applySidebarState(currentPinned);
         });
     </script>
 </body>
