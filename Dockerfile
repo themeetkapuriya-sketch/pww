@@ -1,37 +1,33 @@
-# 1. Base Image with PHP and Apache
 FROM php:8.2-apache
 
-# 2. Install system dependencies & PHP extensions required by Laravel
+# Install system dependencies and PHP extensions for Laravel
 RUN apt-get update && apt-get install -y \
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     zip \
     unzip \
     git \
-    curl \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd \
-    && a2enmod rewrite
+    libpq-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql pdo_pgsql gd
 
-# 3. Configure Apache Document Root to Laravel's public directory
+# Enable Apache rewrite module for Laravel routing
+RUN a2enmod rewrite
+
+# Change Apache root to Laravel's public directory
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# 4. Install Composer cleanly
+# Copy project files and install Composer
+COPY . /var/www/html
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 5. Set working directory and copy code
-WORKDIR /var/www/html
-COPY . .
+RUN composer install --no-dev --optimize-autoloader
 
-# 6. Install Laravel dependencies for production
-RUN composer install --no-interaction --optimize-autoloader --no-dev
-
-# 7. Set correct permissions for Laravel storage (fixes permission denied errors)
+# Set permissions for Laravel storage
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. Expose port 80 (Render maps this automatically)
-EXPOSE 80
-
-CMD ["apache2-foreground"]
+# Automatically run migrations before starting Apache
+ENTRYPOINT ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && php artisan db:seed --force && apache2-foreground"]
