@@ -10,6 +10,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'theme-blue': '#1E73BE',
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -18,8 +29,9 @@
             background-color: #f8fafc;
             color: #1e293b;
         }
-        .theme-blue { color: #1E73BE; }
-        .bg-theme-blue { background-color: #1E73BE; }
+        .theme-blue { color: #1E73BE !important; }
+        .text-theme-blue { color: #1E73BE !important; }
+        .bg-theme-blue { background-color: #1E73BE !important; }
         .border-theme-gray { border-color: #707A8A; }
         .text-theme-gray { color: #707A8A; }
     </style>
