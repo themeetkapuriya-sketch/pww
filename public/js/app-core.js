@@ -1,319 +1,333 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Cache selectors
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('main-content');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarPinToggle = document.getElementById('sidebarPinToggle');
-    const sidebarPinDot = document.getElementById('sidebarPinDot');
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-
-    const getCsrfToken = () => csrfMeta ? csrfMeta.getAttribute('content') : '';
-
-    const isDesktop = () => window.innerWidth >= 768;
-
-    // Apply sidebar visual states
-    function applySidebarState(pinned) {
-        if (!sidebar || !mainContent) return;
-        if (isDesktop()) {
-            if (pinned) {
-                sidebar.classList.remove('sidebar-collapsed', '-translate-x-full');
-                sidebar.classList.add('translate-x-0');
-                mainContent.classList.add('pl-64');
-                mainContent.classList.remove('pl-[72px]', 'pl-0');
-                if (sidebarPinDot) {
-                    sidebarPinDot.classList.replace('bg-transparent', 'bg-blue-500');
-                    sidebarPinDot.classList.replace('scale-0', 'scale-100');
-                }
-            } else {
-                sidebar.classList.add('sidebar-collapsed', 'translate-x-0');
-                sidebar.classList.remove('-translate-x-full');
-                mainContent.classList.add('pl-[72px]');
-                mainContent.classList.remove('pl-64', 'pl-0');
-                if (sidebarPinDot) {
-                    sidebarPinDot.classList.replace('bg-blue-500', 'bg-transparent');
-                    sidebarPinDot.classList.replace('scale-100', 'scale-0');
-                }
-            }
-            if (sidebarToggle) sidebarToggle.classList.add('hidden');
-        } else {
-            sidebar.classList.add('sidebar-collapsed', '-translate-x-full');
-            sidebar.classList.remove('translate-x-0');
-            mainContent.classList.add('pl-0');
-            mainContent.classList.remove('pl-64', 'pl-[72px]');
-            if (sidebarToggle) sidebarToggle.classList.remove('hidden');
-        }
+    // jQuery Check
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded! Fallback logic would be needed.');
+        return;
     }
 
-    // Toggle logic init
-    if (sidebar) {
-        const isPinned = localStorage.getItem('sidebar_pinned') !== 'false';
-        applySidebarState(isPinned);
+    jQuery(document).ready(function($) {
+        // Cache selectors
+        const $sidebar = $('#sidebar');
+        const $mainContent = $('#main-content');
+        const $sidebarToggle = $('#sidebarToggle');
+        const $sidebarPinToggle = $('#sidebarPinToggle');
+        const $sidebarPinDot = $('#sidebarPinDot');
+        const $csrfMeta = $('meta[name="csrf-token"]');
 
-        if (sidebarPinToggle) {
-            sidebarPinToggle.addEventListener('click', (e) => {
+        const getCsrfToken = () => $csrfMeta.attr('content') || '';
+        const isDesktop = () => window.innerWidth >= 768;
+
+        // Apply sidebar visual states
+        function applySidebarState(pinned) {
+            if (!$sidebar.length || !$mainContent.length) return;
+            if (isDesktop()) {
+                if (pinned) {
+                    $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0');
+                    $mainContent.addClass('pl-64').removeClass('pl-[72px] pl-0');
+                    if ($sidebarPinDot.length) {
+                        $sidebarPinDot.removeClass('bg-transparent scale-0').addClass('bg-blue-500 scale-100');
+                    }
+                } else {
+                    $sidebar.addClass('sidebar-collapsed translate-x-0').removeClass('-translate-x-full');
+                    $mainContent.addClass('pl-[72px]').removeClass('pl-64 pl-0');
+                    if ($sidebarPinDot.length) {
+                        $sidebarPinDot.removeClass('bg-blue-500 scale-100').addClass('bg-transparent scale-0');
+                    }
+                }
+                $sidebarToggle.addClass('hidden');
+            } else {
+                $sidebar.addClass('sidebar-collapsed -translate-x-full').removeClass('translate-x-0');
+                $mainContent.addClass('pl-0').removeClass('pl-64 pl-[72px]');
+                $sidebarToggle.removeClass('hidden');
+            }
+        }
+
+        // Toggle logic init
+        if ($sidebar.length) {
+            const isPinned = localStorage.getItem('sidebar_pinned') !== 'false';
+            applySidebarState(isPinned);
+
+            $sidebarPinToggle.on('click', function(e) {
                 e.stopPropagation();
                 const currentPinned = localStorage.getItem('sidebar_pinned') !== 'false';
                 localStorage.setItem('sidebar_pinned', !currentPinned ? 'true' : 'false');
                 applySidebarState(!currentPinned);
             });
-        }
 
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', (e) => {
+            $sidebarToggle.on('click', function(e) {
                 e.stopPropagation();
-                sidebar.classList.remove('-translate-x-full');
-                sidebar.classList.add('translate-x-0');
-                sidebarToggle.classList.add('hidden');
+                $sidebar.removeClass('-translate-x-full').addClass('translate-x-0');
+                $sidebarToggle.addClass('hidden');
+            });
+
+            const closeMobileSidebar = () => {
+                if (!isDesktop()) {
+                    $sidebar.addClass('-translate-x-full').removeClass('translate-x-0');
+                    $sidebarToggle.removeClass('hidden');
+                }
+            };
+
+            $sidebar.on('click', '.nav-link-item, .sidebar-logout-btn, .sidebar-footer a', closeMobileSidebar);
+
+            $(document).on('click', function(e) {
+                if (!isDesktop() && !$sidebar.is(e.target) && $sidebar.has(e.target).length === 0 &&
+                    !$sidebarToggle.is(e.target) && $sidebarToggle.has(e.target).length === 0) {
+                    closeMobileSidebar();
+                }
+            });
+
+            $(window).on('resize', () => {
+                applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
             });
         }
 
-        // Close mobile sidebar on navigation/outside clicks
-        const closeMobileSidebar = () => {
-            if (!isDesktop()) {
-                sidebar.classList.add('-translate-x-full');
-                sidebar.classList.remove('translate-x-0');
-                if (sidebarToggle) sidebarToggle.classList.remove('hidden');
-            }
-        };
-
-        sidebar.querySelectorAll('.nav-link-item, .sidebar-logout-btn, .sidebar-footer a')
-            .forEach(link => link.addEventListener('click', closeMobileSidebar));
-
-        document.addEventListener('click', (e) => {
-            if (!isDesktop() && !sidebar.contains(e.target) && sidebarToggle && !sidebarToggle.contains(e.target)) {
-                closeMobileSidebar();
-            }
-        });
-
-        window.addEventListener('resize', () => {
-            applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
-        });
-    }
-
-    // SPA Page Loader
-    async function loadPage(url) {
-        if (!mainContent) {
-            window.location.href = url;
-            return;
-        }
-        mainContent.classList.add('opacity-50');
-        
-        try {
-            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!response.ok) {
+        // Expose loadPage to window so it can be called elsewhere
+        window.loadPage = async function(url) {
+            if (!$mainContent.length) {
                 window.location.href = url;
                 return;
             }
             
-            const htmlText = await response.text();
-            const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-            const newContent = doc.getElementById('page-content');
-            
-            if (newContent) {
-                document.getElementById('page-content').innerHTML = newContent.innerHTML;
-                document.title = doc.title;
-                
-                if (window.location.href !== url) {
-                    history.pushState(null, '', url);
+            try {
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!response.ok) {
+                    window.location.href = url;
+                    return;
                 }
                 
-                executeScripts(document.getElementById('page-content'));
-                updateActiveSidebarLinks(url);
-            } else {
+                const htmlText = await response.text();
+                const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+                const newContent = doc.getElementById('page-content');
+                
+                if (newContent) {
+                    $('#page-content').html(newContent.innerHTML);
+                    document.title = doc.title;
+                    
+                    if (window.location.href !== url) {
+                        history.pushState(null, '', url);
+                    }
+                    
+                    executeScripts($('#page-content')[0]);
+                    updateActiveSidebarLinks(url);
+                } else {
+                    window.location.href = url;
+                }
+            } catch (err) {
+                console.error('SPA load error:', err);
                 window.location.href = url;
             }
-        } catch (err) {
-            console.error('SPA load error:', err);
-            window.location.href = url;
-        } finally {
-            mainContent.classList.remove('opacity-50');
+        };
+
+        function executeScripts(container) {
+            $(container).find('script').each(function() {
+                const newScript = document.createElement('script');
+                Array.from(this.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(this.innerHTML));
+                this.parentNode.replaceChild(newScript, this);
+            });
         }
-    }
 
-    function executeScripts(container) {
-        container.querySelectorAll('script').forEach(oldScript => {
-            const newScript = document.createElement('script');
-            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
-    }
-
-    function updateActiveSidebarLinks(urlStr) {
-        if (!sidebar) return;
-        const url = new URL(urlStr);
-        const path = url.pathname;
-        const tab = url.searchParams.get('tab');
-        
-        sidebar.querySelectorAll('a.nav-link-item').forEach(link => {
-            const linkUrl = new URL(link.href);
-            const linkPath = linkUrl.pathname;
-            const linkTab = linkUrl.searchParams.get('tab');
+        function updateActiveSidebarLinks(urlStr) {
+            if (!$sidebar.length) return;
+            const url = new URL(urlStr);
+            const path = url.pathname;
+            const tab = url.searchParams.get('tab');
             
-            let isActive = false;
-            if (linkPath === path) {
-                isActive = linkTab ? (linkTab === tab) : (!tab || (path === '/inventory' && tab === 'materials') || (path === '/invoices' && tab === 'ledger'));
-            }
-            
-            if (isActive) {
-                link.classList.add('active-nav');
-                link.classList.remove('text-slate-600', 'hover:bg-slate-50', 'hover:text-slate-900');
-            } else {
-                link.classList.remove('active-nav');
-                link.classList.add('text-slate-600', 'hover:bg-slate-50', 'hover:text-slate-900');
-            }
-        });
-    }
-
-    // Intercept Link Clicks
-    document.addEventListener('click', async (e) => {
-        const link = e.target.closest('a');
-        if (link && link.href && link.href.startsWith('http')) {
-            const url = new URL(link.href);
-            if (url.origin === window.location.origin && 
-                !link.getAttribute('target') && 
-                !link.classList.contains('no-ajax') &&
-                !url.pathname.includes('/logout') &&
-                !url.pathname.includes('/print') &&
-                !url.pathname.includes('/export')) {
+            $sidebar.find('a.nav-link-item').each(function() {
+                const $link = $(this);
+                const linkUrl = new URL(this.href);
+                const linkPath = linkUrl.pathname;
+                const linkTab = linkUrl.searchParams.get('tab');
                 
-                e.preventDefault();
-                await loadPage(link.href);
-            }
-        }
-    });
-
-    window.addEventListener('popstate', () => {
-        loadPage(window.location.href);
-    });
-
-    // Forms submission interceptor
-    document.addEventListener('submit', async (e) => {
-        const form = e.target.closest('form');
-        if (!form) return;
-
-        if (form.method.toLowerCase() === 'get') {
-            const url = new URL(form.action || window.location.href);
-            new FormData(form).forEach((value, key) => {
-                if (value) url.searchParams.set(key, value);
-                else url.searchParams.delete(key);
+                let isActive = false;
+                if (linkPath === path) {
+                    isActive = linkTab ? (linkTab === tab) : (!tab || (path === '/inventory' && tab === 'materials') || (path === '/invoices' && tab === 'ledger'));
+                }
+                
+                if (isActive) {
+                    $link.addClass('active-nav').removeClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
+                } else {
+                    $link.removeClass('active-nav').addClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
+                }
             });
-            if (url.origin === window.location.origin) {
-                e.preventDefault();
-                await loadPage(url.href);
-            }
-            return;
         }
 
-        if (!form.classList.contains('ajax-form')) return;
-        e.preventDefault();
-        
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const alertBox = form.querySelector('.form-alert') || createFormAlert(form);
-        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
-        
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-75');
-            submitBtn.innerHTML = `
-                <svg class="animate-spin h-5 w-5 mr-2 text-white inline" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Processing...</span>
-            `;
-        }
-        
-        alertBox.className = 'hidden';
-        
-        const formData = new FormData(form);
-        const dataObj = {};
-        formData.forEach((value, key) => {
-            if (key.endsWith('[]')) {
-                const cleanKey = key.slice(0, -2);
-                if (!dataObj[cleanKey]) dataObj[cleanKey] = [];
-                dataObj[cleanKey].push(value);
-            } else if (key.startsWith('labor[')) {
-                const staffId = key.match(/\[(.*?)\]/)[1];
-                if (!dataObj['labor']) dataObj['labor'] = {};
-                dataObj['labor'][staffId] = value;
-            } else {
-                dataObj[key] = value;
+        // Intercept Link Clicks
+        $(document).on('click', 'a', async function(e) {
+            const href = $(this).attr('href');
+            if (href && href.startsWith('http') && !$(this).attr('target') && !$(this).hasClass('no-ajax')) {
+                const url = new URL(href);
+                if (url.origin === window.location.origin && 
+                    !url.pathname.includes('/logout') && 
+                    !url.pathname.includes('/print') && 
+                    !url.pathname.includes('/export')) {
+                    
+                    e.preventDefault();
+                    await window.loadPage(href);
+                }
             }
         });
-        
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
-                },
-                body: JSON.stringify(dataObj)
-            });
-            
-            const responseData = await response.json();
-            
-            if (response.ok) {
-                showToast('success', responseData.message || 'Operation completed successfully!');
-                if (!form.classList.contains('no-reset')) form.reset();
-                setTimeout(() => loadPage(window.location.href), 800);
-            } else {
-                const errors = responseData.errors 
-                    ? (Array.isArray(responseData.errors) ? responseData.errors : Object.values(responseData.errors).flat())
-                    : [responseData.message || 'Validation error. Please verify input.'];
-                displayFormErrors(alertBox, errors);
-                if (submitBtn) resetSubmitButton(submitBtn, originalBtnHtml);
+
+        window.addEventListener('popstate', () => {
+            window.loadPage(window.location.href);
+        });
+
+        // Forms submission interceptor
+        $(document).on('submit', 'form', async function(e) {
+            const $form = $(this);
+            $form.attr('novalidate', true); // prevent default HTML5 validation tooltip
+
+            if ($form.attr('method') && $form.attr('method').toLowerCase() === 'get') {
+                const url = new URL($form.attr('action') || window.location.href);
+                new FormData($form[0]).forEach((value, key) => {
+                    if (value) url.searchParams.set(key, value);
+                    else url.searchParams.delete(key);
+                });
+                if (url.origin === window.location.origin) {
+                    e.preventDefault();
+                    await window.loadPage(url.href);
+                }
+                return;
             }
-        } catch (err) {
-            console.error(err);
-            displayFormErrors(alertBox, ['A system network failure occurred. Please try again.']);
-            if (submitBtn) resetSubmitButton(submitBtn, originalBtnHtml);
+
+            if (!$form.hasClass('ajax-form')) return;
+            e.preventDefault();
+            
+            // Clear previous errors
+            $form.find('.val-error').remove();
+            $form.find('.form-alert').addClass('hidden').html('');
+            $form.find('input, select, textarea').removeClass('border-rose-300 focus:ring-rose-500');
+            
+            const $submitBtn = $form.find('button[type="submit"]');
+            const originalBtnHtml = $submitBtn.length ? $submitBtn.html() : '';
+            
+            if ($submitBtn.length) {
+                $submitBtn.prop('disabled', true).addClass('opacity-75');
+                $submitBtn.html(`
+                    <svg class="animate-spin h-5 w-5 mr-2 text-white inline-block" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Processing...</span>
+                `);
+            }
+            
+            $.ajax({
+                url: $form.attr('action'),
+                method: $form.attr('method') || 'POST',
+                data: $form.serialize(),
+                headers: {
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'Accept': 'application/json'
+                },
+                success: function(response) {
+                    window.showToast('success', response.message || 'Operation completed successfully!');
+                    if (!$form.hasClass('no-reset')) {
+                        $form[0].reset();
+                    }
+                    setTimeout(async () => {
+                        await window.loadPage(window.location.href);
+                    }, 800);
+                },
+                error: function(xhr) {
+                    if ($submitBtn.length) {
+                        $submitBtn.prop('disabled', false).removeClass('opacity-75').html(originalBtnHtml);
+                    }
+                    
+                    if (xhr.status === 422) {
+                        const responseData = xhr.responseJSON || {};
+                        const errors = responseData.errors || {};
+                        
+                        Object.keys(errors).forEach(key => {
+                            const errorMsg = errors[key].join(', ');
+                            
+                            let selector = `[name="${key}"]`;
+                            
+                            if (key.includes('.')) {
+                                const parts = key.split('.');
+                                const baseName = parts[0];
+                                const index = parseInt(parts[1]);
+                                const $inputs = $form.find(`[name="${baseName}[]"], [name^="${baseName}["]`);
+                                if ($inputs.length && $inputs.eq(index).length) {
+                                    showInlineError($inputs.eq(index), errorMsg);
+                                    return;
+                                }
+                            }
+                            
+                            let $el = $form.find(selector);
+                            if (!$el.length) {
+                                $el = $form.find(`[name="${key}[]"]`);
+                            }
+                            if (!$el.length) {
+                                const parsedKey = key.replace(/\.(\w+)/g, '[$1]');
+                                $el = $form.find(`[name="${parsedKey}"]`);
+                            }
+                            
+                            if ($el.length) {
+                                showInlineError($el.first(), errorMsg);
+                            } else {
+                                showGlobalFormError($form, errorMsg);
+                            }
+                        });
+                    } else {
+                        const message = xhr.responseJSON && xhr.responseJSON.message 
+                            ? xhr.responseJSON.message 
+                            : 'A system network failure occurred. Please try again.';
+                        showGlobalFormError($form, message);
+                    }
+                }
+            });
+        });
+
+        function showInlineError($element, message) {
+            const $errorSpan = $('<span class="val-error text-rose-500 text-xs mt-1 block font-semibold"></span>').text(message);
+            
+            if ($element.is('select') || $element.is('input[type="date"]') || $element.is('input[type="number"]') || $element.is('input[type="text"]')) {
+                $element.after($errorSpan);
+            } else {
+                $element.parent().append($errorSpan);
+            }
+            
+            $element.addClass('border-rose-300 focus:ring-rose-500');
+            
+            // Clear error on user interaction
+            $element.one('focus input change', function() {
+                $errorSpan.remove();
+                $element.removeClass('border-rose-300 focus:ring-rose-500');
+            });
         }
+
+        function showGlobalFormError($form, message) {
+            let $alert = $form.find('.form-alert');
+            if (!$alert.length) {
+                $alert = $('<div class="form-alert bg-rose-50 border-rose-200 text-rose-800 p-4 rounded-xl border text-xs mb-4"></div>');
+                $form.prepend($alert);
+            }
+            $alert.removeClass('hidden').html(`<strong>Submission Failed:</strong> ${message}`);
+        }
+
+        // Expose showToast globally
+        window.showToast = function(type, message) {
+            const $toast = $('#globalToast');
+            const $icon = $('#toastIcon');
+            const $msgText = $('#toastMessage');
+            if (!$toast.length || !$icon.length || !$msgText.length) return;
+            
+            $msgText.text(message);
+            
+            if (type === 'success') {
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>');
+            } else {
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
+            }
+            
+            $toast.removeClass('translate-y-[-100px] opacity-0').addClass('translate-y-0 opacity-100');
+            
+            setTimeout(() => {
+                $toast.removeClass('translate-y-0 opacity-100').addClass('translate-y-[-100px] opacity-0');
+            }, 3000);
+        };
     });
-
-    function createFormAlert(form) {
-        const div = document.createElement('div');
-        div.className = 'form-alert hidden text-sm p-4 rounded-xl border mb-4';
-        form.insertBefore(div, form.firstChild);
-        return div;
-    }
-    
-    function displayFormErrors(alertBox, errors) {
-        alertBox.className = 'form-alert bg-rose-50 border-rose-200 text-rose-800 p-4 rounded-xl border text-xs mb-4';
-        alertBox.innerHTML = `<strong>Submission Failed:</strong> <ul class="list-disc list-inside space-y-0.5">${errors.map(err => `<li>${err}</li>`).join('')}</ul>`;
-    }
-    
-    function resetSubmitButton(btn, originalHtml) {
-        btn.disabled = false;
-        btn.classList.remove('opacity-75');
-        btn.innerHTML = originalHtml;
-    }
-
-    // Expose showToast globally
-    window.showToast = function(type, message) {
-        const toast = document.getElementById('globalToast');
-        const icon = document.getElementById('toastIcon');
-        const msgText = document.getElementById('toastMessage');
-        if (!toast || !icon || !msgText) return;
-        
-        msgText.innerText = message;
-        
-        if (type === 'success') {
-            icon.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600';
-            icon.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
-        } else {
-            icon.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600';
-            icon.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
-        }
-        
-        toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-        toast.classList.add('translate-y-0', 'opacity-100');
-        
-        setTimeout(() => {
-            toast.classList.remove('translate-y-0', 'opacity-100');
-            toast.classList.add('translate-y-[-100px]', 'opacity-0');
-        }, 3000);
-    };
 });
