@@ -28,6 +28,12 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Billing / Corporate Email Address</label>
+                        <input type="email" name="client_email" placeholder="e.g. billing@balajiwafers.com" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GSTIN Registration Number</label>
                         <input type="text" name="gst_number" placeholder="e.g. 24AAAAB1111A1Z1" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
@@ -112,7 +118,11 @@
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                             <div>
                                 <h3 class="text-lg font-bold text-slate-800">{{ $c->company_name }}</h3>
-                                <span class="text-xs text-slate-500 font-mono">GSTIN: <span class="font-bold">{{ $c->gst_number }}</span></span>
+                                <div class="flex flex-wrap gap-x-4 text-xs text-slate-500 font-mono mt-1">
+                                    <span>GSTIN: <span class="font-bold text-slate-700">{{ $c->gst_number }}</span></span>
+                                    <span class="text-slate-300">|</span>
+                                    <span>Email: <span class="font-bold text-slate-700 font-sans">{{ $c->client_email }}</span></span>
+                                </div>
                             </div>
                             <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">
                                 {{ $c->plants->count() }} plants registered

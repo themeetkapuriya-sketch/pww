@@ -166,6 +166,7 @@ class DatabaseSeeder extends Seeder
         // 5. Create B2B Client & Plants
         $client = Client::create([
             'company_name' => 'Balaji Wafers HQ',
+            'client_email' => 'themeetkapuriya@gmail.com',
             'gst_number' => '24AAACB1234A1Z9',
             'corporate_address' => 'Vajdi GIDC, Kalawad Road, Rajkot - 360021, Gujarat, India',
         ]);

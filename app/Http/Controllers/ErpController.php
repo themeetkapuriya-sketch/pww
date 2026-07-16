@@ -299,6 +299,7 @@ class ErpController extends Controller
     {
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
+            'client_email' => 'required|email|max:255',
             'gst_number' => 'required|string|max:50',
             'corporate_address' => 'required|string',
         ]);
@@ -551,6 +552,72 @@ class ErpController extends Controller
             return response()->json([
                 'success' => false,
                 'errors' => ['Failed to update payment status: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Send Invoice via Email (AJAX).
+     */
+    public function sendInvoiceEmail($id)
+    {
+        try {
+            $invoice = Invoice::with([
+                'deliveryChallan.client', 
+                'deliveryChallan.plant', 
+                'deliveryChallan.items.finishedGood',
+                'deliveryChallans.plant',
+                'deliveryChallans.items.finishedGood'
+            ])->findOrFail($id);
+
+            $primaryChallan = $invoice->deliveryChallan;
+            $client = $primaryChallan ? $primaryChallan->client : null;
+            $plant = $primaryChallan ? $primaryChallan->plant : null;
+
+            if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
+                $first = $invoice->deliveryChallans->first();
+                $client = $first->client;
+                $plant = $first->plant;
+            }
+
+            if (!$client || !$client->client_email) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['Corporate client email is not configured for ' . ($client->company_name ?? 'this client') . '!']
+                ], 422);
+            }
+
+            $items = collect();
+            if ($primaryChallan) {
+                $items = $items->concat($primaryChallan->items);
+            }
+            foreach ($invoice->deliveryChallans as $dc) {
+                if ($dc->id !== ($primaryChallan->id ?? null)) {
+                    $items = $items->concat($dc->items);
+                }
+            }
+
+            $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
+                $firstItem = $group->first();
+                return (object)[
+                    'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
+                    'sku' => $firstItem->finishedGood->sku ?? 'N/A',
+                    'quantity' => $group->sum('quantity'),
+                    'unit_price' => $firstItem->unit_price
+                ];
+            });
+
+            \Illuminate\Support\Facades\Mail::to($client->client_email)
+                ->send(new \App\Mail\InvoiceMail($invoice, $client, $plant, $groupedItems));
+
+            return response()->json([
+                'success' => true,
+                'message' => "Invoice '{$invoice->invoice_number}' sent to {$client->client_email} successfully!"
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to send invoice email: ' . $e->getMessage()]
             ], 500);
         }
     }
