@@ -121,7 +121,7 @@
 
     <!-- Section 2: Convert Challans (Bulk mapping) -->
     <div id="section-challan-converter" class="{{ $tab === 'challan-converter' ? 'space-y-6' : 'hidden' }}">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 max-w-3xl">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 class="text-base font-bold text-slate-800 mb-2">Convert Dispatched Challans</h3>
             <p class="text-xs text-slate-500 mb-4">Select one or multiple delivery challans dispatched to Balaji Wafers plants to generate a combined tax compliance invoice.</p>
             
@@ -231,7 +231,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-[#1E73BE] hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 text-sm">
+                    <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 text-sm">
                         Generate & Save Invoice
                     </button>
                 </form>

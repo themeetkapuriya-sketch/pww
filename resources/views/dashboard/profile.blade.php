@@ -39,7 +39,7 @@
                     </div>
 
                     <div class="pt-2">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                        <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
                             Save
                         </button>
                     </div>
@@ -74,7 +74,7 @@
                     </div>
 
                     <div class="pt-2">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                        <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
                             Save
                         </button>
                     </div>

@@ -443,7 +443,7 @@
                                 </div>
                             @endforeach
                         </div>
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition duration-150 text-sm mt-4">
+                        <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition duration-150 text-sm mt-4">
                             Approve & Disburse Compiled Wages
                         </button>
                     </form>
@@ -491,7 +491,7 @@
                         <input type="text" name="description" placeholder="Include plant name (e.g. Rajkot Plant) for freight" class="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
-                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition duration-150 text-sm">
+                    <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition duration-150 text-sm">
                         Record Expense
                     </button>
                 </form>

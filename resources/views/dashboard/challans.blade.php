@@ -83,7 +83,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+            <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
                 Record Dispatch Challan
             </button>
         </form>
