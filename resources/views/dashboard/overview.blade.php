@@ -89,7 +89,7 @@
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                 Revenue vs Expenses Trend (Last 6 Months)
             </h3>
-            <div class="relative flex-grow min-h-[250px]">
+            <div class="relative h-[260px] w-full">
                 <canvas id="revenueExpensesChart"></canvas>
             </div>
         </div>
@@ -100,7 +100,7 @@
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
                 Expense Distribution
             </h3>
-            <div class="relative flex-grow min-h-[250px] flex items-center justify-center">
+            <div class="relative h-[260px] w-full flex items-center justify-center">
                 @if (empty($expenseCategories))
                     <div class="text-center text-slate-400 py-10">No expenses recorded in this period.</div>
                 @else

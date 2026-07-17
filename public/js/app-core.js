@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newContent = doc.getElementById('page-content');
                 
                 if (newContent) {
-                    $('#page-content').html(newContent.innerHTML);
+                    document.getElementById('page-content').innerHTML = newContent.innerHTML;
                     document.title = doc.title;
                     
                     if (window.location.href !== url) {
