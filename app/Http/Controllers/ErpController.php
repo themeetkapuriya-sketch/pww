@@ -403,7 +403,10 @@ class ErpController extends Controller
      */
     public function invoices(Request $request)
     {
-        $tab = $request->input('tab', 'ledger');
+        $tab = $request->input('tab', 'manual-builder');
+        if ($tab === 'ledger') {
+            $tab = 'manual-builder';
+        }
         $invoices = Invoice::with(['deliveryChallans.plant', 'deliveryChallan.client'])->orderBy('created_at', 'desc')->paginate(20);
         $pendingChallans = DeliveryChallan::where('status', 'pending_invoice')->with('client', 'plant', 'items.finishedGood')->get();
         $finishedGoods = FinishedGood::all();
