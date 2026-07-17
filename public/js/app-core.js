@@ -212,10 +212,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 `);
             }
             
+            let ajaxData;
+            let processData = true;
+            let contentType = 'application/x-www-form-urlencoded; charset=UTF-8';
+
+            if ($form.attr('enctype') === 'multipart/form-data') {
+                ajaxData = new FormData($form[0]);
+                processData = false;
+                contentType = false;
+            } else {
+                ajaxData = $form.serialize();
+            }
+
             $.ajax({
                 url: $form.attr('action'),
                 method: $form.attr('method') || 'POST',
-                data: $form.serialize(),
+                data: ajaxData,
+                processData: processData,
+                contentType: contentType,
                 headers: {
                     'X-CSRF-TOKEN': getCsrfToken(),
                     'Accept': 'application/json'

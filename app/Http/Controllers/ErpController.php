@@ -928,4 +928,44 @@ class ErpController extends Controller
             'message' => 'Password updated successfully!'
         ]);
     }
+
+    /**
+     * Update Business Profile and Settings.
+     */
+    public function updateBusinessSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'business_name' => 'required|string|max:255',
+            'business_subtitle' => 'required|string|max:255',
+            'address_line_1' => 'required|string|max:255',
+            'address_line_2' => 'required|string|max:255',
+            'gstin' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        try {
+            \App\Models\Setting::set('business_name', $validated['business_name']);
+            \App\Models\Setting::set('business_subtitle', $validated['business_subtitle']);
+            \App\Models\Setting::set('address_line_1', $validated['address_line_1']);
+            \App\Models\Setting::set('address_line_2', $validated['address_line_2']);
+            \App\Models\Setting::set('gstin', $validated['gstin']);
+
+            if ($request->hasFile('logo')) {
+                $file = $request->file('logo');
+                $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads'), $filename);
+                \App\Models\Setting::set('logo_path', 'uploads/' . $filename);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Business settings updated successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to save business settings: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
 }

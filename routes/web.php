@@ -67,5 +67,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ErpController::class, 'profile'])->name('profile');
     Route::post('/profile/update', [ErpController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/password', [ErpController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/profile/business', [ErpController::class, 'updateBusinessSettings'])->name('profile.business');
 });
 

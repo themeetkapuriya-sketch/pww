@@ -669,4 +669,42 @@ class ErpFlowTest extends TestCase
         $response->assertSee('Special Rack X');
         $response->assertSee('SRX-99');
     }
+
+    /**
+     * Test Update Business Settings and logo file upload.
+     */
+    public function test_update_business_settings()
+    {
+        $user = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@pww.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $file = \Illuminate\Http\UploadedFile::fake()->create('business_logo.png', 100, 'image/png');
+
+        $response = $this->actingAs($user)->post(route('profile.business'), [
+            'business_name' => 'Custom Weld Inc',
+            'business_subtitle' => 'Industrial Fabrication Division',
+            'address_line_1' => 'GIDC Plot 100',
+            'address_line_2' => 'Baroda, Gujarat',
+            'gstin' => '24CUSTOM1234A1Z9',
+            'logo' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Business settings updated successfully!'
+        ]);
+
+        $this->assertEquals('Custom Weld Inc', \App\Models\Setting::get('business_name'));
+        $this->assertEquals('Industrial Fabrication Division', \App\Models\Setting::get('business_subtitle'));
+        $this->assertEquals('GIDC Plot 100', \App\Models\Setting::get('address_line_1'));
+        $this->assertEquals('Baroda, Gujarat', \App\Models\Setting::get('address_line_2'));
+        $this->assertEquals('24CUSTOM1234A1Z9', \App\Models\Setting::get('gstin'));
+        $this->assertStringContainsString('uploads/logo_', \App\Models\Setting::get('logo_path'));
+    }
 }

@@ -75,10 +75,10 @@
         <!-- Top header: Brand and Invoice Meta -->
         <div class="flex flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
             <div class="flex items-center space-x-3">
-                <img src="{{ asset('logo.jpg') }}" alt="PWW Logo" class="w-10 h-10 object-contain rounded-lg border border-slate-100">
+                <img src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="PWW Logo" class="w-10 h-10 object-contain rounded-lg border border-slate-100">
                 <div>
-                    <h1 class="text-base font-extrabold text-slate-800 uppercase tracking-tight leading-none">Praful Welding Works</h1>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">Heavy Fabrication & Industrial Racks ERP</p>
+                    <h1 class="text-base font-extrabold text-slate-800 uppercase tracking-tight leading-none">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}</p>
                 </div>
             </div>
             <div class="text-right">
@@ -92,11 +92,11 @@
             <!-- Vendor (PWW) -->
             <div>
                 <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Seller (Issued By)</span>
-                <div class="font-bold text-slate-800">Praful Welding Works</div>
+                <div class="font-bold text-slate-800">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</div>
                 <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                    Plot No. 12, G.I.D.C. Metoda,<br>
-                    Rajkot, Gujarat - 360021<br>
-                    <span class="font-semibold text-slate-600 font-mono">GSTIN: 24PWWRK1234A1Z0</span>
+                    {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}<br>
+                    {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
+                    <span class="font-semibold text-slate-600 font-mono">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
                 </div>
             </div>
 

@@ -26,6 +26,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed default business settings
+        \App\Models\Setting::updateOrCreate(['key' => 'business_name'], ['value' => 'Praful Welding Works']);
+        \App\Models\Setting::updateOrCreate(['key' => 'business_subtitle'], ['value' => 'Heavy Fabrication & Industrial Racks ERP']);
+        \App\Models\Setting::updateOrCreate(['key' => 'address_line_1'], ['value' => 'Plot No. 12, G.I.D.C. Metoda,']);
+        \App\Models\Setting::updateOrCreate(['key' => 'address_line_2'], ['value' => 'Rajkot, Gujarat - 360021']);
+        \App\Models\Setting::updateOrCreate(['key' => 'gstin'], ['value' => '24PWWRK1234A1Z0']);
+        \App\Models\Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'logo.jpg']);
+
         // Prevent duplicate seeding if data already exists
         if (User::where('email', 'pww@example.com')->exists()) {
             return;

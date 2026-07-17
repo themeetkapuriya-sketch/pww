@@ -83,5 +83,82 @@
         </div>
 
     </div>
+
+    <!-- Form 3: Business Settings (Full Width below) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mt-8">
+        <h2 class="text-xl font-bold text-slate-800">Business Profile & Invoice Settings</h2>
+        <p class="text-xs text-slate-400 mt-1 mb-6">Manage the business details, GSTIN compliance, and logo used on printable tax invoices and the main panel.</p>
+        
+        <form action="{{ route('profile.business') }}" method="POST" enctype="multipart/form-data" class="ajax-form no-reset space-y-6">
+            @csrf
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business / Company Name</label>
+                    <input type="text" name="business_name" value="{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Subtitle / Tagline</label>
+                    <input type="text" name="business_subtitle" value="{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GSTIN Number</label>
+                    <input type="text" name="gstin" value="{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Address Line 1</label>
+                    <input type="text" name="address_line_1" value="{{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Address Line 2</label>
+                    <input type="text" name="address_line_2" value="{{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6">
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-3">Company Brand Logo</label>
+                <div class="flex items-center space-x-6">
+                    <div class="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <img id="logo-preview-img" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo" class="w-full h-full object-contain">
+                    </div>
+                    <div class="flex-grow">
+                        <input type="file" name="logo" accept="image/*" id="logo-file-input"
+                               class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-[10px] text-slate-400 mt-1.5">Recommended: Square PNG format. Maximum file size: 2MB.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end">
+                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                    Save Business Profile
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.getElementById('logo-file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('logo-preview-img').src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 @endsection

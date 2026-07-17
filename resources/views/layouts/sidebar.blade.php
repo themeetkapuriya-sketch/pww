@@ -3,10 +3,10 @@
     <!-- Sidebar Brand Header -->
     <div class="sidebar-header px-4 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <div class="sidebar-brand-container flex items-center space-x-2.5 min-w-0">
-            <!-- PWW Brand Image Logo -->
-            <img class="h-9 w-9 object-contain rounded-lg flex-shrink-0 border border-slate-100" src="{{ asset('logo.jpg') }}" alt="PWW Logo">
+            <!-- Brand Image Logo -->
+            <img class="h-9 w-9 object-contain rounded-lg flex-shrink-0 border border-slate-100" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Business Logo">
             <div class="sidebar-header-text flex flex-col min-w-0">
-                <span class="text-xs font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">Praful Welding Works</span>
+                <span class="text-xs font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span>
                 <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ERP Portal</span>
             </div>
         </div>
