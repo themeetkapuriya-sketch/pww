@@ -115,16 +115,16 @@
 
                         <div id="billingRowsContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                             <!-- Custom Row template -->
-                            <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200 text-xs">
-                                <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded p-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500" required>
+                            <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <option value="">Select product...</option>
                                     @foreach ($finishedGoods as $g)
                                         <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" name="quantities[]" min="1" placeholder="Qty" value="1" class="w-16 bg-white border border-slate-200 rounded p-1 text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-20 bg-white border border-slate-200 rounded p-1 text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                                <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold">✕</button>
+                                <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                             </div>
                         </div>
                     </div>
@@ -285,7 +285,7 @@
         const clone = originalRow.cloneNode(true);
         // Reset values
         clone.querySelector('select').value = '';
-        clone.querySelector('input[name="quantities[]"]').value = 1;
+        clone.querySelector('input[name="quantities[]"]').value = '';
         clone.querySelector('input[name="unit_prices[]"]').value = '';
         
         billingRowsContainer.appendChild(clone);
@@ -304,6 +304,8 @@
                     const priceInput = row.querySelector('input[name="unit_prices[]"]');
                     if (priceInput) {
                         priceInput.value = price || '';
+                        priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        priceInput.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }
             }

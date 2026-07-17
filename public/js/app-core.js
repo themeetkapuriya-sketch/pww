@@ -231,6 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
+                if (!errorMsg && $input.attr('type') === 'number' && val !== '' && val !== null && val !== undefined) {
+                    const numVal = parseFloat(val);
+                    const minVal = parseFloat($input.attr('min'));
+                    if (!isNaN(minVal) && numVal < minVal) {
+                        if ($input.attr('name') && $input.attr('name').includes('quantities')) {
+                            errorMsg = 'Quantity must be greater than 0.';
+                        } else {
+                            errorMsg = `Value must be at least ${minVal}.`;
+                        }
+                    }
+                }
+
                 if (!errorMsg && $input.attr('type') === 'email' && val) {
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                     if (!emailRegex.test(val)) {
@@ -348,43 +360,61 @@ document.addEventListener('DOMContentLoaded', () => {
         function showInlineError($element, message) {
             clearInlineError($element);
 
-            // Create error text label above input (Image 2 style)
-            const $errorLabel = $('<span class="val-error text-red-600 text-xs font-bold mb-1 block"></span>').text(message);
-            
             // Add red border classes to the element
             $element.addClass('border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-opacity-50 text-red-900 bg-red-50/10');
 
-            const isTextInput = $element.is('textarea') || 
-                                ($element.is('input') && ['text', 'number', 'email', 'password', 'date', 'tel', 'url'].includes($element.attr('type') || 'text'));
+            // Detect if element is part of an inline/flex table row (e.g. manual builder dynamic rows)
+            const isInline = $element.closest('.flex-row, .flex, table, tr, td, .billing-row, .item-row').length > 0 && 
+                             ($element.attr('name') && ($element.attr('name').includes('[]') || $element.attr('name').includes('[')));
 
-            if (isTextInput) {
-                // Wrap in a relative container to position the icon inside on the right
-                const $wrapper = $('<div class="val-error-wrapper relative w-full"></div>');
-                $element.wrap($wrapper);
-
-                const $icon = $(`
-                    <div class="val-error-icon absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-red-500">
-                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                `);
-                $element.after($icon);
-
-                // Label goes before the wrapper
-                $element.parent().before($errorLabel);
+            if (isInline) {
+                // For inline fields, keep the layout 100% untouched. Store and use native tooltip title.
+                const originalTitle = $element.attr('title') || '';
+                $element.data('original-title', originalTitle);
+                $element.attr('title', message);
             } else {
-                // For select, checkboxes, file inputs etc.
-                $element.before($errorLabel);
+                // Create error text label above input (Image 2 style)
+                const $errorLabel = $('<span class="val-error text-red-600 text-xs font-bold mb-1 block"></span>').text(message);
+
+                const isTextInput = $element.is('textarea') || 
+                                    ($element.is('input') && ['text', 'number', 'email', 'password', 'date', 'tel', 'url'].includes($element.attr('type') || 'text'));
+
+                if (isTextInput) {
+                    // Wrap in a relative container to position the icon inside on the right
+                    const $wrapper = $('<div class="val-error-wrapper relative w-full"></div>');
+                    $element.wrap($wrapper);
+
+                    const $icon = $(`
+                        <div class="val-error-icon absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-red-500">
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    `);
+                    $element.after($icon);
+
+                    // Label goes before the wrapper
+                    $element.parent().before($errorLabel);
+                } else {
+                    // For select, checkboxes, file inputs etc.
+                    $element.before($errorLabel);
+                }
             }
 
-            // Clear error on user interaction
-            $element.one('focus input change', function() {
+            // Clear error on user interaction (excluding focus to avoid clearing on initial focus focus)
+            $element.one('input change', function() {
                 clearInlineError($element);
             });
         }
 
         function clearInlineError($element) {
+            const originalTitle = $element.data('original-title');
+            if (originalTitle !== undefined) {
+                if (originalTitle) $element.attr('title', originalTitle);
+                else $element.removeAttr('title');
+                $element.removeData('original-title');
+            }
+
             const $wrapper = $element.closest('.val-error-wrapper');
             if ($wrapper.length) {
                 $wrapper.prev('.val-error').remove();

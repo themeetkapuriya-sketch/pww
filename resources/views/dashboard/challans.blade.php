@@ -192,7 +192,10 @@
             const opt = this.options[this.selectedIndex];
             const price = opt.getAttribute('data-price');
             if (price) {
-                clone.querySelector('input[name="unit_prices[]"]').value = price;
+                const priceInput = clone.querySelector('input[name="unit_prices[]"]');
+                priceInput.value = price;
+                priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                priceInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
 
@@ -204,7 +207,10 @@
         const opt = this.options[this.selectedIndex];
         const price = opt.getAttribute('data-price');
         if (price) {
-            document.querySelector('.item-row input[name="unit_prices[]"]').value = price;
+            const priceInput = document.querySelector('.item-row input[name="unit_prices[]"]');
+            priceInput.value = price;
+            priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+            priceInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
     });
 
