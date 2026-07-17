@@ -107,9 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         history.pushState(null, '', url);
                     }
                     
-                    executeScripts($('#page-content')[0]);
                     initializeForms();
                     updateActiveSidebarLinks(url);
+                    setTimeout(() => {
+                        executeScripts($('#page-content')[0]);
+                    }, 50);
                 } else {
                     window.location.href = url;
                 }
