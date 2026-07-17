@@ -193,11 +193,62 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!$form.hasClass('ajax-form')) return;
             e.preventDefault();
             
-            // Clear previous errors
-            $form.find('.val-error').remove();
-            $form.find('.form-alert').addClass('hidden').html('');
-            $form.find('input, select, textarea').removeClass('border-rose-300 focus:ring-rose-500');
+            // Disable browser default tooltip popups dynamically
+            $form.attr('novalidate', 'novalidate');
             
+            // Clear previous validation states
+            $form.find('input, select, textarea').each(function() {
+                clearInlineError($(this));
+            });
+            $form.find('.form-alert').addClass('hidden').html('');
+
+            // Client-side validation check
+            let hasErrors = false;
+            $form.find('input, select, textarea').each(function() {
+                const $input = $(this);
+                if ($input.is(':disabled') || $input.is(':submit') || $input.is(':button') || $input.attr('type') === 'hidden') return;
+
+                const val = $input.val();
+                let errorMsg = '';
+
+                if ($input.prop('required') && (!val || val.toString().trim() === '')) {
+                    let labelText = '';
+                    const $label = $input.prev('label').length ? $input.prev('label') : $input.closest('div').find('label').first();
+                    if ($label.length) {
+                        labelText = $label.clone().children().remove().end().text().trim();
+                    }
+                    if (!labelText) {
+                        labelText = $input.attr('placeholder') || 'this field';
+                    }
+                    labelText = labelText.replace(/[:*₹(]/g, '').trim().toLowerCase();
+                    errorMsg = `Please enter the ${labelText || 'required information'}.`;
+                    
+                    if ($input.attr('name') === 'email') {
+                        errorMsg = 'Please enter a valid email address.';
+                    } else if ($input.attr('name') === 'password') {
+                        errorMsg = 'Please enter your password.';
+                    }
+                }
+
+                if (!errorMsg && $input.attr('type') === 'email' && val) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(val)) {
+                        errorMsg = 'Please enter a valid email address.';
+                    }
+                }
+
+                if (errorMsg) {
+                    showInlineError($input, errorMsg);
+                    hasErrors = true;
+                }
+            });
+
+            if (hasErrors) {
+                // Focus first errored field
+                $form.find('.border-red-500').first().focus();
+                return;
+            }
+
             const $submitBtn = $form.find('button[type="submit"]');
             const originalBtnHtml = $submitBtn.length ? $submitBtn.html() : '';
             
@@ -294,21 +345,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         function showInlineError($element, message) {
-            const $errorSpan = $('<span class="val-error text-rose-500 text-xs mt-1 block font-semibold"></span>').text(message);
+            clearInlineError($element);
+
+            // Create error text label above input (Image 2 style)
+            const $errorLabel = $('<span class="val-error text-red-600 text-xs font-bold mb-1 block"></span>').text(message);
             
-            if ($element.is('select') || $element.is('input[type="date"]') || $element.is('input[type="number"]') || $element.is('input[type="text"]')) {
-                $element.after($errorSpan);
+            // Add red border classes to the element
+            $element.addClass('border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-opacity-50 text-red-900 bg-red-50/10');
+
+            const isTextInput = $element.is('textarea') || 
+                                ($element.is('input') && ['text', 'number', 'email', 'password', 'date', 'tel', 'url'].includes($element.attr('type') || 'text'));
+
+            if (isTextInput) {
+                // Wrap in a relative container to position the icon inside on the right
+                const $wrapper = $('<div class="val-error-wrapper relative w-full"></div>');
+                $element.wrap($wrapper);
+
+                const $icon = $(`
+                    <div class="val-error-icon absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-red-500">
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                `);
+                $element.after($icon);
+
+                // Label goes before the wrapper
+                $element.parent().before($errorLabel);
             } else {
-                $element.parent().append($errorSpan);
+                // For select, checkboxes, file inputs etc.
+                $element.before($errorLabel);
             }
-            
-            $element.addClass('border-rose-300 focus:ring-rose-500');
-            
+
             // Clear error on user interaction
             $element.one('focus input change', function() {
-                $errorSpan.remove();
-                $element.removeClass('border-rose-300 focus:ring-rose-500');
+                clearInlineError($element);
             });
+        }
+
+        function clearInlineError($element) {
+            const $wrapper = $element.closest('.val-error-wrapper');
+            if ($wrapper.length) {
+                $wrapper.prev('.val-error').remove();
+                $wrapper.find('.val-error-icon').remove();
+                $element.unwrap();
+            } else {
+                $element.prev('.val-error').remove();
+                $element.next('.val-error').remove();
+            }
+            $element.removeClass('border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-opacity-50 text-red-900 bg-red-50/10');
         }
 
         function showGlobalFormError($form, message) {
