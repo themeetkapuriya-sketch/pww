@@ -13,7 +13,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 0;
         }
         body {
             font-family: 'Outfit', sans-serif;
@@ -23,9 +23,13 @@
             print-color-adjust: exact;
         }
         @media print {
+            @page {
+                margin: 0;
+            }
             body {
                 background-color: #ffffff;
                 color: #000000;
+                padding: 10mm !important;
             }
             .no-print {
                 display: none !important;
