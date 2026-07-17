@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     executeScripts($('#page-content')[0]);
+                    initializeForms();
                     updateActiveSidebarLinks(url);
                 } else {
                     window.location.href = url;
@@ -428,5 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 $toast.removeClass('translate-y-0 opacity-100').addClass('translate-y-[-100px] opacity-0');
             }, 3000);
         };
+
+        function initializeForms() {
+            $('form').attr('novalidate', 'novalidate');
+        }
+
+        // Run initial forms setup on DOM ready
+        initializeForms();
     });
 });
