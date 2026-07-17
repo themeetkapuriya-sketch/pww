@@ -16,7 +16,7 @@
     </div>
 
     <!-- Forms Layout Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" style="display: none !important;">
         
         <!-- Form 1: Profile Information -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col justify-between">
