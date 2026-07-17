@@ -272,6 +272,103 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add Invoice Record Ledger under the custom builder -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mt-6">
+            <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                Corporate Invoice Ledger
+            </h3>
+            
+            @if ($invoices->isEmpty())
+                <div class="text-center text-slate-400 py-10">No invoices generated yet.</div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Invoice No</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Destination</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Taxable Value</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">CGST+SGST</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">IGST</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Total Amount</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach ($invoices as $inv)
+                                @php
+                                    $pName = 'HQ / Custom';
+                                    if ($inv->deliveryChallan && $inv->deliveryChallan->plant) {
+                                        $pName = $inv->deliveryChallan->plant->plant_name;
+                                    } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                                        $pName = $inv->deliveryChallans->first()->plant->plant_name;
+                                    }
+                                @endphp
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-4 py-3 font-semibold text-slate-800">{{ $inv->invoice_number }}</td>
+                                    <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
+                                    <td class="px-4 py-3 text-right text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
+                                    <td class="px-4 py-3 text-right text-slate-600">
+                                        @if ($inv->cgst > 0)
+                                            ₹{{ number_format($inv->cgst + $inv->sgst, 2) }}
+                                            <span class="text-[9px] block text-slate-400">(9% + 9%)</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-slate-600">
+                                        @if ($inv->igst > 0)
+                                            ₹{{ number_format($inv->igst, 2) }}
+                                            <span class="text-[9px] block text-slate-400">(18%)</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                                            {{ $inv->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
+                                               ($inv->payment_status === 'partially_paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                            {{ $inv->payment_status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center space-x-2 whitespace-nowrap">
+                                        <a href="{{ route('invoice.print', $inv->id) }}" target="_blank" 
+                                           class="inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            PDF
+                                        </a>
+
+                                        <form action="{{ route('invoice.email', $inv->id) }}" method="POST" class="ajax-form inline-block">
+                                            @csrf
+                                            <button type="submit" class="bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs inline-flex items-center">
+                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                                Email
+                                            </button>
+                                        </form>
+
+                                        @if ($inv->payment_status !== 'paid')
+                                            <form action="{{ route('invoice.pay', $inv->id) }}" method="POST" class="ajax-form inline-block">
+                                                @csrf
+                                                <button type="submit" class="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs">
+                                                    Mark Paid
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4">
+                    {{ $invoices->appends(request()->query())->links() }}
+                </div>
+            @endif
+        </div>
     </div>
 
 </div>
@@ -293,50 +390,41 @@
         clone.querySelector('input[name="quantities[]"]').value = 1;
         clone.querySelector('input[name="unit_prices[]"]').value = '';
         
-        // Remove button event
-        clone.querySelector('.remove-billing-row-btn').addEventListener('click', function() {
-            if (billingRowsContainer.querySelectorAll('.billing-row').length > 1) {
-                clone.remove();
-                recalculateCustomInvoice();
-            }
-        });
-        
-        // Auto set price & Bind recalculate trigger
-        clone.querySelector('select').addEventListener('change', function() {
-            const opt = this.options[this.selectedIndex];
-            const price = opt.getAttribute('data-price');
-            if (price) {
-                clone.querySelector('input[name="unit_prices[]"]').value = price;
-            }
-            recalculateCustomInvoice();
-        });
-        
-        clone.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', recalculateCustomInvoice);
-        });
-
         billingRowsContainer.appendChild(clone);
         recalculateCustomInvoice();
     });
 
-    // Bind triggers to initial row
-    document.querySelector('.billing-row select').addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        const price = opt.getAttribute('data-price');
-        if (price) {
-            document.querySelector('.billing-row input[name="unit_prices[]"]').value = price;
-        }
-        recalculateCustomInvoice();
-    });
-
-    document.querySelectorAll('.billing-row input').forEach(input => {
-        input.addEventListener('input', recalculateCustomInvoice);
-    });
-
-    document.querySelector('.remove-billing-row-btn').addEventListener('click', function() {
-        if (billingRowsContainer.querySelectorAll('.billing-row').length > 1) {
-            document.querySelector('.billing-row').remove();
+    // Event delegation on billingRowsContainer
+    billingRowsContainer.addEventListener('change', function(e) {
+        if (e.target.name === 'finished_good_ids[]') {
+            const select = e.target;
+            const opt = select.options[select.selectedIndex];
+            if (opt) {
+                const price = opt.getAttribute('data-price');
+                const row = select.closest('.billing-row');
+                if (row) {
+                    const priceInput = row.querySelector('input[name="unit_prices[]"]');
+                    if (priceInput) {
+                        priceInput.value = price || '';
+                    }
+                }
+            }
             recalculateCustomInvoice();
+        }
+    });
+
+    billingRowsContainer.addEventListener('input', function(e) {
+        if (e.target.name === 'quantities[]' || e.target.name === 'unit_prices[]') {
+            recalculateCustomInvoice();
+        }
+    });
+
+    billingRowsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-billing-row-btn')) {
+            if (billingRowsContainer.querySelectorAll('.billing-row').length > 1) {
+                e.target.closest('.billing-row').remove();
+                recalculateCustomInvoice();
+            }
         }
     });
 
@@ -356,8 +444,8 @@
         
         // Check destination state
         const selectedPlantOpt = manualPlantSelect.options[manualPlantSelect.selectedIndex];
-        const state = selectedPlantOpt ? (selectedPlantOpt.getAttribute('data-state') || '') : '';
-        const isGujarat = state.toLowerCase().trim() === 'gujarat';
+        const state = selectedPlantOpt && selectedPlantOpt.getAttribute('data-state') ? selectedPlantOpt.getAttribute('data-state') : '';
+        const isGujarat = state && typeof state === 'string' ? state.toLowerCase().trim() === 'gujarat' : false;
         
         let cgst = 0.00;
         let sgst = 0.00;
@@ -381,5 +469,8 @@
         document.getElementById('live-igst').innerText = '₹' + igst.toFixed(2);
         document.getElementById('live-total').innerText = '₹' + total.toFixed(2);
     }
+
+    // Initialize calculation on page load
+    recalculateCustomInvoice();
 </script>
 @endsection
