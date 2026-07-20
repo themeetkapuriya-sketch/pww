@@ -559,9 +559,6 @@ class ErpController extends Controller
         }
     }
 
-        return view('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
-    }
-
     /**
      * 8. Employees Directory.
      */
