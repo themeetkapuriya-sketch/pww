@@ -2,237 +2,438 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* PDF and Print Optimized Stylesheet */
+        @import url('https://fonts.googleapis.com/css2?family=DejaVu+Sans:wght@300;400;700&display=swap');
+        
         @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 15mm;
         }
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             color: #1e293b;
-            background-color: #f8fafc;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+            line-height: 1.4;
         }
+        .no-print-bar {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background-color: #5287f7;
+            color: white;
+            text-decoration: none;
+        }
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #475569;
+            text-decoration: none;
+        }
+        
+        /* Invoice container */
+        .invoice-box {
+            max-width: 100%;
+            margin: auto;
+            padding: 0;
+        }
+        
+        /* Header table layout */
+        .header-table, .meta-table, .items-table, .totals-table, .footer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .header-table td {
+            vertical-align: middle;
+        }
+        .header-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-right: 12px;
+        }
+        .business-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f172a;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .business-subtitle {
+            font-size: 9px;
+            color: #64748b;
+            margin: 2px 0 0 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .invoice-title-col {
+            text-align: right;
+            vertical-align: top;
+        }
+        .invoice-title {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .invoice-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 2px 0 0 0;
+        }
+        
+        /* Metadata block */
+        .meta-table td {
+            width: 33.33%;
+            vertical-align: top;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .section-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .meta-value {
+            font-size: 10px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .meta-value-bold {
+            font-weight: bold;
+            color: #0f172a;
+        }
+        
+        /* Items Table */
+        .items-table th {
+            background-color: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            color: #64748b;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 8px 10px;
+        }
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .item-name {
+            font-weight: bold;
+            color: #0f172a;
+            font-size: 11px;
+        }
+        .item-sku {
+            font-size: 8px;
+            color: #94a3b8;
+            font-weight: bold;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+        
+        /* Totals & Bank details */
+        .totals-table td {
+            vertical-align: top;
+            padding-top: 15px;
+        }
+        .bank-details-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 9px;
+            color: #475569;
+            line-height: 1.5;
+            width: 250px;
+        }
+        .bank-title {
+            font-weight: bold;
+            color: #0f172a;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .totals-box {
+            float: right;
+            width: 250px;
+        }
+        .total-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 6px;
+            font-size: 10px;
+            color: #475569;
+        }
+        .total-label {
+            display: table-cell;
+            text-align: left;
+        }
+        .total-value {
+            display: table-cell;
+            text-align: right;
+            font-weight: bold;
+            font-family: 'DejaVu Sans', sans-serif;
+        }
+        .grand-total-row {
+            display: table;
+            width: 100%;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        
+        /* Footer signatures */
+        .footer-table {
+            margin-top: 40px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 15px;
+        }
+        .footer-table td {
+            vertical-align: bottom;
+            font-size: 9px;
+            color: #64748b;
+        }
+        .terms-list {
+            margin: 4px 0 0 0;
+            padding-left: 12px;
+            font-size: 8px;
+            color: #94a3b8;
+        }
+        .signature-line {
+            width: 100px;
+            border-bottom: 1px solid #cbd5e1;
+            margin-top: 25px;
+            margin-bottom: 4px;
+        }
+        
         @media print {
-            @page {
-                margin: 0;
+            .no-print-bar {
+                display: none !important;
             }
             body {
                 background-color: #ffffff;
-                color: #000000;
-                padding: 10mm !important;
-            }
-            .no-print {
-                display: none !important;
-            }
-            .print-border {
-                border: 0 !important;
-                box-shadow: none !important;
                 padding: 0 !important;
-                margin: 0 !important;
-            }
-            .invoice-card {
-                box-shadow: none !important;
-                border: none !important;
-                padding: 2mm !important;
-                margin: 0 !important;
             }
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 md:p-6">
+<body>
 
     <!-- Print Control Bar (Hidden on print) -->
-    <div class="max-w-4xl mx-auto no-print mb-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-            <span class="text-xs font-semibold text-slate-600">Tax Invoice View (A4 Print-Optimized)</span>
-            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+    <div class="no-print-bar" style="max-width: 800px; margin: 0 auto 20px auto;">
+        <div>
+            <span style="font-weight: bold; font-size: 12px; color: #334155;">Tax Invoice View (A4 Print-Optimized)</span>
+            <span style="background-color: #e2e8f0; color: #334155; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-left: 8px;">
                 {{ $invoice->payment_status }}
             </span>
         </div>
-        <div class="flex space-x-2">
-            <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs transition">
-                Print / Save as PDF
-            </button>
-            <button onclick="window.close()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 px-3 rounded-lg text-xs transition">
-                Close
-            </button>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary">Print / Save as PDF</button>
+            <button onclick="window.close()" class="btn btn-secondary" style="margin-left: 6px;">Close</button>
         </div>
     </div>
 
-    <!-- Main Invoice Sheet container -->
-    <div class="max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 md:p-8 invoice-card print-border">
+    <!-- Main Invoice Document -->
+    <div class="invoice-box" style="max-width: 800px; margin: auto;">
         
-        <!-- Top header: Brand and Invoice Meta -->
-        <div class="flex flex-row justify-between items-center border-b border-slate-100 pb-4 mb-4">
-            <div class="flex items-center space-x-3">
-                <img src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="PWW Logo" class="w-10 h-10 object-contain rounded-lg border border-slate-100">
-                <div>
-                    <h1 class="text-base font-extrabold text-slate-800 uppercase tracking-tight leading-none">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}</p>
-                </div>
-            </div>
-            <div class="text-right">
-                <h2 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Tax Invoice</h2>
-                <p class="text-lg font-black text-slate-800 mt-1 leading-none">{{ $invoice->invoice_number }}</p>
-            </div>
-        </div>
-
-        <!-- Meta Details grid: Vendor, Client, Dates -->
-        <div class="grid grid-cols-3 gap-6 text-xs mb-6 border-b border-slate-100 pb-4">
-            <!-- Vendor (PWW) -->
-            <div>
-                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Seller (Issued By)</span>
-                <div class="font-bold text-slate-800">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</div>
-                <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                    {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}<br>
-                    {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
-                    <span class="font-semibold text-slate-600 font-mono">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
-                </div>
-            </div>
-
-            <!-- Client Info -->
-            <div>
-                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Billed To (Client)</span>
-                <div class="font-bold text-slate-800">{{ $client->company_name ?? 'N/A' }}</div>
-                <div class="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
-                    {{ $plant->plant_name ?? 'N/A' }} Address:<br>
-                    {{ $plant->shipping_address ?? 'N/A' }}<br>
-                    <span class="font-semibold text-slate-600 font-mono">GSTIN: {{ $client->gst_number ?? 'N/A' }}</span>
-                </div>
-            </div>
-
-            <!-- Invoice Details -->
-            <div class="text-right">
-                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Invoice Details</span>
-                <div class="space-y-0.5 text-[10px] text-slate-500">
-                    <div>Date: <span class="font-bold text-slate-700">{{ $invoice->created_at->format('d M Y') }}</span></div>
-                    <div>Due Date: <span class="font-bold text-slate-700">{{ $invoice->due_date->format('d M Y') }}</span></div>
-                    <div>Payment Status: 
-                        <span class="font-bold uppercase tracking-wider {{ $invoice->payment_status === 'paid' ? 'text-emerald-600' : 'text-rose-600' }}">
-                            {{ $invoice->payment_status }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Line Items Table -->
-        <div class="mb-6">
-            <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                    <tr class="border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
-                        <th class="py-2 pr-4">Items / SKU</th>
-                        <th class="py-2 px-4 text-right">Quantity</th>
-                        <th class="py-2 px-4 text-right font-mono">Unit Rate (₹)</th>
-                        <th class="py-2 pl-4 text-right font-mono">Taxable Value (₹)</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach ($groupedItems as $item)
+        <!-- Header -->
+        <table class="header-table">
+            <tr>
+                <td style="width: 70%;">
+                    <table>
                         <tr>
-                            <td class="py-2.5 pr-4">
-                                <div class="font-bold text-slate-800">{{ $item->product_name }}</div>
-                                <div class="text-[9px] text-slate-400 font-bold tracking-wider font-mono">SKU: {{ $item->sku }}</div>
+                            <td>
+                                <img src="{{ public_path(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Logo" class="header-logo">
                             </td>
-                            <td class="py-2.5 px-4 text-right text-slate-600 font-semibold">{{ $item->quantity }} units</td>
-                            <td class="py-2.5 px-4 text-right text-slate-600 font-mono">₹{{ number_format($item->unit_price, 2) }}</td>
-                            <td class="py-2.5 pl-4 text-right font-bold text-slate-800 font-mono">₹{{ number_format($item->total, 2) }}</td>
+                            <td>
+                                <h1 class="business-title">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
+                                <p class="business-subtitle">{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}</p>
+                            </td>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                    </table>
+                </td>
+                <td class="invoice-title-col">
+                    <h2 class="invoice-title">Tax Invoice</h2>
+                    <p class="invoice-number">{{ $invoice->invoice_number }}</p>
+                </td>
+            </tr>
+        </table>
 
-        <!-- Summary & Totals -->
-        <div class="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100 mb-6">
-            <!-- Bank Details (Left side) -->
-            <div class="text-[10px] text-slate-500 leading-normal bg-slate-50/50 p-3 rounded-lg print:bg-white print:border print:border-slate-200">
-                <span class="block font-bold text-slate-700 uppercase tracking-wider mb-1 text-[9px]">Settlement Bank Accounts</span>
-                <table class="w-full text-left text-[9px] leading-tight">
-                    <tr>
-                        <td class="font-bold text-slate-600 pr-1">Bank Name:</td>
-                        <td>State Bank of India (SBI)</td>
-                    </tr>
-                    <tr>
-                        <td class="font-bold text-slate-600 pr-1">Account:</td>
-                        <td class="font-semibold">Praful Welding Works</td>
-                    </tr>
-                    <tr>
-                        <td class="font-bold text-slate-600 pr-1">A/C No:</td>
-                        <td class="font-mono">33445566778</td>
-                    </tr>
-                    <tr>
-                        <td class="font-bold text-slate-600 pr-1">IFSC:</td>
-                        <td class="font-mono">SBIN0001234</td>
-                    </tr>
-                </table>
-            </div>
+        <!-- Metadata Block -->
+        <table class="meta-table">
+            <tr>
+                <td>
+                    <span class="section-title">Seller (Issued By)</span>
+                    <div class="meta-value">
+                        <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
+                        {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}<br>
+                        {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
+                        <span style="font-weight: bold; color: #475569;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="section-title">Billed To (Client)</span>
+                    <div class="meta-value">
+                        <span class="meta-value-bold">{{ $client->client_name ?? 'N/A' }}</span><br>
+                        {{ $plant->plant_name ?? 'N/A' }} Address:<br>
+                        {{ $plant->destination_address ?? 'N/A' }}<br>
+                        <span style="font-weight: bold; color: #475569;">GSTIN: {{ $client->gstin ?? 'N/A' }}</span>
+                    </div>
+                </td>
+                <td style="text-align: right;">
+                    <span class="section-title">Invoice Details</span>
+                    <div class="meta-value">
+                        Date: <span class="meta-value-bold">{{ $invoice->created_at->format('d M Y') }}</span><br>
+                        Due Date: <span class="meta-value-bold">{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : \Carbon\Carbon::parse($invoice->created_at)->addDays(30)->format('d M Y') }}</span><br>
+                        Status: <span class="meta-value-bold" style="text-transform: uppercase; color: {{ $invoice->payment_status === 'paid' ? '#059669' : '#e11d48' }}">{{ $invoice->payment_status }}</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
-            <!-- Tax Computation breakdown (Right side) -->
-            <div class="flex flex-col space-y-1.5 text-xs items-end">
-                <div class="flex justify-between w-full max-w-xs text-slate-500 text-[11px]">
-                    <span>Taxable Subtotal:</span>
-                    <span class="font-bold font-mono">₹{{ number_format($invoice->total_taxable_value, 2) }}</span>
-                </div>
-                
-                @if ($invoice->cgst > 0)
-                    <div class="flex justify-between w-full max-w-xs text-slate-500 text-[11px]">
-                        <span>CGST (9.0%):</span>
-                        <span class="font-bold font-mono">₹{{ number_format($invoice->cgst, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between w-full max-w-xs text-slate-500 text-[11px]">
-                        <span>SGST (9.0%):</span>
-                        <span class="font-bold font-mono">₹{{ number_format($invoice->sgst, 2) }}</span>
-                    </div>
-                @else
-                    <div class="flex justify-between w-full max-w-xs text-slate-500 text-[11px]">
-                        <span>IGST (18.0%):</span>
-                        <span class="font-bold font-mono">₹{{ number_format($invoice->igst, 2) }}</span>
-                    </div>
-                @endif
+        <!-- Items Table -->
+        <table class="items-table" style="margin-top: 15px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; width: 50%;">Items / SKU</th>
+                    <th style="text-align: right; width: 15%;">Quantity</th>
+                    <th style="text-align: right; width: 15%;">Unit Rate</th>
+                    <th style="text-align: right; width: 20%;">Taxable Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($groupedItems as $item)
+                    <tr>
+                        <td>
+                            <div class="item-name">{{ $item->product_name }}</div>
+                            <div class="item-sku">SKU: {{ $item->sku }}</div>
+                        </td>
+                        <td style="text-align: right; font-weight: bold;">{{ $item->quantity }} units</td>
+                        <td style="text-align: right; font-family: 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
+                        <td style="text-align: right; font-weight: bold; font-family: 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->total, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
 
-                <div class="flex justify-between w-full max-w-xs border-t border-slate-100 pt-2 text-sm font-black text-slate-800">
-                    <span>Total Amount:</span>
-                    <span class="font-mono text-base text-slate-900">₹{{ number_format($invoice->total_amount, 2) }}</span>
-                </div>
-            </div>
-        </div>
+        <!-- Summary Block -->
+        <table class="totals-table">
+            <tr>
+                <td style="width: 55%;">
+                    <div class="bank-details-box">
+                        <span class="bank-title">Settlement Bank Accounts</span>
+                        <table>
+                            <tr>
+                                <td style="font-weight: bold; color: #475569; width: 75px; padding: 2px 0;">Bank Name:</td>
+                                <td>State Bank of India (SBI)</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">Account:</td>
+                                <td>Praful Welding Works</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">A/C No:</td>
+                                <td style="font-weight: bold;">33445566778</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">IFSC:</td>
+                                <td style="font-weight: bold;">SBIN0001234</td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+                <td style="width: 45%;">
+                    <div class="totals-box">
+                        <div class="total-row">
+                            <span class="total-label">Taxable Subtotal:</span>
+                            <span class="total-value">&#8377;{{ number_format($invoice->taxable_amount, 2) }}</span>
+                        </div>
+                        
+                        @if ($invoice->igst > 0)
+                            <div class="total-row">
+                                <span class="total-label">IGST (18.0%):</span>
+                                <span class="total-value">&#8377;{{ number_format($invoice->igst, 2) }}</span>
+                            </div>
+                        @else
+                            <div class="total-row">
+                                <span class="total-label">CGST (9.0%):</span>
+                                <span class="total-value">&#8377;{{ number_format($invoice->cgst, 2) }}</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="total-label">SGST (9.0%):</span>
+                                <span class="total-value">&#8377;{{ number_format($invoice->sgst, 2) }}</span>
+                            </div>
+                        @endif
+
+                        <div class="grand-total-row">
+                            <span class="total-label" style="font-weight: bold;">Total Amount:</span>
+                            <span class="total-value" style="font-size: 14px; color: #5287f7; font-weight: bold;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
         <!-- Bottom Terms & Signatures -->
-        <div class="flex flex-row justify-between items-end gap-6 text-[10px] text-slate-400 mt-8 pt-4 border-t border-slate-100">
-            <div>
-                <span class="block font-bold text-slate-500 uppercase tracking-wider mb-1 text-[8px]">Terms & Conditions</span>
-                <ul class="list-disc list-inside space-y-0.5 text-[9px] leading-tight">
-                    <li>All disputes subject to Rajkot jurisdiction.</li>
-                    <li>Interest @18% p.a. charged on overdue invoices.</li>
-                </ul>
-            </div>
-            
-            <div class="text-right flex flex-col items-end">
-                <div class="text-[8px] font-bold text-slate-450 uppercase tracking-widest">Authorized Signatory</div>
-                <div class="h-8 w-24 border-b border-slate-300 mt-1"></div>
-                <div class="mt-0.5 text-[8px] text-slate-400">Praful Welding Works</div>
-            </div>
-        </div>
+        <table class="footer-table">
+            <tr>
+                <td style="width: 60%;">
+                    <span style="font-weight: bold; color: #475569; font-size: 9px; text-transform: uppercase;">Terms & Conditions</span>
+                    <ul class="terms-list">
+                        <li>All disputes subject to Rajkot jurisdiction.</li>
+                        <li>Interest @18% p.a. charged on overdue invoices.</li>
+                    </ul>
+                </td>
+                <td style="width: 40%; text-align: right;">
+                    <div style="font-weight: bold; text-transform: uppercase; font-size: 8px; color: #64748b;">Authorized Signatory</div>
+                    <div class="signature-line" style="display: inline-block;"></div>
+                    <div style="font-size: 8px; color: #94a3b8;">Praful Welding Works</div>
+                </td>
+            </tr>
+        </table>
 
     </div>
 
-    <!-- Auto triggering browser print -->
     <script>
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.print();
-            }, 300);
+            // Auto trigger browser print if screen view, not in pdf download
+            if (!window.location.href.includes('download')) {
+                setTimeout(function() {
+                    window.print();
+                }, 300);
+            }
         });
     </script>
 </body>

@@ -18,16 +18,22 @@ class InvoiceMail extends Mailable
     public $customSubject;
     public $messageBody;
     public $pdfContent;
+    public $client;
+    public $plant;
+    public $groupedItems;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Invoice $invoice, string $customSubject, string $messageBody, string $pdfContent)
+    public function __construct(Invoice $invoice, string $customSubject, string $messageBody, string $pdfContent, $client = null, $plant = null, $groupedItems = null)
     {
         $this->invoice = $invoice;
         $this->customSubject = $customSubject;
         $this->messageBody = $messageBody;
         $this->pdfContent = $pdfContent;
+        $this->client = $client;
+        $this->plant = $plant;
+        $this->groupedItems = $groupedItems ?: collect();
     }
 
     /**
@@ -50,6 +56,9 @@ class InvoiceMail extends Mailable
             with: [
                 'invoice' => $this->invoice,
                 'messageBody' => $this->messageBody,
+                'client' => $this->client,
+                'plant' => $this->plant,
+                'groupedItems' => $this->groupedItems,
             ],
         );
     }

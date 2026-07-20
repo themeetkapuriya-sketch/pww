@@ -758,7 +758,7 @@ class ErpController extends Controller
             $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'))->output();
 
             Mail::to($request->recipient_email)->send(
-                new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent)
+                new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)
             );
 
             return response()->json([
