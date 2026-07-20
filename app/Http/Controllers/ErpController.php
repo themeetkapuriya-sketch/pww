@@ -618,6 +618,7 @@ class ErpController extends Controller
             'deliveryChallan.client', 
             'deliveryChallan.plant', 
             'deliveryChallan.items.finishedGood',
+            'deliveryChallans.client',
             'deliveryChallans.plant',
             'deliveryChallans.items.finishedGood'
         ])->findOrFail($id);
@@ -665,6 +666,7 @@ class ErpController extends Controller
             'deliveryChallan.client', 
             'deliveryChallan.plant', 
             'deliveryChallan.items.finishedGood',
+            'deliveryChallans.client',
             'deliveryChallans.plant',
             'deliveryChallans.items.finishedGood'
         ])->findOrFail($id);
@@ -700,7 +702,8 @@ class ErpController extends Controller
             ];
         });
 
-        $pdf = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
+        $isPdf = true;
+        $pdf = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'));
         return $pdf->download("Invoice-{$invoice->invoice_number}.pdf");
     }
 
@@ -720,6 +723,7 @@ class ErpController extends Controller
                 'deliveryChallan.client', 
                 'deliveryChallan.plant', 
                 'deliveryChallan.items.finishedGood',
+                'deliveryChallans.client',
                 'deliveryChallans.plant',
                 'deliveryChallans.items.finishedGood'
             ])->findOrFail($id);
@@ -755,7 +759,8 @@ class ErpController extends Controller
                 ];
             });
 
-            $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'))->output();
+            $isPdf = true;
+            $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))->output();
 
             Mail::to($request->recipient_email)->send(
                 new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)

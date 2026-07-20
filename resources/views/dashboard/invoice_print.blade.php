@@ -248,6 +248,7 @@
 </head>
 <body>
 
+    @if(!isset($isPdf) || !$isPdf)
     <!-- Print Control Bar (Hidden on print) -->
     <div class="no-print-bar" style="max-width: 800px; margin: 0 auto 20px auto;">
         <div>
@@ -261,6 +262,7 @@
             <button onclick="window.close()" class="btn btn-secondary" style="margin-left: 6px;">Close</button>
         </div>
     </div>
+    @endif
 
     <!-- Main Invoice Document -->
     <div class="invoice-box" style="max-width: 800px; margin: auto;">
@@ -375,7 +377,7 @@
                     <div class="totals-box">
                         <div class="total-row">
                             <span class="total-label">Taxable Subtotal:</span>
-                            <span class="total-value">&#8377;{{ number_format($invoice->taxable_amount, 2) }}</span>
+                            <span class="total-value">&#8377;{{ number_format($invoice->total_taxable_value, 2) }}</span>
                         </div>
                         
                         @if ($invoice->igst > 0)

@@ -120,7 +120,7 @@
                 <div class="w-full md:w-72 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
                     <div class="flex justify-between text-xs font-semibold text-slate-600">
                         <span>Taxable Value:</span>
-                        <span class="font-bold text-slate-800">₹{{ number_format($invoice->taxable_amount, 2) }}</span>
+                        <span class="font-bold text-slate-800">₹{{ number_format($invoice->total_taxable_value, 2) }}</span>
                     </div>
 
                     @if($invoice->igst > 0)
