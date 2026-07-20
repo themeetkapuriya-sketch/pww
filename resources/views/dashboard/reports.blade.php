@@ -34,7 +34,7 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                 </div>
             </div>
-            <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl transition duration-150 text-sm whitespace-nowrap">
+            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold whitespace-nowrap">
                 Filter Audit Period
             </button>
         </form>
@@ -49,14 +49,14 @@
         
         <div class="overflow-x-auto border border-slate-200 rounded-xl">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
+                <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Accounting Item</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Description</th>
-                        <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold uppercase">Accounting Item</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold uppercase">Description</th>
+                        <th class="px-6 py-3 text-right text-xs font-bold uppercase">Amount</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 bg-white">
+                <tbody class="divide-y divide-x divide-slate-100 bg-white">
                     <!-- Revenue -->
                     <tr>
                         <td class="px-6 py-4 font-semibold text-slate-800">Total Sales Revenue (A)</td>

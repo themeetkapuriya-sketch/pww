@@ -59,7 +59,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                     Create Raw Material
                 </button>
             </form>
@@ -73,20 +73,22 @@
             </h3>
             
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Material Name</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Current Stock</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Safety Threshold Limit</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Average Price</th>
-                            <th class="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
+                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Average Price</th>
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($rawMaterials as $mat)
                             @php $isLow = $mat->current_stock < $mat->safety_threshold; @endphp
                             <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $mat->id }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $mat->material_name }}</td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
                                 <td class="px-6 py-4 text-right text-slate-500">{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
@@ -102,11 +104,6 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Pagination Links -->
-            <div class="mt-4">
-                {{ $rawMaterials->appends(request()->query())->links() }}
             </div>
         </div>
 
@@ -146,9 +143,9 @@
                     </div>
                 </div>
 
-                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
-                    Catalog Finished Good
-                </button>
+            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
+                Catalog Finished Good
+            </button>
             </form>
         </div>
 
@@ -160,31 +157,28 @@
             </h3>
             
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Product Name</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">SKU</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Current Stock</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Selling Price</th>
+                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Product Name</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">SKU</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Price</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($finishedGoods as $good)
                             <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $good->id }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $good->product_name }}</td>
-                                <td class="px-6 py-4 text-slate-600 font-mono text-xs">{{ $good->sku }}</td>
+                                <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku }}</td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $good->current_stock }} units</td>
                                 <td class="px-6 py-4 text-right font-bold text-slate-850">₹{{ number_format($good->selling_price, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Pagination Links -->
-            <div class="mt-4">
-                {{ $finishedGoods->appends(request()->query())->links() }}
             </div>
         </div>
 

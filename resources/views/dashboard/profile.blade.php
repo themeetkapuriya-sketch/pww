@@ -108,7 +108,7 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GSTIN Number</label>
                     <input type="text" name="gstin" value="{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono">
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
                 </div>
             </div>
 
@@ -141,7 +141,7 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end">
-                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                     Save Business Profile
                 </button>
             </div>

@@ -83,7 +83,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                 Record Dispatch Challan
             </button>
         </form>
@@ -100,19 +100,21 @@
             <div class="text-center text-slate-400 py-10">No delivery challans recorded yet.</div>
         @else
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Challan No</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Dispatch Date</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Destination Client & Plant</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Total Items</th>
-                            <th class="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
+                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Challan No</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Dispatch Date</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Destination Client & Plant</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Total Items</th>
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($deliveryChallans as $dc)
                             <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $dc->id }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $dc->challan_number }}</td>
                                 <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $dc->dispatch_date->format('d M Y') }}</td>
                                 <td class="px-6 py-4 text-slate-700">
@@ -131,10 +133,6 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $deliveryChallans->appends(request()->query())->links() }}
             </div>
         @endif
     </div>

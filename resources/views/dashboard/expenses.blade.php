@@ -51,7 +51,7 @@
                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"></textarea>
             </div>
 
-            <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                 Record Expense Ledger
             </button>
         </form>
@@ -68,18 +68,20 @@
             <div class="text-center text-slate-400 py-10">No expense records found.</div>
         @else
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Expense Date</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Category</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase">Memo / Description</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase">Amount</th>
+                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Expense Date</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Category</th>
+                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Memo / Description</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Amount (Debit)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($expenses as $exp)
                             <tr class="hover:bg-slate-50 transition">
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $exp->id }}</td>
                                 <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $exp->expense_date->format('d M Y') }}</td>
                                 <td class="px-6 py-4 text-slate-700 font-semibold capitalize">{{ str_replace('_', ' ', $exp->expense_category) }}</td>
                                 <td class="px-6 py-4 text-slate-500 max-w-[300px] truncate">{{ $exp->description ?? 'N/A' }}</td>
@@ -88,10 +90,6 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $expenses->appends(request()->query())->links() }}
             </div>
         @endif
     </div>

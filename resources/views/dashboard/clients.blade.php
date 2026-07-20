@@ -45,7 +45,7 @@
                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"></textarea>
                     </div>
 
-                    <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+                    <button type="submit" class="btn-primary w-full py-2.5 px-6 text-sm font-bold">
                         Create Client Profile
                     </button>
                 </form>
@@ -94,7 +94,7 @@
                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"></textarea>
                     </div>
 
-                    <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+                    <button type="submit" class="btn-primary w-full py-2.5 px-6 text-sm font-bold">
                         Register Plant Address
                     </button>
                 </form>
