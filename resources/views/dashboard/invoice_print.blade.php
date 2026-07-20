@@ -3,192 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
+    <!-- Outfit Font for browser rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;950&display=swap" rel="stylesheet">
+    
     <style>
+        /* PDF and Print Optimized Stylesheet */
         @page {
             size: A4 portrait;
-            margin: 15mm;
+            margin: 0 !important; /* Critical: Removes browser headers, footers, page titles, and URLs */
         }
+        
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: 'Outfit', 'DejaVu Sans', sans-serif;
             color: #1e293b;
-            background-color: #ffffff;
+            background-color: #f8fafc;
             margin: 0;
-            padding: 0;
+            padding: 20mm 15mm; /* Margin for screen view, acts as page margin on print */
             font-size: 11px;
             line-height: 1.4;
         }
+        
+        /* Control bar styling matching exactly the mockup */
         .no-print-bar {
-            background-color: #f1f5f9;
+            background-color: #ffffff;
             border: 1px solid #cbd5e1;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 12px 24px;
+            border-radius: 12px;
+            margin: 0 auto 24px auto;
+            max-width: 820px;
+            display: table;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .control-left {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: left;
+        }
+        .control-right {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+        }
+        .status-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            margin-left: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        .status-badge.paid {
+            background-color: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+        }
+        .status-badge.unpaid {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border-color: #fca5a5;
         }
         .btn {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
             font-size: 11px;
             font-weight: bold;
             cursor: pointer;
             border: none;
+            display: inline-block;
+            text-decoration: none;
+            transition: all 0.15s ease;
         }
         .btn-primary {
-            background-color: #5287f7;
+            background-color: #0f9d58;
             color: white;
-            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background-color: #0b8043;
         }
         .btn-secondary {
-            background-color: #e2e8f0;
+            background-color: #f1f5f9;
             color: #475569;
-            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            margin-left: 8px;
+        }
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
         }
         
-        /* Invoice container */
+        /* Invoice container with card look in browser */
         .invoice-box {
-            max-width: 100%;
+            max-width: 820px;
             margin: auto;
-            padding: 0;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
         }
         
         /* Header table layout */
         .header-table, .meta-table, .items-table, .totals-table, .footer-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .header-table td {
             vertical-align: middle;
         }
         .header-logo {
-            width: 50px;
-            height: 50px;
+            width: 54px;
+            height: 54px;
             object-fit: contain;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #e2e8f0;
-            margin-right: 12px;
+            margin-right: 15px;
         }
         .business-title {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 18px;
+            font-weight: 850;
             color: #0f172a;
             text-transform: uppercase;
             margin: 0;
+            letter-spacing: -0.5px;
         }
         .business-subtitle {
             font-size: 9px;
             color: #64748b;
-            margin: 2px 0 0 0;
+            margin: 3px 0 0 0;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            font-weight: bold;
         }
         .invoice-title-col {
             text-align: right;
             vertical-align: top;
         }
         .invoice-title {
-            font-size: 10px;
+            font-size: 9px;
             color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 850;
             margin: 0;
         }
         .invoice-number {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 20px;
+            font-weight: 850;
             color: #0f172a;
-            margin: 2px 0 0 0;
+            margin: 3px 0 0 0;
+            letter-spacing: -0.5px;
         }
         
         /* Metadata block */
         .meta-table td {
             width: 33.33%;
             vertical-align: top;
-            padding-bottom: 15px;
+            padding-bottom: 20px;
             border-bottom: 1px solid #f1f5f9;
         }
         .section-title {
             font-size: 9px;
-            font-weight: bold;
+            font-weight: 850;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
             display: block;
         }
         .meta-value {
-            font-size: 10px;
-            color: #334155;
-            line-height: 1.5;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.6;
         }
         .meta-value-bold {
-            font-weight: bold;
+            font-weight: 700;
             color: #0f172a;
         }
         
         /* Items Table */
+        .items-table {
+            margin-top: 15px;
+        }
         .items-table th {
-            background-color: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
-            color: #64748b;
+            border-bottom: 1px solid #cbd5e1;
+            color: #94a3b8;
             font-size: 9px;
-            font-weight: bold;
+            font-weight: 850;
             text-transform: uppercase;
-            padding: 8px 10px;
+            padding: 10px 0;
+            letter-spacing: 0.8px;
         }
         .items-table td {
-            padding: 10px;
+            padding: 14px 0;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
         }
         .item-name {
-            font-weight: bold;
+            font-weight: 700;
             color: #0f172a;
-            font-size: 11px;
+            font-size: 12px;
         }
         .item-sku {
             font-size: 8px;
             color: #94a3b8;
-            font-weight: bold;
-            margin-top: 2px;
+            font-weight: 855;
+            margin-top: 3px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         /* Totals & Bank details */
         .totals-table td {
             vertical-align: top;
-            padding-top: 15px;
+            padding-top: 20px;
         }
         .bank-details-box {
-            background-color: #f8fafc;
+            background-color: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 12px;
+            padding: 16px;
             font-size: 9px;
             color: #475569;
-            line-height: 1.5;
-            width: 250px;
+            line-height: 1.6;
+            width: 280px;
         }
         .bank-title {
-            font-weight: bold;
+            font-weight: 850;
             color: #0f172a;
             text-transform: uppercase;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             display: block;
+            letter-spacing: 0.8px;
         }
         .totals-box {
             float: right;
-            width: 250px;
+            width: 260px;
         }
         .total-row {
             display: table;
             width: 100%;
-            margin-bottom: 6px;
-            font-size: 10px;
-            color: #475569;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
         }
         .total-label {
             display: table-cell;
@@ -197,16 +263,17 @@
         .total-value {
             display: table-cell;
             text-align: right;
-            font-weight: bold;
-            font-family: 'DejaVu Sans', sans-serif;
+            font-weight: 700;
+            color: #334155;
+            font-family: 'Outfit', 'DejaVu Sans', sans-serif;
         }
         .grand-total-row {
             display: table;
             width: 100%;
             border-top: 1px solid #e2e8f0;
-            padding-top: 8px;
-            margin-top: 8px;
-            font-size: 12px;
+            padding-top: 12px;
+            margin-top: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #0f172a;
         }
@@ -215,24 +282,25 @@
         .footer-table {
             margin-top: 40px;
             border-top: 1px solid #f1f5f9;
-            padding-top: 15px;
+            padding-top: 20px;
         }
         .footer-table td {
             vertical-align: bottom;
             font-size: 9px;
-            color: #64748b;
-        }
-        .terms-list {
-            margin: 4px 0 0 0;
-            padding-left: 12px;
-            font-size: 8px;
             color: #94a3b8;
         }
+        .terms-list {
+            margin: 6px 0 0 0;
+            padding-left: 14px;
+            font-size: 9px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
         .signature-line {
-            width: 100px;
+            width: 120px;
             border-bottom: 1px solid #cbd5e1;
-            margin-top: 25px;
-            margin-bottom: 4px;
+            margin-top: 30px;
+            margin-bottom: 5px;
         }
         
         @media print {
@@ -241,6 +309,11 @@
             }
             body {
                 background-color: #ffffff;
+                padding: 15mm 15mm !important; /* Forces content margin inside page boundaries */
+            }
+            .invoice-box {
+                border: none !important;
+                box-shadow: none !important;
                 padding: 0 !important;
             }
         }
@@ -250,31 +323,41 @@
 
     @if(!isset($isPdf) || !$isPdf)
     <!-- Print Control Bar (Hidden on print) -->
-    <div class="no-print-bar" style="max-width: 800px; margin: 0 auto 20px auto;">
-        <div>
-            <span style="font-weight: bold; font-size: 12px; color: #334155;">Tax Invoice View (A4 Print-Optimized)</span>
-            <span style="background-color: #e2e8f0; color: #334155; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-left: 8px;">
+    <div class="no-print-bar">
+        <div class="control-left">
+            <span style="font-weight: 800; font-size: 13px; color: #0f172a; tracking: -0.2px;">Tax Invoice View (A4 Print-Optimized)</span>
+            <span class="status-badge {{ strtolower($invoice->payment_status) }}">
                 {{ $invoice->payment_status }}
             </span>
         </div>
-        <div>
+        <div class="control-right">
             <button onclick="window.print()" class="btn btn-primary">Print / Save as PDF</button>
-            <button onclick="window.close()" class="btn btn-secondary" style="margin-left: 6px;">Close</button>
+            <button onclick="window.close()" class="btn btn-secondary">Close</button>
         </div>
     </div>
     @endif
 
     <!-- Main Invoice Document -->
-    <div class="invoice-box" style="max-width: 800px; margin: auto;">
+    <div class="invoice-box">
         
         <!-- Header -->
         <table class="header-table">
             <tr>
                 <td style="width: 70%;">
-                    <table>
+                    <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td>
-                                <img src="{{ public_path(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Logo" class="header-logo">
+                                @php
+                                    $logoPath = \App\Models\Setting::get('logo_path', 'logo.jpg');
+                                    $fullLogoPath = public_path($logoPath);
+                                    if (file_exists($fullLogoPath)) {
+                                        $logoData = base64_encode(file_get_contents($fullLogoPath));
+                                        $logoSrc = 'data:image/' . pathinfo($fullLogoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+                                    } else {
+                                        $logoSrc = asset($logoPath);
+                                    }
+                                @endphp
+                                <img src="{{ $logoSrc }}" alt="Logo" class="header-logo">
                             </td>
                             <td>
                                 <h1 class="business-title">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
@@ -299,7 +382,7 @@
                         <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
                         {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}<br>
                         {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
-                        <span style="font-weight: bold; color: #475569;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
+                        <span style="font-weight: bold; color: #475569; font-family: monospace;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
                     </div>
                 </td>
                 <td>
@@ -308,7 +391,7 @@
                         <span class="meta-value-bold">{{ $client->client_name ?? 'N/A' }}</span><br>
                         {{ $plant->plant_name ?? 'N/A' }} Address:<br>
                         {{ $plant->destination_address ?? 'N/A' }}<br>
-                        <span style="font-weight: bold; color: #475569;">GSTIN: {{ $client->gstin ?? 'N/A' }}</span>
+                        <span style="font-weight: bold; color: #475569; font-family: monospace;">GSTIN: {{ $client->gstin ?? 'N/A' }}</span>
                     </div>
                 </td>
                 <td style="text-align: right;">
@@ -316,20 +399,20 @@
                     <div class="meta-value">
                         Date: <span class="meta-value-bold">{{ $invoice->created_at->format('d M Y') }}</span><br>
                         Due Date: <span class="meta-value-bold">{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : \Carbon\Carbon::parse($invoice->created_at)->addDays(30)->format('d M Y') }}</span><br>
-                        Status: <span class="meta-value-bold" style="text-transform: uppercase; color: {{ $invoice->payment_status === 'paid' ? '#059669' : '#e11d48' }}">{{ $invoice->payment_status }}</span>
+                        Status: <span class="meta-value-bold" style="text-transform: uppercase; color: {{ $invoice->payment_status === 'paid' ? '#047857' : '#b91c1c' }}">{{ $invoice->payment_status }}</span>
                     </div>
                 </td>
             </tr>
         </table>
 
         <!-- Items Table -->
-        <table class="items-table" style="margin-top: 15px;">
+        <table class="items-table">
             <thead>
                 <tr>
-                    <th style="text-align: left; width: 50%;">Items / SKU</th>
+                    <th style="text-align: left; width: 45%;">Items / SKU</th>
                     <th style="text-align: right; width: 15%;">Quantity</th>
-                    <th style="text-align: right; width: 15%;">Unit Rate</th>
-                    <th style="text-align: right; width: 20%;">Taxable Value</th>
+                    <th style="text-align: right; width: 20%;">Unit Rate (&#8377;)</th>
+                    <th style="text-align: right; width: 20%;">Taxable Value (&#8377;)</th>
                 </tr>
             </thead>
             <tbody>
@@ -339,9 +422,9 @@
                             <div class="item-name">{{ $item->product_name }}</div>
                             <div class="item-sku">SKU: {{ $item->sku }}</div>
                         </td>
-                        <td style="text-align: right; font-weight: bold;">{{ $item->quantity }} units</td>
-                        <td style="text-align: right; font-family: 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
-                        <td style="text-align: right; font-weight: bold; font-family: 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->total, 2) }}</td>
+                        <td style="text-align: right; font-weight: 700; color: #0f172a;">{{ number_format($item->quantity) }} units</td>
+                        <td style="text-align: right; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
+                        <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->total, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -353,22 +436,22 @@
                 <td style="width: 55%;">
                     <div class="bank-details-box">
                         <span class="bank-title">Settlement Bank Accounts</span>
-                        <table>
+                        <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse !important; display: table !important;">
                             <tr>
-                                <td style="font-weight: bold; color: #475569; width: 75px; padding: 2px 0;">Bank Name:</td>
-                                <td>State Bank of India (SBI)</td>
+                                <td style="font-weight: 700; color: #64748b; width: 100px; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Bank Name:</td>
+                                <td style="color: #334155; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">State Bank of India (SBI)</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">Account:</td>
-                                <td>Praful Welding Works</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Account:</td>
+                                <td style="color: #334155; font-weight: 600; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Praful Welding Works</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">A/C No:</td>
-                                <td style="font-weight: bold;">33445566778</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">A/C No:</td>
+                                <td style="font-weight: 700; color: #0f172a; font-family: monospace; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">33445566778</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: bold; color: #475569; padding: 2px 0;">IFSC:</td>
-                                <td style="font-weight: bold;">SBIN0001234</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">IFSC:</td>
+                                <td style="font-weight: 700; color: #0f172a; font-family: monospace; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">SBIN0001234</td>
                             </tr>
                         </table>
                     </div>
@@ -397,8 +480,8 @@
                         @endif
 
                         <div class="grand-total-row">
-                            <span class="total-label" style="font-weight: bold;">Total Amount:</span>
-                            <span class="total-value" style="font-size: 14px; color: #5287f7; font-weight: bold;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
+                            <span class="total-label" style="font-weight: 850;">Total Amount:</span>
+                            <span class="total-value" style="font-size: 16px; color: #0f172a; font-weight: 950;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
                         </div>
                     </div>
                 </td>
@@ -409,16 +492,16 @@
         <table class="footer-table">
             <tr>
                 <td style="width: 60%;">
-                    <span style="font-weight: bold; color: #475569; font-size: 9px; text-transform: uppercase;">Terms & Conditions</span>
+                    <span style="font-weight: 850; color: #475569; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Terms & Conditions</span>
                     <ul class="terms-list">
                         <li>All disputes subject to Rajkot jurisdiction.</li>
                         <li>Interest @18% p.a. charged on overdue invoices.</li>
                     </ul>
                 </td>
                 <td style="width: 40%; text-align: right;">
-                    <div style="font-weight: bold; text-transform: uppercase; font-size: 8px; color: #64748b;">Authorized Signatory</div>
+                    <div style="font-weight: 850; text-transform: uppercase; font-size: 8px; color: #94a3b8; letter-spacing: 0.5px;">Authorized Signatory</div>
                     <div class="signature-line" style="display: inline-block;"></div>
-                    <div style="font-size: 8px; color: #94a3b8;">Praful Welding Works</div>
+                    <div style="font-size: 9px; color: #64748b; font-weight: 700;">Praful Welding Works</div>
                 </td>
             </tr>
         </table>
