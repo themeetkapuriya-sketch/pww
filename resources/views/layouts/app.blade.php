@@ -94,6 +94,104 @@
             scrollbar-width: none;  /* Firefox */
         }
 
+        /* Frest Theme Collapsible Sidebar System */
+        #sidebar {
+            transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s ease, box-shadow 0.22s ease !important;
+        }
+        #main-content {
+            transition: padding-left 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        /* Desktop Viewport Rules (>= 768px) */
+        @media (min-width: 768px) {
+            /* Image 3: Collapsed Unpinned State (70px icon strip) */
+            #sidebar.sidebar-collapsed {
+                width: 70px !important;
+                overflow-x: hidden !important;
+            }
+            #sidebar.sidebar-collapsed .sidebar-header-text,
+            #sidebar.sidebar-collapsed .sidebar-text,
+            #sidebar.sidebar-collapsed .sidebar-category-header,
+            #sidebar.sidebar-collapsed .sidebar-profile-detail,
+            #sidebar.sidebar-collapsed .sidebar-chevron,
+            #sidebar.sidebar-collapsed .sidebar-submenu {
+                display: none !important;
+            }
+            #sidebar.sidebar-collapsed .sidebar-header {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+                justify-content: space-between !important;
+            }
+            #sidebar.sidebar-collapsed .nav-link-item {
+                justify-content: center !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+            #sidebar.sidebar-collapsed .nav-link-item svg {
+                margin: 0 !important;
+            }
+            #sidebar.sidebar-collapsed .sidebar-divider {
+                display: block !important;
+                margin: 0.5rem auto !important;
+                width: 32px !important;
+                border-top: 1px solid #e2e8f0 !important;
+            }
+            #sidebar.sidebar-collapsed .sidebar-footer {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+                align-items: center !important;
+            }
+
+            /* Image 2: Hovered Unpinned State (Floats expanding to 260px) */
+            #sidebar.sidebar-collapsed:hover {
+                width: 256px !important;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+                z-index: 50 !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-header-text {
+                display: flex !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-text {
+                display: inline-block !important;
+                opacity: 1 !important;
+                margin-left: 0.75rem !important;
+                visibility: visible !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-category-header {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                margin-top: 10px !important;
+                margin-bottom: 4px !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-profile-detail {
+                display: flex !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-chevron {
+                display: block !important;
+            }
+            #sidebar.sidebar-collapsed:hover .nav-link-item {
+                justify-content: flex-start !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            #sidebar.sidebar-collapsed:hover .nav-link-item svg {
+                margin-right: 0.75rem !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-divider {
+                display: none !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-header {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            #sidebar.sidebar-collapsed:hover .sidebar-footer {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                align-items: stretch !important;
+            }
+        }
+
         /* Custom DataTables Styling (Financial Ledger Design) */
         .dataTables_wrapper,
         .dataTables_wrapper *,
