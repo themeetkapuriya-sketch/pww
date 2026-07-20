@@ -24,6 +24,9 @@ use App\Exceptions\InsufficientStockException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvoiceMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Exception;
 
@@ -604,6 +607,170 @@ class ErpController extends Controller
         });
 
         return view('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
+    }
+
+    /**
+     * Preview Invoice page (Frest Style).
+     */
+    public function previewInvoice($id)
+    {
+        $invoice = Invoice::with([
+            'deliveryChallan.client', 
+            'deliveryChallan.plant', 
+            'deliveryChallan.items.finishedGood',
+            'deliveryChallans.plant',
+            'deliveryChallans.items.finishedGood'
+        ])->findOrFail($id);
+
+        $primaryChallan = $invoice->deliveryChallan;
+        $client = $primaryChallan ? $primaryChallan->client : null;
+        $plant = $primaryChallan ? $primaryChallan->plant : null;
+
+        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
+            $first = $invoice->deliveryChallans->first();
+            $client = $first->client;
+            $plant = $first->plant;
+        }
+
+        $items = collect();
+        if ($primaryChallan) {
+            $items = $items->concat($primaryChallan->items);
+        }
+        foreach ($invoice->deliveryChallans as $dc) {
+            if ($dc->id !== ($primaryChallan->id ?? null)) {
+                $items = $items->concat($dc->items);
+            }
+        }
+
+        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
+            $firstItem = $group->first();
+            return (object)[
+                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
+                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
+                'quantity' => $group->sum('quantity'),
+                'unit_price' => $firstItem->unit_price,
+                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
+            ];
+        });
+
+        return view('dashboard.invoice_preview', compact('invoice', 'client', 'plant', 'groupedItems'));
+    }
+
+    /**
+     * Download Invoice as PDF document.
+     */
+    public function downloadInvoicePdf($id)
+    {
+        $invoice = Invoice::with([
+            'deliveryChallan.client', 
+            'deliveryChallan.plant', 
+            'deliveryChallan.items.finishedGood',
+            'deliveryChallans.plant',
+            'deliveryChallans.items.finishedGood'
+        ])->findOrFail($id);
+
+        $primaryChallan = $invoice->deliveryChallan;
+        $client = $primaryChallan ? $primaryChallan->client : null;
+        $plant = $primaryChallan ? $primaryChallan->plant : null;
+
+        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
+            $first = $invoice->deliveryChallans->first();
+            $client = $first->client;
+            $plant = $first->plant;
+        }
+
+        $items = collect();
+        if ($primaryChallan) {
+            $items = $items->concat($primaryChallan->items);
+        }
+        foreach ($invoice->deliveryChallans as $dc) {
+            if ($dc->id !== ($primaryChallan->id ?? null)) {
+                $items = $items->concat($dc->items);
+            }
+        }
+
+        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
+            $firstItem = $group->first();
+            return (object)[
+                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
+                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
+                'quantity' => $group->sum('quantity'),
+                'unit_price' => $firstItem->unit_price,
+                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
+            ];
+        });
+
+        $pdf = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
+        return $pdf->download("Invoice-{$invoice->invoice_number}.pdf");
+    }
+
+    /**
+     * Send Invoice Email to recipient with attached PDF.
+     */
+    public function sendInvoiceEmail(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'recipient_email' => 'required|email',
+                'subject' => 'required|string|max:255',
+                'message_body' => 'required|string',
+            ]);
+
+            $invoice = Invoice::with([
+                'deliveryChallan.client', 
+                'deliveryChallan.plant', 
+                'deliveryChallan.items.finishedGood',
+                'deliveryChallans.plant',
+                'deliveryChallans.items.finishedGood'
+            ])->findOrFail($id);
+
+            $primaryChallan = $invoice->deliveryChallan;
+            $client = $primaryChallan ? $primaryChallan->client : null;
+            $plant = $primaryChallan ? $primaryChallan->plant : null;
+
+            if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
+                $first = $invoice->deliveryChallans->first();
+                $client = $first->client;
+                $plant = $first->plant;
+            }
+
+            $items = collect();
+            if ($primaryChallan) {
+                $items = $items->concat($primaryChallan->items);
+            }
+            foreach ($invoice->deliveryChallans as $dc) {
+                if ($dc->id !== ($primaryChallan->id ?? null)) {
+                    $items = $items->concat($dc->items);
+                }
+            }
+
+            $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
+                $firstItem = $group->first();
+                return (object)[
+                    'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
+                    'sku' => $firstItem->finishedGood->sku ?? 'N/A',
+                    'quantity' => $group->sum('quantity'),
+                    'unit_price' => $firstItem->unit_price,
+                    'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
+                ];
+            });
+
+            $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'))->output();
+
+            Mail::to($request->recipient_email)->send(
+                new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => "Invoice #{$invoice->invoice_number} emailed successfully to {$request->recipient_email}!"
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -208,7 +208,11 @@
                                 @endphp
                                 <tr class="hover:bg-slate-50 transition">
                                     <td class="px-3 py-3 text-center font-bold text-slate-500">{{ $inv->id }}</td>
-                                    <td class="px-4 py-3 font-semibold text-slate-800">{{ $inv->invoice_number }}</td>
+                                    <td class="px-4 py-3 font-semibold text-slate-800">
+                                        <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline">
+                                            {{ $inv->invoice_number }}
+                                        </a>
+                                    </td>
                                     <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
                                     <td class="px-4 py-3 text-right text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
                                     <td class="px-4 py-3 text-right text-slate-600">
@@ -236,10 +240,16 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-center space-x-2 whitespace-nowrap">
+                                        <a href="{{ route('invoice.preview', $inv->id) }}" 
+                                           class="inline-flex items-center justify-center bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 01-6 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                            Preview
+                                        </a>
+
                                         <a href="{{ route('invoice.print', $inv->id) }}" target="_blank" 
                                            class="inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-xs font-bold transition shadow-xs">
-                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                            PDF
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                            Print
                                         </a>
 
                                         @if ($inv->payment_status !== 'paid')

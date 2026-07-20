@@ -46,6 +46,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoices/generate', [ErpController::class, 'generateCustomInvoice'])->name('invoice.generate');
     Route::post('/invoices/{id}/pay', [ErpController::class, 'payInvoice'])->name('invoice.pay');
     Route::get('/invoices/{id}/print', [ErpController::class, 'printInvoice'])->name('invoice.print');
+    Route::get('/invoices/{id}/preview', [ErpController::class, 'previewInvoice'])->name('invoice.preview');
+    Route::get('/invoices/{id}/download', [ErpController::class, 'downloadInvoicePdf'])->name('invoice.download');
+    Route::post('/invoices/{id}/send-email', [ErpController::class, 'sendInvoiceEmail'])->name('invoice.send-email');
 
     // 8. Employees Directory
     Route::get('/employees', [ErpController::class, 'employees'])->name('employees');
