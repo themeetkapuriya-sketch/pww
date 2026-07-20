@@ -320,7 +320,7 @@ document.getElementById('sendInvoiceEmailForm').addEventListener('submit', funct
         if (data.success) {
             closeSendEmailModal();
             if (typeof window.showToast === 'function') {
-                window.showToast(data.message, 'success');
+                window.showToast('success', data.message);
             } else {
                 alert(data.message);
             }

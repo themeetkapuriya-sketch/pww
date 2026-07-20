@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
     <style>
-        /* PDF and Print Optimized Stylesheet */
-        @import url('https://fonts.googleapis.com/css2?family=DejaVu+Sans:wght@300;400;700&display=swap');
-        
         @page {
             size: A4 portrait;
             margin: 15mm;
