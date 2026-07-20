@@ -17,20 +17,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCsrfToken = () => $csrfMeta.attr('content') || '';
         const isDesktop = () => window.innerWidth >= 768;
 
-        // Apply sidebar visual states
-        function applySidebarState(pinned) {
+        // Apply sidebar visual states (Standard Fixed Desktop Sidebar)
+        function applySidebarState() {
             if (!$sidebar.length || !$mainContent.length) return;
             if (isDesktop()) {
-                if (pinned) {
-                    $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0 w-64');
-                    $mainContent.addClass('pl-64').removeClass('pl-16 pl-[72px] pl-0');
-                } else {
-                    $sidebar.addClass('sidebar-collapsed translate-x-0').removeClass('-translate-x-full w-64');
-                    $mainContent.addClass('pl-16').removeClass('pl-64 pl-[72px] pl-0');
-                }
+                $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0 w-64');
+                $mainContent.addClass('pl-64').removeClass('pl-16 pl-[72px] pl-0');
                 $sidebarToggle.addClass('hidden');
             } else {
-                $sidebar.addClass('sidebar-collapsed -translate-x-full').removeClass('translate-x-0');
+                $sidebar.removeClass('translate-x-0').addClass('-translate-x-full');
                 $mainContent.addClass('pl-0').removeClass('pl-64 pl-16 pl-[72px]');
                 $sidebarToggle.removeClass('hidden');
             }
@@ -38,14 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Toggle logic init
         if ($sidebar.length) {
-            const isPinned = localStorage.getItem('sidebar_pinned') !== 'false';
-            applySidebarState(isPinned);
+            applySidebarState();
 
             $sidebarPinToggle.on('click', function(e) {
                 e.stopPropagation();
-                const currentPinned = localStorage.getItem('sidebar_pinned') !== 'false';
-                localStorage.setItem('sidebar_pinned', !currentPinned ? 'true' : 'false');
-                applySidebarState(!currentPinned);
             });
 
             $sidebarToggle.on('click', function(e) {
