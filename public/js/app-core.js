@@ -17,23 +17,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCsrfToken = () => $csrfMeta.attr('content') || '';
         const isDesktop = () => window.innerWidth >= 768;
 
-        // Apply sidebar visual states (Frest Theme Style)
+        // Apply sidebar visual states
         function applySidebarState(pinned) {
             if (!$sidebar.length || !$mainContent.length) return;
             if (isDesktop()) {
                 if (pinned) {
-                    $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0 w-64');
-                    $mainContent.addClass('pl-64').removeClass('pl-[70px] pl-16 pl-0');
-                    $sidebarPinDot.removeClass('bg-transparent').addClass('bg-blue-500');
+                    $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0');
+                    $mainContent.addClass('pl-64').removeClass('pl-[72px] pl-0');
+                    if ($sidebarPinDot.length) {
+                        $sidebarPinDot.removeClass('bg-transparent scale-0').addClass('bg-blue-500 scale-100');
+                    }
                 } else {
-                    $sidebar.addClass('sidebar-collapsed translate-x-0').removeClass('-translate-x-full w-64');
-                    $mainContent.addClass('pl-[70px]').removeClass('pl-64 pl-16 pl-0');
-                    $sidebarPinDot.removeClass('bg-blue-500').addClass('bg-transparent');
+                    $sidebar.addClass('sidebar-collapsed translate-x-0').removeClass('-translate-x-full');
+                    $mainContent.addClass('pl-[72px]').removeClass('pl-64 pl-0');
+                    if ($sidebarPinDot.length) {
+                        $sidebarPinDot.removeClass('bg-blue-500 scale-100').addClass('bg-transparent scale-0');
+                    }
                 }
                 $sidebarToggle.addClass('hidden');
             } else {
                 $sidebar.addClass('sidebar-collapsed -translate-x-full').removeClass('translate-x-0');
-                $mainContent.addClass('pl-0').removeClass('pl-64 pl-[70px] pl-16');
+                $mainContent.addClass('pl-0').removeClass('pl-64 pl-[72px]');
                 $sidebarToggle.removeClass('hidden');
             }
         }
@@ -96,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newContent = doc.getElementById('page-content');
                 
                 if (newContent) {
-                    document.getElementById('page-content').innerHTML = newContent.innerHTML;
+                    $('#page-content').html(newContent.innerHTML);
                     document.title = doc.title;
                     
                     if (window.location.href !== url) {
@@ -458,49 +462,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 3000);
         };
 
-        window.initializeDataTables = function() {
-            if (typeof $.fn.DataTable === 'undefined') return;
-            
-            $('.erp-datatable').each(function() {
-                if ($.fn.DataTable.isDataTable(this)) {
-                    $(this).DataTable().destroy();
-                }
-                $(this).DataTable({
-                    pageLength: 10,
-                    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-                    language: {
-                        search: "Search:",
-                        lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        paginate: {
-                            previous: "Previous",
-                            next: "Next"
-                        }
-                    },
-                    responsive: true,
-                    autoWidth: false,
-                    order: [] // Preserve HTML initial order
-                });
-            });
-        };
-
-        window.toggleSidebarSubmenu = function(btn) {
-            const $btn = $(btn);
-            const $submenu = $btn.next('.sidebar-submenu');
-            const $chevron = $btn.find('.sidebar-chevron');
-            
-            if ($submenu.length) {
-                $submenu.toggleClass('hidden');
-                $chevron.toggleClass('rotate-90 text-blue-600');
-            }
-        };
-
         function initializeForms() {
             $('form').attr('novalidate', 'novalidate');
-            window.initializeDataTables();
         }
 
-        // Run initial forms & datatables setup on DOM ready
+        // Run initial forms setup on DOM ready
         initializeForms();
     });
 });
