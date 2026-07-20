@@ -113,7 +113,7 @@
                 display: inline;
             }
             #sidebar.sidebar-collapsed:hover .sidebar-header-text {
-                display: block;
+                display: flex;
             }
             #sidebar.sidebar-collapsed:hover .sidebar-category-header {
                 visibility: visible;
@@ -203,6 +203,9 @@
         <div id="page-content" class="p-4 md:p-8 flex-grow space-y-6">
             @yield('content')
         </div>
+
+        <!-- Master Footer Partial -->
+        @include('layouts.footer')
     </div>
 
     <!-- Core Application SPA & Sidebar Scripts -->

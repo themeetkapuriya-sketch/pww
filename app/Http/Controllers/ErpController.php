@@ -1043,6 +1043,10 @@ class ErpController extends Controller
             'address_line_2' => 'required|string|max:255',
             'gstin' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'bank_name' => 'required|string|max:255',
+            'bank_account_name' => 'required|string|max:255',
+            'bank_account_no' => 'required|string|max:255',
+            'bank_ifsc' => 'required|string|max:255',
         ]);
 
         try {
@@ -1051,6 +1055,10 @@ class ErpController extends Controller
             \App\Models\Setting::set('address_line_1', $validated['address_line_1']);
             \App\Models\Setting::set('address_line_2', $validated['address_line_2']);
             \App\Models\Setting::set('gstin', $validated['gstin']);
+            \App\Models\Setting::set('bank_name', $validated['bank_name']);
+            \App\Models\Setting::set('bank_account_name', $validated['bank_account_name']);
+            \App\Models\Setting::set('bank_account_no', $validated['bank_account_no']);
+            \App\Models\Setting::set('bank_ifsc', $validated['bank_ifsc']);
 
             if ($request->hasFile('logo')) {
                 $file = $request->file('logo');

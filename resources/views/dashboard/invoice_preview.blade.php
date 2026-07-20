@@ -58,12 +58,12 @@
                 <!-- Invoice To -->
                 <div class="space-y-1.5">
                     <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Invoice To:</span>
-                    <h4 class="text-sm font-bold text-slate-900">{{ $client->client_name ?? 'Direct Customer' }}</h4>
+                    <h4 class="text-sm font-bold text-slate-900">{{ $client->company_name ?? 'Direct Customer' }}</h4>
                     <p class="text-xs text-slate-600 font-medium">{{ $plant->plant_name ?? 'Standard Plant Destination' }}</p>
-                    <p class="text-xs text-slate-500">{{ $plant->destination_address ?? 'Gujarat, India' }}</p>
-                    <p class="text-xs text-slate-500 font-semibold">GSTIN: <span class="text-slate-700 font-bold">{{ $client->gstin ?? 'N/A' }}</span></p>
-                    @if(!empty($client->email))
-                        <p class="text-xs text-blue-600 font-medium">✉ {{ $client->email }}</p>
+                    <p class="text-xs text-slate-500">{{ $plant->shipping_address ?? 'Gujarat, India' }}</p>
+                    <p class="text-xs text-slate-500 font-semibold">GSTIN: <span class="text-slate-700 font-bold">{{ $client->gst_number ?? 'N/A' }}</span></p>
+                    @if(!empty($client->client_email))
+                        <p class="text-xs text-blue-600 font-medium">✉ {{ $client->client_email }}</p>
                     @endif
                 </div>
 
@@ -74,7 +74,7 @@
                     <p class="text-xs text-slate-500">Payment Status: <strong class="uppercase text-slate-800">{{ $invoice->payment_status ?? 'UNPAID' }}</strong></p>
                     <p class="text-xs text-slate-500">Tax Type: 
                         <span class="font-bold text-slate-700">
-                            {{ ($plant && strtolower($plant->state) === 'gujarat') || str_contains(strtolower($plant->destination_address ?? ''), 'gujarat') ? 'Intrastate (CGST + SGST @ 18%)' : 'Interstate (IGST @ 18%)' }}
+                            {{ ($plant && strtolower($plant->state) === 'gujarat') || str_contains(strtolower($plant->shipping_address ?? ''), 'gujarat') ? 'Intrastate (CGST + SGST @ 18%)' : 'Interstate (IGST @ 18%)' }}
                         </span>
                     </p>
                 </div>
@@ -185,7 +185,6 @@
                 href="{{ route('invoices', ['tab' => 'manual-builder']) }}" 
                 class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition duration-150"
             >
-                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 <span>Edit Invoice</span>
             </a>
 
@@ -194,7 +193,7 @@
                     <form action="{{ route('invoice.pay', $invoice->id) }}" method="POST" onsubmit="return confirm('Mark this invoice as fully paid?');">
                         @csrf
                         <button type="submit" class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition duration-150 shadow-2xs">
-                            <span>₹ Mark Paid</span>
+                            <span>Mark Paid</span>
                         </button>
                     </form>
                 @endif

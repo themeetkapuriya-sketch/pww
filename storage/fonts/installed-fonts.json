@@ -1,0 +1,9 @@
+{
+    "outfit": {
+        "normal": "C:\\laravel project\\pww\\storage\\fonts\/outfit_normal_72ec9f2e5049a56ed4805502ececd627",
+        "500": "C:\\laravel project\\pww\\storage\\fonts\/outfit_500_2f8360835eea5d0582e94a2ca88d3ed6",
+        "bold": "C:\\laravel project\\pww\\storage\\fonts\/outfit_bold_b349baf5287b7d25825d3ec9398c4927",
+        "800": "C:\\laravel project\\pww\\storage\\fonts\/outfit_800_044d9b59110f2a1bb836aff4ac40c9d7",
+        "600": "outfit_600_4bda1903b3aa14011a4a6c1dac392b0c"
+    }
+}

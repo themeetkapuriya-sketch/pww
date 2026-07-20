@@ -6,8 +6,8 @@
             <!-- Brand Image Logo -->
             <img class="h-9 w-9 object-contain rounded-lg flex-shrink-0 border border-slate-100" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Business Logo">
             <div class="sidebar-header-text flex flex-col min-w-0">
-                <span class="text-xs font-black tracking-tight text-slate-800 leading-none whitespace-nowrap">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span>
-                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ERP Portal</span>
+                <span class="text-xs font-black tracking-tight text-slate-800 leading-none truncate">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span>
+                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ERP PORTAL</span>
             </div>
         </div>
         <!-- Pin Button (Double Circle / Radio button style) -->

@@ -127,6 +127,35 @@
             </div>
 
             <div class="border-t border-slate-100 pt-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-4">Settlement Bank Account Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Bank Name</label>
+                        <input type="text" name="bank_name" value="{{ \App\Models\Setting::get('bank_name', 'State Bank of India (SBI)') }}" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-semibold">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Account Holder Name</label>
+                        <input type="text" name="bank_account_name" value="{{ \App\Models\Setting::get('bank_account_name', 'Praful Welding Works') }}" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">A/C Number</label>
+                        <input type="text" name="bank_account_no" value="{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">IFSC Code</label>
+                        <input type="text" name="bank_ifsc" value="{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6">
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-3">Company Brand Logo</label>
                 <div class="flex items-center space-x-6">
                     <div class="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -141,7 +170,7 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end">
-                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
+                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm cursor-pointer">
                     Save Business Profile
                 </button>
             </div>

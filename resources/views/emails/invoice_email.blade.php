@@ -19,7 +19,7 @@
         <!-- Body Content -->
         <tr>
             <td style="padding: 30px 40px;">
-                <p style="margin: 0 0 10px 0; font-size: 15px; color: #334155;">Hello <strong style="color: #0f172a;">{{ $client->client_name ?? 'Client' }}</strong>,</p>
+                <p style="margin: 0 0 10px 0; font-size: 15px; color: #334155;">Hello <strong style="color: #0f172a;">{{ $client->company_name ?? 'Client' }}</strong>,</p>
                 <p style="margin: 0 0 25px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Please find below the detailed tax statement for Invoice <strong style="color: #0f172a;">#{{ $invoice->invoice_number }}</strong>.</p>
 
                 <!-- Metadata details box -->
@@ -34,7 +34,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 6px 0; color: #64748b;">GSTIN:</td>
-                        <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-family: monospace;">{{ $client->gstin ?? 'N/A' }}</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-family: monospace;">{{ $client->gst_number ?? 'N/A' }}</td>
                     </tr>
                     <tr>
                         <td style="padding: 6px 0; color: #64748b;">Plant Location:</td>

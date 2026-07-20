@@ -9,6 +9,58 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;950&display=swap" rel="stylesheet">
     
     <style>
+        /* Load local Outfit fonts for PDF generation and browser view consistency */
+        @font-face {
+            font-family: 'Outfit';
+            font-style: normal;
+            font-weight: 400;
+            @if(isset($isPdf) && $isPdf)
+                src: url('{{ public_path("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
+            @else
+                src: url('{{ asset("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
+            @endif
+        }
+        @font-face {
+            font-family: 'Outfit';
+            font-style: normal;
+            font-weight: 500;
+            @if(isset($isPdf) && $isPdf)
+                src: url('{{ public_path("fonts/outfit/Outfit-Medium.ttf") }}') format('truetype');
+            @else
+                src: url('{{ asset("fonts/outfit/Outfit-Medium.ttf") }}') format('truetype');
+            @endif
+        }
+        @font-face {
+            font-family: 'Outfit';
+            font-style: normal;
+            font-weight: 600;
+            @if(isset($isPdf) && $isPdf)
+                src: url('{{ public_path("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
+            @else
+                src: url('{{ asset("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
+            @endif
+        }
+        @font-face {
+            font-family: 'Outfit';
+            font-style: normal;
+            font-weight: 700;
+            @if(isset($isPdf) && $isPdf)
+                src: url('{{ public_path("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
+            @else
+                src: url('{{ asset("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
+            @endif
+        }
+        @font-face {
+            font-family: 'Outfit';
+            font-style: normal;
+            font-weight: 800;
+            @if(isset($isPdf) && $isPdf)
+                src: url('{{ public_path("fonts/outfit/Outfit-ExtraBold.ttf") }}') format('truetype');
+            @else
+                src: url('{{ asset("fonts/outfit/Outfit-ExtraBold.ttf") }}') format('truetype');
+            @endif
+        }
+
         /* PDF and Print Optimized Stylesheet */
         @page {
             size: A4 portrait;
@@ -308,15 +360,35 @@
                 display: none !important;
             }
             body {
-                background-color: #ffffff;
+                background-color: #ffffff !important;
                 padding: 15mm 15mm !important; /* Forces content margin inside page boundaries */
             }
             .invoice-box {
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
             }
         }
+
+        @if(isset($isPdf) && $isPdf)
+            @page {
+                margin: 15mm !important;
+            }
+            body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+            }
+            .invoice-box {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+                background-color: #ffffff !important;
+            }
+        @endif
     </style>
 </head>
 <body>
@@ -343,7 +415,7 @@
         <!-- Header -->
         <table class="header-table">
             <tr>
-                <td style="width: 70%;">
+                <td style="width: 55%;">
                     <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td>
@@ -388,10 +460,10 @@
                 <td>
                     <span class="section-title">Billed To (Client)</span>
                     <div class="meta-value">
-                        <span class="meta-value-bold">{{ $client->client_name ?? 'N/A' }}</span><br>
+                        <span class="meta-value-bold">{{ $client->company_name ?? 'N/A' }}</span><br>
                         {{ $plant->plant_name ?? 'N/A' }} Address:<br>
-                        {{ $plant->destination_address ?? 'N/A' }}<br>
-                        <span style="font-weight: bold; color: #475569; font-family: monospace;">GSTIN: {{ $client->gstin ?? 'N/A' }}</span>
+                        {{ $plant->shipping_address ?? 'N/A' }}<br>
+                        <span style="font-weight: bold; color: #475569; font-family: monospace;">GSTIN: {{ $client->gst_number ?? 'N/A' }}</span>
                     </div>
                 </td>
                 <td style="text-align: right;">
@@ -438,20 +510,20 @@
                         <span class="bank-title">Settlement Bank Accounts</span>
                         <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse !important; display: table !important;">
                             <tr>
-                                <td style="font-weight: 700; color: #64748b; width: 100px; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Bank Name:</td>
-                                <td style="color: #334155; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">State Bank of India (SBI)</td>
+                                <td style="font-weight: 700; color: #64748b; width: 100px; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">Bank Name:</td>
+                                <td style="color: #334155; font-weight: 600; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">{{ \App\Models\Setting::get('bank_name', 'State Bank of India (SBI)') }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Account:</td>
-                                <td style="color: #334155; font-weight: 600; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">Praful Welding Works</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">Account:</td>
+                                <td style="color: #334155; font-weight: 600; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">{{ \App\Models\Setting::get('bank_account_name', 'Praful Welding Works') }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">A/C No:</td>
-                                <td style="font-weight: 700; color: #0f172a; font-family: monospace; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">33445566778</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">A/C No:</td>
+                                <td style="font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', monospace !important; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">IFSC:</td>
-                                <td style="font-weight: 700; color: #0f172a; font-family: monospace; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">SBIN0001234</td>
+                                <td style="font-weight: 700; color: #64748b; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px; font-family: 'Outfit', 'DejaVu Sans', sans-serif !important;">IFSC:</td>
+                                <td style="font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', monospace !important; padding: 3px 0; display: table-cell !important; float: none !important; vertical-align: top !important; font-size: 10px;">{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</td>
                             </tr>
                         </table>
                     </div>

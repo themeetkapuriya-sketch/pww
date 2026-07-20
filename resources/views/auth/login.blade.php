@@ -8,28 +8,33 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            background-image: url("{{ asset('images/login-bg.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+<body class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8 space-y-6">
+    <!-- Glassmorphic Login Container Card -->
+    <div class="max-w-[440px] w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 space-y-6 relative z-10 border border-white/60">
         
         <!-- Logo and Heading -->
-        <div class="text-center space-y-4 flex flex-col items-center">
+        <div class="text-center space-y-3 flex flex-col items-center">
             <!-- PWW Brand Image Logo -->
-            <img class="h-16 w-16 object-contain rounded-2xl border border-slate-100 shadow-sm" src="{{ asset('logo.jpg') }}" alt="PWW Logo">
+            <div class="p-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <img class="h-14 w-14 object-contain rounded-xl" src="{{ asset('logo.jpg') }}" alt="PWW Logo">
+            </div>
             <div>
-                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Praful Welding Works</h1>
-                <p class="text-sm text-slate-500 font-semibold uppercase tracking-wider mt-1">ERP Secure Login Portal</p>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">Praful Welding Works</h1>
+                <p class="text-xs text-blue-600 font-bold uppercase tracking-widest mt-1">ERP Secure Login Portal</p>
             </div>
         </div>
 
@@ -42,14 +47,14 @@
             <div>
                 <label for="email" class="block text-xs font-bold text-slate-600 uppercase mb-1">EMAIL ADDRESS</label>
                 <input type="email" id="email" name="email" value="pww@example.com" required placeholder="e.g. pww@example.com"
-                       class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
+                       class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
             </div>
 
             <div>
                 <label for="password" class="block text-xs font-bold text-slate-600 uppercase mb-1">PASSWORD</label>
                 <div class="relative">
                     <input type="password" id="password" name="password" value="admin123" required placeholder="••••••••"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
+                           class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
                     <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                         <svg id="eyeIconOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -74,7 +79,7 @@
             </button>
         </form>
         
-        <div class="text-center text-xs text-slate-400 mt-4">
+        <div class="text-center text-xs text-slate-400 mt-4 pt-2 border-t border-slate-100/80">
             Restricted access portal. Registered PWW accounts only.
         </div>
     </div>
@@ -117,7 +122,6 @@
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    // Redirect immediately for faster login response
                     window.location.href = data.redirect;
                 } else {
                     displayErrors(data.errors || ['Invalid credentials. Please try again.']);
@@ -147,6 +151,7 @@
             btn.classList.remove('opacity-75');
             btn.innerHTML = '<span>Sign In to Dashboard</span>';
         }
+
         // Toggle password visibility
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
