@@ -560,6 +560,53 @@ class ErpController extends Controller
     }
 
     /**
+     * Print / Save PDF representation of the invoice.
+     */
+    public function printInvoice($id)
+    {
+        $invoice = Invoice::with([
+            'deliveryChallan.client', 
+            'deliveryChallan.plant', 
+            'deliveryChallan.items.finishedGood',
+            'deliveryChallans.plant',
+            'deliveryChallans.items.finishedGood'
+        ])->findOrFail($id);
+
+        $primaryChallan = $invoice->deliveryChallan;
+        $client = $primaryChallan ? $primaryChallan->client : null;
+        $plant = $primaryChallan ? $primaryChallan->plant : null;
+
+        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
+            $first = $invoice->deliveryChallans->first();
+            $client = $first->client;
+            $plant = $first->plant;
+        }
+
+        $items = collect();
+        if ($primaryChallan) {
+            $items = $items->concat($primaryChallan->items);
+        }
+        foreach ($invoice->deliveryChallans as $dc) {
+            if ($dc->id !== ($primaryChallan->id ?? null)) {
+                $items = $items->concat($dc->items);
+            }
+        }
+
+        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
+            $firstItem = $group->first();
+            return (object)[
+                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
+                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
+                'quantity' => $group->sum('quantity'),
+                'unit_price' => $firstItem->unit_price,
+                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
+            ];
+        });
+
+        return view('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
+    }
+
+    /**
      * 8. Employees Directory.
      */
     public function employees()
