@@ -39,44 +39,12 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        // 1. Create Core Users
+        // 1. Create Core Single User
         $adminUser = User::create([
             'name' => 'hardik  vekariya',
             'email' => 'pww@example.com',
-            'password' => Hash::make('admin123'),
+            'password' => Hash::make('password'),
             'role' => 'admin',
-            'status' => 'active',
-        ]);
-
-        $managerUser = User::create([
-            'name' => 'Sanjay Shah',
-            'email' => 'sanjay@pww.com',
-            'password' => Hash::make('manager123'),
-            'role' => 'manager',
-            'status' => 'active',
-        ]);
-
-        $accountantUser = User::create([
-            'name' => 'Ramesh Mehta',
-            'email' => 'ramesh@pww.com',
-            'password' => Hash::make('acc123'),
-            'role' => 'accountant',
-            'status' => 'active',
-        ]);
-
-        $staffUser1 = User::create([
-            'name' => 'Amit Sharma',
-            'email' => 'amit@pww.com',
-            'password' => Hash::make('staff123'),
-            'role' => 'staff',
-            'status' => 'active',
-        ]);
-
-        $staffUser2 = User::create([
-            'name' => 'Rajesh Patel',
-            'email' => 'rajesh@pww.com',
-            'password' => Hash::make('staff123'),
-            'role' => 'staff',
             'status' => 'active',
         ]);
 
@@ -202,14 +170,14 @@ class DatabaseSeeder extends Seeder
 
         // 6. Create Staff Profiles
         $staff1 = StaffProfile::create([
-            'user_id' => $staffUser1->id,
+            'user_id' => null,
             'full_name' => 'Amit Sharma',
             'wage_type' => 'piece-rate',
             'piece_rate_per_unit' => 45.00,
         ]);
 
         $staff2 = StaffProfile::create([
-            'user_id' => $staffUser2->id,
+            'user_id' => null,
             'full_name' => 'Rajesh Patel',
             'wage_type' => 'piece-rate',
             'piece_rate_per_unit' => 45.00,
@@ -298,7 +266,7 @@ class DatabaseSeeder extends Seeder
                 'finished_good_id' => $rack3Tier->id,
                 'quantity_manufactured' => $quantity3T,
                 'quantity_rejected' => $rejected3T,
-                'recorded_by' => $managerUser->id,
+                'recorded_by' => $adminUser->id,
                 'production_date' => $prodDate->toDateString(),
                 'created_at' => $prodDate,
             ]);
@@ -328,7 +296,7 @@ class DatabaseSeeder extends Seeder
                 'finished_good_id' => $rack4Tier->id,
                 'quantity_manufactured' => $quantity4T,
                 'quantity_rejected' => $rejected4T,
-                'recorded_by' => $managerUser->id,
+                'recorded_by' => $adminUser->id,
                 'production_date' => $prodDate->copy()->addDays(5)->toDateString(),
                 'created_at' => $prodDate->copy()->addDays(5),
             ]);
@@ -451,7 +419,7 @@ class DatabaseSeeder extends Seeder
             'finished_good_id' => $rack3Tier->id,
             'quantity_manufactured' => 60,
             'quantity_rejected' => 1,
-            'recorded_by' => $managerUser->id,
+            'recorded_by' => $adminUser->id,
             'production_date' => Carbon::now()->subDays(1)->toDateString(),
         ]);
 

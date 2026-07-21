@@ -101,21 +101,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);
-                    document.title = doc.title;
-                    
-                    if (window.location.href !== url) {
-                        history.pushState(null, '', url);
-                    }
-                    
-                    initializeForms();
-                    updateActiveSidebarLinks(url);
-                    setTimeout(() => {
-                        executeScripts($('#page-content')[0]);
-                        window.initErpDataTables();
-                    }, 50);
+                    if (doc.title) document.title = doc.title;
                 } else {
-                    window.location.href = url;
+                    $('#page-content').html(htmlText);
+                    const titleMatch = htmlText.match(/<title>(.*?)<\/title>/i);
+                    if (titleMatch && titleMatch[1]) {
+                        document.title = titleMatch[1];
+                    }
                 }
+                
+                if (window.location.href !== url) {
+                    history.pushState(null, '', url);
+                }
+                
+                initializeForms();
+                updateActiveSidebarLinks(url);
+                executeScripts($('#page-content')[0]);
+                window.initErpDataTables();
             } catch (err) {
                 console.error('SPA load error:', err);
                 window.location.href = url;

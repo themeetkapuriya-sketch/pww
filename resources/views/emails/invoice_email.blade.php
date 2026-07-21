@@ -68,7 +68,7 @@
                 <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; background-color: #eff6ff; border-radius: 10px; border: 1px solid #bfdbfe; padding: 15px 20px; font-size: 12px;">
                     <tr>
                         <td style="padding: 4px 0; color: #475569;">Taxable Value:</td>
-                        <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->taxable_amount, 2) }}</td>
+                        <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->total_taxable_value ?? ($invoice->total_amount - ($invoice->cgst + $invoice->sgst + $invoice->igst)), 2) }}</td>
                     </tr>
                     
                     @if ($invoice->igst > 0)

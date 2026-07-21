@@ -1,3 +1,7 @@
+@if(request()->ajax() && !request()->pjax())
+    <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
+    @yield('content')
+@else
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -399,3 +403,4 @@
     <script src="{{ asset('js/app-core.js') }}"></script>
 </body>
 </html>
+@endif

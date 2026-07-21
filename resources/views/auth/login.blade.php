@@ -46,14 +46,14 @@
             @csrf
             <div>
                 <label for="email" class="block text-xs font-bold text-slate-600 uppercase mb-1">EMAIL ADDRESS</label>
-                <input type="email" id="email" name="email" value="pww@example.com" required placeholder="e.g. pww@example.com"
+                <input type="email" id="email" name="email" value="" required placeholder="e.g. pww@example.com"
                        class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
             </div>
 
             <div>
                 <label for="password" class="block text-xs font-bold text-slate-600 uppercase mb-1">PASSWORD</label>
                 <div class="relative">
-                    <input type="password" id="password" name="password" value="admin123" required placeholder="••••••••"
+                    <input type="password" id="password" name="password" value="" required placeholder="••••••••"
                            class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
                     <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                         <svg id="eyeIconOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -36,6 +36,7 @@ class ErpFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
 
         $this->productionService = resolve(ProductionService::class);
         $this->billingService = resolve(BillingService::class);
@@ -336,7 +337,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         // Manufacturing 10 units => 110 kg iron consumed => COGS = 110 * 10 = ₹1,100
-        ProductionLog::create([
+        $prodLog = ProductionLog::create([
             'finished_good_id' => $good->id,
             'quantity_manufactured' => 10,
             'quantity_rejected' => 0,
@@ -354,7 +355,7 @@ class ErpFlowTest extends TestCase
 
         LaborLog::create([
             'staff_profile_id' => $staff->id,
-            'production_log_id' => 1,
+            'production_log_id' => $prodLog->id,
             'units_completed' => 40,
             'calculated_payout' => 800.00,
             'status' => 'paid',
@@ -691,6 +692,10 @@ class ErpFlowTest extends TestCase
             'address_line_1' => 'GIDC Plot 100',
             'address_line_2' => 'Baroda, Gujarat',
             'gstin' => '24CUSTOM1234A1Z9',
+            'bank_name' => 'State Bank of India',
+            'bank_account_name' => 'Custom Weld Inc',
+            'bank_account_no' => '12345678901',
+            'bank_ifsc' => 'SBIN0001234',
             'logo' => $file,
         ]);
 
