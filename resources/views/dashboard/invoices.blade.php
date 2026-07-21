@@ -129,7 +129,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 text-sm">
+                    <button type="submit" class="btn-primary w-full py-2.5 px-4 text-sm font-bold">
                         Generate & Save Invoice
                     </button>
                 </form>
@@ -178,101 +178,97 @@
                 Corporate Invoice Ledger
             </h3>
             
-            @if ($invoices->isEmpty())
-                <div class="text-center text-slate-400 py-10">No invoices generated yet.</div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
-                            <tr>
-                                <th class="px-3 py-3 text-center text-xs font-bold uppercase w-12">#</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase">Invoice No</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold uppercase">Destination</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold uppercase">Taxable Value</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold uppercase">CGST+SGST</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold uppercase">IGST</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold uppercase">Total Amount</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold uppercase">Status</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
+            <div class="overflow-x-auto">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                        <tr>
+                            <th class="px-3 py-3 text-center text-xs font-bold uppercase w-12">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Invoice No</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Destination</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">Taxable Value</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">CGST+SGST</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">IGST</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">Total Amount</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold uppercase">Status</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach ($invoices as $inv)
+                            @php
+                                $pName = 'HQ / Custom';
+                                if ($inv->deliveryChallan && $inv->deliveryChallan->plant) {
+                                    $pName = $inv->deliveryChallan->plant->plant_name;
+                                } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                                    $pName = $inv->deliveryChallans->first()->plant->plant_name;
+                                }
+                            @endphp
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-3 py-3 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-3 font-semibold text-slate-800">
+                                    <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline">
+                                        {{ $inv->invoice_number }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
+                                <td class="px-4 py-3 text-right text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
+                                <td class="px-4 py-3 text-right text-slate-600">
+                                    @if ($inv->cgst > 0)
+                                        ₹{{ number_format($inv->cgst + $inv->sgst, 2) }}
+                                        <span class="text-[9px] block text-slate-400">(9% + 9%)</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right text-slate-600">
+                                    @if ($inv->igst > 0)
+                                        ₹{{ number_format($inv->igst, 2) }}
+                                        <span class="text-[9px] block text-slate-400">(18%)</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                                        {{ $inv->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
+                                           ($inv->payment_status === 'partially_paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                        {{ $inv->payment_status }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center space-x-1.5 whitespace-nowrap">
+                                    <!-- Preview Button (Green Boxy Curved) -->
+                                    <a href="{{ route('invoice.preview', $inv->id) }}" 
+                                       title="Preview Invoice"
+                                       class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </a>
+
+                                    <!-- Print Button (Sky Blue Boxy Curved) -->
+                                    <a href="{{ route('invoice.print', $inv->id) }}" 
+                                       target="_blank"
+                                       title="Print Invoice"
+                                       class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                    </a>
+
+                                    <!-- Mark Paid Button (Red/Rose Boxy Curved) -->
+                                    @if ($inv->payment_status !== 'paid')
+                                        <form action="{{ route('invoice.pay', $inv->id) }}" method="POST" class="ajax-form inline-block">
+                                            @csrf
+                                            <button type="submit" 
+                                                    title="Mark Invoice as Paid"
+                                                    class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @foreach ($invoices as $inv)
-                                @php
-                                    $pName = 'HQ / Custom';
-                                    if ($inv->deliveryChallan && $inv->deliveryChallan->plant) {
-                                        $pName = $inv->deliveryChallan->plant->plant_name;
-                                    } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                                        $pName = $inv->deliveryChallans->first()->plant->plant_name;
-                                    }
-                                @endphp
-                                <tr class="hover:bg-slate-50 transition">
-                                    <td class="px-3 py-3 text-center font-bold text-slate-500">{{ $inv->id }}</td>
-                                    <td class="px-4 py-3 font-semibold text-slate-800">
-                                        <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline">
-                                            {{ $inv->invoice_number }}
-                                        </a>
-                                    </td>
-                                    <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
-                                    <td class="px-4 py-3 text-right text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
-                                    <td class="px-4 py-3 text-right text-slate-600">
-                                        @if ($inv->cgst > 0)
-                                            ₹{{ number_format($inv->cgst + $inv->sgst, 2) }}
-                                            <span class="text-[9px] block text-slate-400">(9% + 9%)</span>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-right text-slate-600">
-                                        @if ($inv->igst > 0)
-                                            ₹{{ number_format($inv->igst, 2) }}
-                                            <span class="text-[9px] block text-slate-400">(18%)</span>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
-                                            {{ $inv->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
-                                               ($inv->payment_status === 'partially_paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
-                                            {{ $inv->payment_status }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center space-x-1.5 whitespace-nowrap">
-                                        <!-- Preview Button (Green Boxy Curved) -->
-                                        <a href="{{ route('invoice.preview', $inv->id) }}" 
-                                           title="Preview Invoice"
-                                           class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                        </a>
-
-                                        <!-- Print Button (Sky Blue Boxy Curved) -->
-                                        <a href="{{ route('invoice.print', $inv->id) }}" 
-                                           target="_blank"
-                                           title="Print Invoice"
-                                           class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        </a>
-
-                                        <!-- Mark Paid Button (Red/Rose Boxy Curved) -->
-                                        @if ($inv->payment_status !== 'paid')
-                                            <form action="{{ route('invoice.pay', $inv->id) }}" method="POST" class="ajax-form inline-block">
-                                                @csrf
-                                                <button type="submit" 
-                                                        title="Mark Invoice as Paid"
-                                                        class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

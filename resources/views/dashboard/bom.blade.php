@@ -48,7 +48,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition duration-150 text-sm">
+            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                 Assign Component
             </button>
         </form>
@@ -72,13 +72,13 @@
                     <p class="text-sm text-slate-400 py-2 border border-dashed rounded-lg border-slate-200 text-center">No BOM items defined yet. Use the sidebar panel to add.</p>
                 @else
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="bg-slate-50">
+                        <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-bold text-slate-500 uppercase">Raw Material</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-bold text-slate-500 uppercase">Qty Required</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-bold text-slate-500 uppercase">Waste Allowance</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-bold text-slate-500 uppercase">Net Consumption</th>
+                                    <th class="px-4 py-2.5 text-left text-xs font-bold uppercase">Raw Material</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Qty Required</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Waste Allowance</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Net Consumption</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">

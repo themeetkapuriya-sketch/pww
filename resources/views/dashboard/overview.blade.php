@@ -117,13 +117,13 @@
             Balaji Wafers Client Plants sales matrix
         </h3>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Plant Location</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Total Sales Invoiced (Excl. Tax)</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Freight Cost</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Freight-to-Sales Ratio</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Plant Location</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Total Sales Invoiced (Excl. Tax)</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Freight Cost</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider">Freight-to-Sales Ratio</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-100">

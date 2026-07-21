@@ -88,36 +88,32 @@
             Manufacturing Logs Ledger
         </h3>
         
-        @if ($productionLogs->isEmpty())
-            <div class="text-center text-slate-400 py-10">No production logs recorded yet.</div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
-                        <tr>
-                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Production Date</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Finished Good Product</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Manufactured</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Rejected</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Recorded By</th>
+        <div class="overflow-x-auto">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                    <tr>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Production Date</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Finished Good Product</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Manufactured</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Rejected</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach ($productionLogs as $log)
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
+                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date->format('d M Y') }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->finishedGood->product_name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
+                            <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
+                            <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach ($productionLogs as $log)
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $log->id }}</td>
-                                <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date->format('d M Y') }}</td>
-                                <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->finishedGood->product_name ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
-                                <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
-                                <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endsection

@@ -760,7 +760,13 @@ class ErpController extends Controller
             });
 
             $isPdf = true;
-            $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))->output();
+            $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
+                ->setOption([
+                    'isRemoteEnabled' => false,
+                    'isFontSubsettingEnabled' => true,
+                    'dpi' => 96
+                ])
+                ->output();
 
             Mail::to($request->recipient_email)->send(
                 new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)

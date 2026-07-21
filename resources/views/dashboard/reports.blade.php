@@ -48,8 +48,8 @@
         </h3>
         
         <div class="overflow-x-auto border border-slate-200 rounded-xl">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-bold uppercase">Accounting Item</th>
                         <th class="px-6 py-3 text-left text-xs font-bold uppercase">Description</th>

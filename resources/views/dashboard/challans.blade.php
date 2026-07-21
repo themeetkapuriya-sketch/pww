@@ -96,45 +96,41 @@
             Dispatched Challans Ledger
         </h3>
         
-        @if ($deliveryChallans->isEmpty())
-            <div class="text-center text-slate-400 py-10">No delivery challans recorded yet.</div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
-                        <tr>
-                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Challan No</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Dispatch Date</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Destination Client & Plant</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Total Items</th>
-                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
+        <div class="overflow-x-auto">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                    <tr>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Challan No</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Dispatch Date</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Destination Client & Plant</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Total Items</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach ($deliveryChallans as $dc)
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $dc->challan_number }}</td>
+                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $dc->dispatch_date->format('d M Y') }}</td>
+                            <td class="px-6 py-4 text-slate-700">
+                                <span class="font-bold text-slate-800">{{ $dc->client->company_name ?? 'N/A' }}</span>
+                                <span class="text-xs text-slate-500 block">({{ $dc->plant->plant_name ?? 'N/A' }})</span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-medium text-slate-600">{{ $dc->items->sum('quantity') }} units</td>
+                            <td class="px-6 py-4 text-center">
+                                @if ($dc->status === 'invoiced')
+                                    <span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">Invoiced</span>
+                                @else
+                                    <span class="px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] rounded font-bold uppercase tracking-wider">Pending Invoice</span>
+                                @endif
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach ($deliveryChallans as $dc)
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $dc->id }}</td>
-                                <td class="px-6 py-4 font-semibold text-slate-800">{{ $dc->challan_number }}</td>
-                                <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $dc->dispatch_date->format('d M Y') }}</td>
-                                <td class="px-6 py-4 text-slate-700">
-                                    <span class="font-bold text-slate-800">{{ $dc->client->company_name ?? 'N/A' }}</span>
-                                    <span class="text-xs text-slate-500 block">({{ $dc->plant->plant_name ?? 'N/A' }})</span>
-                                </td>
-                                <td class="px-6 py-4 text-right font-medium text-slate-600">{{ $dc->items->sum('quantity') }} units</td>
-                                <td class="px-6 py-4 text-center">
-                                    @if ($dc->status === 'invoiced')
-                                        <span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">Invoiced</span>
-                                    @else
-                                        <span class="px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] rounded font-bold uppercase tracking-wider">Pending Invoice</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

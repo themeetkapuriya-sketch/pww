@@ -297,109 +297,142 @@ function closeSendEmailModal() {
     document.getElementById('sendEmailModal').classList.add('hidden');
 }
 
-// Handle AJAX email sending with jQuery Validation & inline alerts
-document.addEventListener('DOMContentLoaded', () => {
-    jQuery(document).ready(function($) {
-        const $form = $('#sendInvoiceEmailForm');
+// Handle AJAX email sending with jQuery Validation, inline alerts, and SweetAlert2
+(function() {
+    if (typeof jQuery === 'undefined') return;
+    
+    jQuery(document).off('submit', '#sendInvoiceEmailForm').on('submit', '#sendInvoiceEmailForm', function(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        const $form = $(this);
         const $alert = $('#emailFormAlert');
         const $submitBtn = $('#sendEmailSubmitBtn');
-        const originalText = $submitBtn.html();
+        const originalText = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg><span>Send Invoice</span>';
 
-        $form.on('submit', function(e) {
-            e.preventDefault();
-            
-            // Clear previous errors
-            $alert.addClass('hidden').html('');
-            $form.find('input, textarea').removeClass('border-rose-500');
+        // Clear previous errors
+        $alert.addClass('hidden').html('');
+        $form.find('input, textarea').removeClass('border-rose-500');
 
-            // 1. Client-side Validations
-            const recipientEmail = $form.find('input[name="recipient_email"]').val().trim();
-            const subject = $form.find('input[name="subject"]').val().trim();
-            const messageBody = $form.find('textarea[name="message_body"]').val().trim();
-            
-            let errors = [];
+        // 1. Client-side Validations
+        const recipientEmail = $form.find('input[name="recipient_email"]').val().trim();
+        const subject = $form.find('input[name="subject"]').val().trim();
+        const messageBody = $form.find('textarea[name="message_body"]').val().trim();
+        
+        let errors = [];
 
-            if (!recipientEmail) {
-                errors.push('Recipient email is required.');
+        if (!recipientEmail) {
+            errors.push('Recipient email is required.');
+            $form.find('input[name="recipient_email"]').addClass('border-rose-500');
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(recipientEmail)) {
+                errors.push('Please enter a valid email address.');
                 $form.find('input[name="recipient_email"]').addClass('border-rose-500');
-            } else {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(recipientEmail)) {
-                    errors.push('Please enter a valid email address.');
-                    $form.find('input[name="recipient_email"]').addClass('border-rose-500');
-                }
             }
+        }
 
-            if (!subject) {
-                errors.push('Subject is required.');
-                $form.find('input[name="subject"]').addClass('border-rose-500');
-            }
+        if (!subject) {
+            errors.push('Subject is required.');
+            $form.find('input[name="subject"]').addClass('border-rose-500');
+        }
 
-            if (!messageBody) {
-                errors.push('Message body is required.');
-                $form.find('textarea[name="message_body"]').addClass('border-rose-500');
-            }
+        if (!messageBody) {
+            errors.push('Message body is required.');
+            $form.find('textarea[name="message_body"]').addClass('border-rose-500');
+        }
 
-            if (errors.length > 0) {
-                let errorHtml = '<strong class="block mb-1">Please fix the following validation errors:</strong><ul class="list-disc pl-4 space-y-0.5">';
-                errors.forEach(err => {
-                    errorHtml += `<li>${err}</li>`;
-                });
-                errorHtml += '</ul>';
-                $alert.removeClass('hidden').html(errorHtml);
-                return;
-            }
+        if (errors.length > 0) {
+            let errorHtml = '<strong class="block mb-1">Please fix the following validation errors:</strong><ul class="list-disc pl-4 space-y-0.5">';
+            errors.forEach(err => {
+                errorHtml += `<li>${err}</li>`;
+            });
+            errorHtml += '</ul>';
+            $alert.removeClass('hidden').html(errorHtml);
+            return;
+        }
 
-            // 2. Show loading spinner state
-            $submitBtn.prop('disabled', true).html(
-                `<svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Sending...</span>`
-            );
+        // 2. Close modal immediately & display SweetAlert Loading Alert
+        closeSendEmailModal();
 
-            // 3. AJAX Submission
-            $.ajax({
-                url: $form.attr('action'),
-                method: 'POST',
-                data: $form.serialize(),
-                dataType: 'json',
-                success: function(response) {
-                    $submitBtn.prop('disabled', false).html(originalText);
-                    if (response.success) {
-                        closeSendEmailModal();
-                        if (typeof window.showToast === 'function') {
-                            window.showToast('success', response.message);
-                        }
-                    } else {
-                        $alert.removeClass('hidden').html(`<strong>Error:</strong> ${response.message}`);
-                    }
-                },
-                error: function(xhr) {
-                    $submitBtn.prop('disabled', false).html(originalText);
-                    let errorMsg = 'Failed to send email. Please try again.';
-                    
-                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                        const validationErrors = xhr.responseJSON.errors;
-                        let errorHtml = '<strong class="block mb-1">Server validation errors:</strong><ul class="list-disc pl-4 space-y-0.5">';
-                        Object.keys(validationErrors).forEach(field => {
-                            validationErrors[field].forEach(msg => {
-                                errorHtml += `<li>${msg}</li>`;
-                            });
-                            $form.find(`[name="${field}"]`).addClass('border-rose-500');
-                        });
-                        errorHtml += '</ul>';
-                        errorMsg = errorHtml;
-                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = `<strong>Error:</strong> ${xhr.responseJSON.message}`;
-                    }
-                    
-                    $alert.removeClass('hidden').html(errorMsg);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Sending Invoice Email...',
+                html: `Dispatching PDF tax invoice to <b class="text-blue-600">${recipientEmail}</b>.<br><span class="text-xs text-slate-500">Connecting to SMTP server...</span>`,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
             });
+        }
+
+        // 3. Background AJAX Submission
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+                $submitBtn.prop('disabled', false).html(originalText);
+                if (response.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Email Sent Successfully!',
+                            text: response.message,
+                            confirmButtonColor: '#4371D7',
+                            timer: 4000
+                        });
+                    } else if (typeof window.showToast === 'function') {
+                        window.showToast('success', response.message);
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Send Email',
+                            text: response.message,
+                            confirmButtonColor: '#4371D7'
+                        });
+                    } else {
+                        openSendEmailModal();
+                        $alert.removeClass('hidden').html(`<strong>Error:</strong> ${response.message}`);
+                    }
+                }
+            },
+            error: function(xhr) {
+                $submitBtn.prop('disabled', false).html(originalText);
+                let errorMsg = 'Failed to send email. Please check recipient address or internet connection.';
+                
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    const validationErrors = xhr.responseJSON.errors;
+                    let errorHtml = '<strong class="block mb-1">Server validation errors:</strong><ul class="list-disc pl-4 space-y-0.5">';
+                    Object.keys(validationErrors).forEach(field => {
+                        validationErrors[field].forEach(msg => {
+                            errorHtml += `<li>${msg}</li>`;
+                        });
+                    });
+                    errorHtml += '</ul>';
+                    errorMsg = errorHtml;
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Sending Failed',
+                        html: errorMsg,
+                        confirmButtonColor: '#4371D7'
+                    });
+                } else {
+                    openSendEmailModal();
+                    $alert.removeClass('hidden').html(errorMsg);
+                }
+            }
         });
     });
-});
+})();
 </script>
 @endsection

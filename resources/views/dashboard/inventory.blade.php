@@ -74,7 +74,7 @@
             
             <div class="overflow-x-auto">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
+                    <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                         <tr>
                             <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                             <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name</th>
@@ -88,7 +88,7 @@
                         @foreach ($rawMaterials as $mat)
                             @php $isLow = $mat->current_stock < $mat->safety_threshold; @endphp
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $mat->id }}</td>
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $mat->material_name }}</td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
                                 <td class="px-6 py-4 text-right text-slate-500">{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
@@ -158,7 +158,7 @@
             
             <div class="overflow-x-auto">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
+                    <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                         <tr>
                             <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                             <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Product Name</th>
@@ -170,7 +170,7 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($finishedGoods as $good)
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $good->id }}</td>
+                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                                 <td class="px-6 py-4 font-semibold text-slate-800">{{ $good->product_name }}</td>
                                 <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku }}</td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $good->current_stock }} units</td>

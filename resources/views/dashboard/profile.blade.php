@@ -39,7 +39,7 @@
                     </div>
 
                     <div class="pt-2">
-                        <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                        <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                             Save
                         </button>
                     </div>
@@ -74,7 +74,7 @@
                     </div>
 
                     <div class="pt-2">
-                        <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm">
+                        <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
                             Save
                         </button>
                     </div>
@@ -170,7 +170,7 @@
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end">
-                <button type="submit" class="bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition duration-150 text-sm cursor-pointer">
+                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold cursor-pointer">
                     Save Business Profile
                 </button>
             </div>

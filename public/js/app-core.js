@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateActiveSidebarLinks(url);
                     setTimeout(() => {
                         executeScripts($('#page-content')[0]);
+                        window.initErpDataTables();
                     }, 50);
                 } else {
                     window.location.href = url;
@@ -462,11 +463,58 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 3000);
         };
 
+        // DataTables Global Initializer
+        window.initErpDataTables = function() {
+            if (typeof $.fn.DataTable === 'undefined') return;
+
+            $('table.erp-datatable').each(function() {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().destroy();
+                }
+
+                $(this).DataTable({
+                    pageLength: 10,
+                    lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "All"]],
+                    columnDefs: [
+                        {
+                            searchable: true,
+                            orderable: true,
+                            targets: 0,
+                            render: function (data, type, row, meta) {
+                                if (type === 'display') {
+                                    return meta.row + meta.settings._iDisplayStart + 1;
+                                }
+                                return data || (meta.row + 1);
+                            }
+                        }
+                    ],
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: "Search records...",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoEmpty: "No records available",
+                        infoFiltered: "(filtered from _MAX_ total records)",
+                        paginate: {
+                            first: "«",
+                            previous: "‹",
+                            next: "›",
+                            last: "»"
+                        }
+                    },
+                    responsive: true,
+                    order: [], // Preserve original server row order
+                    autoWidth: false
+                });
+            });
+        };
+
         function initializeForms() {
             $('form').attr('novalidate', 'novalidate');
         }
 
-        // Run initial forms setup on DOM ready
+        // Run initial forms setup and DataTables on DOM ready
         initializeForms();
+        window.initErpDataTables();
     });
 });

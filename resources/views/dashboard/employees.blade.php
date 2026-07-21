@@ -61,7 +61,7 @@
         
         <div class="overflow-x-auto">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Employee Name</th>
@@ -72,7 +72,7 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @foreach ($staffProfiles as $staff)
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $staff->id }}</td>
+                            <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $staff->full_name }}</td>
                             <td class="px-6 py-4 text-slate-600 font-medium">
                                 <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider

@@ -17,7 +17,7 @@
             theme: {
                 extend: {
                     colors: {
-                        'theme-blue': '#1E73BE',
+                        'theme-blue': '#4371D7',
                     }
                 }
             }
@@ -25,15 +25,199 @@
     </script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #f8fafc;
             color: #1e293b;
         }
-        .theme-blue { color: #1E73BE !important; }
-        .text-theme-blue { color: #1E73BE !important; }
-        .bg-theme-blue { background-color: #1E73BE !important; }
+        .theme-blue { color: #4371D7 !important; }
+        .text-theme-blue { color: #4371D7 !important; }
+        .bg-theme-blue { background-color: #4371D7 !important; }
+
+        /* DataTables Custom Tailwind Integration Styles */
+        .dataTables_wrapper {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .dataTables_wrapper .dataTables_length {
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.875rem;
+            color: #334155;
+            outline: none;
+            margin: 0 0.5rem;
+        }
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 0.4rem 0.85rem;
+            font-size: 0.875rem;
+            color: #1e293b;
+            outline: none;
+            margin-left: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.15s ease;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #4371D7;
+            box-shadow: 0 0 0 3px rgba(67, 113, 215, 0.25);
+        }
+        .dataTables_wrapper .dataTables_info {
+            padding-top: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .dataTables_wrapper .dataTables_paginate {
+            padding-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 0.5rem !important;
+            border: 1px solid #e2e8f0 !important;
+            background: #ffffff !important;
+            color: #475569 !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            padding: 0.35rem 0.75rem !important;
+            margin: 0 2px !important;
+            transition: all 0.15s ease !important;
+            cursor: pointer !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #4371D7 !important;
+            color: #ffffff !important;
+            border-color: #4371D7 !important;
+            box-shadow: 0 2px 4px -1px rgba(67, 113, 215, 0.3) !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+            opacity: 0.4 !important;
+            cursor: not-allowed !important;
+            background: #f8fafc !important;
+        }
+
+        /* DataTables Table Header Theme Styling */
+        table.erp-datatable thead,
+        table.erp-datatable thead tr,
+        table.erp-datatable thead th,
+        table.dataTable thead th {
+            background-color: #4371D7 !important;
+            color: #ffffff !important;
+        }
+
+        /* Vertical & Outer Border Lines for all tables (Start to End) */
+        table.erp-datatable,
+        table.dataTable {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 0.75rem !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            overflow: hidden !important;
+        }
+
+        table.erp-datatable th,
+        table.erp-datatable td,
+        table.dataTable th,
+        table.dataTable td {
+            border-right: 1px solid #e2e8f0 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        table.erp-datatable th:first-child,
+        table.erp-datatable td:first-child,
+        table.dataTable th:first-child,
+        table.dataTable td:first-child {
+            border-left: 1px solid #cbd5e1 !important;
+        }
+        table.erp-datatable th:last-child,
+        table.erp-datatable td:last-child,
+        table.dataTable th:last-child,
+        table.dataTable td:last-child {
+            border-right: 1px solid #cbd5e1 !important;
+        }
+
+        table.erp-datatable thead th,
+        table.dataTable thead th {
+            border-right: 1px solid rgba(255, 255, 255, 0.25) !important;
+            border-bottom: none !important;
+        }
+        table.erp-datatable thead th:first-child,
+        table.dataTable thead th:first-child {
+            border-left: 1px solid #4371D7 !important;
+        }
+        table.erp-datatable thead th:last-child,
+        table.dataTable thead th:last-child {
+            border-right: 1px solid #4371D7 !important;
+        }
+        
+        /* Global Button Utility Styles */
+        .btn-primary {
+            background-color: #4371D7 !important;
+            color: #ffffff !important;
+            border-radius: 0.75rem !important;
+            box-shadow: 0 4px 6px -1px rgba(67, 113, 215, 0.25), 0 2px 4px -2px rgba(67, 113, 215, 0.1) !important;
+            transition: all 0.15s ease-in-out !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 1px solid transparent !important;
+            cursor: pointer !important;
+        }
+        .btn-primary:hover {
+            background-color: #365ebd !important;
+            color: #ffffff !important;
+            box-shadow: 0 10px 15px -3px rgba(67, 113, 215, 0.35) !important;
+            transform: translateY(-1px) !important;
+        }
+        .btn-primary:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 4px -1px rgba(82, 135, 247, 0.2) !important;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid #cbd5e1 !important;
+            transition: all 0.15s ease-in-out !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+        }
+        .btn-secondary:hover {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
         .active-nav {
             background-color: rgba(30, 115, 190, 0.08) !important;
             color: #1E73BE !important;
@@ -210,6 +394,8 @@
 
     <!-- Core Application SPA & Sidebar Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="{{ asset('js/app-core.js') }}"></script>
 </body>
 </html>

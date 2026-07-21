@@ -64,34 +64,30 @@
             Logged Operational Expenses
         </h3>
         
-        @if ($expenses->isEmpty())
-            <div class="text-center text-slate-400 py-10">No expense records found.</div>
-        @else
-            <div class="overflow-x-auto">
-                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#5287f7] text-white divide-x divide-white/25">
-                        <tr>
-                            <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Expense Date</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Category</th>
-                            <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Memo / Description</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Amount (Debit)</th>
+        <div class="overflow-x-auto">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                    <tr>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Expense Date</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Category</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Memo / Description</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Amount (Debit)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach ($expenses as $exp)
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
+                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $exp->expense_date->format('d M Y') }}</td>
+                            <td class="px-6 py-4 text-slate-700 font-semibold capitalize">{{ str_replace('_', ' ', $exp->expense_category) }}</td>
+                            <td class="px-6 py-4 text-slate-500 max-w-[300px] truncate">{{ $exp->description ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-rose-600">₹{{ number_format($exp->amount, 2) }}</td>
                         </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach ($expenses as $exp)
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $exp->id }}</td>
-                                <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $exp->expense_date->format('d M Y') }}</td>
-                                <td class="px-6 py-4 text-slate-700 font-semibold capitalize">{{ str_replace('_', ' ', $exp->expense_category) }}</td>
-                                <td class="px-6 py-4 text-slate-500 max-w-[300px] truncate">{{ $exp->description ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 text-right font-bold text-rose-600">₹{{ number_format($exp->amount, 2) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endsection
