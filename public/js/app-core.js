@@ -101,12 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);
-                    if (doc.title) document.title = doc.title;
+                    if (doc.title) {
+                        document.title = doc.title;
+                        let pageTitleStr = doc.title.split('-')[0].trim();
+                        if (pageTitleStr.startsWith('PWW ERP')) pageTitleStr = pageTitleStr.replace('PWW ERP', '').trim();
+                        if (!pageTitleStr) pageTitleStr = 'Dashboard';
+                        const txt = document.createElement('textarea');
+                        txt.innerHTML = pageTitleStr;
+                        pageTitleStr = txt.value;
+                        $('#headerPageTitle').text(pageTitleStr);
+                    }
                 } else {
                     $('#page-content').html(htmlText);
                     const titleMatch = htmlText.match(/<title>(.*?)<\/title>/i);
                     if (titleMatch && titleMatch[1]) {
                         document.title = titleMatch[1];
+                        let pageTitleStr = titleMatch[1].split('-')[0].trim();
+                        if (pageTitleStr.startsWith('PWW ERP')) pageTitleStr = pageTitleStr.replace('PWW ERP', '').trim();
+                        if (!pageTitleStr) pageTitleStr = 'Dashboard';
+                        const txt = document.createElement('textarea');
+                        txt.innerHTML = pageTitleStr;
+                        pageTitleStr = txt.value;
+                        $('#headerPageTitle').text(pageTitleStr);
                     }
                 }
                 

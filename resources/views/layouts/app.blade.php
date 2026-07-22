@@ -378,6 +378,9 @@
 
     <!-- Main Content Pane Wrapper -->
     <div id="main-content" class="flex-grow pl-0 flex flex-col min-h-screen transition-all duration-300">
+        <!-- Top Sticky Header Navigation -->
+        @include('layouts.header')
+
         <!-- Toast Notification Area -->
         <div id="globalToast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
             <div class="bg-white border shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm">
@@ -388,7 +391,7 @@
             </div>
         </div>
 
-        <div id="page-content" class="p-4 md:p-8 flex-grow space-y-6">
+        <div id="page-content" class="p-4 md:px-8 md:pt-2 md:pb-8 flex-grow space-y-5">
             @yield('content')
         </div>
 

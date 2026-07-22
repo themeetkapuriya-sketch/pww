@@ -72,13 +72,8 @@ class BillingService
 
             $totalAmount = $totalTaxableValue + $cgst + $sgst + $igst;
 
-            // Generate unique invoice number: INV-{timestamp}-{random_4_digits}
-            $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            
-            // Just double check uniqueness
-            while (Invoice::where('invoice_number', $invoiceNumber)->exists()) {
-                $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            }
+            // Generate sequential Financial Year invoice number (resets to 0001 after March 31)
+            $invoiceNumber = Invoice::generateNextInvoiceNumber();
 
             // Create Invoice
             $invoice = Invoice::create([

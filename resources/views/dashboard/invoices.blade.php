@@ -81,7 +81,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Number</label>
-                            <input type="text" name="invoice_number" value="INV-{{ date('Ymd') }}-{{ rand(100,999) }}" required
+                            <input type="text" name="invoice_number" value="{{ \App\Models\Invoice::generateNextInvoiceNumber() }}" required
                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
                         </div>
                         <div>
@@ -129,9 +129,14 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary w-full py-2.5 px-4 text-sm font-bold">
-                        Generate & Save Invoice
-                    </button>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <button type="submit" class="btn-primary flex-1 py-2.5 px-4 text-sm font-bold">
+                            Generate & Save Invoice
+                        </button>
+                        <button type="button" id="quitEditBtn" onclick="quitEditMode()" class="hidden py-2.5 px-5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-300 shadow-xs">
+                            Quit Edit
+                        </button>
+                    </div>
                 </form>
             </div>
 
@@ -252,17 +257,48 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                     </a>
 
-                                    <!-- Mark Paid Button (Red/Rose Boxy Curved) -->
-                                    @if ($inv->payment_status !== 'paid')
-                                        <form action="{{ route('invoice.pay', $inv->id) }}" method="POST" class="ajax-form inline-block">
-                                            @csrf
-                                            <button type="submit" 
-                                                    title="Mark Invoice as Paid"
-                                                    class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                                            </button>
-                                        </form>
-                                    @endif
+                                    @php
+                                        $itemsArray = [];
+                                        if ($inv->deliveryChallan && $inv->deliveryChallan->items) {
+                                            foreach ($inv->deliveryChallan->items as $it) {
+                                                $itemsArray[] = [
+                                                    'finished_good_id' => $it->finished_good_id,
+                                                    'quantity' => $it->quantity,
+                                                    'unit_price' => $it->unit_price
+                                                ];
+                                            }
+                                        } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                                            foreach ($inv->deliveryChallans as $dcItem) {
+                                                foreach ($dcItem->items as $it) {
+                                                    $itemsArray[] = [
+                                                        'finished_good_id' => $it->finished_good_id,
+                                                        'quantity' => $it->quantity,
+                                                        'unit_price' => $it->unit_price
+                                                    ];
+                                                }
+                                            }
+                                        }
+                                        $invPlantId = '';
+                                        if ($inv->deliveryChallan) {
+                                            $invPlantId = $inv->deliveryChallan->plant_id;
+                                        } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                                            $invPlantId = $inv->deliveryChallans->first()->plant_id;
+                                        }
+                                        $invDataAttr = json_encode([
+                                            'id' => $inv->id,
+                                            'invoice_number' => $inv->invoice_number,
+                                            'plant_id' => $invPlantId,
+                                            'due_date' => $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : date('Y-m-d'),
+                                            'items' => $itemsArray
+                                        ]);
+                                    @endphp
+                                    <!-- Edit Button (Amber Boxy Curved) -->
+                                    <button type="button" 
+                                            title="Edit Invoice Details"
+                                            onclick="window.editInvoiceRecord({{ $inv->id }})"
+                                            class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
@@ -375,5 +411,136 @@
 
     // Initialize calculation on page load
     recalculateCustomInvoice();
+</script>
+
+<script>
+    // Invoice data registry
+    window.erpInvoicesMap = window.erpInvoicesMap || {};
+    @foreach ($invoices as $inv)
+        @php
+            $itemsArray = [];
+            if ($inv->deliveryChallan && $inv->deliveryChallan->items) {
+                foreach ($inv->deliveryChallan->items as $it) {
+                    $itemsArray[] = [
+                        'finished_good_id' => $it->finished_good_id,
+                        'quantity' => $it->quantity,
+                        'unit_price' => $it->unit_price
+                    ];
+                }
+            } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                foreach ($inv->deliveryChallans as $dcItem) {
+                    foreach ($dcItem->items as $it) {
+                        $itemsArray[] = [
+                            'finished_good_id' => $it->finished_good_id,
+                            'quantity' => $it->quantity,
+                            'unit_price' => $it->unit_price
+                        ];
+                    }
+                }
+            }
+            $invPlantId = '';
+            if ($inv->deliveryChallan) {
+                $invPlantId = $inv->deliveryChallan->plant_id;
+            } elseif ($inv->deliveryChallans->isNotEmpty()) {
+                $invPlantId = $inv->deliveryChallans->first()->plant_id;
+            }
+        @endphp
+        window.erpInvoicesMap[{{ $inv->id }}] = {
+            id: {{ $inv->id }},
+            invoice_number: @json($inv->invoice_number),
+            plant_id: @json($invPlantId),
+            due_date: @json($inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : date('Y-m-d')),
+            items: @json($itemsArray)
+        };
+    @endforeach
+
+    // Global edit function
+    window.editInvoiceRecord = function(id) {
+        const invoice = window.erpInvoicesMap[id];
+        if (!invoice) {
+            console.error('Invoice record not found for id:', id);
+            return;
+        }
+
+        const quitBtn = document.getElementById('quitEditBtn');
+        if (quitBtn) quitBtn.classList.remove('hidden');
+
+        const $form = $('#customInvoiceForm');
+        if ($form.length) {
+            $form.find('input[name="invoice_number"]').val(invoice.invoice_number);
+            if (invoice.plant_id) {
+                $form.find('select[name="plant_id"]').val(invoice.plant_id).trigger('change');
+            }
+            if (invoice.due_date) {
+                $form.find('input[name="due_date"]').val(invoice.due_date);
+            }
+        }
+
+        const container = document.getElementById('billingRowsContainer');
+        if (container && invoice.items && invoice.items.length > 0) {
+            container.innerHTML = '';
+            invoice.items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+                row.innerHTML = `
+                    <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                        <option value="">Select product...</option>
+                        @foreach ($finishedGoods as $g)
+                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="number" name="quantities[]" value="${item.quantity}" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <input type="number" name="unit_prices[]" value="${item.unit_price}" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                `;
+                row.querySelector('select').value = item.finished_good_id;
+                container.appendChild(row);
+            });
+            
+            if (typeof recalculateCustomInvoice === 'function') {
+                recalculateCustomInvoice();
+            }
+        }
+
+        const formElem = document.getElementById('customInvoiceForm');
+        if (formElem) {
+            formElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    // Quit Edit mode handler
+    window.quitEditMode = function() {
+        const quitBtn = document.getElementById('quitEditBtn');
+        if (quitBtn) quitBtn.classList.add('hidden');
+
+        const $form = $('#customInvoiceForm');
+        if ($form.length) {
+            $form[0].reset();
+            $form.find('input[name="invoice_number"]').val('{{ \App\Models\Invoice::generateNextInvoiceNumber() }}');
+            $form.find('select[name="plant_id"]').val('').trigger('change');
+            $form.find('input[name="due_date"]').val('{{ date("Y-m-d", strtotime("+30 days")) }}');
+        }
+
+        const container = document.getElementById('billingRowsContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                        <option value="">Select product...</option>
+                        @foreach ($finishedGoods as $g)
+                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                </div>
+            `;
+        }
+
+        if (typeof recalculateCustomInvoice === 'function') {
+            recalculateCustomInvoice();
+        }
+    };
 </script>
 @endsection
