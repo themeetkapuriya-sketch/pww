@@ -768,7 +768,7 @@ class ErpController extends Controller
                 ])
                 ->output();
 
-            Mail::to($request->recipient_email)->send(
+            Mail::to($request->recipient_email)->queue(
                 new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)
             );
 

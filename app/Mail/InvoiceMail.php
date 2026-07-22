@@ -4,13 +4,14 @@ namespace App\Mail;
 
 use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class InvoiceMail extends Mailable
+class InvoiceMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -30,7 +31,7 @@ class InvoiceMail extends Mailable
         $this->invoice = $invoice;
         $this->customSubject = $customSubject;
         $this->messageBody = $messageBody;
-        $this->pdfContent = $pdfContent;
+        $this->pdfContent = base64_encode($pdfContent);
         $this->client = $client;
         $this->plant = $plant;
         $this->groupedItems = $groupedItems ?: collect();
@@ -69,7 +70,7 @@ class InvoiceMail extends Mailable
     public function attachments(): array
     {
         return [
-            Attachment::fromData(fn () => $this->pdfContent, "Invoice-{$this->invoice->invoice_number}.pdf")
+            Attachment::fromData(fn () => base64_decode($this->pdfContent), "Invoice-{$this->invoice->invoice_number}.pdf")
                 ->withMime('application/pdf'),
         ];
     }
