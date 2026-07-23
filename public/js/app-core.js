@@ -19,59 +19,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Apply sidebar visual states
         function applySidebarState(pinned) {
-            if (!$sidebar.length || !$mainContent.length) return;
+            const $sb = $('#sidebar');
+            const $mc = $('#main-content');
+            const $toggle = $('#sidebarToggle');
+            const $dot = $('#sidebarPinDot');
+            
+            if (!$sb.length || !$mc.length) return;
+
             if (isDesktop()) {
+                if ($toggle.length) $toggle.addClass('hidden');
                 if (pinned) {
-                    $sidebar.removeClass('sidebar-collapsed -translate-x-full').addClass('translate-x-0');
-                    $mainContent.addClass('pl-64').removeClass('pl-[72px] pl-0');
-                    if ($sidebarPinDot.length) {
-                        $sidebarPinDot.removeClass('bg-transparent scale-0').addClass('bg-blue-500 scale-100');
+                    $sb.removeClass('sidebar-collapsed -translate-x-full md:-translate-x-full').addClass('translate-x-0 md:translate-x-0');
+                    $mc.removeClass('pl-0 pl-[72px] md:pl-[72px]').addClass('pl-64 md:pl-64');
+                    if ($dot.length) {
+                        $dot.removeClass('bg-transparent scale-0').addClass('bg-blue-500 scale-100');
                     }
                 } else {
-                    $sidebar.addClass('sidebar-collapsed translate-x-0').removeClass('-translate-x-full');
-                    $mainContent.addClass('pl-[72px]').removeClass('pl-64 pl-0');
-                    if ($sidebarPinDot.length) {
-                        $sidebarPinDot.removeClass('bg-blue-500 scale-100').addClass('bg-transparent scale-0');
+                    $sb.removeClass('-translate-x-full md:-translate-x-full').addClass('sidebar-collapsed translate-x-0 md:translate-x-0');
+                    $mc.removeClass('pl-0 pl-64 md:pl-64').addClass('pl-[72px] md:pl-[72px]');
+                    if ($dot.length) {
+                        $dot.removeClass('bg-blue-500 scale-100').addClass('bg-transparent scale-0');
                     }
                 }
-                $sidebarToggle.addClass('hidden');
             } else {
-                $sidebar.addClass('sidebar-collapsed -translate-x-full').removeClass('translate-x-0');
-                $mainContent.addClass('pl-0').removeClass('pl-64 pl-[72px]');
-                $sidebarToggle.removeClass('hidden');
+                if ($toggle.length) $toggle.removeClass('hidden');
+                $sb.removeClass('translate-x-0 md:translate-x-0 sidebar-collapsed').addClass('-translate-x-full');
+                $mc.removeClass('pl-64 pl-[72px] md:pl-64 md:pl-[72px]').addClass('pl-0');
             }
         }
 
         // Toggle logic init
-        if ($sidebar.length) {
+        const $sb = $('#sidebar');
+        if ($sb.length) {
             const isPinned = localStorage.getItem('sidebar_pinned') !== 'false';
             applySidebarState(isPinned);
 
-            $sidebarPinToggle.on('click', function(e) {
+            $(document).on('click', '#sidebarPinToggle', function(e) {
                 e.stopPropagation();
                 const currentPinned = localStorage.getItem('sidebar_pinned') !== 'false';
                 localStorage.setItem('sidebar_pinned', !currentPinned ? 'true' : 'false');
                 applySidebarState(!currentPinned);
             });
 
-            $sidebarToggle.on('click', function(e) {
+            $(document).on('click', '#sidebarToggle', function(e) {
                 e.stopPropagation();
-                $sidebar.removeClass('-translate-x-full').addClass('translate-x-0');
-                $sidebarToggle.addClass('hidden');
+                const $sbEl = $('#sidebar');
+                $sbEl.removeClass('-translate-x-full').addClass('translate-x-0');
+                $(this).addClass('hidden');
             });
 
             const closeMobileSidebar = () => {
                 if (!isDesktop()) {
-                    $sidebar.addClass('-translate-x-full').removeClass('translate-x-0');
-                    $sidebarToggle.removeClass('hidden');
+                    const $sbEl = $('#sidebar');
+                    const $toggle = $('#sidebarToggle');
+                    $sbEl.addClass('-translate-x-full').removeClass('translate-x-0');
+                    if ($toggle.length) $toggle.removeClass('hidden');
                 }
             };
 
-            $sidebar.on('click', '.nav-link-item, .sidebar-logout-btn, .sidebar-footer a', closeMobileSidebar);
+            $(document).on('click', '#sidebar .nav-link-item, #sidebar .sidebar-logout-btn, #sidebar .sidebar-footer a', closeMobileSidebar);
 
             $(document).on('click', function(e) {
-                if (!isDesktop() && !$sidebar.is(e.target) && $sidebar.has(e.target).length === 0 &&
-                    !$sidebarToggle.is(e.target) && $sidebarToggle.has(e.target).length === 0) {
+                const $sbEl = $('#sidebar');
+                const $toggle = $('#sidebarToggle');
+                if (!isDesktop() && $sbEl.length && !$sbEl.is(e.target) && $sbEl.has(e.target).length === 0 &&
+                    !$toggle.is(e.target) && $toggle.has(e.target).length === 0) {
                     closeMobileSidebar();
                 }
             });
@@ -132,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 initializeForms();
                 updateActiveSidebarLinks(url);
+                applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
                 executeScripts($('#page-content')[0]);
                 window.initErpDataTables();
             } catch (err) {
@@ -150,43 +163,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function updateActiveSidebarLinks(urlStr) {
-            if (!$sidebar.length) return;
-            const url = new URL(urlStr);
-            const path = url.pathname;
-            const tab = url.searchParams.get('tab');
-            
-            $sidebar.find('a.nav-link-item').each(function() {
-                const $link = $(this);
-                const linkUrl = new URL(this.href);
-                const linkPath = linkUrl.pathname;
-                const linkTab = linkUrl.searchParams.get('tab');
+            const $sb = $('#sidebar');
+            if (!$sb.length) return;
+            try {
+                const url = new URL(urlStr || window.location.href, window.location.origin);
+                const path = url.pathname;
+                const tab = url.searchParams.get('tab');
                 
-                let isActive = false;
-                if (linkPath === path) {
-                    isActive = linkTab ? (linkTab === tab) : (!tab || (path === '/inventory' && tab === 'materials') || (path === '/invoices' && tab === 'ledger'));
-                }
-                
-                if (isActive) {
-                    $link.addClass('active-nav').removeClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
-                } else {
-                    $link.removeClass('active-nav').addClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
-                }
-            });
+                $sb.find('a.nav-link-item').each(function() {
+                    const $link = $(this);
+                    const rawHref = $link.attr('href');
+                    if (!rawHref) return;
+                    
+                    const linkUrl = new URL(rawHref, window.location.origin);
+                    const linkPath = linkUrl.pathname;
+                    const linkTab = linkUrl.searchParams.get('tab');
+                    
+                    let isActive = false;
+                    if (linkPath === path) {
+                        if (linkTab) {
+                            isActive = (linkTab === tab) || (!tab && linkTab === 'materials' && path === '/inventory');
+                        } else {
+                            isActive = !tab;
+                        }
+                    }
+                    
+                    if (isActive) {
+                        $link.addClass('active-nav').removeClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
+                    } else {
+                        $link.removeClass('active-nav').addClass('text-slate-600 hover:bg-slate-50 hover:text-slate-900');
+                    }
+                });
+            } catch (err) {
+                console.error('Active sidebar link update error:', err);
+            }
         }
 
-        // Intercept Link Clicks
+        // Intercept Link Clicks for SPA Navigation
         $(document).on('click', 'a', async function(e) {
             const href = $(this).attr('href');
-            if (href && href.startsWith('http') && !$(this).attr('target') && !$(this).hasClass('no-ajax')) {
-                const url = new URL(href);
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || $(this).attr('target') || $(this).hasClass('no-ajax')) {
+                return;
+            }
+            
+            try {
+                const url = new URL(href, window.location.href);
                 if (url.origin === window.location.origin && 
                     !url.pathname.includes('/logout') && 
                     !url.pathname.includes('/print') && 
+                    !url.pathname.includes('/download') && 
                     !url.pathname.includes('/export')) {
                     
                     e.preventDefault();
-                    await window.loadPage(href);
+                    await window.loadPage(url.href);
                 }
+            } catch (err) {
+                console.error('Link intercept error:', err);
             }
         });
 
@@ -287,14 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalBtnHtml = $submitBtn.length ? $submitBtn.html() : '';
             
             if ($submitBtn.length) {
-                $submitBtn.prop('disabled', true).addClass('opacity-75');
-                $submitBtn.html(`
-                    <svg class="animate-spin h-5 w-5 mr-2 text-white inline-block" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Processing...</span>
-                `);
+                $submitBtn.prop('disabled', true);
             }
             
             let ajaxData;
@@ -319,14 +344,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     'X-CSRF-TOKEN': getCsrfToken(),
                     'Accept': 'application/json'
                 },
-                success: function(response) {
+                success: async function(response) {
+                    if ($submitBtn.length) {
+                        $submitBtn.prop('disabled', false);
+                    }
                     window.showToast('success', response.message || 'Operation completed successfully!');
                     if (!$form.hasClass('no-reset')) {
                         $form[0].reset();
                     }
-                    setTimeout(async () => {
-                        await window.loadPage(window.location.href);
-                    }, 800);
+                    await window.loadPage(window.location.href);
                 },
                 error: function(xhr) {
                     if ($submitBtn.length) {
@@ -448,14 +474,284 @@ document.addEventListener('DOMContentLoaded', () => {
             $element.removeClass('border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-opacity-50 text-red-900 bg-red-50/10');
         }
 
-        function showGlobalFormError($form, message) {
-            let $alert = $form.find('.form-alert');
-            if (!$alert.length) {
-                $alert = $('<div class="form-alert bg-rose-50 border-rose-200 text-rose-800 p-4 rounded-xl border text-xs mb-4"></div>');
-                $form.prepend($alert);
+        // GST State Code Map for all 36 States & UTs
+        const GST_STATE_CODES = {
+            'Gujarat': '24', 'Maharashtra': '27', 'Madhya Pradesh': '23', 'Rajasthan': '08',
+            'Delhi': '07', 'Haryana': '06', 'Punjab': '03', 'Uttar Pradesh': '09',
+            'West Bengal': '19', 'Karnataka': '29', 'Telangana': '36', 'Tamil Nadu': '33',
+            'Kerala': '32', 'Goa': '30', 'Andhra Pradesh': '37', 'Bihar': '10',
+            'Odisha': '21', 'Himachal Pradesh': '02', 'Uttarakhand': '05', 'Jammu & Kashmir': '01',
+            'Ladakh': '38', 'Chandigarh': '04', 'Jharkhand': '20', 'Chhattisgarh': '22',
+            'Assam': '18', 'Sikkim': '11', 'Arunachal Pradesh': '12', 'Nagaland': '13',
+            'Manipur': '14', 'Mizoram': '15', 'Tripura': '16', 'Meghalaya': '17',
+            'Puducherry': '34', 'Daman & Diu': '25', 'Dadra & Nagar Haveli': '26',
+            'Andaman & Nicobar Islands': '35'
+        };
+
+        window.initSearchableSelects = function() {
+            if (typeof TomSelect === 'undefined') return;
+            $('select.searchable-select').each(function() {
+                if (this.tomselect) return;
+                try {
+                    new TomSelect(this, {
+                        create: false,
+                        sortField: { field: "text", direction: "asc" },
+                        placeholder: "Type to search state or GST code...",
+                        allowEmptyOption: true
+                    });
+                } catch(e) {
+                    console.error('TomSelect init error:', e);
+                }
+            });
+        };
+
+        // Real-time 15-digit GSTIN UPPERCASE & State Code Validation
+        $(document).on('input', 'input[name="gst_number"], input[name="plant_gst_number"]', function() {
+            let val = $(this).val().toUpperCase();
+            $(this).val(val);
+            
+            const $form = $(this).closest('form');
+            const $stateSelect = $form.find('select[name="state"]');
+            const stateVal = $stateSelect.val();
+            const expectedCode = GST_STATE_CODES[stateVal];
+
+            if (val.length > 0) {
+                if (val.length !== 15) {
+                    showInlineError($(this), `GSTIN must be EXACTLY 15 characters (currently ${val.length})`);
+                } else if (expectedCode && !val.startsWith(expectedCode)) {
+                    showInlineError($(this), `GSTIN for ${stateVal} must start with State Code ${expectedCode} (e.g. ${expectedCode}AAAAB1111A1Z5)`);
+                } else {
+                    clearInlineError($(this));
+                }
+            } else {
+                clearInlineError($(this));
             }
-            $alert.removeClass('hidden').html(`<strong>Submission Failed:</strong> ${message}`);
-        }
+        });
+
+        // Vehicle Registration Number Format Validator (RTO & BH Series)
+        const VEHICLE_NUMBER_REGEX = /^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i;
+
+        // Auto uppercase on input, clear error if valid or empty
+        $(document).on('input', 'input[name="vehicle_number"]', function() {
+            let val = $(this).val().toUpperCase();
+            $(this).val(val);
+            if (val.length === 0 || VEHICLE_NUMBER_REGEX.test(val)) {
+                clearInlineError($(this));
+            }
+        });
+
+        // Validate format only on blur (after user finishes typing)
+        $(document).on('blur', 'input[name="vehicle_number"]', function() {
+            let val = $(this).val().trim().toUpperCase();
+            if (val.length > 0) {
+                if (!VEHICLE_NUMBER_REGEX.test(val)) {
+                    showInlineError($(this), 'Enter valid vehicle number');
+                } else {
+                    clearInlineError($(this));
+                }
+            } else {
+                clearInlineError($(this));
+            }
+        });
+
+        $(document).on('change', 'select[name="state"]', function() {
+            const stateVal = $(this).val();
+            const expectedCode = GST_STATE_CODES[stateVal];
+            const $form = $(this).closest('form');
+            const $gstInput = $form.find('input[name="gst_number"], input[name="plant_gst_number"]').first();
+            
+            if ($gstInput.length && expectedCode) {
+                $gstInput.attr('placeholder', `e.g. ${expectedCode}AAAAB1111A1Z5`);
+                if ($gstInput.val()) {
+                    $gstInput.trigger('input');
+                }
+            }
+        });
+
+        // Global Form Auto-Clear Listener: Clear field errors & hide alerts automatically on valid user input
+        $(document).on('input change', 'form input, form select, form textarea', function() {
+            const $input = $(this);
+            const val = $input.val();
+            const $form = $input.closest('form');
+
+            // Clear inline error if field value is valid or non-empty
+            if ($input.attr('type') === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!val || emailRegex.test(val)) {
+                    clearInlineError($input);
+                }
+            } else if ($input.attr('name') === 'gst_number' || $input.attr('name') === 'plant_gst_number') {
+                const stateVal = $form.find('select[name="state"]').val();
+                const expectedCode = GST_STATE_CODES[stateVal];
+                if (!val || (val.length === 15 && (!expectedCode || val.startsWith(expectedCode)))) {
+                    clearInlineError($input);
+                }
+            } else if ($input.attr('name') === 'vehicle_number') {
+                if (!val || VEHICLE_NUMBER_REGEX.test(val)) {
+                    clearInlineError($input);
+                }
+            } else {
+                if (val && val.toString().trim() !== '') {
+                    clearInlineError($input);
+                }
+            }
+
+            // Automatically hide form-level alert banners as user interacts with inputs
+            if ($form.length) {
+                $form.find('.form-alert, #alertContainer, #emailFormAlert').addClass('hidden').html('');
+            }
+        });
+
+        // Expose resetFormAndErrors globally
+        window.resetFormAndErrors = function(formSelector) {
+            const $form = $(formSelector);
+            if (!$form.length) return;
+            
+            if ($form[0] && typeof $form[0].reset === 'function') {
+                $form[0].reset();
+            }
+            
+            $form.find('input, select, textarea').each(function() {
+                clearInlineError($(this));
+            });
+            $form.find('.form-alert').addClass('hidden').html('');
+        };
+
+        // Expose deleteInvoiceRecord globally
+        window.deleteInvoiceRecord = function(id, invoiceNumber) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Delete Invoice?',
+                    text: `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f43f5e',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Yes, Delete Invoice',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/invoices/${id}`,
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': getCsrfToken(),
+                                'Accept': 'application/json'
+                            },
+                            success: async function(response) {
+                                window.showToast('success', response.message || 'Invoice deleted successfully!');
+                                await window.loadPage(window.location.href);
+                            },
+                            error: function(xhr) {
+                                const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
+                                window.showToast('error', msg);
+                            }
+                        });
+                    }
+                });
+            } else if (confirm(`Are you sure you want to delete Invoice '${invoiceNumber}'?`)) {
+                $.ajax({
+                    url: `/invoices/${id}`,
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    success: async function(response) {
+                        window.showToast('success', response.message || 'Invoice deleted successfully!');
+                        await window.loadPage(window.location.href);
+                    },
+                    error: function(xhr) {
+                        const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
+                        alert(msg);
+                    }
+                });
+            }
+        };
+
+        // Expose payInvoiceRecord globally
+        window.payInvoiceRecord = function(id, invoiceNumber) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Mark Invoice as Paid?',
+                    text: `Are you sure you want to mark Invoice '${invoiceNumber}' as fully paid?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Yes, Mark as Paid',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/invoices/${id}/pay`,
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': getCsrfToken(),
+                                'Accept': 'application/json'
+                            },
+                            success: async function(response) {
+                                if (window.showToast) {
+                                    window.showToast('success', response.message || 'Invoice marked as paid!');
+                                }
+                                if (typeof window.loadPage === 'function') {
+                                    await window.loadPage(window.location.href);
+                                } else {
+                                    window.location.reload();
+                                }
+                            },
+                            error: function(xhr) {
+                                const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to update payment status.';
+                                if (window.showToast) {
+                                    window.showToast('error', msg);
+                                } else {
+                                    alert(msg);
+                                }
+                            }
+                        });
+                    }
+                });
+            } else if (confirm(`Are you sure you want to mark Invoice '${invoiceNumber}' as fully paid?`)) {
+                $.ajax({
+                    url: `/invoices/${id}/pay`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    success: async function(response) {
+                        if (window.showToast) {
+                            window.showToast('success', response.message || 'Invoice marked as paid!');
+                        }
+                        if (typeof window.loadPage === 'function') {
+                            await window.loadPage(window.location.href);
+                        } else {
+                            window.location.reload();
+                        }
+                    },
+                    error: function(xhr) {
+                        const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to update payment status.';
+                        alert(msg);
+                    }
+                });
+            }
+        };
+
+        // Global Handler: Auto-reset forms & clear validation errors whenever "Cancel" or "Close" buttons are clicked
+        $(document).on('click', 'button, a', function() {
+            const txt = $(this).text().trim().toLowerCase();
+            if (txt.includes('cancel') || txt.includes('close') || txt === '×') {
+                const $container = $(this).closest('form, [id*="Card"], [id*="Modal"], [id*="form"], [id*="Form"]');
+                if ($container.length) {
+                    const $form = $container.is('form') ? $container : $container.find('form');
+                    $form.each(function() {
+                        window.resetFormAndErrors(this);
+                    });
+                }
+            }
+        });
+
+        let toastTimer = null;
 
         // Expose showToast globally
         window.showToast = function(type, message) {
@@ -463,6 +759,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const $icon = $('#toastIcon');
             const $msgText = $('#toastMessage');
             if (!$toast.length || !$icon.length || !$msgText.length) return;
+            
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
             
             $msgText.text(message);
             
@@ -474,16 +774,57 @@ document.addEventListener('DOMContentLoaded', () => {
                      .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
             }
             
-            $toast.removeClass('translate-y-[-100px] opacity-0').addClass('translate-y-0 opacity-100');
+            $toast.removeClass('translate-y-[-100px] opacity-0 pointer-events-none').addClass('translate-y-0 opacity-100 pointer-events-auto');
             
-            setTimeout(() => {
-                $toast.removeClass('translate-y-0 opacity-100').addClass('translate-y-[-100px] opacity-0');
-            }, 3000);
+            toastTimer = setTimeout(() => {
+                $toast.removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
+            }, 2500);
+        };
+
+        $(document).on('click', '#globalToast', function() {
+            if (toastTimer) clearTimeout(toastTimer);
+            $(this).removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
+        });
+
+        // Expose SweetAlert2 confirmDelete globally
+        window.confirmDelete = function(title, text, confirmCallback) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: title || 'Are you sure?',
+                    text: text || "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    customClass: {
+                        popup: 'rounded-2xl shadow-xl border border-slate-200',
+                        confirmButton: 'px-4 py-2 text-xs font-bold rounded-xl text-white bg-rose-500 hover:bg-rose-600 border-none shadow-xs mr-2',
+                        cancelButton: 'px-4 py-2 text-xs font-bold rounded-xl text-white bg-slate-500 hover:bg-slate-600 border-none shadow-xs'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (typeof confirmCallback === 'function') {
+                            confirmCallback();
+                        }
+                    }
+                });
+            } else {
+                if (confirm((title ? title + "\n" : "") + (text || "Are you sure you want to delete this?"))) {
+                    if (typeof confirmCallback === 'function') {
+                        confirmCallback();
+                    }
+                }
+            }
         };
 
         // DataTables Global Initializer
         window.initErpDataTables = function() {
             if (typeof $.fn.DataTable === 'undefined') return;
+
+            // Silence popup warning alerts for custom colspan inline-edit rows
+            $.fn.dataTable.ext.errMode = 'none';
 
             $('table.erp-datatable').each(function() {
                 if ($.fn.DataTable.isDataTable(this)) {
@@ -529,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function initializeForms() {
             $('form').attr('novalidate', 'novalidate');
+            if (window.initSearchableSelects) window.initSearchableSelects();
         }
 
         // Global Modal Teleport Engine: Moves any modal to document.body

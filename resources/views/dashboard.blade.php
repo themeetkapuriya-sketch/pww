@@ -556,11 +556,18 @@
                                         ₹{{ number_format($inv->total_amount, 2) }}
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider
-                                            {{ $inv->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
-                                               ($inv->payment_status === 'partially_paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
-                                            {{ $inv->payment_status }}
-                                        </span>
+                                        @if(($inv->payment_status ?? 'unpaid') === 'paid')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                PAID
+                                            </span>
+                                        @else
+                                            <button type="button" 
+                                                    onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}')"
+                                                    title="Click to mark invoice as Paid"
+                                                    class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:scale-105 transition cursor-pointer">
+                                                {{ $inv->payment_status ?? 'UNPAID' }}
+                                            </button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

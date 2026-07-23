@@ -12,6 +12,8 @@ class Invoice extends Model
     protected $fillable = [
         'delivery_challan_id',
         'invoice_number',
+        'vehicle_number',
+        'invoice_date',
         'total_taxable_value',
         'cgst',
         'sgst',
@@ -30,6 +32,7 @@ class Invoice extends Model
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'due_date' => 'date',
+        'invoice_date' => 'date',
     ];
 
     /**

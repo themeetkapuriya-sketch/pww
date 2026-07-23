@@ -54,9 +54,45 @@ class ErpController extends Controller
      */
     private function getDateRange(Request $request)
     {
-        $startDate = $request->input('start_date', Carbon::now()->subDays(30)->toDateString());
-        $endDate = $request->input('end_date', Carbon::now()->toDateString());
-        return [$startDate, $endDate];
+        $reportType = $request->input('report_type', 'invoice');
+        $defaultPeriod = ($reportType === 'gst') ? 'month' : 'all';
+
+        $period = $request->input('filter_period', $defaultPeriod);
+        
+        if ($request->has('start_date') && $request->has('end_date') && !$request->has('filter_period')) {
+            $period = 'custom';
+        }
+
+        $filterMonth = $request->input('filter_month', Carbon::now()->format('Y-m'));
+        $filterYear = $request->input('filter_year', date('Y'));
+
+        switch ($period) {
+            case 'all':
+                $startDate = '2020-01-01'; // Default broad range
+                $endDate = Carbon::now()->toDateString();
+                break;
+            case 'month':
+                try {
+                    $monthCarbon = Carbon::parse($filterMonth . '-01');
+                    $startDate = $monthCarbon->startOfMonth()->toDateString();
+                    $endDate = $monthCarbon->endOfMonth()->toDateString();
+                } catch (\Exception $e) {
+                    $startDate = Carbon::now()->startOfMonth()->toDateString();
+                    $endDate = Carbon::now()->endOfMonth()->toDateString();
+                }
+                break;
+            case 'year':
+                $startDate = Carbon::create((int)$filterYear, 4, 1)->toDateString();
+                $endDate = Carbon::create((int)$filterYear + 1, 3, 31)->toDateString();
+                break;
+            case 'custom':
+            default:
+                $startDate = $request->input('start_date', Carbon::now()->subDays(30)->toDateString());
+                $endDate = $request->input('end_date', Carbon::now()->toDateString());
+                break;
+        }
+
+        return [$startDate, $endDate, $period, $filterMonth, $filterYear];
     }
 
     /**
@@ -64,7 +100,7 @@ class ErpController extends Controller
      */
     public function overview(Request $request)
     {
-        [$startDate, $endDate] = $this->getDateRange($request);
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
         $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
         $rawMaterials = RawMaterial::all();
         
@@ -235,6 +271,44 @@ class ErpController extends Controller
     }
 
     /**
+     * Update Finished Good Product (AJAX).
+     */
+    public function updateFinishedGood(Request $request, $id)
+    {
+        $good = FinishedGood::findOrFail($id);
+
+        $validated = $request->validate([
+            'product_name' => 'required|string|max:255',
+            'sku' => 'required|string|max:100|unique:finished_goods,sku,' . $id,
+            'current_stock' => 'required|integer|min:0',
+            'selling_price' => 'required|numeric|min:0',
+        ]);
+
+        $good->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Product '{$good->product_name}' updated successfully!",
+            'data' => $good
+        ]);
+    }
+
+    /**
+     * Delete Finished Good Product (AJAX).
+     */
+    public function deleteFinishedGood($id)
+    {
+        $good = FinishedGood::findOrFail($id);
+        $name = $good->product_name;
+        $good->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Product '{$name}' deleted successfully!"
+        ]);
+    }
+
+    /**
      * 3. Bill of Materials (BOM).
      */
     public function bom()
@@ -350,7 +424,7 @@ class ErpController extends Controller
     }
 
     /**
-     * Create Client (AJAX).
+     * Create Client (AJAX) - supports 1-click primary plant creation.
      */
     public function storeClient(Request $request)
     {
@@ -359,15 +433,116 @@ class ErpController extends Controller
             'client_email' => 'required|email|max:255',
             'gst_number' => 'required|string|max:50',
             'corporate_address' => 'required|string',
+            'create_primary_plant' => 'nullable|boolean',
+            'plant_name' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:100',
+            'plant_gst_number' => 'nullable|string|max:50',
+            'shipping_address' => 'nullable|string',
         ]);
 
-        $client = Client::create($validated);
+        $clientData = [
+            'company_name' => $validated['company_name'],
+            'client_email' => $validated['client_email'],
+            'gst_number' => $validated['gst_number'],
+            'corporate_address' => $validated['corporate_address'],
+        ];
+
+        $shouldCreatePlant = $request->boolean('create_primary_plant', true);
+        if ($shouldCreatePlant && !empty($validated['state'])) {
+            $plantState = $validated['state'];
+            $expectedCode = self::getGstStateCode($plantState);
+            $gstInput = !empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
+            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['gst_number' => ["GSTIN for {$plantState} must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($validated, $clientData, $request, &$client) {
+            $client = Client::create($clientData);
+
+            $shouldCreatePlant = $request->boolean('create_primary_plant', true);
+            if ($shouldCreatePlant) {
+                $plantName = !empty($validated['plant_name']) ? $validated['plant_name'] : ($validated['company_name'] . ' Main Plant');
+                $state = !empty($validated['state']) ? $validated['state'] : 'Gujarat';
+                $shippingAddress = !empty($validated['shipping_address']) ? $validated['shipping_address'] : $validated['corporate_address'];
+                $plantGst = !empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
+
+                ClientPlant::create([
+                    'client_id' => $client->id,
+                    'plant_name' => $plantName,
+                    'state' => $state,
+                    'gst_number' => $plantGst,
+                    'shipping_address' => $shippingAddress,
+                ]);
+            }
+        });
 
         return response()->json([
             'success' => true,
             'message' => "Client profile '{$client->company_name}' registered successfully!",
             'data' => $client
         ]);
+    }
+
+    /**
+     * Update Client (AJAX).
+     */
+    public function updateClient(Request $request, $id)
+    {
+        $client = Client::findOrFail($id);
+
+        $validated = $request->validate([
+            'company_name' => 'required|string|max:255',
+            'client_email' => 'required|email|max:255',
+            'gst_number' => 'required|string|max:50',
+            'corporate_address' => 'required|string',
+        ]);
+
+        $client->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Client '{$client->company_name}' updated successfully!",
+            'data' => $client
+        ]);
+    }
+
+    /**
+     * Delete Client (AJAX).
+     */
+    public function deleteClient($id)
+    {
+        $client = Client::findOrFail($id);
+        $clientName = $client->company_name;
+
+        DB::transaction(function () use ($client) {
+            $client->plants()->delete();
+            $client->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Client '{$clientName}' and its associated plants deleted successfully!"
+        ]);
+    }
+
+    public static function getGstStateCode(string $stateName): string
+    {
+        $gstStateCodes = [
+            'Jammu & Kashmir' => '01', 'Himachal Pradesh' => '02', 'Punjab' => '03', 'Chandigarh' => '04',
+            'Uttarakhand' => '05', 'Haryana' => '06', 'Delhi' => '07', 'Rajasthan' => '08',
+            'Uttar Pradesh' => '09', 'Bihar' => '10', 'Sikkim' => '11', 'Arunachal Pradesh' => '12',
+            'Nagaland' => '13', 'Manipur' => '14', 'Mizoram' => '15', 'Tripura' => '16',
+            'Meghalaya' => '17', 'Assam' => '18', 'West Bengal' => '19', 'Jharkhand' => '20',
+            'Odisha' => '21', 'Chhattisgarh' => '22', 'Madhya Pradesh' => '23', 'Gujarat' => '24',
+            'Daman & Diu' => '25', 'Dadra & Nagar Haveli' => '26', 'Maharashtra' => '27', 'Andhra Pradesh' => '28',
+            'Karnataka' => '29', 'Goa' => '30', 'Lakshadweep' => '31', 'Kerala' => '32',
+            'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar' => '35', 'Telangana' => '36', 'Ladakh' => '37'
+        ];
+        return $gstStateCodes[trim($stateName)] ?? '24';
     }
 
     /**
@@ -379,8 +554,29 @@ class ErpController extends Controller
             'client_id' => 'required|exists:clients,id',
             'plant_name' => 'required|string|max:255',
             'state' => 'required|string|max:100',
+            'gst_number' => 'nullable|string|max:50',
             'shipping_address' => 'required|string',
         ]);
+
+        $state = $validated['state'];
+        $expectedCode = self::getGstStateCode($state);
+        $client = Client::findOrFail($validated['client_id']);
+        $clientGstCode = substr($client->gst_number, 0, 2);
+        $gstInput = !empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
+
+        if (!empty($gstInput)) {
+            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                ], 422);
+            }
+        } elseif ($clientGstCode !== $expectedCode) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]]
+            ], 422);
+        }
 
         $plant = ClientPlant::create($validated);
 
@@ -388,6 +584,64 @@ class ErpController extends Controller
             'success' => true,
             'message' => "Client Plant '{$plant->plant_name}' created successfully!",
             'data' => $plant
+        ]);
+    }
+
+    /**
+     * Update Plant (AJAX).
+     */
+    public function updatePlant(Request $request, $id)
+    {
+        $plant = ClientPlant::findOrFail($id);
+
+        $validated = $request->validate([
+            'plant_name' => 'required|string|max:255',
+            'state' => 'required|string|max:100',
+            'gst_number' => 'nullable|string|max:50',
+            'shipping_address' => 'required|string',
+        ]);
+
+        $state = $validated['state'];
+        $expectedCode = self::getGstStateCode($state);
+        $client = $plant->client;
+        $clientGstCode = $client ? substr($client->gst_number, 0, 2) : '24';
+        $gstInput = !empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
+
+        if (!empty($gstInput)) {
+            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                ], 422);
+            }
+        } elseif ($clientGstCode !== $expectedCode) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]]
+            ], 422);
+        }
+
+        $plant->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Plant '{$plant->plant_name}' updated successfully!",
+            'data' => $plant
+        ]);
+    }
+
+    /**
+     * Delete Plant (AJAX).
+     */
+    public function deletePlant($id)
+    {
+        $plant = ClientPlant::findOrFail($id);
+        $plantName = $plant->plant_name;
+        $plant->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Plant '{$plantName}' deleted successfully!"
         ]);
     }
 
@@ -410,13 +664,17 @@ class ErpController extends Controller
         $validated = $request->validate([
             'invoice_number' => 'required|string|unique:invoices,invoice_number',
             'plant_id' => 'required|exists:client_plants,id',
-            'due_date' => 'required|date',
+            'invoice_date' => 'nullable|date',
+            'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
+            'due_date' => 'nullable|date',
             'finished_good_ids' => 'required|array|min:1',
             'finished_good_ids.*' => 'required|exists:finished_goods,id',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|integer|min:1',
             'unit_prices' => 'required|array|min:1',
             'unit_prices.*' => 'required|numeric|min:0',
+        ], [
+            'vehicle_number.regex' => 'Enter valid vehicle number',
         ]);
 
         try {
@@ -442,13 +700,15 @@ class ErpController extends Controller
                 }
 
                 $total = $taxable + $cgst + $sgst + $igst;
+                $invDate = $validated['invoice_date'] ?? date('Y-m-d');
+                $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
 
                 // Create dummy delivery challan for manual items
                 $challan = \App\Models\DeliveryChallan::create([
                     'client_id' => $plant->client_id,
                     'plant_id' => $plant->id,
                     'challan_number' => 'DC-M-' . $validated['invoice_number'],
-                    'dispatch_date' => now(),
+                    'dispatch_date' => $invDate,
                     'status' => 'invoiced',
                 ]);
 
@@ -465,6 +725,8 @@ class ErpController extends Controller
                 $invoice = Invoice::create([
                     'delivery_challan_id' => $challan->id,
                     'invoice_number' => $validated['invoice_number'],
+                    'vehicle_number' => $validated['vehicle_number'] ?? null,
+                    'invoice_date' => $invDate,
                     'total_taxable_value' => $taxable,
                     'cgst' => $cgst,
                     'sgst' => $sgst,
@@ -472,7 +734,8 @@ class ErpController extends Controller
                     'total_amount' => $total,
                     'payment_status' => 'unpaid',
                     'paid_amount' => 0.00,
-                    'due_date' => $validated['due_date'],
+                    'due_date' => $dueDate,
+                    'created_at' => $invDate . ' ' . now()->format('H:i:s'),
                 ]);
 
                 $challan->update(['invoice_id' => $invoice->id]);
@@ -513,6 +776,41 @@ class ErpController extends Controller
             return response()->json([
                 'success' => false,
                 'errors' => ['Failed to update payment status: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete an invoice (AJAX).
+     */
+    public function deleteInvoice($id)
+    {
+        try {
+            $invoice = Invoice::findOrFail($id);
+            $invNum = $invoice->invoice_number;
+
+            DB::transaction(function () use ($invoice) {
+                DeliveryChallan::where('invoice_id', $invoice->id)->update(['invoice_id' => null, 'status' => 'dispatched']);
+                
+                if ($invoice->delivery_challan_id) {
+                    $primaryChallan = DeliveryChallan::find($invoice->delivery_challan_id);
+                    if ($primaryChallan) {
+                        $primaryChallan->items()->delete();
+                        $primaryChallan->delete();
+                    }
+                }
+                
+                $invoice->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Invoice '{$invNum}' deleted successfully!"
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to delete invoice: ' . $e->getMessage()]
             ], 500);
         }
     }
@@ -905,9 +1203,63 @@ class ErpController extends Controller
      */
     public function reports(Request $request)
     {
-        [$startDate, $endDate] = $this->getDateRange($request);
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
+        $reportType = $request->input('report_type', 'invoice');
+
+        // 1. Fetch Invoices
+        $invoices = Invoice::with(['deliveryChallan.client', 'deliveryChallans.plant'])
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('invoice_date', [$startDate, $endDate])
+                  ->orWhere(function($sub) use ($startDate, $endDate) {
+                      $sub->whereNull('invoice_date')
+                          ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                  });
+            })
+            ->orderBy('invoice_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 2. Fetch Purchases
+        $purchases = \App\Models\Purchase::whereBetween('purchase_date', [$startDate, $endDate])
+            ->orderBy('purchase_date', 'desc')
+            ->get();
+
+        // 3. Fetch Financials
         $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
-        return view('dashboard.reports', compact('startDate', 'endDate', 'financials'));
+
+        // 4. Calculate Summaries
+        $invoiceSummary = [
+            'total_taxable' => $invoices->sum('total_taxable_value'),
+            'total_cgst' => $invoices->sum('cgst'),
+            'total_sgst' => $invoices->sum('sgst'),
+            'total_igst' => $invoices->sum('igst'),
+            'total_amount' => $invoices->sum('total_amount'),
+        ];
+        $invoiceSummary['total_gst'] = $invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'] + $invoiceSummary['total_igst'];
+
+        $purchaseSummary = [
+            'total_spent' => $purchases->sum('total_amount'),
+            'total_gst' => $purchases->sum('gst_amount'),
+            'total_raw_material' => $purchases->where('purchase_type', 'raw_material')->sum('total_amount'),
+            'total_machinery' => $purchases->where('purchase_type', 'machinery')->sum('total_amount'),
+            'total_supplies' => $purchases->where('purchase_type', 'supplies')->sum('total_amount'),
+        ];
+
+        $gstSummary = [
+            'sales_cgst' => $invoiceSummary['total_cgst'],
+            'sales_sgst' => $invoiceSummary['total_sgst'],
+            'sales_igst' => $invoiceSummary['total_igst'],
+            'sales_total_gst' => $invoiceSummary['total_gst'],
+            'purchase_total_gst' => $purchaseSummary['total_gst'],
+        ];
+        $gstSummary['net_gst_payable'] = $gstSummary['sales_total_gst'] - $gstSummary['purchase_total_gst'];
+
+        return view('dashboard.reports', compact(
+            'startDate', 'endDate', 'period', 'reportType',
+            'invoices', 'purchases', 'financials',
+            'invoiceSummary', 'purchaseSummary', 'gstSummary',
+            'filterMonth', 'filterYear'
+        ));
     }
 
     /**
@@ -915,10 +1267,22 @@ class ErpController extends Controller
      */
     public function exportCsv(Request $request)
     {
-        [$startDate, $endDate] = $this->getDateRange($request);
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
         
         $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
-        $invoices = Invoice::whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()])->get();
+        
+        // Exact same query as Reports UI invoices load
+        $invoices = Invoice::where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('invoice_date', [$startDate, $endDate])
+                  ->orWhere(function($sub) use ($startDate, $endDate) {
+                      $sub->whereNull('invoice_date')
+                          ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                  });
+            })
+            ->orderBy('invoice_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])->get();
 
         $response = new StreamedResponse(function() use ($startDate, $endDate, $financials, $invoices, $expenses) {
@@ -955,7 +1319,7 @@ class ErpController extends Controller
                     $inv->sgst,
                     $inv->igst,
                     $inv->total_amount,
-                    $inv->due_date->toDateString(),
+                    $inv->due_date ? $inv->due_date->toDateString() : ($inv->invoice_date ? Carbon::parse($inv->invoice_date)->toDateString() : 'N/A'),
                     $inv->payment_status
                 ]);
             }
@@ -976,7 +1340,24 @@ class ErpController extends Controller
             fclose($handle);
         });
 
-        $filename = "PWW-ERP-Audit-Report-{$startDate}-to-{$endDate}.csv";
+        // Determine filename dynamically based on period
+        switch ($period) {
+            case 'all':
+                $filename = "PWW-ERP-Audit-Report-All-Records.csv";
+                break;
+            case 'month':
+                $filename = "PWW-ERP-Audit-Report-Month-{$filterMonth}.csv";
+                break;
+            case 'year':
+                $nextYearShort = substr((int)$filterYear + 1, 2, 2);
+                $filename = "PWW-ERP-Audit-Report-FY-{$filterYear}-{$nextYearShort}.csv";
+                break;
+            case 'custom':
+            default:
+                $filename = "PWW-ERP-Audit-Report-{$startDate}-to-{$endDate}.csv";
+                break;
+        }
+
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
         $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -1080,6 +1461,7 @@ class ErpController extends Controller
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'required|string|max:255',
             'gstin' => 'required|string|max:255',
+            'msme_number' => 'nullable|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'bank_name' => 'required|string|max:255',
             'bank_account_name' => 'required|string|max:255',
@@ -1093,6 +1475,7 @@ class ErpController extends Controller
             \App\Models\Setting::set('address_line_1', $validated['address_line_1']);
             \App\Models\Setting::set('address_line_2', $validated['address_line_2']);
             \App\Models\Setting::set('gstin', $validated['gstin']);
+            \App\Models\Setting::set('msme_number', $request->input('msme_number', ''));
             \App\Models\Setting::set('bank_name', $validated['bank_name']);
             \App\Models\Setting::set('bank_account_name', $validated['bank_account_name']);
             \App\Models\Setting::set('bank_account_no', $validated['bank_account_no']);

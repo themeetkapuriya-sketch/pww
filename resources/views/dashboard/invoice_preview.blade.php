@@ -16,15 +16,7 @@
                 <p class="text-xs font-semibold text-slate-500">Invoice Reference: <span class="text-blue-600 font-bold">#{{ $invoice->invoice_number }}</span></p>
             </div>
         </div>
-        <div>
-            @if($invoice->payment_status === 'paid')
-                <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-300">PAID</span>
-            @elseif($invoice->payment_status === 'partially_paid')
-                <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-700 border border-amber-300">PARTIALLY PAID</span>
-            @else
-                <span class="px-3.5 py-1.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-700 border border-rose-300">UNPAID</span>
-            @endif
-        </div>
+
     </div>
 
     <!-- Layout Grid: Left Invoice Card & Right Action Column -->
@@ -41,40 +33,83 @@
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h2>
                         <p class="text-xs text-slate-500 font-medium mt-0.5">{{ \App\Models\Setting::get('business_address', 'At & Post G.I.D.C., Gujarat') }}</p>
-                        <p class="text-xs text-slate-400 font-semibold mt-0.5">GSTIN: <span class="text-slate-700 font-bold">{{ \App\Models\Setting::get('gstin', '24AAAAA0000A1Z5') }}</span> | State: Gujarat (24)</p>
+                        @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
+                        <p class="text-xs text-slate-400 font-semibold mt-0.5">
+                            GSTIN: <span class="text-slate-700 font-bold">{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
+                            @if(!empty($msme))
+                                | MSME NO: <span class="text-slate-700 font-bold">{{ $msme }}</span>
+                            @endif
+                            | State: Gujarat (24)
+                        </p>
                     </div>
                 </div>
 
                 <!-- Invoice Meta Details -->
                 <div class="text-left md:text-right space-y-1">
                     <h3 class="text-2xl font-black text-blue-600 tracking-tight">INVOICE #{{ $invoice->invoice_number }}</h3>
-                    <p class="text-xs font-bold text-slate-500">Date Issued: <span class="text-slate-800 font-semibold">{{ \Carbon\Carbon::parse($invoice->created_at)->format('d/m/Y') }}</span></p>
-                    <p class="text-xs font-bold text-slate-500">Due Date: <span class="text-slate-800 font-semibold">{{ \Carbon\Carbon::parse($invoice->created_at)->addDays(30)->format('d/m/Y') }}</span></p>
+                    <p class="text-xs font-bold text-slate-500">Invoice Date: <span class="text-slate-800 font-semibold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d/m/Y') }}</span></p>
+                    @if(!empty($invoice->vehicle_number))
+                        <p class="text-xs font-bold text-slate-500">Vehicle No: <span class="text-blue-700 font-mono font-bold">{{ $invoice->vehicle_number }}</span></p>
+                    @endif
                 </div>
             </div>
 
-            <!-- Client & Destination Party Information -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/70 rounded-xl p-5 border border-slate-100">
-                <!-- Invoice To -->
-                <div class="space-y-1.5">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Invoice To:</span>
-                    <h4 class="text-sm font-bold text-slate-900">{{ $client->company_name ?? 'Direct Customer' }}</h4>
-                    <p class="text-xs text-slate-600 font-medium">{{ $plant->plant_name ?? 'Standard Plant Destination' }}</p>
-                    <p class="text-xs text-slate-500">{{ $plant->shipping_address ?? 'Gujarat, India' }}</p>
-                    <p class="text-xs text-slate-500 font-semibold">GSTIN: <span class="text-slate-700 font-bold">{{ $client->gst_number ?? 'N/A' }}</span></p>
+            @php
+            if (!function_exists('resolveStateCode')) {
+                function resolveStateCode($stateName) {
+                    $map = [
+                        'Jammu & Kashmir' => '01', 'Himachal Pradesh' => '02', 'Punjab' => '03', 'Chandigarh' => '04',
+                        'Uttarakhand' => '05', 'Haryana' => '06', 'Delhi' => '07', 'Rajasthan' => '08',
+                        'Uttar Pradesh' => '09', 'Bihar' => '10', 'Sikkim' => '11', 'Arunachal Pradesh' => '12',
+                        'Nagaland' => '13', 'Manipur' => '14', 'Mizoram' => '15', 'Tripura' => '16',
+                        'Meghalaya' => '17', 'Assam' => '18', 'West Bengal' => '19', 'Jharkhand' => '20',
+                        'Odisha' => '21', 'Chhattisgarh' => '22', 'Madhya Pradesh' => '23', 'Gujarat' => '24',
+                        'Daman & Diu' => '25', 'Dadra & Nagar Haveli' => '26', 'Maharashtra' => '27',
+                        'Andhra Pradesh' => '37', 'Karnataka' => '29', 'Goa' => '30', 'Lakshadweep' => '31',
+                        'Kerala' => '32', 'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar Islands' => '35',
+                        'Telangana' => '36', 'Ladakh' => '38',
+                    ];
+                    return $map[trim($stateName ?? '')] ?? '24';
+                }
+            }
+            $plantState = $plant->state ?? 'Gujarat';
+            $plantStateCode = resolveStateCode($plantState);
+            $isGujarat = strcasecmp(trim($plantState), 'Gujarat') === 0;
+            $previewBilledAddress = (!empty($plant->shipping_address)) ? $plant->shipping_address : ($client->corporate_address ?? 'N/A');
+            $previewBilledGst = (!empty($plant->gst_number)) ? $plant->gst_number : ($client->gst_number ?? 'N/A');
+            @endphp
+
+            <!-- Client & Destination Party Information (Tally ERP Style) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/70 rounded-xl p-5 border border-slate-100">
+                <!-- Billed To (Buyer) -->
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Billed To (Buyer):</span>
+                    <h4 class="text-xs font-bold text-slate-900">{{ $client->company_name ?? 'Direct Customer' }}</h4>
+                    <p class="text-[11px] text-slate-600 font-medium">{{ $previewBilledAddress }}</p>
+                    <p class="text-[11px] text-slate-500 font-semibold">GSTIN: <span class="text-slate-800 font-mono font-bold">{{ $previewBilledGst }}</span></p>
+                    <p class="text-[11px] text-slate-500">State: <span class="font-bold text-slate-700">{{ $plantState }} (State Code: {{ $plantStateCode }})</span></p>
                     @if(!empty($client->client_email))
-                        <p class="text-xs text-blue-600 font-medium">✉ {{ $client->client_email }}</p>
+                        <p class="text-[11px] text-blue-600 font-medium pt-0.5">✉ {{ $client->client_email }}</p>
                     @endif
                 </div>
 
-                <!-- Bill To Summary -->
-                <div class="space-y-1.5 md:text-right">
+                <!-- Shipped To (Consignee) -->
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Shipped To (Consignee):</span>
+                    <h4 class="text-xs font-bold text-slate-900">{{ $plant->plant_name ?? 'Delivery Location' }}</h4>
+                    <p class="text-[11px] text-slate-600 font-medium">{{ $plant->shipping_address ?? 'N/A' }}</p>
+                    <p class="text-[11px] text-slate-500 font-semibold">GSTIN: <span class="text-slate-800 font-mono font-bold">{{ $previewBilledGst }}</span></p>
+                    <p class="text-[11px] text-slate-500">State: <span class="font-bold text-slate-700">{{ $plantState }} (State Code: {{ $plantStateCode }})</span></p>
+                </div>
+
+                <!-- Bill Summary & Place of Supply -->
+                <div class="space-y-1 md:text-right border-t md:border-t-0 md:border-l border-slate-200/60 pt-3 md:pt-0 md:pl-4">
                     <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Bill Summary:</span>
-                    <div class="text-sm font-bold text-slate-800">Total Due: <span class="text-base font-extrabold text-blue-600">₹{{ number_format($invoice->total_amount, 2) }}</span></div>
-                    <p class="text-xs text-slate-500">Payment Status: <strong class="uppercase text-slate-800">{{ $invoice->payment_status ?? 'UNPAID' }}</strong></p>
-                    <p class="text-xs text-slate-500">Tax Type: 
+                    <div class="text-xs font-bold text-slate-800">Total Due: <span class="text-sm font-extrabold text-blue-600">₹{{ number_format($invoice->total_amount, 2) }}</span></div>
+                    <p class="text-[11px] text-slate-500">Place of Supply: <span class="font-bold text-slate-800">{{ $plantState }} ({{ $plantStateCode }})</span></p>
+                    <p class="text-[11px] text-slate-500">Tax Type: 
                         <span class="font-bold text-slate-700">
-                            {{ ($plant && strtolower($plant->state) === 'gujarat') || str_contains(strtolower($plant->shipping_address ?? ''), 'gujarat') ? 'Intrastate (CGST + SGST @ 18%)' : 'Interstate (IGST @ 18%)' }}
+                            {{ $isGujarat ? 'Intrastate (CGST 9% + SGST 9%)' : 'Interstate (IGST 18%)' }}
                         </span>
                     </p>
                 </div>
@@ -190,12 +225,11 @@
 
             <div class="pt-2 border-t border-slate-100">
                 @if($invoice->payment_status !== 'paid')
-                    <form action="{{ route('invoice.pay', $invoice->id) }}" method="POST" onsubmit="return confirm('Mark this invoice as fully paid?');">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition duration-150 shadow-2xs">
-                            <span>Mark Paid</span>
-                        </button>
-                    </form>
+                    <button type="button" 
+                            onclick="payInvoiceRecord({{ $invoice->id }}, '{{ $invoice->invoice_number }}')"
+                            class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition duration-150 shadow-2xs">
+                        <span>Mark Paid</span>
+                    </button>
                 @endif
             </div>
         </div>

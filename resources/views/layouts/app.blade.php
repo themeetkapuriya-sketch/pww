@@ -27,19 +27,51 @@
             }
         }
     </script>
-    <!-- Chart.js -->
+    <!-- Chart.js & SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- DataTables CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- DataTables CSS & TomSelect CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+        /* TomSelect Dropdown Styling: Solid White Background & Floating Layer */
+        .ts-dropdown, 
+        .ts-dropdown .ts-dropdown-content,
+        .ts-dropdown .option,
+        .ts-control {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
         }
-        .theme-blue { color: #4371D7 !important; }
-        .text-theme-blue { color: #4371D7 !important; }
-        .bg-theme-blue { background-color: #4371D7 !important; }
+
+        .ts-dropdown {
+            z-index: 9999 !important;
+            border-radius: 0.75rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid #cbd5e1 !important;
+            overflow: hidden !important;
+            margin-top: 4px !important;
+        }
+
+        .ts-dropdown .option {
+            padding: 8px 12px !important;
+            font-size: 0.75rem !important;
+            color: #334155 !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+        }
+
+        .ts-dropdown .option:hover,
+        .ts-dropdown .option.active {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+            font-weight: 700 !important;
+        }
+
+        .ts-control {
+            border-radius: 0.75rem !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 6px 12px !important;
+            font-size: 0.875rem !important;
+        }
 
         /* DataTables Custom Tailwind Integration Styles */
         .dataTables_wrapper {
@@ -393,7 +425,7 @@
     </button>
 
     <!-- Main Content Pane Wrapper -->
-    <div id="main-content" class="flex-grow pl-0 flex flex-col min-h-screen transition-all duration-300">
+    <div id="main-content" class="flex-grow pl-0 md:pl-64 flex flex-col min-h-screen transition-all duration-300">
         <!-- Header displaying Page Name and Today's Date -->
         @include('layouts.header')
 
@@ -418,6 +450,7 @@
     <!-- Core Application SPA & Sidebar Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="{{ asset('js/app-core.js') }}"></script>
     @stack('modals')

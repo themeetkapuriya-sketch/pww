@@ -14,6 +14,7 @@ class ClientPlant extends Model
         'plant_name',
         'shipping_address',
         'state',
+        'gst_number',
     ];
 
     /**

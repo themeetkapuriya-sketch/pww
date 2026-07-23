@@ -21,29 +21,41 @@
                 <form id="customInvoiceForm" action="{{ route('invoice.generate') }}" method="POST" class="ajax-form space-y-4 flex-grow">
                     @csrf
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Number</label>
                             <input type="text" name="invoice_number" value="{{ \App\Models\Invoice::generateNextInvoiceNumber() }}" required
                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Destination Plant</label>
-                            <select name="plant_id" id="manualPlantSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                                <option value="">Choose plant destination...</option>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Client</label>
+                            <select id="invoiceClientSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" required onchange="handleInvoiceClientChange()">
+                                <option value="">Choose client...</option>
                                 @foreach ($clients as $client)
-                                    <optgroup label="{{ $client->company_name }}">
-                                        @foreach ($client->plants as $p)
-                                            <option value="{{ $p->id }}" data-state="{{ $p->state }}">{{ $p->plant_name }} ({{ $p->state }})</option>
-                                        @endforeach
-                                    </optgroup>
+                                    <option value="{{ $client->id }}" data-plants='@json($client->plants->map(fn($p) => ["id" => $p->id, "name" => $p->plant_name, "state" => $p->state]))'>
+                                        {{ $client->company_name }} ({{ $client->plants->count() === 1 ? '1 Location' : $client->plants->count() . ' Plants' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
+                        <div id="invoicePlantWrapper" class="hidden">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plant Location</label>
+                            <select id="manualPlantSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" onchange="recalculateCustomInvoice()">
+                                <option value="">Select plant...</option>
+                            </select>
+                        </div>
+                        <!-- Hidden input for plant_id when client has single plant location -->
+                        <input type="hidden" id="singlePlantIdHidden" disabled>
+
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Payment Due Date</label>
-                            <input type="date" name="due_date" value="{{ date('Y-m-d', strtotime('+30 days')) }}" required
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Date</label>
+                            <input type="date" name="invoice_date" value="{{ date('Y-m-d') }}" required
                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No.</label>
+                            <input type="text" name="vehicle_number" placeholder="e.g. GJ-03-BW-1234"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
                         </div>
                     </div>
 
@@ -123,7 +135,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mt-6">
             <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                Corporate Invoice Ledger
+                Invoice Ledger
             </h3>
             
             <div class="overflow-x-auto">
@@ -178,11 +190,18 @@
                                 </td>
                                 <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
                                 <td class="px-4 py-3 text-center">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
-                                        {{ $inv->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
-                                           ($inv->payment_status === 'partially_paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
-                                        {{ $inv->payment_status }}
-                                    </span>
+                                    @if(($inv->payment_status ?? 'unpaid') === 'paid')
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            PAID
+                                        </span>
+                                    @else
+                                        <button type="button" 
+                                                onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}')"
+                                                title="Click to mark invoice as Paid"
+                                                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:scale-105 transition cursor-pointer">
+                                            {{ $inv->payment_status ?? 'UNPAID' }}
+                                        </button>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-center space-x-1.5 whitespace-nowrap">
                                     <!-- Preview Button (Green Boxy Curved) -->
@@ -241,6 +260,13 @@
                                             onclick="window.editInvoiceRecord({{ $inv->id }})"
                                             class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                    <!-- Delete Button (Rose Boxy Curved) -->
+                                    <button type="button" 
+                                            title="Delete Invoice"
+                                            onclick="window.deleteInvoiceRecord({{ $inv->id }}, '{{ addslashes($inv->invoice_number) }}')"
+                                            class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 </td>
                             </tr>
@@ -310,8 +336,81 @@
         }
     });
 
-    // Recalculate tax summary when plant destination changes
-    manualPlantSelect.addEventListener('change', recalculateCustomInvoice);
+    // Handle Client selection -> toggle plant dropdown or auto-select single location
+    window.handleInvoiceClientChange = function() {
+        const clientSelect = document.getElementById('invoiceClientSelect');
+        const plantWrapper = document.getElementById('invoicePlantWrapper');
+        const plantSelect = document.getElementById('manualPlantSelect');
+        const singleHidden = document.getElementById('singlePlantIdHidden');
+        
+        if (!clientSelect || !clientSelect.value) {
+            if (plantWrapper) plantWrapper.classList.add('hidden');
+            if (plantSelect) {
+                plantSelect.innerHTML = '<option value="">Select plant...</option>';
+                plantSelect.removeAttribute('name');
+                plantSelect.removeAttribute('required');
+            }
+            if (singleHidden) {
+                singleHidden.disabled = true;
+                singleHidden.removeAttribute('name');
+                singleHidden.value = '';
+            }
+            recalculateCustomInvoice();
+            return;
+        }
+
+        const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+        let plantsData = [];
+        try {
+            plantsData = JSON.parse(selectedOption.getAttribute('data-plants') || '[]');
+        } catch(e) {
+            console.error('Error parsing client plants data:', e);
+        }
+
+        if (plantsData.length === 1) {
+            // Single Location Client: Hide plant dropdown, use single hidden input
+            if (plantWrapper) plantWrapper.classList.add('hidden');
+            if (plantSelect) {
+                plantSelect.removeAttribute('name');
+                plantSelect.removeAttribute('required');
+            }
+            
+            if (singleHidden) {
+                singleHidden.disabled = false;
+                singleHidden.setAttribute('name', 'plant_id');
+                singleHidden.value = plantsData[0].id;
+                singleHidden.setAttribute('data-state', plantsData[0].state || 'Gujarat');
+            }
+
+            recalculateCustomInvoice();
+        } else if (plantsData.length > 1) {
+            // Multi-Plant Client: Show plant dropdown, populate options
+            if (singleHidden) {
+                singleHidden.disabled = true;
+                singleHidden.removeAttribute('name');
+            }
+
+            if (plantWrapper) plantWrapper.classList.remove('hidden');
+            if (plantSelect) {
+                plantSelect.setAttribute('name', 'plant_id');
+                plantSelect.setAttribute('required', 'required');
+                
+                let html = '<option value="">Select delivery plant...</option>';
+                plantsData.forEach(p => {
+                    html += `<option value="${p.id}" data-state="${p.state}">${p.name} (${p.state})</option>`;
+                });
+                plantSelect.innerHTML = html;
+            }
+            recalculateCustomInvoice();
+        } else {
+            if (plantWrapper) plantWrapper.classList.add('hidden');
+            if (singleHidden) {
+                singleHidden.disabled = true;
+                singleHidden.removeAttribute('name');
+            }
+            recalculateCustomInvoice();
+        }
+    };
 
     // Dynamic tax calculation engine
     function recalculateCustomInvoice() {
@@ -324,9 +423,18 @@
             totalTaxable += qty * price;
         });
         
-        // Check destination state
-        const selectedPlantOpt = manualPlantSelect.options[manualPlantSelect.selectedIndex];
-        const state = selectedPlantOpt && selectedPlantOpt.getAttribute('data-state') ? selectedPlantOpt.getAttribute('data-state') : '';
+        // Resolve destination state cleanly from single hidden OR multi plant select
+        let state = '';
+        const singleHidden = document.getElementById('singlePlantIdHidden');
+        const manualPlantSelect = document.getElementById('manualPlantSelect');
+
+        if (singleHidden && !singleHidden.disabled && singleHidden.value) {
+            state = singleHidden.getAttribute('data-state') || '';
+        } else if (manualPlantSelect && manualPlantSelect.name === 'plant_id' && manualPlantSelect.value && manualPlantSelect.selectedIndex >= 0) {
+            const selectedPlantOpt = manualPlantSelect.options[manualPlantSelect.selectedIndex];
+            state = selectedPlantOpt && selectedPlantOpt.getAttribute('data-state') ? selectedPlantOpt.getAttribute('data-state') : '';
+        }
+
         const isGujarat = state && typeof state === 'string' ? state.toLowerCase().trim() === 'gujarat' : false;
         
         let cgst = 0.00;
@@ -483,6 +591,68 @@
 
         if (typeof recalculateCustomInvoice === 'function') {
             recalculateCustomInvoice();
+        }
+    };
+
+    // Global delete invoice handler
+    window.deleteInvoiceRecord = function(id, invoiceNumber) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete Invoice?',
+                text: `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f43f5e',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Delete Invoice',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const token = $('meta[name="csrf-token"]').attr('content') || '';
+                    $.ajax({
+                        url: `/invoices/${id}`,
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        },
+                        success: async function(response) {
+                            if (window.showToast) {
+                                window.showToast('success', response.message || 'Invoice deleted successfully!');
+                            }
+                            await window.loadPage(window.location.href);
+                        },
+                        error: function(xhr) {
+                            const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
+                            if (window.showToast) {
+                                window.showToast('error', msg);
+                            } else {
+                                alert(msg);
+                            }
+                        }
+                    });
+                }
+            });
+        } else if (confirm(`Are you sure you want to delete Invoice '${invoiceNumber}'?`)) {
+            const token = $('meta[name="csrf-token"]').attr('content') || '';
+            $.ajax({
+                url: `/invoices/${id}`,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                success: async function(response) {
+                    if (window.showToast) {
+                        window.showToast('success', response.message || 'Invoice deleted successfully!');
+                    }
+                    await window.loadPage(window.location.href);
+                },
+                error: function(xhr) {
+                    const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
+                    alert(msg);
+                }
+            });
         }
     };
 </script>

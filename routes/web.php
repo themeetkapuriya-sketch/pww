@@ -24,6 +24,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/inventory/materials/{id}', [ErpController::class, 'updateRawMaterial'])->name('inventory.materials.update');
     Route::delete('/inventory/materials/{id}', [ErpController::class, 'deleteRawMaterial'])->name('inventory.materials.delete');
     Route::post('/inventory/goods', [ErpController::class, 'storeFinishedGood'])->name('inventory.goods.store');
+    Route::put('/inventory/goods/{id}', [ErpController::class, 'updateFinishedGood'])->name('inventory.goods.update');
+    Route::delete('/inventory/goods/{id}', [ErpController::class, 'deleteFinishedGood'])->name('inventory.goods.delete');
 
     // 3. Bill of Materials
     Route::get('/bom', [ErpController::class, 'bom'])->name('bom');
@@ -36,7 +38,11 @@ Route::middleware(['auth'])->group(function () {
     // 5. Clients & Plants
     Route::get('/clients', [ErpController::class, 'clients'])->name('clients');
     Route::post('/clients', [ErpController::class, 'storeClient'])->name('clients.store');
+    Route::put('/clients/{id}', [ErpController::class, 'updateClient'])->name('clients.update');
+    Route::delete('/clients/{id}', [ErpController::class, 'deleteClient'])->name('clients.delete');
     Route::post('/clients/plants', [ErpController::class, 'storePlant'])->name('clients.plants.store');
+    Route::put('/clients/plants/{id}', [ErpController::class, 'updatePlant'])->name('clients.plants.update');
+    Route::delete('/clients/plants/{id}', [ErpController::class, 'deletePlant'])->name('clients.plants.delete');
 
     // 6. Invoices & Billing Page
     Route::get('/invoices', [ErpController::class, 'invoices'])->name('invoices');
@@ -46,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/invoices/{id}/preview', [ErpController::class, 'previewInvoice'])->name('invoice.preview');
     Route::get('/invoices/{id}/download', [ErpController::class, 'downloadInvoicePdf'])->name('invoice.download');
     Route::post('/invoices/{id}/send-email', [ErpController::class, 'sendInvoiceEmail'])->name('invoice.send-email');
+    Route::delete('/invoices/{id}', [ErpController::class, 'deleteInvoice'])->name('invoice.delete');
 
     // 7. Purchase Ledger (Raw Materials, Machinery, Tools)
     Route::get('/purchases', [ErpController::class, 'purchases'])->name('purchases');

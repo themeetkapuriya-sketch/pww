@@ -492,6 +492,233 @@ class ErpFlowTest extends TestCase
     }
 
     /**
+     * Test Delivery Vehicle Number Validation (Accepts valid RTO & BH series, rejects invalid strings).
+     */
+    public function test_vehicle_number_validation()
+    {
+        $user = User::create([
+            'name' => 'Patel Admin',
+            'email' => 'v_test_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $client = Client::create([
+            'company_name' => 'Logistics Co',
+            'client_email' => 'logistics@example.com',
+            'gst_number' => '24AAAAA0000A1Z5',
+            'corporate_address' => 'Surat, Gujarat',
+        ]);
+
+        $plant = ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Surat Plant',
+            'state' => 'Gujarat',
+        ]);
+
+        $good = FinishedGood::create([
+            'product_name' => 'Transport Item',
+            'sku' => 'TR-' . uniqid(),
+            'current_stock' => 50,
+            'selling_price' => 100,
+        ]);
+
+        // 1. Test VALID vehicle number (GJ-03-BW-1234) -> Should succeed (200)
+        $respValid = $this->actingAs($user)->postJson(route('invoice.generate'), [
+            'invoice_number' => 'INV-VEH-001',
+            'plant_id' => $plant->id,
+            'vehicle_number' => 'GJ-03-BW-1234',
+            'finished_good_ids' => [$good->id],
+            'quantities' => [1],
+            'unit_prices' => [100],
+        ]);
+        $respValid->assertStatus(200);
+
+        $invObj = Invoice::where('invoice_number', 'INV-VEH-001')->first();
+        $this->assertNotNull($invObj);
+        $this->assertEquals('GJ-03-BW-1234', $invObj->vehicle_number);
+
+        // 2. Test INVALID vehicle number ("INVALID_VEHICLE_NUM") -> Should fail validation (422)
+        $respInvalid = $this->actingAs($user)->postJson(route('invoice.generate'), [
+            'invoice_number' => 'INV-VEH-002',
+            'plant_id' => $plant->id,
+            'vehicle_number' => 'INVALID_VEHICLE_NUM',
+            'finished_good_ids' => [$good->id],
+            'quantities' => [1],
+            'unit_prices' => [100],
+        ]);
+        $respInvalid->assertStatus(422);
+        $respInvalid->assertJsonValidationErrors(['vehicle_number']);
+    }
+
+    /**
+     * Test Out-of-State Plant GSTIN Validation (Rejects Gujarat 24 GSTIN for Madhya Pradesh 23 Plant).
+     */
+    public function test_out_of_state_plant_gstin_validation()
+    {
+        $user = User::create([
+            'name' => 'Patel Admin',
+            'email' => 'gst_test_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $client = Client::create([
+            'company_name' => 'Gujarat Steel HQ',
+            'client_email' => 'gujsteel@example.com',
+            'gst_number' => '24AAAAA0000A1Z5',
+            'corporate_address' => 'Rajkot, Gujarat',
+        ]);
+
+        // Trying to save Gujarat 24 GSTIN for Madhya Pradesh 23 Plant -> MUST FAIL (422)
+        $response = $this->actingAs($user)->postJson(route('clients.plants.store'), [
+            'client_id' => $client->id,
+            'plant_name' => 'Indore Factory',
+            'state' => 'Madhya Pradesh',
+            'gst_number' => '24AAACB1234A1Z9', // Incorrect state code for MP!
+            'shipping_address' => 'Indore, MP',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['gst_number']);
+
+        // Correct MP GSTIN starting with 23 -> MUST SUCCEED (200)
+        $responseValid = $this->actingAs($user)->postJson(route('clients.plants.store'), [
+            'client_id' => $client->id,
+            'plant_name' => 'Indore Factory',
+            'state' => 'Madhya Pradesh',
+            'gst_number' => '23AAACB1234A1Z9', // Correct MP state code 23!
+            'shipping_address' => 'Indore, MP',
+        ]);
+
+        $responseValid->assertStatus(200);
+    }
+
+    /**
+     * Test AJAX Invoice Deletion.
+     */
+    public function test_ajax_invoice_deletion()
+    {
+        $user = User::create([
+            'name' => 'Patel Admin',
+            'email' => 'del_inv_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $client = Client::create([
+            'company_name' => 'Deletion Test Client',
+            'client_email' => 'delclient@example.com',
+            'gst_number' => '24AAAAA0000A1Z5',
+            'corporate_address' => 'Rajkot, Gujarat',
+        ]);
+
+        $plant = ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Deletion Plant',
+            'state' => 'Gujarat',
+            'shipping_address' => 'Rajkot, Gujarat',
+        ]);
+
+        $good = FinishedGood::create([
+            'product_name' => 'Delete Item',
+            'sku' => 'DEL-01',
+            'current_stock' => 10,
+            'selling_price' => 500,
+        ]);
+
+        // Generate Invoice
+        $this->actingAs($user)->postJson(route('invoice.generate'), [
+            'invoice_number' => 'INV-DEL-999',
+            'plant_id' => $plant->id,
+            'finished_good_ids' => [$good->id],
+            'quantities' => [1],
+            'unit_prices' => [500],
+        ]);
+
+        $inv = Invoice::where('invoice_number', 'INV-DEL-999')->first();
+        $this->assertNotNull($inv);
+
+        // Delete Invoice via DELETE Route
+        $response = $this->actingAs($user)->deleteJson(route('invoice.delete', $inv->id));
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $this->assertNull(Invoice::find($inv->id));
+    }
+
+    /**
+     * Test Reports Page Tabs and GST ITC calculations.
+     */
+    public function test_reports_page_tabs_and_gst_calculation()
+    {
+        $user = User::create([
+            'name' => 'Patel Admin',
+            'email' => 'rep_test_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        // 1. Test page load with default parameters
+        $response = $this->actingAs($user)->get(route('reports'));
+        $response->assertStatus(200);
+        $response->assertViewHasAll(['startDate', 'endDate', 'period', 'reportType']);
+        $response->assertViewHas('period', 'all'); // Sales defaults to all records!
+
+        // 2. Test different tabs
+        $responseInvoice = $this->actingAs($user)->get(route('reports', ['report_type' => 'invoice']));
+        $responseInvoice->assertStatus(200);
+        $responseInvoice->assertViewHas('period', 'all');
+
+        $responsePurchase = $this->actingAs($user)->get(route('reports', ['report_type' => 'purchase']));
+        $responsePurchase->assertStatus(200);
+        $responsePurchase->assertViewHas('period', 'all');
+
+        $responseFinancial = $this->actingAs($user)->get(route('reports', ['report_type' => 'financial']));
+        $responseFinancial->assertStatus(200);
+        $responseFinancial->assertViewHas('period', 'all');
+
+        $responseGst = $this->actingAs($user)->get(route('reports', ['report_type' => 'gst']));
+        $responseGst->assertStatus(200);
+        $responseGst->assertViewHas('period', 'month'); // GST defaults to current month!
+
+        // 3. Test predefined period filters
+        $responseMonth = $this->actingAs($user)->get(route('reports', [
+            'filter_period' => 'month',
+            'filter_month' => '2026-05'
+        ]));
+        $responseMonth->assertStatus(200);
+        $responseMonth->assertViewHas('startDate', '2026-05-01');
+        $responseMonth->assertViewHas('endDate', '2026-05-31');
+
+        $responseYear = $this->actingAs($user)->get(route('reports', [
+            'filter_period' => 'year',
+            'filter_year' => '2025'
+        ]));
+        $responseYear->assertStatus(200);
+        $responseYear->assertViewHas('startDate', '2025-04-01');
+        $responseYear->assertViewHas('endDate', '2026-03-31');
+
+        $responseAll = $this->actingAs($user)->get(route('reports', ['filter_period' => 'all']));
+        $responseAll->assertStatus(200);
+
+        // 4. Test CSV Export filename format
+        $responseExportAll = $this->actingAs($user)->get(route('reports.export', ['filter_period' => 'all']));
+        $responseExportAll->assertStatus(200);
+        $responseExportAll->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-All-Records.csv"');
+
+        $responseExportMonth = $this->actingAs($user)->get(route('reports.export', [
+            'filter_period' => 'month',
+            'filter_month' => '2026-05'
+        ]));
+        $responseExportMonth->assertStatus(200);
+        $responseExportMonth->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-Month-2026-05.csv"');
+
+        $responseExportYear = $this->actingAs($user)->get(route('reports.export', [
+            'filter_period' => 'year',
+            'filter_year' => '2025'
+        ]));
+        $responseExportYear->assertStatus(200);
+        $responseExportYear->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-FY-2025-26.csv"');
+    }
+
+    /**
      * Test Profile views and settings rendering.
      */
     public function test_profile_settings_view()
@@ -711,5 +938,89 @@ class ErpFlowTest extends TestCase
         $this->assertEquals('Baroda, Gujarat', \App\Models\Setting::get('address_line_2'));
         $this->assertEquals('24CUSTOM1234A1Z9', \App\Models\Setting::get('gstin'));
         $this->assertStringContainsString('uploads/logo_', \App\Models\Setting::get('logo_path'));
+    }
+
+    /**
+     * Test Client & Plant full CRUD flow with 1-click plant creation & plant-specific GSTIN.
+     */
+    public function test_client_and_plant_crud_operations()
+    {
+        $user = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin_client@pww.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        // 1. Create Client with 1-Click Primary Plant Creation
+        $response = $this->actingAs($user)->post(route('clients.store'), [
+            'company_name' => 'Supreme Logistics Pvt Ltd',
+            'client_email' => 'contact@supremelogistics.com',
+            'gst_number' => '24SUPREME1234A1Z1',
+            'corporate_address' => 'HQ Tower, Ring Road, Surat, Gujarat',
+            'create_primary_plant' => 1,
+            'plant_name' => 'Surat Main Factory',
+            'state' => 'Gujarat',
+            'plant_gst_number' => '24SUPREME1234A1Z1',
+            'shipping_address' => 'Plot 45 GIDC, Surat, Gujarat',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+
+        $client = Client::where('company_name', 'Supreme Logistics Pvt Ltd')->first();
+        $this->assertNotNull($client);
+        $this->assertEquals(1, $client->plants()->count());
+
+        $plant = $client->plants()->first();
+        $this->assertEquals('Surat Main Factory', $plant->plant_name);
+        $this->assertEquals('24SUPREME1234A1Z1', $plant->gst_number);
+
+        // 2. Add Secondary Interstate Plant with State-Specific GSTIN
+        $response = $this->actingAs($user)->post(route('clients.plants.store'), [
+            'client_id' => $client->id,
+            'plant_name' => 'Mumbai Distribution Hub',
+            'state' => 'Maharashtra',
+            'gst_number' => '27SUPREME1234A1Z8',
+            'shipping_address' => 'MIDC Area, Thane, Maharashtra',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals(2, $client->plants()->count());
+
+        $secPlant = ClientPlant::where('plant_name', 'Mumbai Distribution Hub')->first();
+        $this->assertEquals('27SUPREME1234A1Z8', $secPlant->gst_number);
+
+        // 3. Update Client Profile
+        $response = $this->actingAs($user)->put(route('clients.update', $client->id), [
+            'company_name' => 'Supreme Global Logistics Pvt Ltd',
+            'client_email' => 'info@supremeglobal.com',
+            'gst_number' => '24SUPREME1234A1Z1',
+            'corporate_address' => 'HQ Tower, Ring Road, Surat, Gujarat',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('Supreme Global Logistics Pvt Ltd', $client->fresh()->company_name);
+
+        // 4. Update Plant Details
+        $response = $this->actingAs($user)->put(route('clients.plants.update', $secPlant->id), [
+            'plant_name' => 'Mumbai Mega Hub',
+            'state' => 'Maharashtra',
+            'gst_number' => '27SUPREME9999A1Z9',
+            'shipping_address' => 'Navi Mumbai Logistics Park, Maharashtra',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('Mumbai Mega Hub', $secPlant->fresh()->plant_name);
+        $this->assertEquals('27SUPREME9999A1Z9', $secPlant->fresh()->gst_number);
+
+        // 5. Delete Plant
+        $response = $this->actingAs($user)->delete(route('clients.plants.delete', $secPlant->id));
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals(1, $client->plants()->count());
+
+        // 6. Delete Client
+        $response = $this->actingAs($user)->delete(route('clients.delete', $client->id));
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertNull(Client::find($client->id));
     }
 }

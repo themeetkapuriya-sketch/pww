@@ -1,5 +1,5 @@
 <!-- Sidebar Navigation -->
-<aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-30 shadow-sm transition-transform duration-300 transform -translate-x-full">
+<aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col fixed top-0 left-0 h-screen z-30 shadow-sm transition-all duration-300 transform -translate-x-full md:translate-x-0">
     <!-- Sidebar Brand Header -->
     <div class="sidebar-header px-4 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <div class="sidebar-brand-container flex items-center space-x-2.5 min-w-0">
@@ -79,7 +79,7 @@
             <span class="sidebar-category-header px-4 text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Audits</span>
             <a href="{{ route('reports') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition duration-150 {{ Route::is('reports') ? 'active-nav' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                <span class="sidebar-text">Reports & Export</span>
+                <span class="sidebar-text">Reports</span>
             </a>
         </div>
     </nav>

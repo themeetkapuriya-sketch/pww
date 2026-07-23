@@ -34,7 +34,7 @@
                     </tr>
                     <tr>
                         <td style="padding: 6px 0; color: #64748b;">GSTIN:</td>
-                        <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-family: monospace;">{{ $client->gst_number ?? 'N/A' }}</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-family: monospace;">{{ !empty($plant->gst_number) ? $plant->gst_number : ($client->gst_number ?? 'N/A') }}</td>
                     </tr>
                     <tr>
                         <td style="padding: 6px 0; color: #64748b;">Plant Location:</td>

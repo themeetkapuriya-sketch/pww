@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
         \App\Models\Setting::updateOrCreate(['key' => 'address_line_1'], ['value' => 'Plot No. 12, G.I.D.C. Metoda,']);
         \App\Models\Setting::updateOrCreate(['key' => 'address_line_2'], ['value' => 'Rajkot, Gujarat - 360021']);
         \App\Models\Setting::updateOrCreate(['key' => 'gstin'], ['value' => '24PWWRK1234A1Z0']);
+        \App\Models\Setting::updateOrCreate(['key' => 'msme_number'], ['value' => 'UDYAM-GJ-24-0012345']);
         \App\Models\Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'logo.jpg']);
 
         // Prevent duplicate seeding if data already exists

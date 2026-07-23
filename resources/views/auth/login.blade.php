@@ -83,6 +83,13 @@
 
     <!-- AJAX Script -->
     <script>
+        document.querySelectorAll('#loginForm input').forEach(input => {
+            input.addEventListener('input', () => {
+                const alertContainer = document.getElementById('alertContainer');
+                if (alertContainer) alertContainer.className = 'hidden';
+            });
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             

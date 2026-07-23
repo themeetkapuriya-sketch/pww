@@ -92,7 +92,7 @@
         <form action="{{ route('profile.business') }}" method="POST" enctype="multipart/form-data" class="ajax-form no-reset space-y-6">
             @csrf
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business / Company Name</label>
                     <input type="text" name="business_name" value="{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}" required
@@ -108,6 +108,12 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GSTIN Number</label>
                     <input type="text" name="gstin" value="{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">MSME / Udyam No.</label>
+                    <input type="text" name="msme_number" value="{{ \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345') }}" placeholder="UDYAM-GJ-24-0012345"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
                 </div>
             </div>
