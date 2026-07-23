@@ -531,8 +531,19 @@ document.addEventListener('DOMContentLoaded', () => {
             $('form').attr('novalidate', 'novalidate');
         }
 
-        // Run initial forms setup and DataTables on DOM ready
+        // Global Modal Teleport Engine: Moves any modal to document.body
+        function initGlobalModalTeleport() {
+            $('[id*="Modal"], [id*="modal"], .modal-dialog').each(function() {
+                if (this.parentNode !== document.body) {
+                    document.body.appendChild(this);
+                }
+            });
+        }
+
+        // Run initial forms setup, DataTables, and modal teleport on DOM ready
         initializeForms();
         window.initErpDataTables();
+        initGlobalModalTeleport();
+        $(document).ajaxComplete(initGlobalModalTeleport);
     });
 });

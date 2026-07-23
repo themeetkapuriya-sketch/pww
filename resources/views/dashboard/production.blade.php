@@ -20,9 +20,9 @@
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Finished Good Product</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product</label>
                     <select name="finished_good_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        <option value="">Select Finished Rack...</option>
+                        <option value="">Select Product...</option>
                         @foreach ($finishedGoods as $good)
                             <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
                         @endforeach
@@ -94,7 +94,7 @@
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Production Date</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Finished Good Product</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Product</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Manufactured</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Rejected</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Recorded By</th>

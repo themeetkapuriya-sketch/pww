@@ -21,6 +21,8 @@ Route::middleware(['auth'])->group(function () {
     // 2. Inventory Management
     Route::get('/inventory', [ErpController::class, 'inventory'])->name('inventory');
     Route::post('/inventory/materials', [ErpController::class, 'storeRawMaterial'])->name('inventory.materials.store');
+    Route::put('/inventory/materials/{id}', [ErpController::class, 'updateRawMaterial'])->name('inventory.materials.update');
+    Route::delete('/inventory/materials/{id}', [ErpController::class, 'deleteRawMaterial'])->name('inventory.materials.delete');
     Route::post('/inventory/goods', [ErpController::class, 'storeFinishedGood'])->name('inventory.goods.store');
 
     // 3. Bill of Materials
@@ -36,19 +38,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/clients', [ErpController::class, 'storeClient'])->name('clients.store');
     Route::post('/clients/plants', [ErpController::class, 'storePlant'])->name('clients.plants.store');
 
-    // 6. Delivery Challans
-    Route::get('/challans', [ErpController::class, 'challans'])->name('challans');
-    Route::post('/challans', [ErpController::class, 'storeChallan'])->name('challans.store');
-
-    // 7. Invoices & Billing Page
+    // 6. Invoices & Billing Page
     Route::get('/invoices', [ErpController::class, 'invoices'])->name('invoices');
-    Route::post('/invoices', [ErpController::class, 'createInvoice'])->name('invoice.create');
     Route::post('/invoices/generate', [ErpController::class, 'generateCustomInvoice'])->name('invoice.generate');
     Route::post('/invoices/{id}/pay', [ErpController::class, 'payInvoice'])->name('invoice.pay');
     Route::get('/invoices/{id}/print', [ErpController::class, 'printInvoice'])->name('invoice.print');
     Route::get('/invoices/{id}/preview', [ErpController::class, 'previewInvoice'])->name('invoice.preview');
     Route::get('/invoices/{id}/download', [ErpController::class, 'downloadInvoicePdf'])->name('invoice.download');
     Route::post('/invoices/{id}/send-email', [ErpController::class, 'sendInvoiceEmail'])->name('invoice.send-email');
+
+    // 7. Purchase Ledger (Raw Materials, Machinery, Tools)
+    Route::get('/purchases', [ErpController::class, 'purchases'])->name('purchases');
+    Route::post('/purchases', [ErpController::class, 'storePurchase'])->name('purchases.store');
 
     // 8. Employees Directory
     Route::get('/employees', [ErpController::class, 'employees'])->name('employees');

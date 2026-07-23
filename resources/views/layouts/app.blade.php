@@ -222,6 +222,22 @@
             color: #0f172a !important;
         }
 
+        /* Project-wide Modal Backdrop Full Viewport Rules */
+        [id*="Modal"], [id*="modal"] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            z-index: 999999 !important;
+            backdrop-filter: blur(2.5px) !important;
+            -webkit-backdrop-filter: blur(2.5px) !important;
+            background-color: rgba(15, 23, 42, 0.35) !important;
+        }
+
         .active-nav {
             background-color: rgba(30, 115, 190, 0.08) !important;
             color: #1E73BE !important;
@@ -378,7 +394,7 @@
 
     <!-- Main Content Pane Wrapper -->
     <div id="main-content" class="flex-grow pl-0 flex flex-col min-h-screen transition-all duration-300">
-        <!-- Top Sticky Header Navigation -->
+        <!-- Header displaying Page Name and Today's Date -->
         @include('layouts.header')
 
         <!-- Toast Notification Area -->
@@ -391,7 +407,7 @@
             </div>
         </div>
 
-        <div id="page-content" class="p-4 md:px-8 md:pt-2 md:pb-8 flex-grow space-y-5">
+        <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
             @yield('content')
         </div>
 
@@ -404,6 +420,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="{{ asset('js/app-core.js') }}"></script>
+    @stack('modals')
 </body>
 </html>
 @endif

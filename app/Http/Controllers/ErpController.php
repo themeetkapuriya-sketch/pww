@@ -125,16 +125,13 @@ class ErpController extends Controller
     {
         $tab = $request->input('tab', 'materials');
         
-        $rawMaterials = null;
-        $finishedGoods = null;
-        
         if ($tab === 'materials') {
             $rawMaterials = RawMaterial::orderBy('material_name')->paginate(20);
-        } else {
-            $finishedGoods = FinishedGood::orderBy('product_name')->paginate(20);
+            return view('dashboard.raw_materials', compact('rawMaterials'));
         }
-        
-        return view('dashboard.inventory', compact('rawMaterials', 'finishedGoods', 'tab'));
+
+        $finishedGoods = FinishedGood::orderBy('product_name')->paginate(20);
+        return view('dashboard.products', compact('finishedGoods'));
     }
 
     /**
@@ -145,17 +142,74 @@ class ErpController extends Controller
         $validated = $request->validate([
             'material_name' => 'required|string|max:255',
             'unit' => 'required|string|max:50',
-            'current_stock' => 'required|numeric|min:0',
+            'current_stock' => 'nullable|numeric|min:0',
             'safety_threshold' => 'required|numeric|min:0',
             'average_purchase_price' => 'required|numeric|min:0',
         ]);
+        $addedQty = (float) $request->input('current_stock', 0);
+        $validated['current_stock'] = $addedQty;
+
+        // Auto-restock if material already exists
+        $existing = RawMaterial::where('material_name', $validated['material_name'])->first();
+
+        if ($existing) {
+            $existing->current_stock += $addedQty;
+            $existing->safety_threshold = $validated['safety_threshold'];
+            $existing->average_purchase_price = $validated['average_purchase_price'];
+            $existing->unit = $validated['unit'];
+            $existing->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Restocked " . number_format($addedQty, 2) . " {$existing->unit} for '{$existing->material_name}'! Updated Total Stock: " . number_format($existing->current_stock, 2) . " {$existing->unit}.",
+                'data' => $existing
+            ]);
+        }
 
         $material = RawMaterial::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => "Raw Material '{$material->material_name}' created successfully!",
+            'message' => "Raw Material '{$material->material_name}' logged successfully!",
             'data' => $material
+        ]);
+    }
+
+    /**
+     * Update Raw Material Item (AJAX).
+     */
+    public function updateRawMaterial(Request $request, $id)
+    {
+        $material = RawMaterial::findOrFail($id);
+
+        $validated = $request->validate([
+            'material_name' => 'required|string|max:255',
+            'unit' => 'required|string|max:50',
+            'safety_threshold' => 'required|numeric|min:0',
+            'average_purchase_price' => 'required|numeric|min:0',
+        ]);
+
+        $material->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Raw Material '{$material->material_name}' updated successfully!",
+            'data' => $material
+        ]);
+    }
+
+    /**
+     * Delete Raw Material Item (AJAX).
+     */
+    public function deleteRawMaterial($id)
+    {
+        $material = RawMaterial::findOrFail($id);
+        $name = $material->material_name;
+        $material->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Raw Material '{$name}' deleted successfully!"
         ]);
     }
 
@@ -338,113 +392,14 @@ class ErpController extends Controller
     }
 
     /**
-     * 6. Delivery Challans.
-     */
-    public function challans()
-    {
-        $deliveryChallans = DeliveryChallan::with('client', 'plant', 'items.finishedGood')->orderBy('dispatch_date', 'desc')->paginate(20);
-        $clients = Client::with('plants')->get();
-        $finishedGoods = FinishedGood::all();
-        return view('dashboard.challans', compact('deliveryChallans', 'clients', 'finishedGoods'));
-    }
-
-    /**
-     * Store Delivery Challan (AJAX).
-     */
-    public function storeChallan(Request $request)
-    {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'plant_id' => 'required|exists:client_plants,id',
-            'challan_number' => 'required|string|unique:delivery_challans,challan_number',
-            'dispatch_date' => 'required|date',
-            'finished_good_ids' => 'required|array|min:1',
-            'finished_good_ids.*' => 'required|exists:finished_goods,id',
-            'quantities' => 'required|array|min:1',
-            'quantities.*' => 'required|integer|min:1',
-            'unit_prices' => 'required|array|min:1',
-            'unit_prices.*' => 'required|numeric|min:0',
-        ]);
-
-        try {
-            $challan = DB::transaction(function () use ($validated) {
-                $dc = DeliveryChallan::create([
-                    'client_id' => $validated['client_id'],
-                    'plant_id' => $validated['plant_id'],
-                    'challan_number' => $validated['challan_number'],
-                    'dispatch_date' => $validated['dispatch_date'],
-                    'status' => 'pending_invoice',
-                ]);
-
-                foreach ($validated['finished_good_ids'] as $idx => $fgId) {
-                    DeliveryChallanItem::create([
-                        'delivery_challan_id' => $dc->id,
-                        'finished_good_id' => $fgId,
-                        'quantity' => $validated['quantities'][$idx],
-                        'unit_price' => $validated['unit_prices'][$idx],
-                    ]);
-                }
-
-                return $dc;
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => "Delivery Challan '{$challan->challan_number}' recorded successfully!",
-                'data' => $challan
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['Failed to log challan: ' . $e->getMessage()]
-            ], 500);
-        }
-    }
-
-    /**
-     * 7. Invoices & Billing.
+     * 6. Invoices & Billing.
      */
     public function invoices(Request $request)
     {
-        $tab = $request->input('tab', 'manual-builder');
-        if ($tab === 'ledger') {
-            $tab = 'manual-builder';
-        }
         $invoices = Invoice::with(['deliveryChallans.plant', 'deliveryChallan.client'])->orderBy('created_at', 'desc')->paginate(20);
-        $pendingChallans = DeliveryChallan::where('status', 'pending_invoice')->with('client', 'plant', 'items.finishedGood')->get();
         $finishedGoods = FinishedGood::all();
         $clients = Client::with('plants')->get();
-        return view('dashboard.invoices', compact('invoices', 'pendingChallans', 'finishedGoods', 'clients', 'tab'));
-    }
-
-    /**
-     * Generate Invoice from Challans (AJAX).
-     */
-    public function createInvoice(Request $request)
-    {
-        $validated = $request->validate([
-            'challan_ids' => 'required|array|min:1',
-            'challan_ids.*' => 'required|exists:delivery_challans,id',
-            'due_date' => 'nullable|date',
-        ]);
-
-        try {
-            $invoice = $this->billingService->createInvoiceFromChallans(
-                array_map('intval', $validated['challan_ids']),
-                $validated['due_date']
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => "Compliance Tax Invoice '{$invoice->invoice_number}' created successfully!",
-                'data' => $invoice
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => [$e->getMessage()]
-            ], 422);
-        }
+        return view('dashboard.invoices', compact('invoices', 'finishedGoods', 'clients'));
     }
 
     /**
@@ -865,6 +820,83 @@ class ErpController extends Controller
             'success' => true,
             'message' => "Expense logged successfully in category '" . str_replace('_', ' ', $expense->expense_category) . "'!",
             'data' => $expense
+        ]);
+    }
+
+    /**
+     * Purchase Ledger Page.
+     */
+    public function purchases()
+    {
+        $purchases = \App\Models\Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->paginate(20);
+        $rawMaterials = RawMaterial::orderBy('material_name')->get();
+        return view('dashboard.purchases', compact('purchases', 'rawMaterials'));
+    }
+
+    /**
+     * Store Purchase Record (AJAX).
+     */
+    public function storePurchase(Request $request)
+    {
+        $validated = $request->validate([
+            'bill_number' => 'nullable|string|max:100',
+            'vendor_name' => 'required|string|max:255',
+            'purchase_type' => 'required|in:raw_material,machinery,supplies',
+            'raw_material_id' => 'nullable|required_if:purchase_type,raw_material|exists:raw_materials,id',
+            'item_name' => 'nullable|string|max:255',
+            'quantity' => 'nullable|numeric|min:0.0001',
+            'unit' => 'nullable|string|max:50',
+            'total_amount' => 'required|numeric|min:0',
+            'gst_rate' => 'required|numeric|in:0,5,12,18,28',
+            'purchase_date' => 'required|date',
+        ]);
+
+        $gstRate = (float) $validated['gst_rate'];
+        $totalAmt = (float) $validated['total_amount'];
+        $validated['gst_amount'] = round($totalAmt * ($gstRate / 100), 2);
+
+        if (empty($validated['quantity'])) {
+            $validated['quantity'] = 1.0;
+        }
+
+        if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+            $material = RawMaterial::find($validated['raw_material_id']);
+            if ($material) {
+                if (empty($validated['item_name'])) {
+                    $validated['item_name'] = $material->material_name;
+                }
+                if (empty($validated['unit'])) {
+                    $validated['unit'] = $material->unit;
+                }
+            }
+        }
+
+        if (empty($validated['item_name'])) {
+            $validated['item_name'] = 'Purchased Item';
+        }
+        if (empty($validated['unit'])) {
+            $validated['unit'] = 'pcs';
+        }
+
+        $purchase = DB::transaction(function() use ($validated) {
+            $pur = \App\Models\Purchase::create($validated);
+
+            // Auto-restock if raw material purchase
+            if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+                $material = RawMaterial::find($validated['raw_material_id']);
+                if ($material) {
+                    $material->current_stock += (float) $validated['quantity'];
+                    $material->save();
+                }
+            }
+
+            return $pur;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Purchase record '{$purchase->item_name}' logged successfully! Stock & accounting updated.",
+            'data' => $purchase
         ]);
     }
 

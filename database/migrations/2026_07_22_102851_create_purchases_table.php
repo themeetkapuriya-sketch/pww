@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('purchases', function (Blueprint $table) {
+            $table->id();
+            $table->string('bill_number')->nullable();
+            $table->string('vendor_name');
+            $table->enum('purchase_type', ['raw_material', 'machinery', 'supplies'])->default('raw_material');
+            $table->foreignId('raw_material_id')->nullable()->constrained('raw_materials')->nullOnDelete();
+            $table->string('item_name');
+            $table->decimal('quantity', 12, 4)->default(1);
+            $table->string('unit')->default('pcs');
+            $table->decimal('total_amount', 12, 2)->default(0.00);
+            $table->date('purchase_date');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('purchases');
+    }
+};

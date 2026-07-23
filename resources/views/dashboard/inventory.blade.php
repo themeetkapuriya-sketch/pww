@@ -11,8 +11,8 @@
                 <h1 class="text-2xl font-bold text-slate-800">Raw Materials Inventory Audit</h1>
                 <p class="text-sm text-slate-500">Track, manage, and audit factory raw material supplies.</p>
             @else
-                <h1 class="text-2xl font-bold text-slate-800">Finished Goods Catalog</h1>
-                <p class="text-sm text-slate-500">Audit and catalog completed welding racks.</p>
+                <h1 class="text-2xl font-bold text-slate-800">Products Catalog</h1>
+                <p class="text-sm text-slate-500">Audit and catalog completed products.</p>
             @endif
         </div>
     </div>
@@ -36,14 +36,19 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit</label>
-                        <input type="text" name="unit" placeholder="e.g. kg, liters, packs" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                        <select name="unit" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                            <option value="kg" selected>kg (Kilograms)</option>
+                            <option value="liter">liter (Liters)</option>
+                            <option value="meter">meter (Meters)</option>
+                            <option value="packet">packet (Packets)</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Current Stock Quantity</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Quantity</label>
                         <input type="number" name="current_stock" step="0.0001" min="0" placeholder="e.g. 15000" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
@@ -53,7 +58,7 @@
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Average Purchase Price (₹)</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Purchase Price (₹)</label>
                         <input type="number" name="average_purchase_price" step="0.01" min="0" placeholder="e.g. 85.00" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
@@ -80,7 +85,7 @@
                             <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Average Price</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Purchase Price</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
                         </tr>
                     </thead>
@@ -113,7 +118,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Add Finished Good Rack
+                Add Product
             </h3>
             <form action="{{ route('inventory.goods.store') }}" method="POST" class="ajax-form space-y-4">
                 @csrf
@@ -144,7 +149,7 @@
                 </div>
 
             <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
-                Catalog Finished Good
+                Save Product
             </button>
             </form>
         </div>
@@ -153,7 +158,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Finished Goods Catalog
+                Products Catalog
             </h3>
             
             <div class="overflow-x-auto">

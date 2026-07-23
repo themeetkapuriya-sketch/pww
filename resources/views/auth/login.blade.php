@@ -14,10 +14,7 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-image: url("{{ asset('images/login-bg.png') }}");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            background-color: #EEF2F6;
         }
     </style>
 </head>

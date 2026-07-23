@@ -7,70 +7,13 @@
     <!-- Header -->
     <div class="flex items-center justify-between pb-4 border-b border-slate-200">
         <div>
-            @if ($tab === 'challan-converter')
-                <h1 class="text-2xl font-bold text-slate-800">Convert Dispatched Challans</h1>
-                <p class="text-sm text-slate-500">Select and merge pending delivery challans into a final invoice.</p>
-            @elseif ($tab === 'manual-builder')
-                <h1 class="text-2xl font-bold text-slate-800">Invoice Ledger</h1>
-                <p class="text-sm text-slate-500">Review generated invoices or log new custom tax invoices.</p>
-            @endif
+            <h1 class="text-2xl font-bold text-slate-800">Invoice Ledger</h1>
+            <p class="text-sm text-slate-500">Review generated invoices or log new custom tax invoices.</p>
         </div>
     </div>
 
-    <!-- Section 2: Convert Challans (Bulk mapping) -->
-    <div id="section-challan-converter" class="{{ $tab === 'challan-converter' ? 'space-y-6' : 'hidden' }}">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h3 class="text-base font-bold text-slate-800 mb-2">Convert Dispatched Challans</h3>
-            <p class="text-xs text-slate-500 mb-4">Select one or multiple delivery challans dispatched to Balaji Wafers plants to generate a combined tax compliance invoice.</p>
-            
-            @if ($pendingChallans->isEmpty())
-                <div class="p-8 text-center text-slate-400 border border-dashed rounded-lg border-slate-200">
-                    No pending delivery challans available for invoicing.
-                </div>
-            @else
-                <form action="{{ route('invoice.create') }}" method="POST" class="ajax-form space-y-4">
-                    @csrf
-                    <div class="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
-                        @foreach ($pendingChallans as $dc)
-                            @php
-                                $challanVal = 0;
-                                foreach ($dc->items as $item) {
-                                    $challanVal += $item->quantity * $item->unit_price;
-                                }
-                            @endphp
-                            <div class="p-3.5 bg-slate-50/50 hover:bg-slate-50 flex items-center justify-between text-sm transition">
-                                <div class="flex items-center space-x-3">
-                                    <input type="checkbox" name="challan_ids[]" value="{{ $dc->id }}" class="rounded text-blue-600 focus:ring-blue-500">
-                                    <div>
-                                        <span class="font-bold text-slate-800">{{ $dc->challan_number }}</span>
-                                        <span class="text-xs text-slate-500 ml-1">({{ $dc->plant->plant_name }})</span>
-                                        <div class="text-[10px] text-slate-400">Dispatched: {{ $dc->dispatch_date->format('d M Y') }}</div>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <span class="font-bold text-slate-700">₹{{ number_format($challanVal, 2) }}</span>
-                                    <div class="text-[10px] text-slate-500">Taxable Value</div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="max-w-xs">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Payment Due Date</label>
-                        <input type="date" name="due_date" value="{{ date('Y-m-d', strtotime('+30 days')) }}"
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
-                    </div>
-
-                    <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
-                        Generate Tax Invoice
-                    </button>
-                </form>
-            @endif
-        </div>
-    </div>
-
-    <!-- Section 3: Manual Custom Invoice Builder (Direct details input) -->
-    <div id="section-manual-builder" class="{{ $tab === 'manual-builder' ? 'space-y-6' : 'hidden' }}">
+    <!-- Direct Invoice Builder -->
+    <div id="section-manual-builder" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left 2 Cols: Form items editor -->
             <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
