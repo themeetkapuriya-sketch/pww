@@ -86,7 +86,7 @@
         .stat-val.outstanding {
             color: #d97706;
             font-size: 14px;
-            font-weight: 900;
+            font-weight: bold;
         }
         .ledger-table {
             width: 100%;
@@ -199,19 +199,19 @@
                     <table style="width: 100%;">
                         <tr>
                             <td class="stat-label">Opening Balance:</td>
-                            <td class="stat-val text-right">₹{{ number_format($opening_balance, 2) }}</td>
+                            <td class="stat-val text-right">&#8377;{{ number_format($opening_balance, 2) }}</td>
                         </tr>
                         <tr>
                             <td class="stat-label">Total Invoiced (+):</td>
-                            <td class="stat-val text-right debit-text">₹{{ number_format($total_debit, 2) }}</td>
+                            <td class="stat-val text-right debit-text">&#8377;{{ number_format($total_debit, 2) }}</td>
                         </tr>
                         <tr>
                             <td class="stat-label">Total Received (-):</td>
-                            <td class="stat-val text-right credit-text">₹{{ number_format($total_credit, 2) }}</td>
+                            <td class="stat-val text-right credit-text">&#8377;{{ number_format($total_credit, 2) }}</td>
                         </tr>
                         <tr style="border-top: 1px solid #cbd5e1;">
                             <td class="stat-label" style="padding-top: 4px;">Closing Outstanding:</td>
-                            <td class="stat-val outstanding text-right" style="padding-top: 4px;">₹{{ number_format($closing_balance, 2) }}</td>
+                            <td class="stat-val outstanding text-right" style="padding-top: 4px;">&#8377;{{ number_format($closing_balance, 2) }}</td>
                         </tr>
                     </table>
                 </td>
@@ -228,7 +228,7 @@
                 <th style="width: 38%;">Description & Details</th>
                 <th class="text-right" style="width: 16%;">Billed Amount (+)</th>
                 <th class="text-right" style="width: 16%;">Payment Recd (-)</th>
-                <th class="text-right" style="width: 18%;">Balance (₹)</th>
+                <th class="text-right" style="width: 18%;">Balance (&#8377;)</th>
             </tr>
         </thead>
         <tbody>
@@ -236,7 +236,7 @@
                 <td colspan="3">Opening Balance (Before {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }})</td>
                 <td class="text-right">-</td>
                 <td class="text-right">-</td>
-                <td class="text-right font-mono">₹{{ number_format($opening_balance, 2) }}</td>
+                <td class="text-right font-mono">&#8377;{{ number_format($opening_balance, 2) }}</td>
             </tr>
             @forelse($entries as $row)
                 <tr>
@@ -244,12 +244,12 @@
                     <td class="font-mono">{{ $row['reference'] }}</td>
                     <td>{{ $row['description'] }}</td>
                     <td class="text-right {{ $row['debit'] > 0 ? 'debit-text' : '' }}">
-                        {{ $row['debit'] > 0 ? '₹' . number_format($row['debit'], 2) : '-' }}
+                        {{ $row['debit'] > 0 ? '&#8377;' . number_format($row['debit'], 2) : '-' }}
                     </td>
                     <td class="text-right {{ $row['credit'] > 0 ? 'credit-text' : '' }}">
-                        {{ $row['credit'] > 0 ? '₹' . number_format($row['credit'], 2) : '-' }}
+                        {{ $row['credit'] > 0 ? '&#8377;' . number_format($row['credit'], 2) : '-' }}
                     </td>
-                    <td class="text-right font-mono font-bold">₹{{ number_format($row['running_balance'], 2) }}</td>
+                    <td class="text-right font-mono font-bold">&#8377;{{ number_format($row['running_balance'], 2) }}</td>
                 </tr>
             @empty
                 <tr>
