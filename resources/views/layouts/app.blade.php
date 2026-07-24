@@ -68,11 +68,49 @@
             font-weight: 700 !important;
         }
 
+        /* TomSelect Single Line Flex Alignment & Side Cursor */
         .ts-control {
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
             border-radius: 0.75rem !important;
-            border: 1px solid #e2e8f0 !important;
-            padding: 6px 12px !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 7px 12px !important;
             font-size: 0.875rem !important;
+            min-height: 42px !important;
+            max-height: 42px !important;
+            overflow: hidden !important;
+            background-color: #ffffff !important;
+        }
+
+        .ts-control > .item {
+            display: inline-flex !important;
+            align-items: center !important;
+            margin: 0 4px 0 0 !important;
+            padding: 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: calc(100% - 25px) !important;
+            color: #334155 !important;
+            font-weight: 500 !important;
+        }
+
+        .ts-control > input {
+            display: inline-block !important;
+            position: relative !important;
+            left: 0 !important;
+            opacity: 1 !important;
+            flex: 1 1 auto !important;
+            min-width: 15px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            caret-color: #2563eb !important;
+            height: auto !important;
+            line-height: normal !important;
         }
 
         /* DataTables Custom Tailwind Integration Styles */
