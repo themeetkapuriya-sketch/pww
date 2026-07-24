@@ -18,7 +18,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product</label>
-                    <select name="finished_good_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <select name="product_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select Product...</option>
                         @foreach ($finishedGoods as $good)
                             <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>

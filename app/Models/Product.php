@@ -9,8 +9,6 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $table = 'finished_goods';
-
     protected $fillable = [
         'product_name',
         'sku',
@@ -32,7 +30,15 @@ class Product extends Model
      */
     public function billOfMaterials()
     {
-        return $this->hasMany(BillOfMaterial::class, 'finished_good_id');
+        return $this->hasMany(BillOfMaterial::class, 'product_id');
+    }
+
+    /**
+     * Alias for billOfMaterials.
+     */
+    public function bom()
+    {
+        return $this->hasMany(BillOfMaterial::class, 'product_id');
     }
 
     /**
@@ -40,7 +46,7 @@ class Product extends Model
      */
     public function rawMaterials()
     {
-        return $this->belongsToMany(RawMaterial::class, 'bill_of_materials', 'finished_good_id', 'raw_material_id')
+        return $this->belongsToMany(RawMaterial::class, 'bill_of_materials', 'product_id', 'raw_material_id')
                     ->withPivot('required_quantity', 'waste_percentage')
                     ->withTimestamps();
     }
@@ -50,14 +56,14 @@ class Product extends Model
      */
     public function productionLogs()
     {
-        return $this->hasMany(ProductionLog::class, 'finished_good_id');
+        return $this->hasMany(ProductionLog::class, 'product_id');
     }
 
     /**
-     * Get the delivery challan items containing this product.
+     * Get the invoice items containing this product.
      */
-    public function deliveryChallanItems()
+    public function invoiceItems()
     {
-        return $this->hasMany(DeliveryChallanItem::class, 'finished_good_id');
+        return $this->hasMany(InvoiceItem::class, 'product_id');
     }
 }

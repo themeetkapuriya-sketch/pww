@@ -9,8 +9,7 @@ use App\Models\Product;
 use App\Models\BillOfMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
-use App\Models\DeliveryChallan;
-use App\Models\DeliveryChallanItem;
+use App\Models\InvoiceItem;
 use App\Models\Invoice;
 use App\Models\StaffProfile;
 use App\Models\LaborLog;
@@ -77,7 +76,7 @@ class ErpFlowTest extends TestCase
         // Setup BOM (Requires 5.0kg of iron per rack, with 10% waste percentage)
         // Consumed per rack = 5.0 * (1 + 10/100) = 5.5kg
         BillOfMaterial::create([
-            'finished_good_id' => $rack->id,
+            'product_id' => $rack->id,
             'raw_material_id' => $iron->id,
             'required_quantity' => 5.0,
             'waste_percentage' => 10.00,
@@ -166,55 +165,27 @@ class ErpFlowTest extends TestCase
             'selling_price' => 1000.00,
         ]);
 
-        // 1. Test Intrastate (Gujarat) Invoice
-        $dc1 = DeliveryChallan::create([
-            'client_id' => $client->id,
-            'plant_id' => $gujaratPlant->id,
-            'challan_number' => 'DC-GUJ-01',
-            'dispatch_date' => Carbon::now()->toDateString(),
-            'status' => 'pending_invoice',
+        // 1. Test Intrastate (Gujarat) Invoice GST Calculation
+        $gstGuj = $this->billingService->calculateGstBreakdown($gujaratPlant->id, [
+            ['product_id' => $rack->id, 'quantity' => 10, 'unit_price' => 1000.00]
         ]);
 
-        DeliveryChallanItem::create([
-            'delivery_challan_id' => $dc1->id,
-            'finished_good_id' => $rack->id,
-            'quantity' => 10,
-            'unit_price' => 1000.00, // Total taxable: 10,000
+        $this->assertEquals(10000.00, $gstGuj['taxable_value']);
+        $this->assertEquals(900.00, $gstGuj['cgst']); // 9% of 10000
+        $this->assertEquals(900.00, $gstGuj['sgst']); // 9% of 10000
+        $this->assertEquals(0.00, $gstGuj['igst']);
+        $this->assertEquals(11800.00, $gstGuj['total_amount']);
+
+        // 2. Test Interstate (Indore, MP) Invoice GST Calculation
+        $gstInd = $this->billingService->calculateGstBreakdown($indorePlant->id, [
+            ['product_id' => $rack->id, 'quantity' => 20, 'unit_price' => 1000.00]
         ]);
 
-        $invoiceGuj = $this->billingService->createInvoiceFromChallans([$dc1->id]);
-
-        $this->assertEquals(10000.00, $invoiceGuj->total_taxable_value);
-        $this->assertEquals(900.00, $invoiceGuj->cgst); // 9% of 10000
-        $this->assertEquals(900.00, $invoiceGuj->sgst); // 9% of 10000
-        $this->assertEquals(0.00, $invoiceGuj->igst);
-        $this->assertEquals(11800.00, $invoiceGuj->total_amount);
-        $this->assertEquals('invoiced', DeliveryChallan::find($dc1->id)->status);
-
-        // 2. Test Interstate (Indore, MP) Invoice
-        $dc2 = DeliveryChallan::create([
-            'client_id' => $client->id,
-            'plant_id' => $indorePlant->id,
-            'challan_number' => 'DC-MP-01',
-            'dispatch_date' => Carbon::now()->toDateString(),
-            'status' => 'pending_invoice',
-        ]);
-
-        DeliveryChallanItem::create([
-            'delivery_challan_id' => $dc2->id,
-            'finished_good_id' => $rack->id,
-            'quantity' => 20,
-            'unit_price' => 1000.00, // Total taxable: 20,000
-        ]);
-
-        $invoiceInd = $this->billingService->createInvoiceFromChallans([$dc2->id]);
-
-        $this->assertEquals(20000.00, $invoiceInd->total_taxable_value);
-        $this->assertEquals(0.00, $invoiceInd->cgst);
-        $this->assertEquals(0.00, $invoiceInd->sgst);
-        $this->assertEquals(3600.00, $invoiceInd->igst); // 18% of 20000
-        $this->assertEquals(23600.00, $invoiceInd->total_amount);
-        $this->assertEquals('invoiced', DeliveryChallan::find($dc2->id)->status);
+        $this->assertEquals(20000.00, $gstInd['taxable_value']);
+        $this->assertEquals(0.00, $gstInd['cgst']);
+        $this->assertEquals(0.00, $gstInd['sgst']);
+        $this->assertEquals(3600.00, $gstInd['igst']); // 18% of 20000
+        $this->assertEquals(23600.00, $gstInd['total_amount']);
     }
 
     /**
@@ -245,7 +216,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         $prodLog = ProductionLog::create([
-            'finished_good_id' => $good->id,
+            'product_id' => $good->id,
             'quantity_manufactured' => 100,
             'quantity_rejected' => 0,
             'recorded_by' => $user->id,
@@ -323,7 +294,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         BillOfMaterial::create([
-            'finished_good_id' => $good->id,
+            'product_id' => $good->id,
             'raw_material_id' => $iron->id,
             'required_quantity' => 10.0, // 10 kg
             'waste_percentage' => 10.00, // 10% waste => 11 kg consumed per unit
@@ -338,7 +309,7 @@ class ErpFlowTest extends TestCase
 
         // Manufacturing 10 units => 110 kg iron consumed => COGS = 110 * 10 = ₹1,100
         $prodLog = ProductionLog::create([
-            'finished_good_id' => $good->id,
+            'product_id' => $good->id,
             'quantity_manufactured' => 10,
             'quantity_rejected' => 0,
             'recorded_by' => $user->id,
@@ -418,17 +389,29 @@ class ErpFlowTest extends TestCase
             'role' => 'admin',
         ]);
 
-        // Failed login
+        // Failed login attempts to test rate limiting
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/login', [
+                'email' => 'ratelimit_' . uniqid() . '@pww.com',
+                'password' => 'wrong'
+            ]);
+        }
+
+        // 6th attempt with same email + IP should trigger HTTP 429
+        $targetEmail = 'lockout@pww.com';
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/login', [
+                'email' => $targetEmail,
+                'password' => 'wrongpassword'
+            ]);
+        }
         $response = $this->postJson('/login', [
-            'email' => 'praful@pww.com',
+            'email' => $targetEmail,
             'password' => 'wrongpassword'
         ]);
-        $response->assertStatus(401);
-        $response->assertJson([
-            'success' => false
-        ]);
+        $response->assertStatus(429);
 
-        // Successful login
+        // Successful login for valid user
         $response = $this->postJson('/login', [
             'email' => 'praful@pww.com',
             'password' => 'admin123'
@@ -473,7 +456,7 @@ class ErpFlowTest extends TestCase
             'invoice_number' => 'PWW-CUSTOM-999',
             'plant_id' => $plant->id,
             'due_date' => Carbon::now()->addDays(30)->toDateString(),
-            'finished_good_ids' => [$good->id],
+            'product_ids' => [$good->id],
             'quantities' => [10],
             'unit_prices' => [500],
         ]);
@@ -862,23 +845,8 @@ class ErpFlowTest extends TestCase
             'selling_price' => 500,
         ]);
 
-        $challan = DeliveryChallan::create([
-            'client_id' => $client->id,
-            'plant_id' => $plant->id,
-            'challan_number' => 'DC-PRINT-TEST-1',
-            'dispatch_date' => Carbon::now()->toDateString(),
-            'status' => 'invoiced',
-        ]);
-
-        DeliveryChallanItem::create([
-            'delivery_challan_id' => $challan->id,
-            'finished_good_id' => $good->id,
-            'quantity' => 5,
-            'unit_price' => 500.00,
-        ]);
-
         $invoice = Invoice::create([
-            'delivery_challan_id' => $challan->id,
+            'plant_id' => $plant->id,
             'invoice_number' => 'PWW-PRINTTEST-999',
             'total_taxable_value' => 2500.00,
             'cgst' => 225.00,
@@ -887,6 +855,14 @@ class ErpFlowTest extends TestCase
             'total_amount' => 2950.00,
             'payment_status' => 'unpaid',
             'due_date' => Carbon::now()->addDays(30)->toDateString(),
+        ]);
+
+        InvoiceItem::create([
+            'invoice_id' => $invoice->id,
+            'product_id' => $good->id,
+            'quantity' => 5,
+            'unit_price' => 500.00,
+            'total_price' => 2500.00,
         ]);
 
         $response = $this->actingAs($user)->get(route('invoice.print', $invoice->id));
@@ -1058,7 +1034,7 @@ class ErpFlowTest extends TestCase
             'po_number' => 'PO-TATA-9988',
             'order_date' => date('Y-m-d'),
             'delivery_date' => date('Y-m-d', strtotime('+7 days')),
-            'finished_good_ids' => [$product->id],
+            'product_ids' => [$product->id],
             'quantities' => [10],
             'unit_prices' => [7500.00],
             'notes' => 'Test order creation',
@@ -1086,7 +1062,7 @@ class ErpFlowTest extends TestCase
             'invoice_number' => 'PWW-TEST-ORD-01',
             'plant_id' => $plant->id,
             'sales_order_id' => $order->id,
-            'finished_good_ids' => [$product->id],
+            'product_ids' => [$product->id],
             'quantities' => [10],
             'unit_prices' => [7500.00],
         ]);

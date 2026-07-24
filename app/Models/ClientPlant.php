@@ -26,23 +26,11 @@ class ClientPlant extends Model
     }
 
     /**
-     * Get the delivery challans sent to this plant.
-     */
-    public function deliveryChallans()
-    {
-        return $this->hasMany(DeliveryChallan::class, 'plant_id');
-    }
-
-    /**
      * Get all invoices associated with this plant.
      */
     public function invoices()
     {
-        return Invoice::whereHas('deliveryChallan', function ($q) {
-            $q->where('plant_id', $this->id);
-        })->orWhereHas('deliveryChallans', function ($q) {
-            $q->where('plant_id', $this->id);
-        });
+        return $this->hasMany(Invoice::class, 'plant_id');
     }
 
     /**

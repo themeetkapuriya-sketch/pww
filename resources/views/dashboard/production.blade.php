@@ -21,7 +21,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product</label>
-                    <select name="finished_good_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <select name="product_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="">Select Product...</option>
                         @foreach ($finishedGoods as $good)
                             <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
@@ -88,7 +88,7 @@
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date->format('d M Y') }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->finishedGood->product_name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
                             <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
                             <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>

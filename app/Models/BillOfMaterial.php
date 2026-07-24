@@ -12,7 +12,7 @@ class BillOfMaterial extends Model
     protected $table = 'bill_of_materials';
 
     protected $fillable = [
-        'finished_good_id',
+        'product_id',
         'raw_material_id',
         'required_quantity',
         'waste_percentage',
@@ -24,11 +24,19 @@ class BillOfMaterial extends Model
     ];
 
     /**
-     * Get the finished good product for this BOM item.
+     * Get the product for this BOM item.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    /**
+     * Alias for product.
      */
     public function finishedGood()
     {
-        return $this->belongsTo(Product::class, 'finished_good_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     /**

@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class SalesOrderItem extends Model
+class InvoiceItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sales_order_id',
+        'invoice_id',
         'product_id',
         'quantity',
         'unit_price',
@@ -23,9 +23,9 @@ class SalesOrderItem extends Model
         'total_price' => 'decimal:2',
     ];
 
-    public function salesOrder()
+    public function invoice()
     {
-        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 
     public function product()

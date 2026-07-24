@@ -8,8 +8,7 @@ use App\Models\Product;
 use App\Models\BillOfMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
-use App\Models\DeliveryChallan;
-use App\Models\DeliveryChallanItem;
+use App\Models\InvoiceItem;
 use App\Models\Invoice;
 use App\Models\StaffProfile;
 use App\Models\LaborLog;
@@ -102,19 +101,19 @@ class DatabaseSeeder extends Seeder
         // 4. Create BOM
         // Rack 3-Tier requires 4.5kg iron, 0.3kg paint, 0.5l gas
         BillOfMaterial::create([
-            'finished_good_id' => $rack3Tier->id,
+            'product_id' => $rack3Tier->id,
             'raw_material_id' => $ironWire->id,
             'required_quantity' => 4.5000,
             'waste_percentage' => 5.00,
         ]);
         BillOfMaterial::create([
-            'finished_good_id' => $rack3Tier->id,
+            'product_id' => $rack3Tier->id,
             'raw_material_id' => $powderPaint->id,
             'required_quantity' => 0.3000,
             'waste_percentage' => 10.00,
         ]);
         BillOfMaterial::create([
-            'finished_good_id' => $rack3Tier->id,
+            'product_id' => $rack3Tier->id,
             'raw_material_id' => $co2Gas->id,
             'required_quantity' => 0.5000,
             'waste_percentage' => 2.00,
@@ -122,19 +121,19 @@ class DatabaseSeeder extends Seeder
 
         // Rack 4-Tier requires 6kg iron, 0.4kg paint, 0.7l gas
         BillOfMaterial::create([
-            'finished_good_id' => $rack4Tier->id,
+            'product_id' => $rack4Tier->id,
             'raw_material_id' => $ironWire->id,
             'required_quantity' => 6.0000,
             'waste_percentage' => 6.00,
         ]);
         BillOfMaterial::create([
-            'finished_good_id' => $rack4Tier->id,
+            'product_id' => $rack4Tier->id,
             'raw_material_id' => $powderPaint->id,
             'required_quantity' => 0.4000,
             'waste_percentage' => 10.00,
         ]);
         BillOfMaterial::create([
-            'finished_good_id' => $rack4Tier->id,
+            'product_id' => $rack4Tier->id,
             'raw_material_id' => $co2Gas->id,
             'required_quantity' => 0.7000,
             'waste_percentage' => 2.00,
@@ -264,7 +263,7 @@ class DatabaseSeeder extends Seeder
             $quantity3T = rand(80, 120);
             $rejected3T = rand(2, 6);
             $prodLog3T = ProductionLog::create([
-                'finished_good_id' => $rack3Tier->id,
+                'product_id' => $rack3Tier->id,
                 'quantity_manufactured' => $quantity3T,
                 'quantity_rejected' => $rejected3T,
                 'recorded_by' => $adminUser->id,
@@ -294,7 +293,7 @@ class DatabaseSeeder extends Seeder
             $quantity4T = rand(50, 80);
             $rejected4T = rand(1, 4);
             $prodLog4T = ProductionLog::create([
-                'finished_good_id' => $rack4Tier->id,
+                'product_id' => $rack4Tier->id,
                 'quantity_manufactured' => $quantity4T,
                 'quantity_rejected' => $rejected4T,
                 'recorded_by' => $adminUser->id,
@@ -321,40 +320,15 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 9. Generate Historical Delivery Challans & Invoices
+        // 9. Generate Historical Invoices
         $plantsArray = [$plantRajkot, $plantValsad, $plantIndore];
         
         foreach ($plantsArray as $index => $plant) {
             $dispatchDate = Carbon::now()->subDays(20 - ($index * 5));
-            $challanNo = 'DC-' . date('Ymd') . '-00' . ($index + 1);
 
-            $dc = DeliveryChallan::create([
-                'client_id' => $client->id,
-                'plant_id' => $plant->id,
-                'challan_number' => $challanNo,
-                'dispatch_date' => $dispatchDate->toDateString(),
-                'status' => 'invoiced',
-            ]);
-
-            // Add items to challan
             $qty3T = rand(20, 40);
             $qty4T = rand(15, 30);
             
-            DeliveryChallanItem::create([
-                'delivery_challan_id' => $dc->id,
-                'finished_good_id' => $rack3Tier->id,
-                'quantity' => $qty3T,
-                'unit_price' => $rack3Tier->selling_price,
-            ]);
-
-            DeliveryChallanItem::create([
-                'delivery_challan_id' => $dc->id,
-                'finished_good_id' => $rack4Tier->id,
-                'quantity' => $qty4T,
-                'unit_price' => $rack4Tier->selling_price,
-            ]);
-
-            // Invoice for the challan
             $taxable = ($qty3T * $rack3Tier->selling_price) + ($qty4T * $rack4Tier->selling_price);
             $cgst = 0.00;
             $sgst = 0.00;
@@ -371,8 +345,9 @@ class DatabaseSeeder extends Seeder
             $invNo = 'PWW-' . $dispatchDate->format('Ymd') . '-00' . ($index + 1);
             
             $invoice = Invoice::create([
-                'delivery_challan_id' => $dc->id,
+                'plant_id' => $plant->id,
                 'invoice_number' => $invNo,
+                'invoice_date' => $dispatchDate->toDateString(),
                 'total_taxable_value' => $taxable,
                 'cgst' => $cgst,
                 'sgst' => $sgst,
@@ -384,40 +359,26 @@ class DatabaseSeeder extends Seeder
                 'created_at' => $dispatchDate,
             ]);
 
-            $dc->update(['invoice_id' => $invoice->id]);
-        }
-
-        // 10. Generate Pending Delivery Challans (for UI demonstrations)
-        foreach ($plantsArray as $index => $plant) {
-            $dispatchDate = Carbon::now()->subDays(2);
-            $challanNo = 'DC-PENDING-00' . ($index + 1);
-
-            $dc = DeliveryChallan::create([
-                'client_id' => $client->id,
-                'plant_id' => $plant->id,
-                'challan_number' => $challanNo,
-                'dispatch_date' => $dispatchDate->toDateString(),
-                'status' => 'pending_invoice',
-            ]);
-
-            DeliveryChallanItem::create([
-                'delivery_challan_id' => $dc->id,
-                'finished_good_id' => $rack3Tier->id,
-                'quantity' => 15,
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $rack3Tier->id,
+                'quantity' => $qty3T,
                 'unit_price' => $rack3Tier->selling_price,
+                'total_price' => round($qty3T * $rack3Tier->selling_price, 2),
             ]);
 
-            DeliveryChallanItem::create([
-                'delivery_challan_id' => $dc->id,
-                'finished_good_id' => $rack4Tier->id,
-                'quantity' => 10,
+            InvoiceItem::create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $rack4Tier->id,
+                'quantity' => $qty4T,
                 'unit_price' => $rack4Tier->selling_price,
+                'total_price' => round($qty4T * $rack4Tier->selling_price, 2),
             ]);
         }
 
         // 11. Create a few pending labor log entries for wage compilation test
         $pendingProdLog = ProductionLog::create([
-            'finished_good_id' => $rack3Tier->id,
+            'product_id' => $rack3Tier->id,
             'quantity_manufactured' => 60,
             'quantity_rejected' => 1,
             'recorded_by' => $adminUser->id,
@@ -444,7 +405,7 @@ class DatabaseSeeder extends Seeder
         $sampleOrder = \App\Models\SalesOrder::create([
             'order_number' => \App\Models\SalesOrder::generateNextOrderNumber(),
             'po_number' => 'PO-BALAJI-9012',
-            'client_id' => $clientBalaji->id,
+            'client_id' => $client->id,
             'plant_id' => $plantRajkot->id,
             'order_date' => Carbon::now()->subDays(2)->toDateString(),
             'delivery_date' => Carbon::now()->addDays(5)->toDateString(),
@@ -455,7 +416,7 @@ class DatabaseSeeder extends Seeder
 
         \App\Models\SalesOrderItem::create([
             'sales_order_id' => $sampleOrder->id,
-            'finished_good_id' => $rack3Tier->id,
+            'product_id' => $rack3Tier->id,
             'quantity' => 25,
             'unit_price' => 5000.00,
             'total_price' => 125000.00,

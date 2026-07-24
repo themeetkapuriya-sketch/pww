@@ -182,15 +182,8 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($invoices as $inv)
                             @php
-                                $primaryChallan = $inv->deliveryChallan;
-                                $clientName = $primaryChallan ? ($primaryChallan->client->company_name ?? 'N/A') : 'N/A';
-                                $plantName = $primaryChallan ? ($primaryChallan->plant->plant_name ?? 'HQ') : 'HQ';
-                                
-                                if (!$primaryChallan && $inv->deliveryChallans->isNotEmpty()) {
-                                    $firstChallan = $inv->deliveryChallans->first();
-                                    $clientName = $firstChallan->client->company_name ?? 'N/A';
-                                    $plantName = $firstChallan->plant->plant_name ?? 'HQ';
-                                }
+                                $clientName = $inv->client ? $inv->client->company_name : 'N/A';
+                                $plantName = $inv->plant ? $inv->plant->plant_name : 'HQ';
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="px-4 py-3 font-bold text-blue-600 font-mono text-xs">
@@ -373,7 +366,7 @@
                         <tr>
                             <td class="px-6 py-4 font-semibold text-slate-800">Machinery Depreciation (E)</td>
                             <td class="px-6 py-4 text-slate-500 text-xs">Calculated depreciation values recorded against welding machinery.</td>
-                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ number_format($financials['depreciation'], 2) }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ number_format($financials['depreciation'] ?? 0, 2) }}</td>
                         </tr>
                         <tr class="bg-slate-50 font-bold border-t-2 border-slate-300">
                             <td class="px-6 py-4 text-slate-800 text-base">Net Profit / Loss (A - B - C - D - E)</td>

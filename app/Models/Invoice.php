@@ -10,7 +10,7 @@ class Invoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'delivery_challan_id',
+        'plant_id',
         'invoice_number',
         'vehicle_number',
         'invoice_date',
@@ -36,19 +36,27 @@ class Invoice extends Model
     ];
 
     /**
-     * Get the primary delivery challan if single-challan invoice.
+     * Get the client plant for this invoice.
      */
-    public function deliveryChallan()
+    public function plant()
     {
-        return $this->belongsTo(DeliveryChallan::class, 'delivery_challan_id');
+        return $this->belongsTo(ClientPlant::class, 'plant_id');
     }
 
     /**
-     * Get all delivery challans aggregated in this invoice.
+     * Get the client via client plant.
      */
-    public function deliveryChallans()
+    public function getClientAttribute()
     {
-        return $this->hasMany(DeliveryChallan::class, 'invoice_id');
+        return $this->plant ? $this->plant->client : null;
+    }
+
+    /**
+     * Get all line items attached directly to this invoice.
+     */
+    public function items()
+    {
+        return $this->hasMany(InvoiceItem::class, 'invoice_id');
     }
 
     /**
@@ -66,7 +74,6 @@ class Invoice extends Model
     {
         return max(0.00, round((float)$this->total_amount - (float)$this->paid_amount, 2));
     }
-
 
     /**
      * Generate sequential invoice number for current Financial Year (Apr 1 - Mar 31).
@@ -86,14 +93,6 @@ class Invoice extends Model
         $count = self::whereBetween('created_at', [$fyStart, $fyEnd])->count();
         $nextSequence = $count + 1;
         $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-        $invoiceNumber = 'PWW-' . date('Ymd') . '-' . $sequenceStr;
-
-        while (self::where('invoice_number', $invoiceNumber)->exists()) {
-            $nextSequence++;
-            $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-            $invoiceNumber = 'PWW-' . date('Ymd') . '-' . $sequenceStr;
-        }
-
-        return $invoiceNumber;
+        return 'PWW-' . date('Ymd') . '-' . $sequenceStr;
     }
 }

@@ -10,7 +10,7 @@ class ProductionLog extends Model
     use HasFactory;
 
     protected $fillable = [
-        'finished_good_id',
+        'product_id',
         'quantity_manufactured',
         'quantity_rejected',
         'recorded_by',
@@ -24,11 +24,19 @@ class ProductionLog extends Model
     ];
 
     /**
-     * Get the finished good that was manufactured.
+     * Get the product that was manufactured.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    /**
+     * Alias for product.
      */
     public function finishedGood()
     {
-        return $this->belongsTo(Product::class, 'finished_good_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
     /**

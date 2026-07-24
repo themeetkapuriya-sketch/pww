@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -20,7 +22,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle AJAX login request.
+     * Handle AJAX login request with Rate Limiting protection.
      */
     public function login(Request $request)
     {
@@ -36,17 +38,44 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Throttle key based on combined lowercased Email + IP address
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
+        // Check if rate limit exceeded (Max 5 attempts per 1 minute)
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $message = "Too many login attempts. Please try again in {$seconds} seconds.";
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'errors' => [$message]
+                ], 429);
+            }
+
+            return redirect()->back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => $message]);
+        }
+
         $credentials = $request->only('email', 'password');
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
             
+            // Clear rate limiter counter on successful login
+            RateLimiter::clear($throttleKey);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful! Redirecting...',
                 'redirect' => route('overview')
             ]);
         }
+
+        // Increment rate limiter counter for failed login attempt (1 minute decay)
+        RateLimiter::hit($throttleKey, 60);
 
         return response()->json([
             'success' => false,
@@ -60,10 +89,13 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('success', 'Logged out successfully.');
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'redirect' => route('login')]);
+        }
+
+        return redirect()->route('login');
     }
 }

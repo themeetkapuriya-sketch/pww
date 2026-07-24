@@ -564,15 +564,20 @@
                     </thead>
                     <tbody>
                         @foreach ($groupedItems as $index => $item)
+                            @php
+                                $pName = isset($item->product_name) ? $item->product_name : ($item->product->product_name ?? $item->finishedGood->product_name ?? 'Product');
+                                $pSku = isset($item->sku) ? $item->sku : ($item->product->sku ?? $item->finishedGood->sku ?? 'N/A');
+                                $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
+                            @endphp
                             <tr>
                                 <td style="text-align: center; font-weight: 600; color: #64748b;">{{ $index + 1 }}</td>
                                 <td>
-                                    <div class="item-name">{{ $item->product_name }}</div>
-                                    <div class="item-sku">SKU: {{ $item->sku }}</div>
+                                    <div class="item-name">{{ $pName }}</div>
+                                    <div class="item-sku">SKU: {{ $pSku }}</div>
                                 </td>
                                 <td style="text-align: right; font-weight: 700; color: #0f172a;">{{ number_format($item->quantity) }} units</td>
                                 <td style="text-align: right; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
-                                <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->total, 2) }}</td>
+                                <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

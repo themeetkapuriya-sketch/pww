@@ -7,8 +7,6 @@ use App\Models\RawMaterial;
 use App\Models\Product;
 use App\Models\Client;
 use App\Models\ClientPlant;
-use App\Models\DeliveryChallan;
-use App\Models\DeliveryChallanItem;
 use App\Models\Invoice;
 use App\Models\StaffProfile;
 use App\Models\LaborLog;
@@ -212,7 +210,7 @@ class ErpController extends Controller
     {
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:finished_goods,sku|max:100',
+            'sku' => 'required|string|unique:products,sku|max:100',
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|in:piece,kg',
             'current_stock' => 'nullable|integer|min:0',
@@ -240,7 +238,7 @@ class ErpController extends Controller
 
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
-            'sku' => 'required|string|max:100|unique:finished_goods,sku,' . $id,
+            'sku' => 'required|string|max:100|unique:products,sku,' . $id,
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|in:piece,kg',
             'current_stock' => 'nullable|integer|min:0',
@@ -290,8 +288,11 @@ class ErpController extends Controller
      */
     public function storeBom(Request $request)
     {
+        $productId = $request->input('product_id', $request->input('finished_good_id'));
+        $request->merge(['product_id' => $productId]);
+
         $validated = $request->validate([
-            'finished_good_id' => 'required|exists:finished_goods,id',
+            'product_id' => 'required|exists:products,id',
             'raw_material_id' => 'required|exists:raw_materials,id',
             'required_quantity' => 'required|numeric|min:0.0001',
             'waste_percentage' => 'required|numeric|min:0',
@@ -299,7 +300,7 @@ class ErpController extends Controller
 
         $bom = BillOfMaterial::updateOrCreate(
             [
-                'finished_good_id' => $validated['finished_good_id'],
+                'product_id' => $validated['product_id'],
                 'raw_material_id' => $validated['raw_material_id'],
             ],
             [
@@ -320,7 +321,7 @@ class ErpController extends Controller
      */
     public function production()
     {
-        $productionLogs = ProductionLog::with('finishedGood', 'recordedByUser')->orderBy('production_date', 'desc')->paginate(20);
+        $productionLogs = ProductionLog::with('product', 'recordedByUser')->orderBy('production_date', 'desc')->paginate(20);
         $finishedGoods = Product::all();
         $staffProfiles = StaffProfile::all();
         $users = User::all();
@@ -332,8 +333,11 @@ class ErpController extends Controller
      */
     public function logProduction(Request $request)
     {
+        $productId = $request->input('product_id', $request->input('finished_good_id'));
+        $request->merge(['product_id' => $productId]);
+
         $validated = $request->validate([
-            'finished_good_id' => 'required|exists:finished_goods,id',
+            'product_id' => 'required|exists:products,id',
             'quantity_manufactured' => 'required|integer|min:1',
             'quantity_rejected' => 'required|integer|min:0',
             'recorded_by' => 'required|exists:users,id',
@@ -355,10 +359,10 @@ class ErpController extends Controller
             }
 
             $log = $this->productionService->logProduction(
-                (int) $validated['finished_good_id'],
-                (int) $validated['quantity_manufactured'],
-                (int) $validated['quantity_rejected'],
-                (int) $validated['recorded_by'],
+                $validated['product_id'],
+                $validated['quantity_manufactured'],
+                $validated['quantity_rejected'],
+                $validated['recorded_by'],
                 $validated['production_date'],
                 $laborData
             );
@@ -613,17 +617,77 @@ class ErpController extends Controller
     }
 
     /**
+     * View Client Account Ledger page.
+     */
+    public function clientLedger(Request $request, $id)
+    {
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
+        $plantId = $request->input('plant_id');
+
+        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
+
+        $client = $ledgerData['client'];
+        $selectedPlant = $ledgerData['selected_plant'];
+        $opening_balance = $ledgerData['opening_balance'] ?? 0.00;
+        $total_debit = $ledgerData['total_debit'] ?? $ledgerData['total_invoiced'] ?? 0.00;
+        $total_credit = $ledgerData['total_credit'] ?? $ledgerData['total_received'] ?? 0.00;
+        $closing_balance = $ledgerData['closing_balance'] ?? 0.00;
+        $transactions = $ledgerData['transactions'] ?? collect();
+        $entries = $ledgerData['entries'] ?? $transactions;
+        $start_date = $startDate;
+        $end_date = $endDate;
+        $plant_id = $plantId;
+
+        return view('dashboard.client_ledger', compact(
+            'client', 'selectedPlant', 'opening_balance', 'total_debit', 
+            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date', 
+            'end_date', 'period', 'plant_id', 'filterMonth', 'filterYear'
+        ));
+    }
+
+    /**
+     * Download Client Ledger Statement PDF.
+     */
+    public function downloadClientLedgerPdf(Request $request, $id)
+    {
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
+        $plantId = $request->input('plant_id');
+
+        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
+
+        $client = $ledgerData['client'];
+        $selectedPlant = $ledgerData['selected_plant'];
+        $opening_balance = $ledgerData['opening_balance'] ?? 0.00;
+        $total_debit = $ledgerData['total_debit'] ?? $ledgerData['total_invoiced'] ?? 0.00;
+        $total_credit = $ledgerData['total_credit'] ?? $ledgerData['total_received'] ?? 0.00;
+        $closing_balance = $ledgerData['closing_balance'] ?? 0.00;
+        $transactions = $ledgerData['transactions'] ?? collect();
+        $entries = $ledgerData['entries'] ?? $transactions;
+        $start_date = $startDate;
+        $end_date = $endDate;
+        $plant_id = $plantId;
+
+        $pdf = Pdf::loadView('pdf.client_ledger_pdf', compact(
+            'client', 'selectedPlant', 'opening_balance', 'total_debit', 
+            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date', 
+            'end_date', 'period', 'plant_id'
+        ));
+
+        return $pdf->download("Ledger-Statement-{$client->company_name}-{$startDate}-to-{$endDate}.pdf");
+    }
+
+    /**
      * 6. Invoices & Billing.
      */
     public function invoices(Request $request)
     {
-        $invoices = Invoice::with(['deliveryChallans.plant', 'deliveryChallan.client'])->orderBy('created_at', 'desc')->paginate(20);
+        $invoices = Invoice::with(['plant.client', 'items.product'])->orderBy('created_at', 'desc')->paginate(20);
         $finishedGoods = Product::all();
         $clients = Client::with('plants')->get();
 
         $prefillOrder = null;
         if ($request->has('order_id')) {
-            $prefillOrder = SalesOrder::with(['items.finishedGood', 'client', 'plant'])->find($request->input('order_id'));
+            $prefillOrder = SalesOrder::with(['items.product', 'client', 'plant'])->find($request->input('order_id'));
         }
 
         return view('dashboard.invoices', compact('invoices', 'finishedGoods', 'clients', 'prefillOrder'));
@@ -634,6 +698,9 @@ class ErpController extends Controller
      */
     public function generateCustomInvoice(Request $request)
     {
+        $pIds = $request->input('product_ids', $request->input('finished_good_ids'));
+        $request->merge(['product_ids' => $pIds]);
+
         $validated = $request->validate([
             'invoice_number' => 'required|string|unique:invoices,invoice_number',
             'plant_id' => 'required|exists:client_plants,id',
@@ -641,8 +708,8 @@ class ErpController extends Controller
             'invoice_date' => 'nullable|date',
             'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
             'due_date' => 'nullable|date',
-            'finished_good_ids' => 'required|array|min:1',
-            'finished_good_ids.*' => 'required|exists:finished_goods,id',
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'required|exists:products,id',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|integer|min:1',
             'unit_prices' => 'required|array|min:1',
@@ -658,7 +725,7 @@ class ErpController extends Controller
 
                 // Calculate taxable subtotal
                 $taxable = 0.00;
-                foreach ($validated['finished_good_ids'] as $idx => $fgId) {
+                foreach ($validated['product_ids'] as $idx => $fgId) {
                     $taxable += $validated['quantities'][$idx] * $validated['unit_prices'][$idx];
                 }
 
@@ -677,27 +744,8 @@ class ErpController extends Controller
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
                 $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
 
-                // Create dummy delivery challan for manual items
-                $challan = \App\Models\DeliveryChallan::create([
-                    'client_id' => $plant->client_id,
-                    'plant_id' => $plant->id,
-                    'challan_number' => 'DC-M-' . $validated['invoice_number'],
-                    'dispatch_date' => $invDate,
-                    'status' => 'invoiced',
-                ]);
-
-                // Save items
-                foreach ($validated['finished_good_ids'] as $idx => $fgId) {
-                    \App\Models\DeliveryChallanItem::create([
-                        'delivery_challan_id' => $challan->id,
-                        'finished_good_id' => $fgId,
-                        'quantity' => $validated['quantities'][$idx],
-                        'unit_price' => $validated['unit_prices'][$idx],
-                    ]);
-                }
-
                 $invoice = Invoice::create([
-                    'delivery_challan_id' => $challan->id,
+                    'plant_id' => $plant->id,
                     'invoice_number' => $validated['invoice_number'],
                     'vehicle_number' => $validated['vehicle_number'] ?? null,
                     'invoice_date' => $invDate,
@@ -712,7 +760,15 @@ class ErpController extends Controller
                     'created_at' => $invDate . ' ' . now()->format('H:i:s'),
                 ]);
 
-                $challan->update(['invoice_id' => $invoice->id]);
+                foreach ($validated['product_ids'] as $idx => $fgId) {
+                    \App\Models\InvoiceItem::create([
+                        'invoice_id' => $invoice->id,
+                        'product_id' => $fgId,
+                        'quantity' => $validated['quantities'][$idx],
+                        'unit_price' => $validated['unit_prices'][$idx],
+                        'total_price' => round($validated['quantities'][$idx] * $validated['unit_prices'][$idx], 2),
+                    ]);
+                }
 
                 if (!empty($validated['sales_order_id'])) {
                     SalesOrder::where('id', $validated['sales_order_id'])->update(['status' => 'dispatched']);
@@ -735,7 +791,7 @@ class ErpController extends Controller
     }
 
     /**
-     * Record payment against an invoice (Full or Partial with payment method & ref #).
+     * Record payment against an invoice.
      */
     public function recordInvoicePayment(Request $request, $id)
     {
@@ -749,9 +805,9 @@ class ErpController extends Controller
         ]);
 
         try {
-            $invoice = Invoice::with(['deliveryChallan.client', 'deliveryChallans.client'])->findOrFail($id);
-            $primaryChallan = $invoice->deliveryChallan ?? $invoice->deliveryChallans->first();
-            $clientId = $primaryChallan ? $primaryChallan->client_id : null;
+            $invoice = Invoice::with('plant.client')->findOrFail($id);
+            $clientId = $invoice->plant ? $invoice->plant->client_id : null;
+            $plantId = $invoice->plant_id;
 
             $amount = (float) $validated['amount'];
             $remaining = (float) $invoice->remaining_balance;
@@ -813,7 +869,7 @@ class ErpController extends Controller
     public function payInvoice($id)
     {
         try {
-            $invoice = Invoice::with(['deliveryChallan.client', 'deliveryChallans.client'])->findOrFail($id);
+            $invoice = Invoice::with('plant.client')->findOrFail($id);
             $remaining = (float) $invoice->remaining_balance;
 
             if ($remaining <= 0) {
@@ -823,9 +879,8 @@ class ErpController extends Controller
                 ]);
             }
 
-            $primaryChallan = $invoice->deliveryChallan ?? $invoice->deliveryChallans->first();
-            $clientId = $primaryChallan ? $primaryChallan->client_id : null;
-            $plantId = $primaryChallan ? $primaryChallan->plant_id : null;
+            $clientId = $invoice->plant ? $invoice->plant->client_id : null;
+            $plantId = $invoice->plant_id;
 
             DB::transaction(function () use ($invoice, $remaining, $clientId, $plantId) {
                 Payment::create([
@@ -860,110 +915,6 @@ class ErpController extends Controller
     }
 
     /**
-     * Record payment to vendor for purchase.
-     */
-    public function recordPurchasePayment(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
-            'payment_method' => 'required|in:bank_transfer,cheque,upi,cash',
-            'account_type' => 'required|in:bank,cash',
-            'reference_number' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:500',
-        ]);
-
-        try {
-            $purchase = Purchase::findOrFail($id);
-            $amount = (float) $validated['amount'];
-            $remaining = (float) $purchase->remaining_balance;
-
-            if ($amount > ($remaining + 0.01)) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => ['amount' => ["Payment amount (₹" . number_format($amount, 2) . ") cannot exceed purchase balance (₹" . number_format($remaining, 2) . ")."]]
-                ], 422);
-            }
-
-            DB::transaction(function () use ($purchase, $validated, $amount) {
-                Payment::create([
-                    'payment_number' => Payment::generatePaymentNumber('paid'),
-                    'payment_type' => 'paid',
-                    'purchase_id' => $purchase->id,
-                    'vendor_name' => $purchase->vendor_name,
-                    'amount' => $amount,
-                    'payment_date' => $validated['payment_date'],
-                    'payment_method' => $validated['payment_method'],
-                    'account_type' => $validated['account_type'],
-                    'reference_number' => $validated['reference_number'] ?? null,
-                    'notes' => $validated['notes'] ?? null,
-                ]);
-
-                $newPaidAmount = round((float)($purchase->paid_amount ?? 0) + $amount, 2);
-                $totalAmount = (float)$purchase->total_amount;
-
-                $newStatus = 'partially_paid';
-                if ($newPaidAmount >= ($totalAmount - 0.01)) {
-                    $newPaidAmount = $totalAmount;
-                    $newStatus = 'paid';
-                }
-
-                $purchase->update([
-                    'paid_amount' => $newPaidAmount,
-                    'payment_status' => $newStatus,
-                ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => "Payment of ₹" . number_format($amount, 2) . " recorded for vendor '{$purchase->vendor_name}'!"
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['Failed to record vendor payment: ' . $e->getMessage()]
-            ], 500);
-        }
-    }
-
-    /**
-     * View Client Account Ledger page.
-     */
-    public function clientLedger(Request $request, $id)
-    {
-        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
-        $plantId = $request->input('plant_id') ? (int)$request->input('plant_id') : null;
-        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
-        
-        return view('dashboard.client_ledger', array_merge($ledgerData, [
-            'period' => $period,
-            'filterMonth' => $filterMonth,
-            'filterYear' => $filterYear,
-            'plant_id' => $plantId,
-        ]));
-    }
-
-    /**
-     * Download Client Account Statement PDF.
-     */
-    public function downloadClientLedgerPdf(Request $request, $id)
-    {
-        [$startDate, $endDate] = $this->getDateRange($request);
-        $plantId = $request->input('plant_id') ? (int)$request->input('plant_id') : null;
-        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
-
-        $pdf = Pdf::loadView('pdf.client_ledger_pdf', $ledgerData)
-            ->setPaper('a4', 'portrait')
-            ->setWarnings(false);
-
-        $clientName = str_replace(' ', '_', $ledgerData['client']->company_name);
-        $plantSuffix = $ledgerData['selected_plant'] ? '_' . str_replace(' ', '_', $ledgerData['selected_plant']->plant_name) : '';
-        $filename = "Statement_of_Account_{$clientName}{$plantSuffix}_" . date('Ymd') . ".pdf";
-
-        return $pdf->download($filename);
-    }
-
-    /**
      * Delete an invoice (AJAX).
      */
     public function deleteInvoice($id)
@@ -973,29 +924,8 @@ class ErpController extends Controller
             $invNum = $invoice->invoice_number;
 
             DB::transaction(function () use ($invoice) {
-                // 1. Unlink any aggregated challans and revert status to pending_invoice
-                DeliveryChallan::where('invoice_id', $invoice->id)->update([
-                    'invoice_id' => null, 
-                    'status' => 'pending_invoice'
-                ]);
-
-                // 2. Delete linked payment voucher entries
                 Payment::where('invoice_id', $invoice->id)->delete();
-
-                // 3. Save primary challan ID & unlink from invoice to prevent foreign key constraint
-                $primaryChallanId = $invoice->delivery_challan_id;
-                $invoice->update(['delivery_challan_id' => null]);
-
-                // 4. Delete custom primary challan & items if generated for this invoice
-                if ($primaryChallanId) {
-                    $primaryChallan = DeliveryChallan::find($primaryChallanId);
-                    if ($primaryChallan) {
-                        $primaryChallan->items()->delete();
-                        $primaryChallan->delete();
-                    }
-                }
-
-                // 5. Delete invoice record
+                $invoice->items()->delete();
                 $invoice->delete();
             });
 
@@ -1016,92 +946,23 @@ class ErpController extends Controller
      */
     public function printInvoice($id)
     {
-        $invoice = Invoice::with([
-            'deliveryChallan.client', 
-            'deliveryChallan.plant', 
-            'deliveryChallan.items.finishedGood',
-            'deliveryChallans.plant',
-            'deliveryChallans.items.finishedGood'
-        ])->findOrFail($id);
-
-        $primaryChallan = $invoice->deliveryChallan;
-        $client = $primaryChallan ? $primaryChallan->client : null;
-        $plant = $primaryChallan ? $primaryChallan->plant : null;
-
-        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
-            $first = $invoice->deliveryChallans->first();
-            $client = $first->client;
-            $plant = $first->plant;
-        }
-
-        $items = collect();
-        if ($primaryChallan) {
-            $items = $items->concat($primaryChallan->items);
-        }
-        foreach ($invoice->deliveryChallans as $dc) {
-            if ($dc->id !== ($primaryChallan->id ?? null)) {
-                $items = $items->concat($dc->items);
-            }
-        }
-
-        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
-            $firstItem = $group->first();
-            return (object)[
-                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
-                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
-                'quantity' => $group->sum('quantity'),
-                'unit_price' => $firstItem->unit_price,
-                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
-            ];
-        });
+        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $client = $invoice->client;
+        $plant = $invoice->plant;
+        $groupedItems = $invoice->items;
 
         return view('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems'));
     }
 
     /**
-     * Preview Invoice page (Frest Style).
+     * Preview Invoice page.
      */
     public function previewInvoice($id)
     {
-        $invoice = Invoice::with([
-            'deliveryChallan.client', 
-            'deliveryChallan.plant', 
-            'deliveryChallan.items.finishedGood',
-            'deliveryChallans.client',
-            'deliveryChallans.plant',
-            'deliveryChallans.items.finishedGood'
-        ])->findOrFail($id);
-
-        $primaryChallan = $invoice->deliveryChallan;
-        $client = $primaryChallan ? $primaryChallan->client : null;
-        $plant = $primaryChallan ? $primaryChallan->plant : null;
-
-        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
-            $first = $invoice->deliveryChallans->first();
-            $client = $first->client;
-            $plant = $first->plant;
-        }
-
-        $items = collect();
-        if ($primaryChallan) {
-            $items = $items->concat($primaryChallan->items);
-        }
-        foreach ($invoice->deliveryChallans as $dc) {
-            if ($dc->id !== ($primaryChallan->id ?? null)) {
-                $items = $items->concat($dc->items);
-            }
-        }
-
-        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
-            $firstItem = $group->first();
-            return (object)[
-                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
-                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
-                'quantity' => $group->sum('quantity'),
-                'unit_price' => $firstItem->unit_price,
-                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
-            ];
-        });
+        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $client = $invoice->client;
+        $plant = $invoice->plant;
+        $groupedItems = $invoice->items;
 
         return view('dashboard.invoice_preview', compact('invoice', 'client', 'plant', 'groupedItems'));
     }
@@ -1111,45 +972,10 @@ class ErpController extends Controller
      */
     public function downloadInvoicePdf($id)
     {
-        $invoice = Invoice::with([
-            'deliveryChallan.client', 
-            'deliveryChallan.plant', 
-            'deliveryChallan.items.finishedGood',
-            'deliveryChallans.client',
-            'deliveryChallans.plant',
-            'deliveryChallans.items.finishedGood'
-        ])->findOrFail($id);
-
-        $primaryChallan = $invoice->deliveryChallan;
-        $client = $primaryChallan ? $primaryChallan->client : null;
-        $plant = $primaryChallan ? $primaryChallan->plant : null;
-
-        if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
-            $first = $invoice->deliveryChallans->first();
-            $client = $first->client;
-            $plant = $first->plant;
-        }
-
-        $items = collect();
-        if ($primaryChallan) {
-            $items = $items->concat($primaryChallan->items);
-        }
-        foreach ($invoice->deliveryChallans as $dc) {
-            if ($dc->id !== ($primaryChallan->id ?? null)) {
-                $items = $items->concat($dc->items);
-            }
-        }
-
-        $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
-            $firstItem = $group->first();
-            return (object)[
-                'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
-                'sku' => $firstItem->finishedGood->sku ?? 'N/A',
-                'quantity' => $group->sum('quantity'),
-                'unit_price' => $firstItem->unit_price,
-                'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
-            ];
-        });
+        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $client = $invoice->client;
+        $plant = $invoice->plant;
+        $groupedItems = $invoice->items;
 
         $isPdf = true;
         $pdf = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'));
@@ -1168,45 +994,10 @@ class ErpController extends Controller
                 'message_body' => 'required|string',
             ]);
 
-            $invoice = Invoice::with([
-                'deliveryChallan.client', 
-                'deliveryChallan.plant', 
-                'deliveryChallan.items.finishedGood',
-                'deliveryChallans.client',
-                'deliveryChallans.plant',
-                'deliveryChallans.items.finishedGood'
-            ])->findOrFail($id);
-
-            $primaryChallan = $invoice->deliveryChallan;
-            $client = $primaryChallan ? $primaryChallan->client : null;
-            $plant = $primaryChallan ? $primaryChallan->plant : null;
-
-            if (!$client && $invoice->deliveryChallans->isNotEmpty()) {
-                $first = $invoice->deliveryChallans->first();
-                $client = $first->client;
-                $plant = $first->plant;
-            }
-
-            $items = collect();
-            if ($primaryChallan) {
-                $items = $items->concat($primaryChallan->items);
-            }
-            foreach ($invoice->deliveryChallans as $dc) {
-                if ($dc->id !== ($primaryChallan->id ?? null)) {
-                    $items = $items->concat($dc->items);
-                }
-            }
-
-            $groupedItems = $items->groupBy('finished_good_id')->map(function($group) {
-                $firstItem = $group->first();
-                return (object)[
-                    'product_name' => $firstItem->finishedGood->product_name ?? 'Custom Product',
-                    'sku' => $firstItem->finishedGood->sku ?? 'N/A',
-                    'quantity' => $group->sum('quantity'),
-                    'unit_price' => $firstItem->unit_price,
-                    'total' => $group->sum(function($item) { return $item->quantity * $item->unit_price; })
-                ];
-            });
+            $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+            $client = $invoice->client;
+            $plant = $invoice->plant;
+            $groupedItems = $invoice->items;
 
             $isPdf = true;
             $pdfContent = Pdf::loadView('dashboard.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
@@ -1447,7 +1238,7 @@ class ErpController extends Controller
         $reportType = $request->input('report_type', 'invoice');
 
         // 1. Fetch Invoices
-        $invoices = Invoice::with(['deliveryChallan.client', 'deliveryChallans.plant'])
+        $invoices = Invoice::with(['plant.client', 'items.product'])
             ->where(function($q) use ($startDate, $endDate) {
                 $q->whereBetween('invoice_date', [$startDate, $endDate])
                   ->orWhere(function($sub) use ($startDate, $endDate) {
@@ -1746,7 +1537,7 @@ class ErpController extends Controller
     public function orders(Request $request)
     {
         $status = $request->input('status', 'all');
-        $query = SalesOrder::with(['client', 'plant', 'items.finishedGood'])->orderBy('order_date', 'desc')->orderBy('id', 'desc');
+        $query = SalesOrder::with(['client', 'plant', 'items.product'])->orderBy('order_date', 'desc')->orderBy('id', 'desc');
 
         if ($status !== 'all') {
             $query->where('status', $status);
@@ -1772,6 +1563,9 @@ class ErpController extends Controller
      */
     public function storeOrder(Request $request)
     {
+        $pIds = $request->input('product_ids', $request->input('finished_good_ids'));
+        $request->merge(['product_ids' => $pIds]);
+
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'plant_id' => 'nullable|exists:client_plants,id',
@@ -1779,8 +1573,8 @@ class ErpController extends Controller
             'order_date' => 'required|date',
             'delivery_date' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
-            'finished_good_ids' => 'required|array|min:1',
-            'finished_good_ids.*' => 'required|exists:finished_goods,id',
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'required|exists:products,id',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|numeric|min:0.01',
             'unit_prices' => 'required|array|min:1',
@@ -1804,7 +1598,7 @@ class ErpController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
-                foreach ($validated['finished_good_ids'] as $idx => $fgId) {
+                foreach ($validated['product_ids'] as $idx => $fgId) {
                     $qty = (float) $validated['quantities'][$idx];
                     $price = (float) $validated['unit_prices'][$idx];
                     $lineTotal = round($qty * $price, 2);
@@ -1812,7 +1606,7 @@ class ErpController extends Controller
 
                     SalesOrderItem::create([
                         'sales_order_id' => $order->id,
-                        'finished_good_id' => $fgId,
+                        'product_id' => $fgId,
                         'quantity' => $qty,
                         'unit_price' => $price,
                         'total_price' => $lineTotal,
@@ -1865,41 +1659,48 @@ class ErpController extends Controller
     public function convertOrderToChallan($id)
     {
         try {
-            $order = SalesOrder::with(['items.finishedGood'])->findOrFail($id);
+            $order = SalesOrder::with(['items.product'])->findOrFail($id);
 
             if ($order->status === 'cancelled') {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['Cancelled orders cannot be converted into Delivery Challans.']
+                    'errors' => ['Cancelled orders cannot be converted.']
                 ], 422);
             }
 
-            $challanNumber = DeliveryChallan::generateNextChallanNumber();
+            DB::transaction(function () use ($order) {
+                $invNo = 'PWW-INV-' . date('Ymd') . '-' . rand(1000, 9999);
+                $plant = ClientPlant::find($order->plant_id);
+                $isGujarat = $plant ? (strcasecmp(trim($plant->state), 'Gujarat') === 0) : true;
 
-            DB::transaction(function () use ($order, $challanNumber) {
-                $dc = DeliveryChallan::create([
-                    'challan_number' => $challanNumber,
-                    'client_id' => $order->client_id,
+                $taxable = $order->total_amount;
+                $cgst = $isGujarat ? round($taxable * 0.09, 2) : 0.00;
+                $sgst = $isGujarat ? round($taxable * 0.09, 2) : 0.00;
+                $igst = !$isGujarat ? round($taxable * 0.18, 2) : 0.00;
+                $total = $taxable + $cgst + $sgst + $igst;
+
+                $invoice = Invoice::create([
                     'plant_id' => $order->plant_id,
-                    'dispatch_date' => date('Y-m-d'),
-                    'status' => 'pending_invoice',
+                    'invoice_number' => $invNo,
+                    'invoice_date' => date('Y-m-d'),
+                    'total_taxable_value' => $taxable,
+                    'cgst' => $cgst,
+                    'sgst' => $sgst,
+                    'igst' => $igst,
+                    'total_amount' => $total,
+                    'payment_status' => 'unpaid',
+                    'paid_amount' => 0.00,
+                    'due_date' => date('Y-m-d', strtotime('+30 days')),
                 ]);
 
                 foreach ($order->items as $item) {
-                    DeliveryChallanItem::create([
-                        'delivery_challan_id' => $dc->id,
-                        'finished_good_id' => $item->finished_good_id,
+                    InvoiceItem::create([
+                        'invoice_id' => $invoice->id,
+                        'product_id' => $item->product_id,
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,
                         'total_price' => $item->total_price,
                     ]);
-
-                    // Deduct product stock
-                    $good = Product::find($item->finished_good_id);
-                    if ($good) {
-                        $good->current_stock = max(0, $good->current_stock - $item->quantity);
-                        $good->save();
-                    }
                 }
 
                 $order->update(['status' => 'dispatched']);
@@ -1907,12 +1708,12 @@ class ErpController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Delivery Challan generated successfully from Order #{$order->order_number}!"
+                'message' => "Tax Invoice generated successfully from Order #{$order->order_number}!"
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to convert order to delivery challan: ' . $e->getMessage()]
+                'errors' => ['Failed to convert order: ' . $e->getMessage()]
             ], 500);
         }
     }

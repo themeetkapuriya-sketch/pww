@@ -33,21 +33,11 @@ class Client extends Model
     }
 
     /**
-     * Get the delivery challans for the client.
-     */
-    public function deliveryChallans()
-    {
-        return $this->hasMany(DeliveryChallan::class, 'client_id');
-    }
-
-    /**
      * Get all invoices for the client across plants.
      */
     public function invoices()
     {
-        return Invoice::whereHas('deliveryChallan', function ($q) {
-            $q->where('client_id', $this->id);
-        })->orWhereHas('deliveryChallans', function ($q) {
+        return Invoice::whereHas('plant', function ($q) {
             $q->where('client_id', $this->id);
         });
     }
@@ -58,20 +48,5 @@ class Client extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class, 'client_id')->orderBy('payment_date', 'desc');
-    }
-
-    public function getTotalInvoicedAttribute(): float
-    {
-        return (float) $this->invoices()->sum('total_amount');
-    }
-
-    public function getTotalPaidAttribute(): float
-    {
-        return (float) $this->invoices()->sum('paid_amount');
-    }
-
-    public function getOutstandingBalanceAttribute(): float
-    {
-        return max(0.00, round($this->total_invoiced - $this->total_paid, 2));
     }
 }

@@ -3,138 +3,94 @@
 namespace App\Services;
 
 use App\Models\Invoice;
+use App\Models\Expense;
+use App\Models\LaborLog;
 use App\Models\Purchase;
-use App\Models\Payment;
 use App\Models\Client;
 use App\Models\ClientPlant;
+use App\Models\Payment;
 use App\Models\ProductionLog;
-use App\Models\LaborLog;
-use App\Models\Expense;
-use App\Models\RawMaterial;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class FinancialService
 {
     /**
-     * Get the financial summary across a date range.
-     *
-     * @param string|Carbon $startDate
-     * @param string|Carbon $endDate
-     * @return array
+     * Calculate financial summary over a period.
      */
-    public function getFinancialSummary($startDate, $endDate): array
+    public function getFinancialSummary($startDate = null, $endDate = null)
     {
-        $start = Carbon::parse($startDate)->startOfDay();
-        $end = Carbon::parse($endDate)->endOfDay();
+        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
+        $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        // 1. Total Invoiced Revenue (excl. Tax)
-        $revenue = Invoice::whereBetween('created_at', [$start, $end])
-            ->sum('total_taxable_value');
+        // 1. Gross Revenue
+        $revenue = Invoice::whereBetween('created_at', [$start, $end])->sum('total_taxable_value');
 
-        // Total Gross Revenue (incl. Tax)
-        $totalGrossRevenue = Invoice::whereBetween('created_at', [$start, $end])
-            ->sum('total_amount');
-
-        // 2. Cost of Consumed Raw Materials
-        $productionLogs = ProductionLog::whereBetween('production_date', [$start, $end])
-            ->with(['finishedGood.billOfMaterials.rawMaterial'])
-            ->get();
-
-        $cogs = 0.00;
-        foreach ($productionLogs as $log) {
-            $finishedGood = $log->finishedGood;
-            if (!$finishedGood) {
-                continue;
-            }
-            foreach ($finishedGood->billOfMaterials as $bom) {
-                $rawMaterial = $bom->rawMaterial;
-                if (!$rawMaterial) {
-                    continue;
+        // 2. Total COGS (Purchases + Production BOM Material Cost)
+        $purchasesCogs = Purchase::whereBetween('purchase_date', [$start->toDateString(), $end->toDateString()])->sum('total_amount');
+        
+        $bomCogs = 0.00;
+        $prodLogs = ProductionLog::with('product.bom.rawMaterial')
+            ->where(function($q) use ($start, $end) {
+                $q->whereBetween('production_date', [$start->toDateString(), $end->toDateString()])
+                  ->orWhereBetween('created_at', [$start, $end]);
+            })->get();
+        foreach ($prodLogs as $pl) {
+            $prod = $pl->product ?? $pl->finishedGood;
+            if ($prod && $prod->bom) {
+                foreach ($prod->bom as $bom) {
+                    if ($bom->rawMaterial) {
+                        $qtyNeeded = ($pl->quantity_manufactured + $pl->quantity_rejected) * $bom->required_quantity * (1 + ($bom->waste_percentage / 100));
+                        $unitPrice = $bom->rawMaterial->average_purchase_price ?? $bom->rawMaterial->unit_price ?? 0;
+                        $bomCogs += $qtyNeeded * $unitPrice;
+                    }
                 }
-                
-                $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
-                $consumed = $log->quantity_manufactured * $bom->required_quantity * $wasteMultiplier;
-                $cogs += $consumed * $rawMaterial->average_purchase_price;
             }
         }
+        $cogs = round($purchasesCogs + $bomCogs, 2);
 
-        // 3. Direct Piece-Rate Wages Paid
-        $directWages = LaborLog::whereBetween('created_at', [$start, $end])
-            ->sum('calculated_payout');
+        // 3. Direct Labor Wages
+        $directWages = round(LaborLog::whereBetween('created_at', [$start, $end])->sum('calculated_payout'), 2);
 
-        // 4. Logged Overheads (Expenses except machinery depreciation)
-        $overheads = Expense::whereBetween('expense_date', [$start, $end])
-            ->where('expense_category', '!=', 'machinery_depreciation')
-            ->sum('amount');
+        // 4. Overheads (Excluding Machinery Depreciation)
+        $overheads = round(Expense::where('expense_category', '!=', 'machinery_depreciation')
+            ->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
+            ->sum('amount'), 2);
 
-        // 5. Scheduled Machinery Depreciation
-        $depreciation = Expense::whereBetween('expense_date', [$start, $end])
-            ->where('expense_category', 'machinery_depreciation')
-            ->sum('amount');
+        // 5. Machinery Depreciation
+        $depreciation = round(Expense::where('expense_category', 'machinery_depreciation')
+            ->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
+            ->sum('amount'), 2);
 
-        // Net Profit = Revenue - (COGS + Direct Wages + Overheads + Depreciation)
-        $netProfit = $revenue - ($cogs + $directWages + $overheads + $depreciation);
+        // 6. Total Expenses
+        $totalExpenses = round($cogs + $directWages + $overheads + $depreciation, 2);
 
-        // Gross Profit Margin (%) = ((Revenue - COGS) / Revenue) * 100
-        $grossProfit = $revenue - $cogs;
-        $grossProfitMargin = $revenue > 0 ? ($grossProfit / $revenue) * 100 : 0.00;
+        // 7. Net Profit
+        $netProfit = round($revenue - $totalExpenses, 2);
 
-        // Accounts Receivable (Outstanding Client Dues)
-        $outstandingReceivables = (float) (Invoice::whereIn('payment_status', ['unpaid', 'partially_paid'])
-            ->selectRaw('SUM(total_amount - paid_amount) as outstanding')
-            ->value('outstanding') ?? 0.00);
+        // Margin %
+        $margin = $revenue > 0 ? round(($netProfit / $revenue) * 100, 2) : 0.00;
 
-        // Accounts Payable (Outstanding Vendor Dues)
-        $outstandingPayables = Purchase::whereIn('payment_status', ['unpaid', 'partially_paid'])
-            ->selectRaw('SUM(total_amount - paid_amount) as outstanding')
-            ->value('outstanding') ?? 0.00;
-
-        // Total Collections Received in date range
-        $totalCollections = Payment::where('payment_type', 'received')
-            ->whereBetween('payment_date', [$start, $end])
-            ->sum('amount');
-
-        // Bank vs Cash Collections in date range
-        $bankCollections = Payment::where('payment_type', 'received')
-            ->where('account_type', 'bank')
-            ->whereBetween('payment_date', [$start, $end])
-            ->sum('amount');
-
-        $cashCollections = Payment::where('payment_type', 'received')
-            ->where('account_type', 'cash')
-            ->whereBetween('payment_date', [$start, $end])
-            ->sum('amount');
+        // 8. Outstanding Receivables
+        $invoices = Invoice::all();
+        $outstandingReceivables = $invoices->sum(fn($inv) => $inv->remaining_balance);
 
         return [
-            'revenue' => round($revenue, 2),
-            'total_gross_revenue' => round($totalGrossRevenue, 2),
-            'cogs' => round($cogs, 2),
-            'direct_wages' => round($directWages, 2),
-            'overheads' => round($overheads, 2),
-            'depreciation' => round($depreciation, 2),
-            'net_profit' => round($netProfit, 2),
-            'gross_profit' => round($grossProfit, 2),
-            'gross_profit_margin' => round($grossProfitMargin, 2),
-            'outstanding_receivables' => round($outstandingReceivables, 2),
-            'outstanding_payables' => round($outstandingPayables, 2),
-            'total_collections' => round($totalCollections, 2),
-            'bank_collections' => round($bankCollections, 2),
-            'cash_collections' => round($cashCollections, 2),
-            'start_date' => $start->toDateString(),
-            'end_date' => $end->toDateString(),
+            'revenue' => (float)$revenue,
+            'cogs' => (float)$cogs,
+            'direct_wages' => (float)$directWages,
+            'overheads' => (float)$overheads,
+            'depreciation' => (float)$depreciation,
+            'total_expenses' => (float)$totalExpenses,
+            'net_profit' => (float)$netProfit,
+            'gross_profit_margin' => (float)$margin,
+            'outstanding_receivables' => (float)$outstandingReceivables,
         ];
     }
 
     /**
-     * Compute chronological Client Account Ledger with running balance.
-     *
-     * @param int $clientId
-     * @param string|null $startDate
-     * @param string|null $endDate
-     * @return array
+     * Get Client Account Ledger (Statement of Account).
      */
-    public function getClientLedger(int $clientId, ?string $startDate = null, ?string $endDate = null, ?int $plantId = null): array
+    public function getClientLedger($clientId, $startDate = null, $endDate = null, $plantId = null)
     {
         $client = Client::with('plants')->findOrFail($clientId);
         $selectedPlant = $plantId ? ClientPlant::where('client_id', $clientId)->find($plantId) : null;
@@ -145,11 +101,9 @@ class FinancialService
         // 1. Calculate opening balance prior to $start date
         $priorInvoicesQuery = Invoice::where(function ($q) use ($clientId, $selectedPlant) {
             if ($selectedPlant) {
-                $q->whereHas('deliveryChallan', fn($dc) => $dc->where('plant_id', $selectedPlant->id))
-                  ->orWhereHas('deliveryChallans', fn($dc) => $dc->where('plant_id', $selectedPlant->id));
+                $q->where('plant_id', $selectedPlant->id);
             } else {
-                $q->whereHas('deliveryChallan', fn($dc) => $dc->where('client_id', $clientId))
-                  ->orWhereHas('deliveryChallans', fn($dc) => $dc->where('client_id', $clientId));
+                $q->whereHas('plant', fn($p) => $p->where('client_id', $clientId));
             }
         })->where(function($q) use ($start) {
             $q->where('invoice_date', '<', $start->toDateString())
@@ -166,8 +120,7 @@ class FinancialService
         if ($selectedPlant) {
             $priorPaymentsQuery->where(function($q) use ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id)
-                  ->orWhereHas('invoice.deliveryChallan', fn($dc) => $dc->where('plant_id', $selectedPlant->id))
-                  ->orWhereHas('invoice.deliveryChallans', fn($dc) => $dc->where('plant_id', $selectedPlant->id));
+                  ->orWhereHas('invoice', fn($inv) => $inv->where('plant_id', $selectedPlant->id));
             });
         }
         $priorPaymentsSum = $priorPaymentsQuery->sum('amount');
@@ -175,13 +128,11 @@ class FinancialService
         $openingBalance = max(0.00, round($priorInvoicesSum - $priorPaymentsSum, 2));
 
         // 2. Fetch invoices within date range
-        $invoicesQuery = Invoice::where(function ($q) use ($clientId, $selectedPlant) {
+        $invoicesQuery = Invoice::with(['items.product', 'plant'])->where(function ($q) use ($clientId, $selectedPlant) {
             if ($selectedPlant) {
-                $q->whereHas('deliveryChallan', fn($dc) => $dc->where('plant_id', $selectedPlant->id))
-                  ->orWhereHas('deliveryChallans', fn($dc) => $dc->where('plant_id', $selectedPlant->id));
+                $q->where('plant_id', $selectedPlant->id);
             } else {
-                $q->whereHas('deliveryChallan', fn($dc) => $dc->where('client_id', $clientId))
-                  ->orWhereHas('deliveryChallans', fn($dc) => $dc->where('client_id', $clientId));
+                $q->whereHas('plant', fn($p) => $p->where('client_id', $clientId));
             }
         })->where(function($q) use ($start, $end) {
             $q->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
@@ -199,72 +150,80 @@ class FinancialService
         if ($selectedPlant) {
             $paymentsQuery->where(function($q) use ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id)
-                  ->orWhereHas('invoice.deliveryChallan', fn($dc) => $dc->where('plant_id', $selectedPlant->id))
-                  ->orWhereHas('invoice.deliveryChallans', fn($dc) => $dc->where('plant_id', $selectedPlant->id));
+                  ->orWhereHas('invoice', fn($inv) => $inv->where('plant_id', $selectedPlant->id));
             });
         }
         $payments = $paymentsQuery->get();
 
-        // 4. Merge into unified ledger timeline
-        $entries = collect();
+        // 4. Merge transactions in chronological order
+        $transactions = collect();
 
         foreach ($invoices as $inv) {
-            $invDate = Carbon::parse($inv->invoice_date ?? $inv->created_at)->toDateString();
-            $entries->push([
-                'type' => 'invoice',
+            $invDate = $inv->invoice_date ? $inv->invoice_date->format('Y-m-d') : $inv->created_at->format('Y-m-d');
+            $plantName = $inv->plant->plant_name ?? 'Main Plant';
+
+            $transactions->push((object)[
                 'date' => $invDate,
-                'created_at' => $inv->created_at->toDateTimeString(),
+                'created_at' => $inv->created_at,
+                'type' => 'invoice',
                 'reference' => $inv->invoice_number,
-                'description' => 'Sales Invoice #' . $inv->invoice_number,
-                'debit' => (float)$inv->total_amount, // Amount billed to client (+)
+                'description' => "Tax Invoice #{$inv->invoice_number} ({$plantName})",
+                'debit' => (float)$inv->total_amount, // Increases amount client owes
                 'credit' => 0.00,
                 'model' => $inv,
             ]);
         }
 
         foreach ($payments as $pay) {
-            $entries->push([
+            $transactions->push((object)[
+                'date' => $pay->payment_date,
+                'created_at' => $pay->created_at,
                 'type' => 'payment',
-                'date' => $pay->payment_date->toDateString(),
-                'created_at' => $pay->created_at->toDateTimeString(),
                 'reference' => $pay->payment_number,
-                'description' => 'Payment Received (' . $pay->formatted_method . ' - Ref: ' . ($pay->reference_number ?? 'N/A') . ')',
+                'description' => "Payment Received (" . strtoupper(str_replace('_', ' ', $pay->payment_method)) . ($pay->reference_number ? " - Ref: {$pay->reference_number}" : "") . ")",
                 'debit' => 0.00,
-                'credit' => (float)$pay->amount, // Payment received from client (-)
+                'credit' => (float)$pay->amount, // Decreases amount client owes
                 'model' => $pay,
             ]);
         }
 
-        // Sort chronologically
-        $sortedEntries = $entries->sortBy(function ($item) {
-            return $item['date'] . ' ' . $item['created_at'];
-        })->values();
+        // Sort by date ascending
+        $sortedTransactions = $transactions->sortBy(fn($t) => $t->date . '_' . $t->created_at)->values();
 
-        // Compute running balance
+        // 5. Calculate running balances
         $runningBalance = $openingBalance;
-        $totalDebit = 0.00;
-        $totalCredit = 0.00;
+        $processedTransactions = $sortedTransactions->map(function ($tx) use (&$runningBalance) {
+            $runningBalance = round($runningBalance + $tx->debit - $tx->credit, 2);
+            return [
+                'date' => $tx->date,
+                'created_at' => $tx->created_at,
+                'type' => $tx->type,
+                'reference' => $tx->reference,
+                'description' => $tx->description,
+                'debit' => $tx->debit,
+                'credit' => $tx->credit,
+                'running_balance' => $runningBalance,
+                'model' => $tx->model,
+            ];
+        });
 
-        $ledgerRows = [];
-        foreach ($sortedEntries as $row) {
-            $runningBalance += ($row['debit'] - $row['credit']);
-            $totalDebit += $row['debit'];
-            $totalCredit += $row['credit'];
-
-            $row['running_balance'] = round($runningBalance, 2);
-            $ledgerRows[] = $row;
-        }
+        $totalInvoiced = $invoices->sum('total_amount');
+        $totalReceived = $payments->sum('amount');
+        $closingBalance = max(0.00, round($openingBalance + $totalInvoiced - $totalReceived, 2));
 
         return [
             'client' => $client,
             'selected_plant' => $selectedPlant,
-            'opening_balance' => round($openingBalance, 2),
-            'closing_balance' => round($runningBalance, 2),
-            'total_debit' => round($totalDebit, 2),
-            'total_credit' => round($totalCredit, 2),
-            'start_date' => $start->toDateString(),
-            'end_date' => $end->toDateString(),
-            'entries' => $ledgerRows,
+            'startDate' => $start->format('Y-m-d'),
+            'endDate' => $end->format('Y-m-d'),
+            'opening_balance' => $openingBalance,
+            'closing_balance' => $closingBalance,
+            'total_invoiced' => $totalInvoiced,
+            'total_received' => $totalReceived,
+            'total_debit' => $totalInvoiced,
+            'total_credit' => $totalReceived,
+            'entries' => $processedTransactions,
+            'transactions' => $processedTransactions,
         ];
     }
 }

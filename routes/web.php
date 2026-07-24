@@ -44,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/clients/plants/{id}', [ErpController::class, 'updatePlant'])->name('clients.plants.update');
     Route::delete('/clients/plants/{id}', [ErpController::class, 'deletePlant'])->name('clients.plants.delete');
     Route::get('/clients/{id}/ledger', [ErpController::class, 'clientLedger'])->name('clients.ledger');
+    Route::get('/clients/{id}/ledger/pdf', [ErpController::class, 'downloadClientLedgerPdf'])->name('clients.ledger.pdf');
     // 5.5 Sales Orders / Order Management
     Route::get('/orders', [ErpController::class, 'orders'])->name('orders');
     Route::post('/orders', [ErpController::class, 'storeOrder'])->name('orders.store');

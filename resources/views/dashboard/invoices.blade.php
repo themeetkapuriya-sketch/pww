@@ -88,12 +88,10 @@
                         @if(!empty($prefillOrder) && $prefillOrder->items->isNotEmpty())
                             @foreach($prefillOrder->items as $it)
                                 <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                    <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                         <option value="">Select product...</option>
                                         @foreach ($finishedGoods as $g)
-                                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" {{ $g->id == $it->finished_good_id ? 'selected' : '' }}>
-                                                {{ $g->product_name }}
-                                            </option>
+                                            <option value="{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
                                         @endforeach
                                     </select>
                                     <input type="number" name="quantities[]" min="1" value="{{ (int)$it->quantity }}" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
@@ -103,7 +101,7 @@
                             @endforeach
                         @else
                             <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <option value="">Select product...</option>
                                     @foreach ($finishedGoods as $g)
                                         <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
@@ -183,12 +181,7 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @foreach ($invoices as $inv)
                             @php
-                                $pName = 'HQ / Custom';
-                                if ($inv->deliveryChallan && $inv->deliveryChallan->plant) {
-                                    $pName = $inv->deliveryChallan->plant->plant_name;
-                                } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                                    $pName = $inv->deliveryChallans->first()->plant->plant_name;
-                                }
+                                $pName = $inv->plant ? $inv->plant->plant_name : 'HQ / Custom';
                             @endphp
                             <tr class="hover:bg-slate-50 transition">
                                 <td class="px-3 py-3 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
@@ -262,31 +255,14 @@
 
                                     @php
                                         $itemsArray = [];
-                                        if ($inv->deliveryChallan && $inv->deliveryChallan->items) {
-                                            foreach ($inv->deliveryChallan->items as $it) {
-                                                $itemsArray[] = [
-                                                    'finished_good_id' => $it->finished_good_id,
-                                                    'quantity' => $it->quantity,
-                                                    'unit_price' => $it->unit_price
-                                                ];
-                                            }
-                                        } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                                            foreach ($inv->deliveryChallans as $dcItem) {
-                                                foreach ($dcItem->items as $it) {
-                                                    $itemsArray[] = [
-                                                        'finished_good_id' => $it->finished_good_id,
-                                                        'quantity' => $it->quantity,
-                                                        'unit_price' => $it->unit_price
-                                                    ];
-                                                }
-                                            }
+                                        foreach ($inv->items as $it) {
+                                            $itemsArray[] = [
+                                                'product_id' => $it->product_id ?? $it->finished_good_id,
+                                                'quantity' => $it->quantity,
+                                                'unit_price' => $it->unit_price
+                                            ];
                                         }
-                                        $invPlantId = '';
-                                        if ($inv->deliveryChallan) {
-                                            $invPlantId = $inv->deliveryChallan->plant_id;
-                                        } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                                            $invPlantId = $inv->deliveryChallans->first()->plant_id;
-                                        }
+                                        $invPlantId = $inv->plant_id ?? '';
                                         $invDataAttr = json_encode([
                                             'id' => $inv->id,
                                             'invoice_number' => $inv->invoice_number,
@@ -509,31 +485,14 @@
     @foreach ($invoices as $inv)
         @php
             $itemsArray = [];
-            if ($inv->deliveryChallan && $inv->deliveryChallan->items) {
-                foreach ($inv->deliveryChallan->items as $it) {
-                    $itemsArray[] = [
-                        'finished_good_id' => $it->finished_good_id,
-                        'quantity' => $it->quantity,
-                        'unit_price' => $it->unit_price
-                    ];
-                }
-            } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                foreach ($inv->deliveryChallans as $dcItem) {
-                    foreach ($dcItem->items as $it) {
-                        $itemsArray[] = [
-                            'finished_good_id' => $it->finished_good_id,
-                            'quantity' => $it->quantity,
-                            'unit_price' => $it->unit_price
-                        ];
-                    }
-                }
+            foreach ($inv->items as $it) {
+                $itemsArray[] = [
+                    'product_id' => $it->product_id ?? $it->finished_good_id,
+                    'quantity' => $it->quantity,
+                    'unit_price' => $it->unit_price
+                ];
             }
-            $invPlantId = '';
-            if ($inv->deliveryChallan) {
-                $invPlantId = $inv->deliveryChallan->plant_id;
-            } elseif ($inv->deliveryChallans->isNotEmpty()) {
-                $invPlantId = $inv->deliveryChallans->first()->plant_id;
-            }
+            $invPlantId = $inv->plant_id ?? '';
         @endphp
         window.erpInvoicesMap[{{ $inv->id }}] = {
             id: {{ $inv->id }},

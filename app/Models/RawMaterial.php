@@ -34,9 +34,19 @@ class RawMaterial extends Model
     /**
      * Get the products that consume this raw material.
      */
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'bill_of_materials', 'raw_material_id', 'product_id')
+                    ->withPivot('required_quantity', 'waste_percentage')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Alias for products.
+     */
     public function finishedGoods()
     {
-        return $this->belongsToMany(Product::class, 'bill_of_materials', 'raw_material_id', 'finished_good_id')
+        return $this->belongsToMany(Product::class, 'bill_of_materials', 'raw_material_id', 'product_id')
                     ->withPivot('required_quantity', 'waste_percentage')
                     ->withTimestamps();
     }

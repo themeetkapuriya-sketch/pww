@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -36,21 +38,25 @@
         </div>
 
         <!-- Alert Container -->
-        <div id="alertContainer" class="hidden text-sm p-4 rounded-xl border"></div>
+        <div id="alertContainer" class="hidden text-sm p-4 rounded-xl border transition-all duration-200"></div>
 
-        <!-- Forms -->
-        <form id="loginForm" class="space-y-4">
+        <!-- Login Form -->
+        <form id="loginForm" class="space-y-4" novalidate>
             @csrf
             <div>
                 <label for="email" class="block text-xs font-bold text-slate-600 uppercase mb-1">EMAIL ADDRESS</label>
-                <input type="email" id="email" name="email" value="" required placeholder="e.g. pww@example.com"
+                <input type="email" id="email" name="email" value="" placeholder="e.g. pww@example.com"
                        class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
+                <p id="emailError" class="text-xs text-rose-500 font-semibold mt-1.5 hidden flex items-center">
+                    <svg class="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="error-text"></span>
+                </p>
             </div>
 
             <div>
                 <label for="password" class="block text-xs font-bold text-slate-600 uppercase mb-1">PASSWORD</label>
                 <div class="relative">
-                    <input type="password" id="password" name="password" value="" required placeholder="••••••••"
+                    <input type="password" id="password" name="password" value="" placeholder="••••••••"
                            class="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
                     <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                         <svg id="eyeIconOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,10 +68,14 @@
                         </svg>
                     </button>
                 </div>
+                <p id="passwordError" class="text-xs text-rose-500 font-semibold mt-1.5 hidden flex items-center">
+                    <svg class="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="error-text"></span>
+                </p>
             </div>
 
             <div class="flex items-center justify-between text-xs">
-                <label class="flex items-center text-slate-500 font-medium">
+                <label class="flex items-center text-slate-500 font-medium cursor-pointer select-none">
                     <input type="checkbox" name="remember" class="mr-1.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"> Remember this device
                 </label>
             </div>
@@ -81,101 +91,209 @@
         </div>
     </div>
 
-    <!-- AJAX Script -->
+    <!-- jQuery AJAX Validation Script -->
     <script>
-        document.querySelectorAll('#loginForm input').forEach(input => {
-            input.addEventListener('input', () => {
-                const alertContainer = document.getElementById('alertContainer');
-                if (alertContainer) alertContainer.className = 'hidden';
-            });
-        });
+        $(document).ready(function () {
+            const $email = $('#email');
+            const $password = $('#password');
+            const $emailError = $('#emailError');
+            const $passwordError = $('#passwordError');
+            const $alertContainer = $('#alertContainer');
+            const $submitBtn = $('#submitBtn');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            // Flag to track whether the submit button has been clicked
+            let formSubmitted = false;
 
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const alertContainer = document.getElementById('alertContainer');
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const csrfToken = document.querySelector('input[name="_token"]').value;
-            
-            // UI Loading state
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-75');
-            submitBtn.innerHTML = `
-                <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Authenticating...</span>
-            `;
-            
-            alertContainer.className = 'hidden';
-            
-            try {
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    window.location.href = data.redirect;
+            // Helper to set field error state
+            function setFieldError($field, $errorEl, message) {
+                if (message) {
+                    $field.addClass('border-rose-400 focus:ring-rose-500 bg-rose-50/20')
+                          .removeClass('border-slate-200 focus:ring-blue-500');
+                    $errorEl.find('.error-text').text(message);
+                    $errorEl.removeClass('hidden');
                 } else {
-                    displayErrors(data.errors || ['Invalid credentials. Please try again.']);
-                    resetBtn(submitBtn);
+                    $field.removeClass('border-rose-400 focus:ring-rose-500 bg-rose-50/20')
+                          .addClass('border-slate-200 focus:ring-blue-500');
+                    $errorEl.addClass('hidden').find('.error-text').text('');
                 }
-            } catch (err) {
-                displayErrors(['A network error occurred. Please verify your connection.']);
-                resetBtn(submitBtn);
+            }
+
+            // Email Validation logic
+            function validateEmail() {
+                const val = $.trim($email.val());
+                if (!val) {
+                    setFieldError($email, $emailError, 'Email address is required.');
+                    return false;
+                } else if (!emailRegex.test(val)) {
+                    setFieldError($email, $emailError, 'Please enter a valid email address.');
+                    return false;
+                } else {
+                    setFieldError($email, $emailError, '');
+                    return true;
+                }
+            }
+
+            // Password Validation logic
+            function validatePassword() {
+                const val = $password.val();
+                if (!val) {
+                    setFieldError($password, $passwordError, 'Password is required.');
+                    return false;
+                } else if (val.length < 6) {
+                    setFieldError($password, $passwordError, 'Password must be at least 6 characters.');
+                    return false;
+                } else {
+                    setFieldError($password, $passwordError, '');
+                    return true;
+                }
+            }
+
+            // Bind input & blur handlers using jQuery (only re-validate if submit button was clicked)
+            $email.on('input blur', function () {
+                $alertContainer.addClass('hidden').empty();
+                if (formSubmitted) {
+                    validateEmail();
+                } else {
+                    setFieldError($email, $emailError, '');
+                }
+            });
+
+            $password.on('input blur', function () {
+                $alertContainer.addClass('hidden').empty();
+                if (formSubmitted) {
+                    validatePassword();
+                } else {
+                    setFieldError($password, $passwordError, '');
+                }
+            });
+
+            // Toggle Password Visibility
+            $('#togglePassword').on('click', function () {
+                const currentType = $password.attr('type');
+                if (currentType === 'password') {
+                    $password.attr('type', 'text');
+                    $('#eyeIconOpen').addClass('hidden');
+                    $('#eyeIconClose').removeClass('hidden');
+                } else {
+                    $password.attr('type', 'password');
+                    $('#eyeIconOpen').removeClass('hidden');
+                    $('#eyeIconClose').addClass('hidden');
+                }
+            });
+
+            // Handle Form Submission via jQuery AJAX (Validation runs ONLY after button click)
+            $('#loginForm').on('submit', function (e) {
+                e.preventDefault();
+
+                // Set flag indicating submit button was clicked
+                formSubmitted = true;
+
+                // Clear general alert box
+                $alertContainer.addClass('hidden').removeClass('bg-rose-50 border-rose-200 text-rose-800 bg-emerald-50 border-emerald-200 text-emerald-800').empty();
+
+                // Run validation on button click
+                const isEmailValid = validateEmail();
+                const isPasswordValid = validatePassword();
+
+                if (!isEmailValid || !isPasswordValid) {
+                    if (!isEmailValid) $email.focus();
+                    else if (!isPasswordValid) $password.focus();
+                    return false;
+                }
+
+                // UI Loading state
+                $submitBtn.prop('disabled', true)
+                          .addClass('opacity-75 cursor-not-allowed')
+                          .html(`
+                              <svg class="animate-spin h-5 w-5 mr-3 text-white inline" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Authenticating...</span>
+                          `);
+
+                // Send jQuery AJAX POST Request
+                $.ajax({
+                    url: '/login',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': $('input[name="_token"]').val()
+                    },
+                    data: JSON.stringify({
+                        email: $.trim($email.val()),
+                        password: $password.val(),
+                        remember: $('input[name="remember"]').is(':checked')
+                    }),
+                    success: function (res) {
+                        if (res.success) {
+                            $alertContainer.removeClass('hidden')
+                                           .addClass('bg-emerald-50 border-emerald-200 text-emerald-800 p-4 rounded-xl border text-sm font-semibold flex items-center')
+                                           .html(`
+                                               <svg class="w-5 h-5 mr-2 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                               <span>${res.message || 'Authentication successful! Redirecting...'}</span>
+                                           `);
+
+                            setTimeout(function () {
+                                window.location.href = res.redirect || '/overview';
+                            }, 500);
+                        } else {
+                            showGlobalErrors(res.errors || ['Authentication failed. Please try again.']);
+                            resetSubmitBtn();
+                        }
+                    },
+                    error: function (xhr) {
+                        resetSubmitBtn();
+                        let errors = [];
+
+                        if (xhr.status === 422 && xhr.responseJSON) {
+                            const errObj = xhr.responseJSON.errors || {};
+                            if (Array.isArray(errObj)) {
+                                errors = errObj;
+                            } else if (typeof errObj === 'object') {
+                                Object.keys(errObj).forEach(key => {
+                                    if (Array.isArray(errObj[key])) {
+                                        errors.push(...errObj[key]);
+                                    } else {
+                                        errors.push(errObj[key]);
+                                    }
+
+                                    // Mark inline error if key matches field
+                                    if (key === 'email') setFieldError($email, $emailError, errObj[key][0] || errObj[key]);
+                                    if (key === 'password') setFieldError($password, $passwordError, errObj[key][0] || errObj[key]);
+                                });
+                            }
+                        } else if (xhr.status === 401 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            errors = xhr.responseJSON.errors;
+                        } else {
+                            errors = ['Authentication failed. Please check your credentials and network connection.'];
+                        }
+
+                        showGlobalErrors(errors);
+                    }
+                });
+            });
+
+            function showGlobalErrors(errors) {
+                let listHtml = '<ul class="list-disc list-inside space-y-1 mt-1">';
+                errors.forEach(function (err) {
+                    listHtml += `<li>${err}</li>`;
+                });
+                listHtml += '</ul>';
+
+                $alertContainer.removeClass('hidden')
+                               .addClass('bg-rose-50 border-rose-200 text-rose-800 p-4 rounded-xl border text-sm')
+                               .html(`<strong>Authentication Failed:</strong> ${listHtml}`);
+            }
+
+            function resetSubmitBtn() {
+                $submitBtn.prop('disabled', false)
+                          .removeClass('opacity-75 cursor-not-allowed')
+                          .html('<span>Sign In to Dashboard</span>');
             }
         });
-        
-        function displayErrors(errors) {
-            const alertContainer = document.getElementById('alertContainer');
-            alertContainer.className = 'bg-rose-50 border-rose-200 text-rose-800 p-4 rounded-xl border text-sm';
-            
-            let list = '<ul class="list-disc list-inside space-y-1">';
-            errors.forEach(err => {
-                list += `<li>${err}</li>`;
-            });
-            list += '</ul>';
-            
-            alertContainer.innerHTML = `<strong>Authentication Failed:</strong> ${list}`;
-        }
-        
-        function resetBtn(btn) {
-            btn.disabled = false;
-            btn.classList.remove('opacity-75');
-            btn.innerHTML = '<span>Sign In to Dashboard</span>';
-        }
-
-        // Toggle password visibility
-        const togglePassword = document.getElementById('togglePassword');
-        const passwordInput = document.getElementById('password');
-        const eyeIconOpen = document.getElementById('eyeIconOpen');
-        const eyeIconClose = document.getElementById('eyeIconClose');
-
-        if (togglePassword && passwordInput) {
-            togglePassword.addEventListener('click', function () {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                
-                if (type === 'password') {
-                    eyeIconOpen.classList.remove('hidden');
-                    eyeIconClose.classList.add('hidden');
-                } else {
-                    eyeIconOpen.classList.add('hidden');
-                    eyeIconClose.classList.remove('hidden');
-                }
-            });
-        }
     </script>
 </body>
 </html>

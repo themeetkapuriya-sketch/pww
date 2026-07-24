@@ -82,7 +82,7 @@
 
                     <div id="orderRowsContainer" class="space-y-2">
                         <div class="order-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                            <select name="finished_good_ids[]" required class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" onchange="updateRowUnitPrice(this)">
+                            <select name="product_ids[]" required class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" onchange="updateRowUnitPrice(this)">
                                 <option value="">Select product...</option>
                                 @foreach ($finishedGoods as $g)
                                     <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }} (Stock: {{ number_format($g->current_stock) }})</option>
@@ -201,7 +201,7 @@
                                 <ul class="space-y-0.5">
                                     @foreach($ord->items as $it)
                                         <li class="text-slate-700 font-medium">
-                                            • {{ $it->finishedGood->product_name ?? 'Product' }}: <strong class="text-slate-900">{{ number_format($it->quantity) }}</strong> @ ₹{{ number_format($it->unit_price, 2) }}
+                                            • {{ $it->product->product_name ?? $it->finishedGood->product_name ?? 'Product' }}: <strong class="text-slate-900">{{ number_format($it->quantity) }}</strong> @ ₹{{ number_format($it->unit_price, 2) }}
                                         </li>
                                     @endforeach
                                 </ul>

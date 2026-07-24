@@ -15,7 +15,7 @@ class ProductionService
     /**
      * Record a production batch and auto-deduct raw material inventory.
      *
-     * @param int $finishedGoodId
+     * @param int $productId
      * @param int $quantityManufactured
      * @param int $quantityRejected
      * @param int $recordedByUserId
@@ -25,18 +25,18 @@ class ProductionService
      * @throws InsufficientStockException
      */
     public function logProduction(
-        int $finishedGoodId,
+        int $productId,
         int $quantityManufactured,
         int $quantityRejected,
         int $recordedByUserId,
         string $productionDate,
         array $laborData = []
     ): ProductionLog {
-        return DB::transaction(function () use ($finishedGoodId, $quantityManufactured, $quantityRejected, $recordedByUserId, $productionDate, $laborData) {
-            $finishedGood = Product::findOrFail($finishedGoodId);
+        return DB::transaction(function () use ($productId, $quantityManufactured, $quantityRejected, $recordedByUserId, $productionDate, $laborData) {
+            $product = Product::findOrFail($productId);
 
             // Fetch BOM items
-            $bomItems = $finishedGood->billOfMaterials()->with('rawMaterial')->get();
+            $bomItems = $product->billOfMaterials()->with('rawMaterial')->get();
 
             // Check and deduct raw materials
             foreach ($bomItems as $bom) {
@@ -58,12 +58,12 @@ class ProductionService
                 $rawMaterial->decrement('current_stock', $totalConsumed);
             }
 
-            // Increment finished goods stock
-            $finishedGood->increment('current_stock', $quantityManufactured);
+            // Increment product stock
+            $product->increment('current_stock', $quantityManufactured);
 
             // Create production log
             $productionLog = ProductionLog::create([
-                'finished_good_id' => $finishedGoodId,
+                'product_id' => $productId,
                 'quantity_manufactured' => $quantityManufactured,
                 'quantity_rejected' => $quantityRejected,
                 'recorded_by' => $recordedByUserId,
