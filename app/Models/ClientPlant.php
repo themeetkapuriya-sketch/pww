@@ -32,4 +32,27 @@ class ClientPlant extends Model
     {
         return $this->hasMany(DeliveryChallan::class, 'plant_id');
     }
+
+    /**
+     * Get all invoices associated with this plant.
+     */
+    public function invoices()
+    {
+        return Invoice::whereHas('deliveryChallan', function ($q) {
+            $q->where('plant_id', $this->id);
+        })->orWhereHas('deliveryChallans', function ($q) {
+            $q->where('plant_id', $this->id);
+        });
+    }
+
+    /**
+     * Calculate outstanding balance for this specific plant.
+     */
+    public function getOutstandingBalanceAttribute(): float
+    {
+        $invoices = $this->invoices()->get();
+        $totalInvoiced = $invoices->sum('total_amount');
+        $totalPaid = $invoices->sum('paid_amount');
+        return max(0.00, round($totalInvoiced - $totalPaid, 2));
+    }
 }

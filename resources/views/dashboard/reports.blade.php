@@ -210,22 +210,29 @@
                                 <td class="px-4 py-3 text-right font-bold text-slate-900">₹{{ number_format($inv->total_amount, 2) }}</td>
                                 <td class="px-4 py-3 text-center">
                                     @if(($inv->payment_status ?? 'unpaid') === 'paid')
-                                        <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                                             PAID
                                         </span>
+                                    @elseif(($inv->payment_status ?? 'unpaid') === 'partially_paid')
+                                        <button type="button" 
+                                                onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
+                                                title="Click to record payment"
+                                                class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer">
+                                            PARTIAL (₹{{ number_format($inv->remaining_balance, 0) }} DUE)
+                                        </button>
                                     @else
                                         <button type="button" 
-                                                onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}')"
-                                                title="Click to mark invoice as Paid"
-                                                class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200 hover:bg-rose-200 hover:scale-105 transition cursor-pointer">
-                                            {{ $inv->payment_status ?? 'UNPAID' }}
+                                                onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
+                                                title="Click to record payment"
+                                                class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer">
+                                            UNPAID
                                         </button>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-slate-400 italic">No invoices found for this range.</td>
+                                <td colspan="9" class="px-4 py-8 text-center text-slate-400 font-semibold italic">No Records Available</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -295,7 +302,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-slate-400 italic">No purchase records logged in this range.</td>
+                                <td colspan="9" class="px-4 py-8 text-center text-slate-400 font-semibold italic">No Records Available</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -305,6 +312,29 @@
 
     @elseif ($reportType === 'financial')
         <!-- 3. FINANCIAL REPORT VIEW -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Accounts Receivable (Client Dues)</span>
+                <span class="text-xl font-black text-amber-600 block mt-1">₹{{ number_format($financials['outstanding_receivables'] ?? 0, 2) }}</span>
+                <span class="text-[10px] text-slate-400">Total unpaid & partial invoices</span>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Accounts Payable (Vendor Dues)</span>
+                <span class="text-xl font-black text-rose-600 block mt-1">₹{{ number_format($financials['outstanding_payables'] ?? 0, 2) }}</span>
+                <span class="text-[10px] text-slate-400">Total unpaid supplier bills</span>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bank Account Collections</span>
+                <span class="text-xl font-black text-blue-600 block mt-1">₹{{ number_format($financials['bank_collections'] ?? 0, 2) }}</span>
+                <span class="text-[10px] text-slate-400">Received via NEFT / UPI / Cheque</span>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cash In Hand Collections</span>
+                <span class="text-xl font-black text-emerald-600 block mt-1">₹{{ number_format($financials['cash_collections'] ?? 0, 2) }}</span>
+                <span class="text-[10px] text-slate-400">Received via liquid cash</span>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
             <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -447,7 +477,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-3 py-4 text-center text-slate-400 italic">No taxable sales.</td>
+                                        <td colspan="5" class="px-3 py-4 text-center text-slate-400 font-semibold italic">No Records Available</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -480,7 +510,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-3 py-4 text-center text-slate-400 italic">No GST-registered purchases.</td>
+                                        <td colspan="4" class="px-3 py-4 text-center text-slate-400 font-semibold italic">No Records Available</td>
                                     </tr>
                                 @endforelse
                             </tbody>

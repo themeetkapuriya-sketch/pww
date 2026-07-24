@@ -1,6 +1,8 @@
 @if(request()->ajax() && !request()->pjax())
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
-    @yield('content')
+    <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
+        @yield('content')
+    </div>
 @else
 <!DOCTYPE html>
 <html lang="en">
@@ -254,8 +256,11 @@
             color: #0f172a !important;
         }
 
-        /* Project-wide Modal Backdrop Full Viewport Rules */
-        [id*="Modal"], [id*="modal"] {
+        /* Project-wide Modal Rules */
+        div[id*="Modal"].hidden, div[id*="modal"].hidden {
+            display: none !important;
+        }
+        div.fixed[id*="Modal"]:not(.hidden), div.fixed[id*="modal"]:not(.hidden) {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -265,9 +270,6 @@
             height: 100vh !important;
             margin: 0 !important;
             z-index: 999999 !important;
-            backdrop-filter: blur(2.5px) !important;
-            -webkit-backdrop-filter: blur(2.5px) !important;
-            background-color: rgba(15, 23, 42, 0.35) !important;
         }
 
         .active-nav {
@@ -454,6 +456,195 @@
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="{{ asset('js/app-core.js') }}"></script>
     @stack('modals')
+
+    <!-- Global Record Invoice Payment Modal -->
+    <div id="globalRecordInvoicePaymentModal" class="fixed inset-0 z-50 overflow-y-auto hidden" style="display: none;" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" onclick="closeGlobalInvoicePaymentModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Record Invoice Payment</h3>
+                        <p class="text-xs text-slate-500 font-medium">Invoice: <span class="text-blue-600 font-bold" id="globalModalInvoiceNum"></span> | Remaining Balance: <span class="text-emerald-600 font-bold">₹<span id="globalModalRemainingText">0.00</span></span></p>
+                    </div>
+                    <button type="button" onclick="closeGlobalInvoicePaymentModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+                </div>
+
+                <form id="globalRecordPaymentForm" action="" method="POST" onsubmit="submitGlobalInvoicePayment(event)">
+                    @csrf
+                    <input type="hidden" id="globalModalInvoiceId" name="invoice_id">
+
+                    <div class="p-6 space-y-4 text-xs">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold text-slate-600 uppercase mb-1">Payment Amount (₹)</label>
+                                <input type="number" step="0.01" min="0.01" name="amount" id="globalModalPayAmount" required
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-extrabold">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-600 uppercase mb-1">Payment Date</label>
+                                <input type="date" name="payment_date" id="globalModalPayDate" required
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-bold text-slate-600 uppercase mb-1">Payment Mode</label>
+                                <select name="payment_method" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-bold">
+                                    <option value="bank_transfer">Bank Transfer (NEFT/RTGS)</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="upi">UPI / Online Transfer</option>
+                                    <option value="cash">Cash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-600 uppercase mb-1">Account Type</label>
+                                <select name="account_type" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-bold">
+                                    <option value="bank">Bank Account</option>
+                                    <option value="cash">Cash in Hand</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-600 uppercase mb-1">Reference / UTR / Cheque No.</label>
+                            <input type="text" name="reference_number" placeholder="e.g. UTR123456789 or Cheque #000123"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-600 uppercase mb-1">Internal Payment Notes</label>
+                            <textarea name="notes" rows="2" placeholder="Optional notes for accounting ledger..."
+                                      class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end space-x-3">
+                        <button type="button" onclick="closeGlobalInvoicePaymentModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-5 text-xs font-bold rounded-xl shadow-xs transition">
+                            Confirm & Record Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.openInvoicePaymentModal = function(id, invoiceNumber, remainingBalance) {
+            var modal = document.getElementById('globalRecordInvoicePaymentModal');
+            if (!modal) return;
+            document.getElementById('globalModalInvoiceId').value = id;
+            document.getElementById('globalModalInvoiceNum').innerText = invoiceNumber;
+            const rem = (remainingBalance !== undefined && remainingBalance !== null) ? parseFloat(remainingBalance) : 0;
+            document.getElementById('globalModalRemainingText').innerText = rem.toFixed(2);
+            document.getElementById('globalModalPayAmount').value = rem > 0 ? rem.toFixed(2) : '';
+            document.getElementById('globalModalPayDate').value = new Date().toISOString().split('T')[0];
+            
+            modal.classList.remove('hidden');
+            modal.style.display = 'block';
+        };
+
+        window.payInvoiceRecord = function(id, invoiceNumber, remainingBalance) {
+            window.openInvoicePaymentModal(id, invoiceNumber, remainingBalance);
+        };
+
+        window.closeGlobalInvoicePaymentModal = function() {
+            var modal = document.getElementById('globalRecordInvoicePaymentModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        };
+
+        window.submitGlobalInvoicePayment = function(e) {
+            e.preventDefault();
+            const invId = document.getElementById('globalModalInvoiceId').value;
+            const formData = new FormData(e.target);
+            const token = $('meta[name="csrf-token"]').attr('content') || '';
+
+            $.ajax({
+                url: `/invoices/${invId}/record-payment`,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                success: async function(response) {
+                    closeGlobalInvoicePaymentModal();
+                    if (window.showToast) {
+                        window.showToast('success', response.message || 'Payment recorded successfully!');
+                    }
+                    if (window.loadPage) {
+                        await window.loadPage(window.location.href);
+                    } else {
+                        window.location.reload();
+                    }
+                },
+                error: function(xhr) {
+                    const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to record payment.';
+                    alert(msg);
+                }
+            });
+        };
+
+        window.deleteInvoiceRecord = function(id, invoiceNumber) {
+            const doDelete = function() {
+                const token = $('meta[name="csrf-token"]').attr('content') || '';
+                $.ajax({
+                    url: `/invoices/${id}`,
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json'
+                    },
+                    success: async function(response) {
+                        if (window.showToast) {
+                            window.showToast('success', response.message || 'Invoice deleted successfully!');
+                        }
+                        if (window.loadPage) {
+                            await window.loadPage(window.location.href);
+                        } else {
+                            window.location.reload();
+                        }
+                    },
+                    error: function(xhr) {
+                        const msg = xhr.responseJSON && xhr.responseJSON.message ? (xhr.responseJSON.message || (xhr.responseJSON.errors ? xhr.responseJSON.errors[0] : 'Failed to delete invoice.')) : 'Failed to delete invoice.';
+                        if (window.showToast) {
+                            window.showToast('error', msg);
+                        } else {
+                            alert(msg);
+                        }
+                    }
+                });
+            };
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Delete Invoice?',
+                    text: `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f43f5e',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Yes, Delete Invoice',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        doDelete();
+                    }
+                });
+            } else if (confirm(`Are you sure you want to delete Invoice '${invoiceNumber}'?`)) {
+                doDelete();
+            }
+        };
+    </script>
 </body>
 </html>
 @endif

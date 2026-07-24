@@ -5,13 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class FinishedGood extends Model
+class Product extends Model
 {
     use HasFactory;
+
+    protected $table = 'finished_goods';
 
     protected $fillable = [
         'product_name',
         'sku',
+        'hsn_code',
+        'uom',
         'current_stock',
         'selling_price',
         'alerts_enabled',
@@ -24,7 +28,7 @@ class FinishedGood extends Model
     ];
 
     /**
-     * Get the bill of materials for this finished good.
+     * Get the bill of materials for this product.
      */
     public function billOfMaterials()
     {
@@ -32,7 +36,7 @@ class FinishedGood extends Model
     }
 
     /**
-     * Get the raw materials required for this finished good.
+     * Get the raw materials required for this product.
      */
     public function rawMaterials()
     {
@@ -42,7 +46,7 @@ class FinishedGood extends Model
     }
 
     /**
-     * Get the production logs for this finished good.
+     * Get the production logs for this product.
      */
     public function productionLogs()
     {
@@ -50,7 +54,7 @@ class FinishedGood extends Model
     }
 
     /**
-     * Get the delivery challan items containing this finished good.
+     * Get the delivery challan items containing this product.
      */
     public function deliveryChallanItems()
     {

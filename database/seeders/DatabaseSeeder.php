@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\RawMaterial;
-use App\Models\FinishedGood;
+use App\Models\Product;
 use App\Models\BillOfMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
@@ -82,8 +82,8 @@ class DatabaseSeeder extends Seeder
             'average_purchase_price' => 120.00,
         ]);
 
-        // 3. Create Finished Goods
-        $rack3Tier = FinishedGood::create([
+        // 3. Create Finished Goods (Products)
+        $rack3Tier = Product::create([
             'product_name' => 'Balaji Wire Rack 3-Tier',
             'sku' => 'WR-3T-BALAJI',
             'current_stock' => 150,
@@ -91,7 +91,7 @@ class DatabaseSeeder extends Seeder
             'alerts_enabled' => true,
         ]);
 
-        $rack4Tier = FinishedGood::create([
+        $rack4Tier = Product::create([
             'product_name' => 'Balaji Wire Rack 4-Tier',
             'sku' => 'WR-4T-BALAJI',
             'current_stock' => 90,
@@ -173,15 +173,15 @@ class DatabaseSeeder extends Seeder
         $staff1 = StaffProfile::create([
             'user_id' => null,
             'full_name' => 'Amit Sharma',
-            'wage_type' => 'piece-rate',
-            'piece_rate_per_unit' => 45.00,
+            'wage_type' => 'per-day',
+            'piece_rate_per_unit' => 500.00,
         ]);
 
         $staff2 = StaffProfile::create([
             'user_id' => null,
             'full_name' => 'Rajesh Patel',
-            'wage_type' => 'piece-rate',
-            'piece_rate_per_unit' => 45.00,
+            'wage_type' => 'per-day',
+            'piece_rate_per_unit' => 500.00,
         ]);
 
         $staff3 = StaffProfile::create([
@@ -368,7 +368,7 @@ class DatabaseSeeder extends Seeder
             }
 
             $total = $taxable + $cgst + $sgst + $igst;
-            $invNo = 'INV-' . $dispatchDate->format('Ymd') . '-00' . ($index + 1);
+            $invNo = 'PWW-' . $dispatchDate->format('Ymd') . '-00' . ($index + 1);
             
             $invoice = Invoice::create([
                 'delivery_challan_id' => $dc->id,
@@ -438,6 +438,27 @@ class DatabaseSeeder extends Seeder
             'units_completed' => 30,
             'calculated_payout' => 30 * $staff2->piece_rate_per_unit,
             'status' => 'pending',
+        ]);
+
+        // 12. Create Sample Sales Orders
+        $sampleOrder = \App\Models\SalesOrder::create([
+            'order_number' => \App\Models\SalesOrder::generateNextOrderNumber(),
+            'po_number' => 'PO-BALAJI-9012',
+            'client_id' => $clientBalaji->id,
+            'plant_id' => $plantRajkot->id,
+            'order_date' => Carbon::now()->subDays(2)->toDateString(),
+            'delivery_date' => Carbon::now()->addDays(5)->toDateString(),
+            'status' => 'pending',
+            'total_amount' => 125000.00,
+            'notes' => 'Heavy-duty 3-Tier Racks with Blue Powder Coating',
+        ]);
+
+        \App\Models\SalesOrderItem::create([
+            'sales_order_id' => $sampleOrder->id,
+            'finished_good_id' => $rack3Tier->id,
+            'quantity' => 25,
+            'unit_price' => 5000.00,
+            'total_price' => 125000.00,
         ]);
     }
 }

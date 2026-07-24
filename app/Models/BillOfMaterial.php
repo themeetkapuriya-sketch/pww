@@ -24,11 +24,11 @@ class BillOfMaterial extends Model
     ];
 
     /**
-     * Get the finished good for this BOM item.
+     * Get the finished good product for this BOM item.
      */
     public function finishedGood()
     {
-        return $this->belongsTo(FinishedGood::class, 'finished_good_id');
+        return $this->belongsTo(Product::class, 'finished_good_id');
     }
 
     /**

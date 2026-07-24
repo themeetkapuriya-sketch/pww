@@ -17,7 +17,7 @@
             <button type="button" onclick="toggleCreateProductForm()" 
                     class="btn-primary py-2.5 px-5 text-xs font-bold flex items-center shadow-xs">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                + Add Product
+                 Add Product
             </button>
         </div>
     </div>
@@ -33,7 +33,7 @@
         </div>
         <form action="{{ route('inventory.goods.store') }}" method="POST" class="ajax-form space-y-4">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product Model Name</label>
                     <input type="text" name="product_name" placeholder="e.g. Balaji Wire Rack 3-Tier" required
@@ -44,16 +44,24 @@
                     <input type="text" name="sku" placeholder="e.g. WR-3T-BALAJI" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">HSN Code</label>
+                    <input type="text" name="hsn_code" placeholder="e.g. 73089090" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Opening Stock Inventory</label>
-                    <input type="number" name="current_stock" min="0" placeholder="e.g. 50" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit of Measurement)</label>
+                    <select name="uom" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        <option value="piece" selected>Piece (Pcs)</option>
+                        <option value="kg">Kg (Kilograms)</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Corporate Selling Price (Excl. Tax)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Selling Price (Excl. Tax)</label>
                     <input type="number" name="selling_price" step="0.01" min="0" placeholder="e.g. 1850.00" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                 </div>
@@ -78,7 +86,7 @@
         <form id="editProductForm" method="POST" class="ajax-form space-y-4">
             @csrf
             @method('PUT')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product Model Name</label>
                     <input type="text" name="product_name" id="edit_product_name" required
@@ -89,16 +97,24 @@
                     <input type="text" name="sku" id="edit_product_sku" required
                            class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-mono">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">HSN Code</label>
+                    <input type="text" name="hsn_code" id="edit_product_hsn" placeholder="e.g. 73089090" required
+                           class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-mono">
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Opening Stock Inventory</label>
-                    <input type="number" name="current_stock" id="edit_product_stock" min="0" required
-                           class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit of Measurement)</label>
+                    <select name="uom" id="edit_product_uom" required
+                            class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
+                        <option value="piece">Piece (Pcs)</option>
+                        <option value="kg">Kg (Kilograms)</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Corporate Selling Price (Excl. Tax)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Selling Price (Excl. Tax)</label>
                     <input type="number" name="selling_price" id="edit_product_price" step="0.01" min="0" required
                            class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
                 </div>
@@ -125,6 +141,8 @@
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Product Name</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">SKU Code</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">HSN Code</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">UOM</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Price</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Action</th>
@@ -136,13 +154,17 @@
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $good->product_name }}</td>
                             <td class="px-6 py-4 text-slate-600 font-medium text-xs font-mono">{{ $good->sku }}</td>
-                            <td class="px-6 py-4 text-right font-bold text-slate-800">{{ number_format($good->current_stock) }} units</td>
+                            <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ $good->hsn_code ?? '-' }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">{{ $good->uom ?? 'piece' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-bold text-slate-800">{{ number_format($good->current_stock) }} {{ $good->uom ?? 'piece' }}</td>
                             <td class="px-6 py-4 text-right text-slate-700 font-semibold">₹{{ number_format($good->selling_price, 2) }}</td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-2">
                                     <button type="button" 
                                             title="Edit Product"
-                                            onclick="openEditProductForm({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ $good->current_stock }}', '{{ $good->selling_price }}')"
+                                            onclick="openEditProductForm({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ addslashes($good->hsn_code ?? '') }}', '{{ $good->uom ?? 'piece' }}', '{{ $good->selling_price }}')"
                                             class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     </button>
@@ -183,7 +205,7 @@ function toggleCreateProductForm() {
     }
 }
 
-function openEditProductForm(id, name, sku, stock, price) {
+function openEditProductForm(id, name, sku, hsn, uom, price) {
     var createCard = document.getElementById('createProductFormCard');
     if (createCard) createCard.classList.add('hidden');
 
@@ -195,8 +217,10 @@ function openEditProductForm(id, name, sku, stock, price) {
     if (nameEl) nameEl.value = name;
     var skuEl = document.getElementById('edit_product_sku');
     if (skuEl) skuEl.value = sku;
-    var stockEl = document.getElementById('edit_product_stock');
-    if (stockEl) stockEl.value = stock;
+    var hsnEl = document.getElementById('edit_product_hsn');
+    if (hsnEl) hsnEl.value = hsn;
+    var uomEl = document.getElementById('edit_product_uom');
+    if (uomEl) uomEl.value = uom || 'piece';
     var priceEl = document.getElementById('edit_product_price');
     if (priceEl) priceEl.value = price;
 

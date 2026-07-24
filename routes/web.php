@@ -43,11 +43,19 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/clients/plants', [ErpController::class, 'storePlant'])->name('clients.plants.store');
     Route::put('/clients/plants/{id}', [ErpController::class, 'updatePlant'])->name('clients.plants.update');
     Route::delete('/clients/plants/{id}', [ErpController::class, 'deletePlant'])->name('clients.plants.delete');
+    Route::get('/clients/{id}/ledger', [ErpController::class, 'clientLedger'])->name('clients.ledger');
+    // 5.5 Sales Orders / Order Management
+    Route::get('/orders', [ErpController::class, 'orders'])->name('orders');
+    Route::post('/orders', [ErpController::class, 'storeOrder'])->name('orders.store');
+    Route::patch('/orders/{id}/status', [ErpController::class, 'updateOrderStatus'])->name('orders.updateStatus');
+    Route::post('/orders/{id}/convert-to-challan', [ErpController::class, 'convertOrderToChallan'])->name('orders.convertToChallan');
+    Route::delete('/orders/{id}', [ErpController::class, 'deleteOrder'])->name('orders.delete');
 
     // 6. Invoices & Billing Page
     Route::get('/invoices', [ErpController::class, 'invoices'])->name('invoices');
     Route::post('/invoices/generate', [ErpController::class, 'generateCustomInvoice'])->name('invoice.generate');
     Route::post('/invoices/{id}/pay', [ErpController::class, 'payInvoice'])->name('invoice.pay');
+    Route::post('/invoices/{id}/record-payment', [ErpController::class, 'recordInvoicePayment'])->name('invoice.record-payment');
     Route::get('/invoices/{id}/print', [ErpController::class, 'printInvoice'])->name('invoice.print');
     Route::get('/invoices/{id}/preview', [ErpController::class, 'previewInvoice'])->name('invoice.preview');
     Route::get('/invoices/{id}/download', [ErpController::class, 'downloadInvoicePdf'])->name('invoice.download');
@@ -57,10 +65,13 @@ Route::middleware(['auth'])->group(function () {
     // 7. Purchase Ledger (Raw Materials, Machinery, Tools)
     Route::get('/purchases', [ErpController::class, 'purchases'])->name('purchases');
     Route::post('/purchases', [ErpController::class, 'storePurchase'])->name('purchases.store');
+    Route::post('/purchases/{id}/record-payment', [ErpController::class, 'recordPurchasePayment'])->name('purchases.record-payment');
 
     // 8. Employees Directory
     Route::get('/employees', [ErpController::class, 'employees'])->name('employees');
     Route::post('/employees', [ErpController::class, 'storeEmployee'])->name('employees.store');
+    Route::put('/employees/{id}', [ErpController::class, 'updateEmployee'])->name('employees.update');
+    Route::delete('/employees/{id}', [ErpController::class, 'deleteEmployee'])->name('employees.delete');
 
     // 9. Operational Expenses
     Route::get('/expenses', [ErpController::class, 'expenses'])->name('expenses');

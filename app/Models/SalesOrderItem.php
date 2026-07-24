@@ -2,36 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class DeliveryChallanItem extends Model
+class SalesOrderItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'delivery_challan_id',
+        'sales_order_id',
         'finished_good_id',
         'quantity',
         'unit_price',
+        'total_price',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
     ];
 
-    /**
-     * Get the delivery challan parent.
-     */
-    public function deliveryChallan()
+    public function salesOrder()
     {
-        return $this->belongsTo(DeliveryChallan::class, 'delivery_challan_id');
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
     }
 
-    /**
-     * Get the finished good product.
-     */
     public function finishedGood()
     {
         return $this->belongsTo(Product::class, 'finished_good_id');

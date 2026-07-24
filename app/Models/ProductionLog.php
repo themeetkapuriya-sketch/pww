@@ -28,7 +28,7 @@ class ProductionLog extends Model
      */
     public function finishedGood()
     {
-        return $this->belongsTo(FinishedGood::class, 'finished_good_id');
+        return $this->belongsTo(Product::class, 'finished_good_id');
     }
 
     /**

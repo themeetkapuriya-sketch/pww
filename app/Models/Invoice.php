@@ -52,6 +52,23 @@ class Invoice extends Model
     }
 
     /**
+     * Get all payments recorded against this invoice.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'invoice_id')->orderBy('payment_date', 'desc');
+    }
+
+    /**
+     * Get remaining balance due on invoice.
+     */
+    public function getRemainingBalanceAttribute(): float
+    {
+        return max(0.00, round((float)$this->total_amount - (float)$this->paid_amount, 2));
+    }
+
+
+    /**
      * Generate sequential invoice number for current Financial Year (Apr 1 - Mar 31).
      * Resets to 0001 after March 31st.
      */
@@ -69,12 +86,12 @@ class Invoice extends Model
         $count = self::whereBetween('created_at', [$fyStart, $fyEnd])->count();
         $nextSequence = $count + 1;
         $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-        $invoiceNumber = 'INV-' . date('Ymd') . '-' . $sequenceStr;
+        $invoiceNumber = 'PWW-' . date('Ymd') . '-' . $sequenceStr;
 
         while (self::where('invoice_number', $invoiceNumber)->exists()) {
             $nextSequence++;
             $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-            $invoiceNumber = 'INV-' . date('Ymd') . '-' . $sequenceStr;
+            $invoiceNumber = 'PWW-' . date('Ymd') . '-' . $sequenceStr;
         }
 
         return $invoiceNumber;

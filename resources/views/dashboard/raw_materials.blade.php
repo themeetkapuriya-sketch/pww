@@ -17,7 +17,7 @@
             <button type="button" onclick="toggleCreateMaterialForm()" 
                     class="btn-primary py-2.5 px-5 text-xs font-bold flex items-center shadow-xs">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                + Create Raw Material
+                Create Raw Material
             </button>
         </div>
     </div>
@@ -27,7 +27,7 @@
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
             <h3 class="text-base font-bold text-slate-800 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Create New Raw Material
+             Create New Raw Material
             </h3>
             <button type="button" onclick="toggleCreateMaterialForm()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times; Close</button>
         </div>

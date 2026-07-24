@@ -226,9 +226,9 @@
             <div class="pt-2 border-t border-slate-100">
                 @if($invoice->payment_status !== 'paid')
                     <button type="button" 
-                            onclick="payInvoiceRecord({{ $invoice->id }}, '{{ $invoice->invoice_number }}')"
+                            onclick="payInvoiceRecord({{ $invoice->id }}, '{{ $invoice->invoice_number }}', {{ $invoice->remaining_balance }})"
                             class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition duration-150 shadow-2xs">
-                        <span>Mark Paid</span>
+                        <span>Record Payment (Dues: ₹{{ number_format($invoice->remaining_balance, 2) }})</span>
                     </button>
                 @endif
             </div>

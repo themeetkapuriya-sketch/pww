@@ -840,6 +840,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             orderable: true,
                             targets: 0,
                             render: function (data, type, row, meta) {
+                                if (meta.settings.fnRecordsTotal() === 0 || meta.settings.aiDisplay.length === 0) {
+                                    return data;
+                                }
                                 if (type === 'display') {
                                     return meta.row + meta.settings._iDisplayStart + 1;
                                 }
@@ -852,7 +855,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         searchPlaceholder: "Search records...",
                         lengthMenu: "Show _MENU_ entries",
                         info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        infoEmpty: "No records available",
+                        infoEmpty: "No Records Available",
+                        zeroRecords: "No Records Available",
+                        emptyTable: "No Records Available",
                         infoFiltered: "(filtered from _MAX_ total records)",
                         paginate: {
                             first: "«",
@@ -873,9 +878,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.initSearchableSelects) window.initSearchableSelects();
         }
 
-        // Global Modal Teleport Engine: Moves any modal to document.body
+        // Global Modal Teleport Engine: Moves top-level modal containers to document.body
         function initGlobalModalTeleport() {
-            $('[id*="Modal"], [id*="modal"], .modal-dialog').each(function() {
+            $('div.fixed[id*="Modal"], div.fixed[id*="modal"], div[id$="Modal"], div[id$="modal"]').each(function() {
                 if (this.parentNode !== document.body) {
                     document.body.appendChild(this);
                 }

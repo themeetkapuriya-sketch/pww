@@ -27,6 +27,8 @@ return new class extends Migration
             $table->id();
             $table->string('product_name');
             $table->string('sku')->unique();
+            $table->string('hsn_code')->nullable();
+            $table->string('uom')->default('piece'); // 'piece' or 'kg'
             $table->integer('current_stock')->default(0);
             $table->decimal('selling_price', 12, 2)->default(0.00);
             $table->boolean('alerts_enabled')->default(true);
@@ -64,8 +66,10 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->string('company_name')->default('Balaji Wafers');
+            $table->string('client_email')->nullable();
             $table->string('gst_number')->nullable();
             $table->text('corporate_address')->nullable();
+            $table->decimal('opening_balance', 12, 2)->default(0.00);
             $table->timestamps();
         });
 
@@ -76,12 +80,39 @@ return new class extends Migration
             $table->string('plant_name'); // e.g. Rajkot, Valsad, Indore
             $table->text('shipping_address')->nullable();
             $table->string('state')->default('Gujarat');
+            $table->string('gst_number')->nullable();
             $table->timestamps();
 
             $table->index('client_id');
         });
 
-        // 7. delivery_challans
+        // 7. sales_orders
+        Schema::create('sales_orders', function (Blueprint $table) {
+            $table->id();
+            $table->string('order_number')->unique();
+            $table->string('po_number')->nullable();
+            $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
+            $table->foreignId('plant_id')->nullable()->constrained('client_plants')->onDelete('set null');
+            $table->date('order_date');
+            $table->date('delivery_date')->nullable();
+            $table->enum('status', ['pending', 'in_production', 'ready_for_dispatch', 'dispatched', 'completed', 'cancelled'])->default('pending');
+            $table->decimal('total_amount', 12, 2)->default(0.00);
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+
+        // 8. sales_order_items
+        Schema::create('sales_order_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('sales_order_id')->constrained('sales_orders')->onDelete('cascade');
+            $table->foreignId('finished_good_id')->constrained('finished_goods')->onDelete('cascade');
+            $table->decimal('quantity', 10, 2);
+            $table->decimal('unit_price', 10, 2);
+            $table->decimal('total_price', 12, 2);
+            $table->timestamps();
+        });
+
+        // 9. delivery_challans
         Schema::create('delivery_challans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
@@ -96,7 +127,7 @@ return new class extends Migration
             $table->index('challan_number');
         });
 
-        // 8. delivery_challan_items (to store contents of challan)
+        // 10. delivery_challan_items (to store contents of challan)
         Schema::create('delivery_challan_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('delivery_challan_id')->constrained('delivery_challans')->onDelete('cascade');
@@ -109,11 +140,13 @@ return new class extends Migration
             $table->index('finished_good_id');
         });
 
-        // 9. invoices
+        // 11. invoices
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('delivery_challan_id')->nullable()->constrained('delivery_challans')->onDelete('set null');
             $table->string('invoice_number')->unique();
+            $table->string('vehicle_number')->nullable();
+            $table->date('invoice_date')->nullable();
             $table->decimal('total_taxable_value', 12, 2)->default(0.00);
             $table->decimal('cgst', 12, 2)->default(0.00);
             $table->decimal('sgst', 12, 2)->default(0.00);
@@ -121,7 +154,7 @@ return new class extends Migration
             $table->decimal('total_amount', 12, 2)->default(0.00);
             $table->enum('payment_status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid');
             $table->decimal('paid_amount', 12, 2)->default(0.00);
-            $table->date('due_date');
+            $table->date('due_date')->nullable();
             $table->timestamps();
 
             $table->index('delivery_challan_id');
@@ -134,12 +167,37 @@ return new class extends Migration
             $table->index('invoice_id');
         });
 
-        // 10. staff_profiles
+        // 12. payments (created before staff to support purchase payouts & client collections)
+        Schema::create('payments', function (Blueprint $table) {
+            $table->id();
+            $table->string('payment_number')->unique();
+            $table->enum('payment_type', ['received', 'paid']); // 'received' = sales collection, 'paid' = vendor payout
+            $table->foreignId('invoice_id')->nullable()->constrained('invoices')->nullOnDelete();
+            $table->foreignId('purchase_id')->nullable(); // Foreign key added after purchases table
+            $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
+            $table->foreignId('plant_id')->nullable()->constrained('client_plants')->nullOnDelete();
+            $table->string('vendor_name')->nullable();
+            $table->decimal('amount', 12, 2);
+            $table->date('payment_date');
+            $table->enum('payment_method', ['bank_transfer', 'cheque', 'upi', 'cash'])->default('bank_transfer');
+            $table->enum('account_type', ['bank', 'cash'])->default('bank');
+            $table->string('reference_number')->nullable(); // UTR / Cheque No / Txn ID
+            $table->text('notes')->nullable();
+            $table->timestamps();
+
+            $table->index('payment_number');
+            $table->index('invoice_id');
+            $table->index('client_id');
+            $table->index('plant_id');
+            $table->index('payment_date');
+        });
+
+        // 13. staff_profiles
         Schema::create('staff_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('full_name');
-            $table->enum('wage_type', ['fixed', 'piece-rate']);
+            $table->string('wage_type', 50)->default('per-day');
             $table->decimal('monthly_salary', 12, 2)->nullable();
             $table->decimal('piece_rate_per_unit', 12, 2)->nullable();
             $table->timestamps();
@@ -147,7 +205,7 @@ return new class extends Migration
             $table->index('user_id');
         });
 
-        // 11. labor_logs
+        // 14. labor_logs
         Schema::create('labor_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_profile_id')->constrained('staff_profiles')->onDelete('cascade');
@@ -161,7 +219,7 @@ return new class extends Migration
             $table->index('production_log_id');
         });
 
-        // 12. expenses
+        // 15. expenses
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
             $table->enum('expense_category', [
@@ -196,9 +254,12 @@ return new class extends Migration
         Schema::dropIfExists('expenses');
         Schema::dropIfExists('labor_logs');
         Schema::dropIfExists('staff_profiles');
+        Schema::dropIfExists('payments');
         Schema::dropIfExists('invoices');
         Schema::dropIfExists('delivery_challan_items');
         Schema::dropIfExists('delivery_challans');
+        Schema::dropIfExists('sales_order_items');
+        Schema::dropIfExists('sales_orders');
         Schema::dropIfExists('client_plants');
         Schema::dropIfExists('clients');
         Schema::dropIfExists('production_logs');

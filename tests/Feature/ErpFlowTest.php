@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\RawMaterial;
-use App\Models\FinishedGood;
+use App\Models\Product;
 use App\Models\BillOfMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
@@ -67,7 +67,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         // Setup Finished Good
-        $rack = FinishedGood::create([
+        $rack = Product::create([
             'product_name' => 'Super Rack',
             'sku' => 'SR-01',
             'current_stock' => 10,
@@ -87,7 +87,7 @@ class ErpFlowTest extends TestCase
         $staff = StaffProfile::create([
             'user_id' => null,
             'full_name' => 'Worker Amit',
-            'wage_type' => 'piece-rate',
+            'wage_type' => 'per-day',
             'piece_rate_per_unit' => 20.00,
         ]);
 
@@ -109,7 +109,7 @@ class ErpFlowTest extends TestCase
 
         // Assertions
         $this->assertInstanceOf(ProductionLog::class, $productionLog);
-        $this->assertEquals(20, FinishedGood::find($rack->id)->current_stock); // 10 initial + 10 made
+        $this->assertEquals(20, Product::find($rack->id)->current_stock); // 10 initial + 10 made
         $this->assertEquals(45.00, RawMaterial::find($iron->id)->current_stock); // 100 - 55 = 45
 
         // Verify Labor log created
@@ -159,7 +159,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         // Setup Finished Good
-        $rack = FinishedGood::create([
+        $rack = Product::create([
             'product_name' => 'Wire Rack',
             'sku' => 'WR-01',
             'current_stock' => 100,
@@ -225,12 +225,12 @@ class ErpFlowTest extends TestCase
         $staff = StaffProfile::create([
             'user_id' => null,
             'full_name' => 'Amit Sharma',
-            'wage_type' => 'piece-rate',
+            'wage_type' => 'per-day',
             'piece_rate_per_unit' => 50.00,
         ]);
 
         // Mock production log
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Rack',
             'sku' => 'RK-01',
             'current_stock' => 10,
@@ -294,7 +294,7 @@ class ErpFlowTest extends TestCase
         // 1. Revenue: create paid invoice (excl tax 10,000)
         $inv = Invoice::create([
             'delivery_challan_id' => null,
-            'invoice_number' => 'INV-001',
+            'invoice_number' => 'PWW-001',
             'total_taxable_value' => 10000.00,
             'cgst' => 900.00,
             'sgst' => 900.00,
@@ -315,7 +315,7 @@ class ErpFlowTest extends TestCase
             'average_purchase_price' => 10.00, // Cost is 10/kg
         ]);
 
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Rack',
             'sku' => 'RK-01',
             'current_stock' => 10,
@@ -350,7 +350,7 @@ class ErpFlowTest extends TestCase
         $staff = StaffProfile::create([
             'user_id' => null,
             'full_name' => 'Vijay',
-            'wage_type' => 'piece-rate',
+            'wage_type' => 'per-day',
         ]);
 
         LaborLog::create([
@@ -462,7 +462,7 @@ class ErpFlowTest extends TestCase
             'state' => 'Gujarat',
         ]);
 
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Rack A',
             'sku' => 'RA-01',
             'current_stock' => 10,
@@ -470,7 +470,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->postJson(route('invoice.generate'), [
-            'invoice_number' => 'INV-CUSTOM-999',
+            'invoice_number' => 'PWW-CUSTOM-999',
             'plant_id' => $plant->id,
             'due_date' => Carbon::now()->addDays(30)->toDateString(),
             'finished_good_ids' => [$good->id],
@@ -483,7 +483,7 @@ class ErpFlowTest extends TestCase
             'success' => true
         ]);
 
-        $invoice = Invoice::where('invoice_number', 'INV-CUSTOM-999')->first();
+        $invoice = Invoice::where('invoice_number', 'PWW-CUSTOM-999')->first();
         $this->assertNotNull($invoice);
         $this->assertEquals(5000.00, $invoice->total_taxable_value);
         $this->assertEquals(450.00, $invoice->cgst); // 9%
@@ -515,7 +515,7 @@ class ErpFlowTest extends TestCase
             'state' => 'Gujarat',
         ]);
 
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Transport Item',
             'sku' => 'TR-' . uniqid(),
             'current_stock' => 50,
@@ -524,7 +524,7 @@ class ErpFlowTest extends TestCase
 
         // 1. Test VALID vehicle number (GJ-03-BW-1234) -> Should succeed (200)
         $respValid = $this->actingAs($user)->postJson(route('invoice.generate'), [
-            'invoice_number' => 'INV-VEH-001',
+            'invoice_number' => 'PWW-VEH-001',
             'plant_id' => $plant->id,
             'vehicle_number' => 'GJ-03-BW-1234',
             'finished_good_ids' => [$good->id],
@@ -533,13 +533,13 @@ class ErpFlowTest extends TestCase
         ]);
         $respValid->assertStatus(200);
 
-        $invObj = Invoice::where('invoice_number', 'INV-VEH-001')->first();
+        $invObj = Invoice::where('invoice_number', 'PWW-VEH-001')->first();
         $this->assertNotNull($invObj);
         $this->assertEquals('GJ-03-BW-1234', $invObj->vehicle_number);
 
         // 2. Test INVALID vehicle number ("INVALID_VEHICLE_NUM") -> Should fail validation (422)
         $respInvalid = $this->actingAs($user)->postJson(route('invoice.generate'), [
-            'invoice_number' => 'INV-VEH-002',
+            'invoice_number' => 'PWW-VEH-002',
             'plant_id' => $plant->id,
             'vehicle_number' => 'INVALID_VEHICLE_NUM',
             'finished_good_ids' => [$good->id],
@@ -617,7 +617,7 @@ class ErpFlowTest extends TestCase
             'shipping_address' => 'Rajkot, Gujarat',
         ]);
 
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Delete Item',
             'sku' => 'DEL-01',
             'current_stock' => 10,
@@ -626,14 +626,14 @@ class ErpFlowTest extends TestCase
 
         // Generate Invoice
         $this->actingAs($user)->postJson(route('invoice.generate'), [
-            'invoice_number' => 'INV-DEL-999',
+            'invoice_number' => 'PWW-DEL-999',
             'plant_id' => $plant->id,
             'finished_good_ids' => [$good->id],
             'quantities' => [1],
             'unit_prices' => [500],
         ]);
 
-        $inv = Invoice::where('invoice_number', 'INV-DEL-999')->first();
+        $inv = Invoice::where('invoice_number', 'PWW-DEL-999')->first();
         $this->assertNotNull($inv);
 
         // Delete Invoice via DELETE Route
@@ -812,7 +812,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         $invoice = Invoice::create([
-            'invoice_number' => 'INV-PAYTEST-999',
+            'invoice_number' => 'PWW-PAYTEST-999',
             'total_taxable_value' => 1000.00,
             'cgst' => 90.00,
             'sgst' => 90.00,
@@ -855,7 +855,7 @@ class ErpFlowTest extends TestCase
             'state' => 'Gujarat',
         ]);
 
-        $good = FinishedGood::create([
+        $good = Product::create([
             'product_name' => 'Special Rack X',
             'sku' => 'SRX-99',
             'current_stock' => 10,
@@ -879,7 +879,7 @@ class ErpFlowTest extends TestCase
 
         $invoice = Invoice::create([
             'delivery_challan_id' => $challan->id,
-            'invoice_number' => 'INV-PRINTTEST-999',
+            'invoice_number' => 'PWW-PRINTTEST-999',
             'total_taxable_value' => 2500.00,
             'cgst' => 225.00,
             'sgst' => 225.00,
@@ -891,7 +891,7 @@ class ErpFlowTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('invoice.print', $invoice->id));
         $response->assertStatus(200);
-        $response->assertSee('INV-PRINTTEST-999');
+        $response->assertSee('PWW-PRINTTEST-999');
         $response->assertSee('Balaji Wafers');
         $response->assertSee('Rajkot plant');
         $response->assertSee('Special Rack X');
@@ -1022,5 +1022,112 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->delete(route('clients.delete', $client->id));
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertNull(Client::find($client->id));
+    }
+
+    /**
+     * Test Sales Orders CRUD, status updates, and 1-Click Delivery Challan conversion.
+     */
+    public function test_sales_orders_workflow()
+    {
+        $user = User::factory()->create();
+        $client = Client::create([
+            'company_name' => 'Tata Motors Supply Chain',
+            'contact_person' => 'Rajesh Sharma',
+            'email' => 'tata@example.com',
+            'phone' => '9876543210',
+            'billing_address' => 'Sanand GIDC, Gujarat',
+        ]);
+        $plant = ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Sanand Heavy Fabrication Plant',
+            'state' => 'Gujarat',
+            'gst_number' => '24TATA9999A1Z1',
+            'shipping_address' => 'Sanand Plant No 4, Gujarat',
+        ]);
+        $product = Product::create([
+            'product_name' => 'Heavy Duty Storage Rack 4-Tier',
+            'sku' => 'HD-RACK-4T',
+            'selling_price' => 7500.00,
+            'current_stock' => 50,
+        ]);
+
+        // 1. Create Sales Order
+        $response = $this->actingAs($user)->post(route('orders.store'), [
+            'client_id' => $client->id,
+            'plant_id' => $plant->id,
+            'po_number' => 'PO-TATA-9988',
+            'order_date' => date('Y-m-d'),
+            'delivery_date' => date('Y-m-d', strtotime('+7 days')),
+            'finished_good_ids' => [$product->id],
+            'quantities' => [10],
+            'unit_prices' => [7500.00],
+            'notes' => 'Test order creation',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $order = \App\Models\SalesOrder::where('po_number', 'PO-TATA-9988')->first();
+        $this->assertNotNull($order);
+        $this->assertEquals('pending', $order->status);
+        $this->assertEquals(75000.00, $order->total_amount);
+
+        // 2. Update Order Status
+        $response = $this->actingAs($user)->patch(route('orders.updateStatus', $order->id), [
+            'status' => 'in_production',
+        ]);
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('in_production', $order->fresh()->status);
+
+        // 3. Visit Invoice Page with order_id prefill
+        $response = $this->actingAs($user)->get(route('invoices', ['order_id' => $order->id]));
+        $response->assertStatus(200);
+
+        // 4. Generate Invoice prefilled from Sales Order
+        $response = $this->actingAs($user)->post(route('invoice.generate'), [
+            'invoice_number' => 'PWW-TEST-ORD-01',
+            'plant_id' => $plant->id,
+            'sales_order_id' => $order->id,
+            'finished_good_ids' => [$product->id],
+            'quantities' => [10],
+            'unit_prices' => [7500.00],
+        ]);
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('dispatched', $order->fresh()->status);
+
+        // 5. Delete Order
+        $response = $this->actingAs($user)->delete(route('orders.delete', $order->id));
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertNull(\App\Models\SalesOrder::find($order->id));
+    }
+
+    /**
+     * Test Employee CRUD Operations (Create, Update, Delete).
+     */
+    public function test_employee_crud_operations()
+    {
+        $user = User::factory()->create();
+
+        // 1. Store Employee
+        $response = $this->actingAs($user)->post(route('employees.store'), [
+            'full_name' => 'Ramesh Kumar',
+            'wage_type' => 'per-day',
+            'piece_rate_per_unit' => 600.00,
+        ]);
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $staffId = $response->json('data.id');
+
+        // 2. Update Employee
+        $response = $this->actingAs($user)->put(route('employees.update', $staffId), [
+            'full_name' => 'Ramesh Kumar Updated',
+            'wage_type' => 'fixed',
+            'monthly_salary' => 25000.00,
+        ]);
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('Ramesh Kumar Updated', StaffProfile::find($staffId)->full_name);
+        $this->assertEquals('fixed', StaffProfile::find($staffId)->wage_type);
+
+        // 3. Delete Employee
+        $response = $this->actingAs($user)->delete(route('employees.delete', $staffId));
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertNull(StaffProfile::find($staffId));
     }
 }

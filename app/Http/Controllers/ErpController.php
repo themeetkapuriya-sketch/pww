@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\RawMaterial;
-use App\Models\FinishedGood;
+use App\Models\Product;
 use App\Models\Client;
 use App\Models\ClientPlant;
 use App\Models\DeliveryChallan;
@@ -13,9 +13,13 @@ use App\Models\Invoice;
 use App\Models\StaffProfile;
 use App\Models\LaborLog;
 use App\Models\Expense;
+use App\Models\Purchase;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\BillOfMaterial;
 use App\Models\ProductionLog;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
 use App\Services\ProductionService;
 use App\Services\PayrollService;
 use App\Services\BillingService;
@@ -82,8 +86,11 @@ class ErpController extends Controller
                 }
                 break;
             case 'year':
-                $startDate = Carbon::create((int)$filterYear, 4, 1)->toDateString();
-                $endDate = Carbon::create((int)$filterYear + 1, 3, 31)->toDateString();
+                $now = Carbon::now();
+                $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
+                $targetYear = (int)$request->input('filter_year', $fyStartYear);
+                $startDate = Carbon::create($targetYear, 4, 1)->toDateString();
+                $endDate = Carbon::create($targetYear + 1, 3, 31)->toDateString();
                 break;
             case 'custom':
             default:
@@ -100,58 +107,7 @@ class ErpController extends Controller
      */
     public function overview(Request $request)
     {
-        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
-        $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
-        $rawMaterials = RawMaterial::all();
-        
-        // Balaji Wafers plant-wise matrix
-        $plants = ClientPlant::whereHas('client', function ($q) {
-            $q->where('company_name', 'like', '%Balaji%');
-        })->get();
-
-        $plantSalesMatrix = [];
-        foreach ($plants as $plant) {
-            $sales = Invoice::whereHas('deliveryChallans', function ($q) use ($plant) {
-                $q->where('plant_id', $plant->id);
-            })->sum('total_taxable_value');
-
-            $freight = Expense::where('expense_category', 'freight_transport')
-                ->where('description', 'like', '%' . $plant->plant_name . '%')
-                ->sum('amount');
-
-            $plantSalesMatrix[] = [
-                'plant_name' => $plant->plant_name,
-                'sales' => $sales,
-                'freight' => $freight,
-            ];
-        }
-
-        // Expense distribution
-        $expenseCategories = Expense::whereBetween('expense_date', [$startDate, $endDate])
-            ->selectRaw('expense_category, SUM(amount) as total')
-            ->groupBy('expense_category')
-            ->get()
-            ->pluck('total', 'expense_category')
-            ->toArray();
-
-        // 6 months trend
-        $trendMonths = [];
-        $trendRevenue = [];
-        $trendExpenses = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $month = Carbon::now()->subMonths($i);
-            $startOfMonth = $month->copy()->startOfMonth();
-            $endOfMonth = $month->copy()->endOfMonth();
-
-            $trendMonths[] = $month->format('M Y');
-            $trendRevenue[] = Invoice::whereBetween('created_at', [$startOfMonth, $endOfMonth])->sum('total_taxable_value');
-            $trendExpenses[] = Expense::whereBetween('expense_date', [$startOfMonth, $endOfMonth])->sum('amount');
-        }
-
-        return view('dashboard.overview', compact(
-            'financials', 'rawMaterials', 'plantSalesMatrix',
-            'expenseCategories', 'trendMonths', 'trendRevenue', 'trendExpenses'
-        ));
+        return view('dashboard.overview');
     }
 
     /**
@@ -166,7 +122,7 @@ class ErpController extends Controller
             return view('dashboard.raw_materials', compact('rawMaterials'));
         }
 
-        $finishedGoods = FinishedGood::orderBy('product_name')->paginate(20);
+        $finishedGoods = Product::orderBy('product_name')->paginate(20);
         return view('dashboard.products', compact('finishedGoods'));
     }
 
@@ -257,15 +213,20 @@ class ErpController extends Controller
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
             'sku' => 'required|string|unique:finished_goods,sku|max:100',
-            'current_stock' => 'required|integer|min:0',
+            'hsn_code' => 'required|string|max:50',
+            'uom' => 'required|string|in:piece,kg',
+            'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
         ]);
 
-        $good = FinishedGood::create($validated);
+        $validated['current_stock'] = $request->input('current_stock', 0);
+        $validated['uom'] = $request->input('uom', 'piece');
+
+        $good = Product::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => "Finished Good '{$good->product_name}' cataloged successfully!",
+            'message' => "Product '{$good->product_name}' cataloged successfully!",
             'data' => $good
         ]);
     }
@@ -275,14 +236,20 @@ class ErpController extends Controller
      */
     public function updateFinishedGood(Request $request, $id)
     {
-        $good = FinishedGood::findOrFail($id);
+        $good = Product::findOrFail($id);
 
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
             'sku' => 'required|string|max:100|unique:finished_goods,sku,' . $id,
-            'current_stock' => 'required|integer|min:0',
+            'hsn_code' => 'required|string|max:50',
+            'uom' => 'required|string|in:piece,kg',
+            'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
         ]);
+
+        if (!array_key_exists('current_stock', $validated) || is_null($validated['current_stock'])) {
+            unset($validated['current_stock']);
+        }
 
         $good->update($validated);
 
@@ -298,7 +265,7 @@ class ErpController extends Controller
      */
     public function deleteFinishedGood($id)
     {
-        $good = FinishedGood::findOrFail($id);
+        $good = Product::findOrFail($id);
         $name = $good->product_name;
         $good->delete();
 
@@ -313,7 +280,7 @@ class ErpController extends Controller
      */
     public function bom()
     {
-        $finishedGoods = FinishedGood::with('billOfMaterials.rawMaterial')->get();
+        $finishedGoods = Product::with('billOfMaterials.rawMaterial')->get();
         $rawMaterials = RawMaterial::all();
         return view('dashboard.bom', compact('finishedGoods', 'rawMaterials'));
     }
@@ -354,7 +321,7 @@ class ErpController extends Controller
     public function production()
     {
         $productionLogs = ProductionLog::with('finishedGood', 'recordedByUser')->orderBy('production_date', 'desc')->paginate(20);
-        $finishedGoods = FinishedGood::all();
+        $finishedGoods = Product::all();
         $staffProfiles = StaffProfile::all();
         $users = User::all();
         return view('dashboard.production', compact('productionLogs', 'finishedGoods', 'staffProfiles', 'users'));
@@ -651,9 +618,15 @@ class ErpController extends Controller
     public function invoices(Request $request)
     {
         $invoices = Invoice::with(['deliveryChallans.plant', 'deliveryChallan.client'])->orderBy('created_at', 'desc')->paginate(20);
-        $finishedGoods = FinishedGood::all();
+        $finishedGoods = Product::all();
         $clients = Client::with('plants')->get();
-        return view('dashboard.invoices', compact('invoices', 'finishedGoods', 'clients'));
+
+        $prefillOrder = null;
+        if ($request->has('order_id')) {
+            $prefillOrder = SalesOrder::with(['items.finishedGood', 'client', 'plant'])->find($request->input('order_id'));
+        }
+
+        return view('dashboard.invoices', compact('invoices', 'finishedGoods', 'clients', 'prefillOrder'));
     }
 
     /**
@@ -664,6 +637,7 @@ class ErpController extends Controller
         $validated = $request->validate([
             'invoice_number' => 'required|string|unique:invoices,invoice_number',
             'plant_id' => 'required|exists:client_plants,id',
+            'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
             'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
             'due_date' => 'nullable|date',
@@ -740,6 +714,10 @@ class ErpController extends Controller
 
                 $challan->update(['invoice_id' => $invoice->id]);
 
+                if (!empty($validated['sales_order_id'])) {
+                    SalesOrder::where('id', $validated['sales_order_id'])->update(['status' => 'dispatched']);
+                }
+
                 return $invoice;
             });
 
@@ -757,16 +735,117 @@ class ErpController extends Controller
     }
 
     /**
-     * Mark an invoice as Paid (AJAX).
+     * Record payment against an invoice (Full or Partial with payment method & ref #).
+     */
+    public function recordInvoicePayment(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'payment_method' => 'required|in:bank_transfer,cheque,upi,cash',
+            'account_type' => 'required|in:bank,cash',
+            'reference_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $invoice = Invoice::with(['deliveryChallan.client', 'deliveryChallans.client'])->findOrFail($id);
+            $primaryChallan = $invoice->deliveryChallan ?? $invoice->deliveryChallans->first();
+            $clientId = $primaryChallan ? $primaryChallan->client_id : null;
+
+            $amount = (float) $validated['amount'];
+            $remaining = (float) $invoice->remaining_balance;
+
+            if ($amount > ($remaining + 0.01)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['amount' => ["Payment amount (₹" . number_format($amount, 2) . ") cannot exceed remaining invoice balance (₹" . number_format($remaining, 2) . ")."]]
+                ], 422);
+            }
+
+            DB::transaction(function () use ($invoice, $validated, $amount, $clientId, $plantId) {
+                // 1. Create Payment Voucher
+                Payment::create([
+                    'payment_number' => Payment::generatePaymentNumber('received'),
+                    'payment_type' => 'received',
+                    'invoice_id' => $invoice->id,
+                    'client_id' => $clientId,
+                    'plant_id' => $plantId,
+                    'amount' => $amount,
+                    'payment_date' => $validated['payment_date'],
+                    'payment_method' => $validated['payment_method'],
+                    'account_type' => $validated['account_type'],
+                    'reference_number' => $validated['reference_number'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                // 2. Update Invoice Paid Amount & Status
+                $newPaidAmount = round((float)$invoice->paid_amount + $amount, 2);
+                $totalAmount = (float)$invoice->total_amount;
+
+                $newStatus = 'partially_paid';
+                if ($newPaidAmount >= ($totalAmount - 0.01)) {
+                    $newPaidAmount = $totalAmount;
+                    $newStatus = 'paid';
+                }
+
+                $invoice->update([
+                    'paid_amount' => $newPaidAmount,
+                    'payment_status' => $newStatus,
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Payment of ₹" . number_format($amount, 2) . " recorded successfully for Invoice '{$invoice->invoice_number}'!"
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to record payment: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark an invoice as Paid (Quick action).
      */
     public function payInvoice($id)
     {
         try {
-            $invoice = Invoice::findOrFail($id);
-            $invoice->update([
-                'payment_status' => 'paid',
-                'paid_amount' => $invoice->total_amount,
-            ]);
+            $invoice = Invoice::with(['deliveryChallan.client', 'deliveryChallans.client'])->findOrFail($id);
+            $remaining = (float) $invoice->remaining_balance;
+
+            if ($remaining <= 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Invoice '{$invoice->invoice_number}' is already fully paid."
+                ]);
+            }
+
+            $primaryChallan = $invoice->deliveryChallan ?? $invoice->deliveryChallans->first();
+            $clientId = $primaryChallan ? $primaryChallan->client_id : null;
+            $plantId = $primaryChallan ? $primaryChallan->plant_id : null;
+
+            DB::transaction(function () use ($invoice, $remaining, $clientId, $plantId) {
+                Payment::create([
+                    'payment_number' => Payment::generatePaymentNumber('received'),
+                    'payment_type' => 'received',
+                    'invoice_id' => $invoice->id,
+                    'client_id' => $clientId,
+                    'plant_id' => $plantId,
+                    'amount' => $remaining,
+                    'payment_date' => date('Y-m-d'),
+                    'payment_method' => 'bank_transfer',
+                    'account_type' => 'bank',
+                    'notes' => 'Quick marked as fully paid',
+                ]);
+
+                $invoice->update([
+                    'payment_status' => 'paid',
+                    'paid_amount' => $invoice->total_amount,
+                ]);
+            });
 
             return response()->json([
                 'success' => true,
@@ -781,6 +860,110 @@ class ErpController extends Controller
     }
 
     /**
+     * Record payment to vendor for purchase.
+     */
+    public function recordPurchasePayment(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'payment_method' => 'required|in:bank_transfer,cheque,upi,cash',
+            'account_type' => 'required|in:bank,cash',
+            'reference_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $purchase = Purchase::findOrFail($id);
+            $amount = (float) $validated['amount'];
+            $remaining = (float) $purchase->remaining_balance;
+
+            if ($amount > ($remaining + 0.01)) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['amount' => ["Payment amount (₹" . number_format($amount, 2) . ") cannot exceed purchase balance (₹" . number_format($remaining, 2) . ")."]]
+                ], 422);
+            }
+
+            DB::transaction(function () use ($purchase, $validated, $amount) {
+                Payment::create([
+                    'payment_number' => Payment::generatePaymentNumber('paid'),
+                    'payment_type' => 'paid',
+                    'purchase_id' => $purchase->id,
+                    'vendor_name' => $purchase->vendor_name,
+                    'amount' => $amount,
+                    'payment_date' => $validated['payment_date'],
+                    'payment_method' => $validated['payment_method'],
+                    'account_type' => $validated['account_type'],
+                    'reference_number' => $validated['reference_number'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                $newPaidAmount = round((float)($purchase->paid_amount ?? 0) + $amount, 2);
+                $totalAmount = (float)$purchase->total_amount;
+
+                $newStatus = 'partially_paid';
+                if ($newPaidAmount >= ($totalAmount - 0.01)) {
+                    $newPaidAmount = $totalAmount;
+                    $newStatus = 'paid';
+                }
+
+                $purchase->update([
+                    'paid_amount' => $newPaidAmount,
+                    'payment_status' => $newStatus,
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Payment of ₹" . number_format($amount, 2) . " recorded for vendor '{$purchase->vendor_name}'!"
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to record vendor payment: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * View Client Account Ledger page.
+     */
+    public function clientLedger(Request $request, $id)
+    {
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
+        $plantId = $request->input('plant_id') ? (int)$request->input('plant_id') : null;
+        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
+        
+        return view('dashboard.client_ledger', array_merge($ledgerData, [
+            'period' => $period,
+            'filterMonth' => $filterMonth,
+            'filterYear' => $filterYear,
+            'plant_id' => $plantId,
+        ]));
+    }
+
+    /**
+     * Download Client Account Statement PDF.
+     */
+    public function downloadClientLedgerPdf(Request $request, $id)
+    {
+        [$startDate, $endDate] = $this->getDateRange($request);
+        $plantId = $request->input('plant_id') ? (int)$request->input('plant_id') : null;
+        $ledgerData = $this->financialService->getClientLedger($id, $startDate, $endDate, $plantId);
+
+        $pdf = Pdf::loadView('pdf.client_ledger_pdf', $ledgerData)
+            ->setPaper('a4', 'portrait')
+            ->setWarnings(false);
+
+        $clientName = str_replace(' ', '_', $ledgerData['client']->company_name);
+        $plantSuffix = $ledgerData['selected_plant'] ? '_' . str_replace(' ', '_', $ledgerData['selected_plant']->plant_name) : '';
+        $filename = "Statement_of_Account_{$clientName}{$plantSuffix}_" . date('Ymd') . ".pdf";
+
+        return $pdf->download($filename);
+    }
+
+    /**
      * Delete an invoice (AJAX).
      */
     public function deleteInvoice($id)
@@ -790,16 +973,29 @@ class ErpController extends Controller
             $invNum = $invoice->invoice_number;
 
             DB::transaction(function () use ($invoice) {
-                DeliveryChallan::where('invoice_id', $invoice->id)->update(['invoice_id' => null, 'status' => 'dispatched']);
-                
-                if ($invoice->delivery_challan_id) {
-                    $primaryChallan = DeliveryChallan::find($invoice->delivery_challan_id);
+                // 1. Unlink any aggregated challans and revert status to pending_invoice
+                DeliveryChallan::where('invoice_id', $invoice->id)->update([
+                    'invoice_id' => null, 
+                    'status' => 'pending_invoice'
+                ]);
+
+                // 2. Delete linked payment voucher entries
+                Payment::where('invoice_id', $invoice->id)->delete();
+
+                // 3. Save primary challan ID & unlink from invoice to prevent foreign key constraint
+                $primaryChallanId = $invoice->delivery_challan_id;
+                $invoice->update(['delivery_challan_id' => null]);
+
+                // 4. Delete custom primary challan & items if generated for this invoice
+                if ($primaryChallanId) {
+                    $primaryChallan = DeliveryChallan::find($primaryChallanId);
                     if ($primaryChallan) {
                         $primaryChallan->items()->delete();
                         $primaryChallan->delete();
                     }
                 }
-                
+
+                // 5. Delete invoice record
                 $invoice->delete();
             });
 
@@ -1053,9 +1249,9 @@ class ErpController extends Controller
     {
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'wage_type' => 'required|in:fixed,piece-rate',
+            'wage_type' => 'required|in:fixed,per-day',
             'monthly_salary' => 'nullable|required_if:wage_type,fixed|numeric|min:0',
-            'piece_rate_per_unit' => 'nullable|required_if:wage_type,piece-rate|numeric|min:0',
+            'piece_rate_per_unit' => 'nullable|required_if:wage_type,per-day|numeric|min:0',
         ]);
 
         $staff = StaffProfile::create($validated);
@@ -1064,6 +1260,50 @@ class ErpController extends Controller
             'success' => true,
             'message' => "Employee profile for '{$staff->full_name}' created successfully!",
             'data' => $staff
+        ]);
+    }
+
+    /**
+     * Update employee profile (AJAX).
+     */
+    public function updateEmployee(Request $request, $id)
+    {
+        $staff = StaffProfile::findOrFail($id);
+
+        $validated = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'wage_type' => 'required|in:fixed,per-day',
+            'monthly_salary' => 'nullable|required_if:wage_type,fixed|numeric|min:0',
+            'piece_rate_per_unit' => 'nullable|required_if:wage_type,per-day|numeric|min:0',
+        ]);
+
+        if ($validated['wage_type'] === 'fixed') {
+            $validated['piece_rate_per_unit'] = null;
+        } else {
+            $validated['monthly_salary'] = null;
+        }
+
+        $staff->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Employee profile for '{$staff->full_name}' updated successfully!",
+            'data' => $staff
+        ]);
+    }
+
+    /**
+     * Delete employee profile (AJAX).
+     */
+    public function deleteEmployee($id)
+    {
+        $staff = StaffProfile::findOrFail($id);
+        $name = $staff->full_name;
+        $staff->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Employee '{$name}' deleted successfully!"
         ]);
     }
 
@@ -1139,7 +1379,7 @@ class ErpController extends Controller
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
-            'purchase_type' => 'required|in:raw_material,machinery,supplies',
+            'purchase_type' => 'required|in:raw_material,machinery,supplies,others',
             'raw_material_id' => 'nullable|required_if:purchase_type,raw_material|exists:raw_materials,id',
             'item_name' => 'nullable|string|max:255',
             'quantity' => 'nullable|numeric|min:0.0001',
@@ -1496,6 +1736,205 @@ class ErpController extends Controller
             return response()->json([
                 'success' => false,
                 'errors' => ['Failed to save business settings: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * View Sales Orders page.
+     */
+    public function orders(Request $request)
+    {
+        $status = $request->input('status', 'all');
+        $query = SalesOrder::with(['client', 'plant', 'items.finishedGood'])->orderBy('order_date', 'desc')->orderBy('id', 'desc');
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->get();
+        $clients = Client::with('plants')->orderBy('company_name')->get();
+        $finishedGoods = Product::orderBy('product_name')->get();
+
+        $stats = [
+            'total' => SalesOrder::count(),
+            'pending' => SalesOrder::where('status', 'pending')->count(),
+            'in_production' => SalesOrder::where('status', 'in_production')->count(),
+            'ready' => SalesOrder::where('status', 'ready_for_dispatch')->count(),
+            'completed' => SalesOrder::whereIn('status', ['dispatched', 'completed'])->count(),
+        ];
+
+        return view('dashboard.orders', compact('orders', 'clients', 'finishedGoods', 'status', 'stats'));
+    }
+
+    /**
+     * Store new Sales Order (AJAX).
+     */
+    public function storeOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'plant_id' => 'nullable|exists:client_plants,id',
+            'po_number' => 'nullable|string|max:100',
+            'order_date' => 'required|date',
+            'delivery_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:1000',
+            'finished_good_ids' => 'required|array|min:1',
+            'finished_good_ids.*' => 'required|exists:finished_goods,id',
+            'quantities' => 'required|array|min:1',
+            'quantities.*' => 'required|numeric|min:0.01',
+            'unit_prices' => 'required|array|min:1',
+            'unit_prices.*' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            $orderNumber = SalesOrder::generateNextOrderNumber();
+            $totalAmount = 0.00;
+
+            DB::transaction(function () use ($validated, $orderNumber, &$totalAmount) {
+                $order = SalesOrder::create([
+                    'order_number' => $orderNumber,
+                    'po_number' => $validated['po_number'] ?? null,
+                    'client_id' => $validated['client_id'],
+                    'plant_id' => $validated['plant_id'] ?? null,
+                    'order_date' => $validated['order_date'],
+                    'delivery_date' => $validated['delivery_date'] ?? null,
+                    'status' => 'pending',
+                    'total_amount' => 0.00,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                foreach ($validated['finished_good_ids'] as $idx => $fgId) {
+                    $qty = (float) $validated['quantities'][$idx];
+                    $price = (float) $validated['unit_prices'][$idx];
+                    $lineTotal = round($qty * $price, 2);
+                    $totalAmount += $lineTotal;
+
+                    SalesOrderItem::create([
+                        'sales_order_id' => $order->id,
+                        'finished_good_id' => $fgId,
+                        'quantity' => $qty,
+                        'unit_price' => $price,
+                        'total_price' => $lineTotal,
+                    ]);
+                }
+
+                $order->update(['total_amount' => round($totalAmount, 2)]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sales Order '{$orderNumber}' created successfully!"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to create sales order: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Sales Order status (AJAX).
+     */
+    public function updateOrderStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,in_production,ready_for_dispatch,dispatched,completed,cancelled',
+        ]);
+
+        try {
+            $order = SalesOrder::findOrFail($id);
+            $order->update(['status' => $validated['status']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Order '{$order->order_number}' status updated to '" . $order->formatted_status . "'."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to update order status: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Convert Sales Order into Delivery Challan (AJAX).
+     */
+    public function convertOrderToChallan($id)
+    {
+        try {
+            $order = SalesOrder::with(['items.finishedGood'])->findOrFail($id);
+
+            if ($order->status === 'cancelled') {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['Cancelled orders cannot be converted into Delivery Challans.']
+                ], 422);
+            }
+
+            $challanNumber = DeliveryChallan::generateNextChallanNumber();
+
+            DB::transaction(function () use ($order, $challanNumber) {
+                $dc = DeliveryChallan::create([
+                    'challan_number' => $challanNumber,
+                    'client_id' => $order->client_id,
+                    'plant_id' => $order->plant_id,
+                    'dispatch_date' => date('Y-m-d'),
+                    'status' => 'pending_invoice',
+                ]);
+
+                foreach ($order->items as $item) {
+                    DeliveryChallanItem::create([
+                        'delivery_challan_id' => $dc->id,
+                        'finished_good_id' => $item->finished_good_id,
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->total_price,
+                    ]);
+
+                    // Deduct product stock
+                    $good = Product::find($item->finished_good_id);
+                    if ($good) {
+                        $good->current_stock = max(0, $good->current_stock - $item->quantity);
+                        $good->save();
+                    }
+                }
+
+                $order->update(['status' => 'dispatched']);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Delivery Challan generated successfully from Order #{$order->order_number}!"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to convert order to delivery challan: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Sales Order (AJAX).
+     */
+    public function deleteOrder($id)
+    {
+        try {
+            $order = SalesOrder::findOrFail($id);
+            $orderNumber = $order->order_number;
+            $order->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Sales Order '{$orderNumber}' deleted successfully."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to delete order: ' . $e->getMessage()]
             ], 500);
         }
     }

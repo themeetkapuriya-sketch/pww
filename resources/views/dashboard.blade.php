@@ -132,7 +132,7 @@
                     <span class="text-[10px] text-slate-500">Consumed stock + waste</span>
                 </div>
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-theme-gray">Piece-Rate Wages</span>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-theme-gray">Direct Labor Wages</span>
                     <p class="text-xl font-bold text-slate-800 mt-1">₹{{ number_format($financials['direct_wages'], 2) }}</p>
                     <span class="text-[10px] text-slate-500">Paid & accrued labor</span>
                 </div>
@@ -282,21 +282,6 @@
                         </div>
                     </div>
 
-                    <div class="border-t border-slate-200 pt-4">
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Staff Piece-Rate Work Log Allocation</label>
-                        <div class="space-y-2 max-h-[140px] overflow-y-auto bg-slate-50 p-3 rounded-lg border border-slate-200">
-                            @foreach ($staffProfiles->where('wage_type', 'piece-rate') as $staff)
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="font-medium text-slate-700">{{ $staff->full_name }} (₹{{ $staff->piece_rate_per_unit }}/unit)</span>
-                                    <div class="flex items-center space-x-2">
-                                        <input type="number" name="labor[{{ $staff->id }}]" min="0" placeholder="Units Done" class="w-24 bg-white border border-slate-200 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                        <span class="text-xs text-slate-400">units</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-
                     <button type="submit" class="w-full bg-theme-blue hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition duration-150 ease-in-out text-sm">
                         Execute Production Run & Auto-Deduct Stock
                     </button>
@@ -414,11 +399,11 @@
                     <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     Wages Matrix & Payroll Ledger
                 </h3>
-                <p class="text-xs text-theme-gray mb-4">Auto-compiling pending wage payouts for piece-rate workers based on completed manufacturing outputs.</p>
+                <p class="text-xs text-theme-gray mb-4">Auto-compiling pending wage payouts for daily/staff workers based on completed manufacturing outputs.</p>
 
                 @if ($pendingWages->isEmpty())
                     <div class="flex-grow flex items-center justify-center p-8 bg-slate-50 rounded-xl border border-slate-200 border-dashed text-slate-400">
-                        All piece-rate worker payouts are compiled and paid up-to-date!
+                        All worker payouts are compiled and paid up-to-date!
                     </div>
                 @else
                     <form action="{{ route('payroll.pay') }}" method="POST" class="space-y-4 flex-grow flex flex-col justify-between">
@@ -557,15 +542,22 @@
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
                                         @if(($inv->payment_status ?? 'unpaid') === 'paid')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                                                 PAID
                                             </span>
+                                        @elseif(($inv->payment_status ?? 'unpaid') === 'partially_paid')
+                                            <button type="button" 
+                                                    onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
+                                                    title="Click to record payment"
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer">
+                                                PARTIAL (₹{{ number_format($inv->remaining_balance, 0) }} DUE)
+                                            </button>
                                         @else
                                             <button type="button" 
-                                                    onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}')"
-                                                    title="Click to mark invoice as Paid"
-                                                    class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:scale-105 transition cursor-pointer">
-                                                {{ $inv->payment_status ?? 'UNPAID' }}
+                                                    onclick="payInvoiceRecord({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
+                                                    title="Click to record payment"
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer">
+                                                UNPAID
                                             </button>
                                         @endif
                                     </td>

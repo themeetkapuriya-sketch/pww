@@ -7,7 +7,7 @@
     <!-- Header -->
     <div>
         <h1 class="text-2xl font-bold text-slate-800">Production Logs</h1>
-        <p class="text-sm text-slate-500">Record rack manufacturing batches and compile staff piece-rate work outputs.</p>
+        <p class="text-sm text-slate-500">Record rack manufacturing batches and monitor stock inventory.</p>
     </div>
 
     <!-- 1. INSERT FORM AT THE TOP -->
@@ -55,23 +55,6 @@
                             <option value="{{ $u->id }}">{{ $u->name }}</option>
                         @endforeach
                     </select>
-                </div>
-            </div>
-
-            <!-- Piece-rate allocation -->
-            <div class="border-t border-slate-200 pt-4">
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Staff Piece-Rate Work Allocation Log</label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[200px] overflow-y-auto bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    @foreach ($staffProfiles->where('wage_type', 'piece-rate') as $staff)
-                        <div class="flex items-center justify-between text-sm bg-white p-2.5 rounded-lg border border-slate-150">
-                            <span class="font-medium text-slate-700">{{ $staff->full_name }} (₹{{ $staff->piece_rate_per_unit }}/unit)</span>
-                            <div class="flex items-center space-x-2">
-                                <input type="number" name="labor[{{ $staff->id }}]" min="0" placeholder="0"
-                                       class="w-20 bg-slate-50 border border-slate-200 rounded px-2.5 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                <span class="text-xs text-slate-400">units</span>
-                            </div>
-                        </div>
-                    @endforeach
                 </div>
             </div>
 

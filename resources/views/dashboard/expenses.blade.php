@@ -4,14 +4,24 @@
 
 @section('content')
 <div class="space-y-6">
-    <!-- Header -->
-    <div>
-        <h1 class="text-2xl font-bold text-slate-800">Expenses Ledger</h1>
-        <p class="text-sm text-slate-500">Record factory overheads, transport freight, office administration costs, and machinery depreciation.</p>
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Expenses Ledger</h1>
+            <p class="text-sm text-slate-500">Record factory overheads, transport freight, office administration costs, and machinery depreciation.</p>
+        </div>
+        <button type="button" 
+                onclick="toggleInlineForm('expenseFormContainer', this)" 
+                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
+            <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>Log New Expense</span>
+        </button>
     </div>
 
-    <!-- 1. INSERT FORM AT THE TOP -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <!-- 1. INSERT FORM AT THE TOP (Expandable) -->
+    <div id="expenseFormContainer" class="hidden transition-all duration-300 ease-in-out">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
             <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             Log Factory Overheads
@@ -56,6 +66,7 @@
             </button>
         </form>
     </div>
+</div>
 
     <!-- 2. RECORDS LIST UNDERNEATH -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -90,4 +101,30 @@
         </div>
     </div>
 </div>
+
+<script>
+    window.toggleInlineForm = function(containerId, btn) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const isHidden = container.classList.contains('hidden');
+        if (isHidden) {
+            container.classList.remove('hidden');
+            if (btn) {
+                btn.classList.replace('bg-blue-600', 'bg-slate-700');
+                btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-800');
+                const icon = btn.querySelector('svg');
+                if (icon) icon.style.transform = 'rotate(45deg)';
+            }
+        } else {
+            container.classList.add('hidden');
+            if (btn) {
+                btn.classList.replace('bg-slate-700', 'bg-blue-600');
+                btn.classList.replace('hover:bg-slate-800', 'hover:bg-blue-700');
+                const icon = btn.querySelector('svg');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    };
+</script>
 @endsection

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\FinishedGood;
+use App\Models\Product;
 use App\Models\RawMaterial;
 use App\Models\ProductionLog;
 use App\Models\LaborLog;
@@ -33,7 +33,7 @@ class ProductionService
         array $laborData = []
     ): ProductionLog {
         return DB::transaction(function () use ($finishedGoodId, $quantityManufactured, $quantityRejected, $recordedByUserId, $productionDate, $laborData) {
-            $finishedGood = FinishedGood::findOrFail($finishedGoodId);
+            $finishedGood = Product::findOrFail($finishedGoodId);
 
             // Fetch BOM items
             $bomItems = $finishedGood->billOfMaterials()->with('rawMaterial')->get();
@@ -80,7 +80,7 @@ class ProductionService
                 
                 // Calculate payout if wage_type is piece-rate
                 $payout = 0.00;
-                if ($staffProfile->wage_type === 'piece-rate') {
+                if ($staffProfile->wage_type === 'per-day') {
                     $payout = $labor['units_completed'] * ($staffProfile->piece_rate_per_unit ?? 0.00);
                 }
 

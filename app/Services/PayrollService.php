@@ -15,7 +15,7 @@ class PayrollService
      */
     public function compilePendingPieceRateWages()
     {
-        return StaffProfile::where('wage_type', 'piece-rate')
+        return StaffProfile::where('wage_type', 'per-day')
             ->with(['laborLogs' => function ($query) {
                 $query->where('status', 'pending');
             }])

@@ -53,4 +53,22 @@ class DeliveryChallan extends Model
     {
         return $this->belongsTo(Invoice::class, 'invoice_id');
     }
+
+    public static function generateNextChallanNumber(): string
+    {
+        $prefix = 'DC-';
+        $dateStr = date('Ymd');
+        $latest = self::where('challan_number', 'like', "{$prefix}{$dateStr}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($latest) {
+            $parts = explode('-', $latest->challan_number);
+            $seq = intval(end($parts)) + 1;
+        } else {
+            $seq = 1;
+        }
+
+        return sprintf("%s%s-%04d", $prefix, $dateStr, $seq);
+    }
 }
