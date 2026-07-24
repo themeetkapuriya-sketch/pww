@@ -161,7 +161,7 @@
             <td>
                 <h1 class="company-name">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
                 <div class="company-details">
-                    {{ \App\Models\Setting::get('business_address', 'At & Post G.I.D.C., Gujarat') }}<br>
+                    {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }} {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
                     GSTIN: <strong>{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</strong> | MSME: <strong>{{ \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345') }}</strong>
                 </div>
             </td>
@@ -244,10 +244,18 @@
                     <td class="font-mono">{{ $row['reference'] }}</td>
                     <td>{{ $row['description'] }}</td>
                     <td class="text-right {{ $row['debit'] > 0 ? 'debit-text' : '' }}">
-                        {{ $row['debit'] > 0 ? '&#8377;' . number_format($row['debit'], 2) : '-' }}
+                        @if($row['debit'] > 0)
+                            &#8377;{{ number_format($row['debit'], 2) }}
+                        @else
+                            -
+                        @endif
                     </td>
                     <td class="text-right {{ $row['credit'] > 0 ? 'credit-text' : '' }}">
-                        {{ $row['credit'] > 0 ? '&#8377;' . number_format($row['credit'], 2) : '-' }}
+                        @if($row['credit'] > 0)
+                            &#8377;{{ number_format($row['credit'], 2) }}
+                        @else
+                            -
+                        @endif
                     </td>
                     <td class="text-right font-mono font-bold">&#8377;{{ number_format($row['running_balance'], 2) }}</td>
                 </tr>
@@ -260,9 +268,9 @@
             @endforelse
             <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
                 <td colspan="3" class="text-right">TOTAL PERIOD SUMMARY:</td>
-                <td class="text-right debit-text">₹{{ number_format($total_debit, 2) }}</td>
-                <td class="text-right credit-text">₹{{ number_format($total_credit, 2) }}</td>
-                <td class="text-right font-mono" style="color: #d97706; font-size: 11px;">₹{{ number_format($closing_balance, 2) }}</td>
+                <td class="text-right debit-text">&#8377;{{ number_format($total_debit, 2) }}</td>
+                <td class="text-right credit-text">&#8377;{{ number_format($total_credit, 2) }}</td>
+                <td class="text-right font-mono" style="color: #d97706; font-size: 11px;">&#8377;{{ number_format($closing_balance, 2) }}</td>
             </tr>
         </tbody>
     </table>
@@ -270,8 +278,8 @@
     <!-- Bank Details Card for Payment Remittance -->
     <div class="bank-details-card">
         <strong style="color: #0f172a;">Bank Remittance Details for Payment:</strong><br>
-        Bank Name: <strong>ICICI Bank / HDFC Bank</strong> | A/c Name: <strong>{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</strong><br>
-        Account No: <strong>987654321012</strong> | IFSC Code: <strong>ICIC0001234</strong> | Branch: <strong>G.I.D.C., Rajkot, Gujarat</strong>
+        Bank Name: <strong>{{ \App\Models\Setting::get('bank_name', 'State Bank of India (SBI)') }}</strong> | A/c Name: <strong>{{ \App\Models\Setting::get('bank_account_name', 'Praful Welding Works') }}</strong><br>
+        Account No: <strong>{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</strong> | IFSC Code: <strong>{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</strong>
     </div>
 
     <!-- Footer Note -->

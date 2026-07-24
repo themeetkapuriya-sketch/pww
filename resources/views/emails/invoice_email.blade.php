@@ -100,7 +100,7 @@
         <tr>
             <td style="padding: 25px 30px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.6;">
                 <p style="margin: 0 0 5px 0; color: #64748b;">This is a digitally generated tax statement. If you have any inquiries, please reach out to <a href="mailto:billing@pww.com" style="color: #1e73be; text-decoration: none;">billing@pww.com</a>.</p>
-                <p style="margin: 0; font-weight: bold; color: #475569;">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }} &bull; Metoda GIDC, Rajkot, Gujarat</p>
+                <p style="margin: 0; font-weight: bold; color: #475569;">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }} &bull; {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }} {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}</p>
             </td>
         </tr>
 

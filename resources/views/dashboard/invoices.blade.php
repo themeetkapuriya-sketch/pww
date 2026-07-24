@@ -11,6 +11,7 @@
             <p class="text-sm text-slate-500">Review generated invoices or log new custom tax invoices.</p>
         </div>
         <button type="button" 
+                id="toggleInvoiceFormBtn"
                 onclick="toggleInlineForm('section-manual-builder', this)" 
                 class="{{ !empty($prefillOrder) ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
             <svg class="w-4 h-4 transition-transform duration-200" style="{{ !empty($prefillOrder) ? 'transform: rotate(45deg);' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,6 +21,21 @@
         </button>
     </div>
 
+    <!-- Empty Billing Row Template for JS Cloning -->
+    <template id="emptyBillingRowTemplate">
+        <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                <option value="">Select product...</option>
+                @foreach ($finishedGoods as $g)
+                    <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                @endforeach
+            </select>
+            <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+            <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+        </div>
+    </template>
+
     <!-- Direct Invoice Builder (Expandable Full Width) -->
     <div id="section-manual-builder" class="{{ !empty($prefillOrder) ? '' : 'hidden' }} transition-all duration-300 ease-in-out space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
@@ -28,47 +44,37 @@
                 @csrf
                 <input type="hidden" name="sales_order_id" id="salesOrderIdHidden" value="{{ $prefillOrder->id ?? '' }}">
                 
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-3">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Number</label>
                         <input type="text" name="invoice_number" value="{{ \App\Models\Invoice::generateNextInvoiceNumber() }}" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
                     </div>
-                    @php
-                        $prefillClient = !empty($prefillOrder) ? $clients->firstWhere('id', $prefillOrder->client_id) : null;
-                        $prefillPlants = $prefillClient ? $prefillClient->plants : collect();
-                    @endphp
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Client</label>
-                        <select id="invoiceClientSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" required onchange="handleInvoiceClientChange()">
-                            <option value="">Choose client...</option>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Client & Plant</label>
+                        <select id="invoiceClientSelect" name="plant_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" required onchange="recalculateCustomInvoice()">
+                            <option value="">Search & select client plant...</option>
                             @foreach ($clients as $client)
-                                <option value="{{ $client->id }}"
-                                        {{ (!empty($prefillOrder) && $prefillOrder->client_id == $client->id) ? 'selected' : '' }}
-                                        data-plants='@json($client->plants->map(fn($p) => ["id" => $p->id, "name" => $p->plant_name, "state" => $p->state]))'>
-                                    {{ $client->company_name }} ({{ $client->plants->count() === 1 ? '1 Location' : $client->plants->count() . ' Plants' }})
-                                </option>
+                                @if($client->plants->isNotEmpty())
+                                    @foreach($client->plants as $plant)
+                                        <option value="{{ $plant->id }}"
+                                                data-state="{{ $plant->state }}"
+                                                {{ (!empty($prefillOrder) && $prefillOrder->plant_id == $plant->id) ? 'selected' : '' }}>
+                                            {{ $client->company_name }} — {{ $plant->plant_name }} ({{ $plant->state }})
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="" disabled>{{ $client->company_name }} (No Plants Registered)</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plant Location</label>
-                        <select id="manualPlantSelect" name="plant_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" required onchange="recalculateCustomInvoice()">
-                            <option value="">Select plant...</option>
-                            @foreach($prefillPlants as $p)
-                                <option value="{{ $p->id }}" data-state="{{ $p->state }}" {{ (!empty($prefillOrder) && $prefillOrder->plant_id == $p->id) ? 'selected' : '' }}>
-                                    {{ $p->plant_name }} ({{ $p->state }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Date</label>
                         <input type="date" name="invoice_date" value="{{ date('Y-m-d') }}" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
-                    <div>
+                    <div class="md:col-span-3">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No.</label>
                         <input type="text" name="vehicle_number" placeholder="e.g. GJ-03-BW-1234"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
@@ -144,11 +150,11 @@
                 </div>
 
                 <div class="flex items-center space-x-3 pt-2">
-                    <button type="submit" class="btn-primary flex-1 py-2.5 px-4 text-sm font-bold">
+                    <button type="submit" id="invoiceSubmitBtn" class="btn-primary flex-1 py-2.5 px-4 text-sm font-bold">
                         Generate & Save Invoice
                     </button>
-                    <button type="button" id="quitEditBtn" onclick="quitEditMode()" class="hidden py-2.5 px-5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-300 shadow-xs">
-                        Quit Edit
+                    <button type="button" id="cancelInvoiceBtn" onclick="cancelInvoiceForm()" class="py-2.5 px-5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-300 shadow-xs">
+                        Cancel
                     </button>
                 </div>
             </form>
@@ -296,11 +302,14 @@
 </div>
 
 <script>
+(function() {
     // Dynamic builder rows & Live Tax Calculations
-    const billingRowsContainer = document.getElementById('billingRowsContainer');
-    const addBillingRowBtn = document.getElementById('addBillingRowBtn');
-    const manualPlantSelect = document.getElementById('manualPlantSelect');
+    var billingRowsContainer = document.getElementById('billingRowsContainer');
+    var addBillingRowBtn = document.getElementById('addBillingRowBtn');
+    var manualPlantSelect = document.getElementById('manualPlantSelect');
     
+    if (!billingRowsContainer || !addBillingRowBtn) return;
+
     // Add Row
     addBillingRowBtn.addEventListener('click', function() {
         const originalRow = document.querySelector('.billing-row');
@@ -316,9 +325,9 @@
         recalculateCustomInvoice();
     });
 
-    // Event delegation on billingRowsContainer
+    // Event delegation on billingRowsContainer — auto-fill price on product select
     billingRowsContainer.addEventListener('change', function(e) {
-        if (e.target.name === 'finished_good_ids[]') {
+        if (e.target.name === 'product_ids[]') {
             const select = e.target;
             const opt = select.options[select.selectedIndex];
             if (opt) {
@@ -329,7 +338,6 @@
                     if (priceInput) {
                         priceInput.value = price || '';
                         priceInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        priceInput.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }
             }
@@ -352,48 +360,8 @@
         }
     });
 
-    billingRowsContainer.addEventListener('input', recalculateCustomInvoice);
-    billingRowsContainer.addEventListener('change', recalculateCustomInvoice);
-
-    // Handle Client selection -> populate plant dropdown
-    window.handleInvoiceClientChange = function() {
-        const clientSelect = document.getElementById('invoiceClientSelect');
-        const plantSelect = document.getElementById('manualPlantSelect');
-        
-        if (!clientSelect || !clientSelect.value) {
-            if (plantSelect) {
-                plantSelect.innerHTML = '<option value="">Select plant...</option>';
-            }
-            recalculateCustomInvoice();
-            return;
-        }
-
-        const selectedOption = clientSelect.options[clientSelect.selectedIndex];
-        let plantsData = [];
-        try {
-            plantsData = JSON.parse(selectedOption.getAttribute('data-plants') || '[]');
-        } catch(e) {
-            console.error('Error parsing client plants data:', e);
-        }
-
-        if (plantSelect) {
-            if (plantsData.length === 0) {
-                plantSelect.innerHTML = '<option value="">No plants registered</option>';
-            } else if (plantsData.length === 1) {
-                plantSelect.innerHTML = `<option value="${plantsData[0].id}" data-state="${plantsData[0].state || 'Gujarat'}" selected>${plantsData[0].name} (${plantsData[0].state || 'Gujarat'})</option>`;
-            } else {
-                let html = '<option value="">Choose plant location...</option>';
-                plantsData.forEach(p => {
-                    html += `<option value="${p.id}" data-state="${p.state}">${p.name} (${p.state})</option>`;
-                });
-                plantSelect.innerHTML = html;
-            }
-        }
-        recalculateCustomInvoice();
-    };
-
     // Dynamic tax calculation engine
-    window.recalculateCustomInvoice = function() {
+    function recalculateCustomInvoice() {
         const container = document.getElementById('billingRowsContainer');
         if (!container) return;
         const rows = container.querySelectorAll('.billing-row');
@@ -407,17 +375,23 @@
             totalTaxable += qty * price;
         });
         
-        // Resolve destination state cleanly from manual plant select
-        let state = '';
-        const manualPlantSelect = document.getElementById('manualPlantSelect');
+        // Resolve destination state directly from selected client plant option
+        let state = 'Gujarat';
+        const clientSelect = document.getElementById('invoiceClientSelect');
 
-        if (manualPlantSelect && manualPlantSelect.value && manualPlantSelect.selectedIndex >= 0) {
-            const selectedPlantOpt = manualPlantSelect.options[manualPlantSelect.selectedIndex];
-            state = selectedPlantOpt && selectedPlantOpt.getAttribute('data-state') ? selectedPlantOpt.getAttribute('data-state') : 'Gujarat';
-        }
-
-        if (!state) {
-            state = 'Gujarat';
+        if (clientSelect && clientSelect.value) {
+            let selectedOpt = null;
+            if (clientSelect.selectedIndex >= 0 && clientSelect.options[clientSelect.selectedIndex]) {
+                selectedOpt = clientSelect.options[clientSelect.selectedIndex];
+            }
+            if (!selectedOpt || !selectedOpt.value) {
+                try {
+                    selectedOpt = clientSelect.querySelector('option[value="' + CSS.escape(clientSelect.value) + '"]');
+                } catch(e) {}
+            }
+            if (selectedOpt && selectedOpt.getAttribute('data-state')) {
+                state = selectedOpt.getAttribute('data-state');
+            }
         }
 
         const isGujarat = state.toLowerCase().trim() === 'gujarat';
@@ -473,10 +447,40 @@
             elRoundOff.innerText = '(' + sign + '₹' + roundOffDiff.toFixed(2) + ')';
         }
         if (elTotal) elTotal.innerText = '₹' + finalTotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    };
+    }
+
+    window.recalculateCustomInvoice = recalculateCustomInvoice;
+
+    billingRowsContainer.addEventListener('input', recalculateCustomInvoice);
+    billingRowsContainer.addEventListener('change', recalculateCustomInvoice);
 
     // Initialize calculation on page load
     recalculateCustomInvoice();
+
+    // Initialize TomSelect for client plant selector
+    window.invoiceClientTomSelect = null;
+    try {
+        if (typeof TomSelect !== 'undefined') {
+            const clientSel = document.getElementById('invoiceClientSelect');
+            if (clientSel) {
+                if (clientSel.tomselect) {
+                    clientSel.tomselect.destroy();
+                }
+                window.invoiceClientTomSelect = new TomSelect(clientSel, {
+                    create: false,
+                    placeholder: 'Search & select client plant...',
+                    onChange: function() {
+                        if (typeof window.recalculateCustomInvoice === 'function') {
+                            window.recalculateCustomInvoice();
+                        }
+                    }
+                });
+            }
+        }
+    } catch (err) {
+        console.warn('TomSelect initialization note:', err);
+    }
+})();
 </script>
 
 <script>
@@ -497,11 +501,28 @@
         window.erpInvoicesMap[{{ $inv->id }}] = {
             id: {{ $inv->id }},
             invoice_number: @json($inv->invoice_number),
+            client_id: @json($inv->client_id),
             plant_id: @json($invPlantId),
             due_date: @json($inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : date('Y-m-d')),
             items: @json($itemsArray)
         };
     @endforeach
+
+    function setToggleButtonState(isOpen) {
+        const btn = document.getElementById('toggleInvoiceFormBtn');
+        if (!btn) return;
+        if (isOpen) {
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            btn.classList.add('bg-slate-700', 'hover:bg-slate-800');
+            const icon = btn.querySelector('svg');
+            if (icon) icon.style.transform = 'rotate(45deg)';
+        } else {
+            btn.classList.remove('bg-slate-700', 'hover:bg-slate-800');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            const icon = btn.querySelector('svg');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+    }
 
     window.toggleInlineForm = function(containerId, btn) {
         const container = document.getElementById(containerId);
@@ -510,40 +531,81 @@
         const isHidden = container.classList.contains('hidden');
         if (isHidden) {
             container.classList.remove('hidden');
-            if (btn) {
-                btn.classList.replace('bg-blue-600', 'bg-slate-700');
-                btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-800');
-                const icon = btn.querySelector('svg');
-                if (icon) icon.style.transform = 'rotate(45deg)';
-            }
+            setToggleButtonState(true);
         } else {
+            resetInvoiceForm();
             container.classList.add('hidden');
-            if (btn) {
-                btn.classList.replace('bg-slate-700', 'bg-blue-600');
-                btn.classList.replace('hover:bg-slate-800', 'hover:bg-blue-700');
-                const icon = btn.querySelector('svg');
-                if (icon) icon.style.transform = 'rotate(0deg)';
+            setToggleButtonState(false);
+        }
+    };
+
+    // Cancel button handler — reset form and close
+    window.cancelInvoiceForm = function() {
+        resetInvoiceForm();
+        const container = document.getElementById('section-manual-builder');
+        if (container) container.classList.add('hidden');
+        setToggleButtonState(false);
+    };
+
+    // Shared form reset helper
+    window.resetInvoiceForm = function() {
+        const $form = $('#customInvoiceForm');
+        if ($form.length) {
+            $form[0].reset();
+            $form.find('input[name="invoice_number"]').val('{{ \App\Models\Invoice::generateNextInvoiceNumber() }}');
+            $form.find('input[name="invoice_date"]').val('{{ date("Y-m-d") }}');
+            $form.find('input[name="sales_order_id"]').val('');
+            if (window.invoiceClientTomSelect) {
+                window.invoiceClientTomSelect.clear();
+            } else {
+                $form.find('select#invoiceClientSelect').val('');
             }
+        }
+        
+        // Reset billing rows to single empty row from HTML template
+        const container = document.getElementById('billingRowsContainer');
+        const template = document.getElementById('emptyBillingRowTemplate');
+        if (container && template) {
+            container.innerHTML = '';
+            container.appendChild(template.content.cloneNode(true));
+        }
+        // Reset submit button text
+        const submitBtn = document.getElementById('invoiceSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Generate & Save Invoice';
+        // Recalculate (will show ₹0.00)
+        if (typeof window.recalculateCustomInvoice === 'function') {
+            window.recalculateCustomInvoice();
         }
     };
 
     // Global edit function
     window.editInvoiceRecord = function(id) {
-        toggleInlineForm('section-manual-builder', document.querySelector('button[onclick*="section-manual-builder"]'));
         const invoice = window.erpInvoicesMap[id];
         if (!invoice) {
             console.error('Invoice record not found for id:', id);
             return;
         }
 
-        const quitBtn = document.getElementById('quitEditBtn');
-        if (quitBtn) quitBtn.classList.remove('hidden');
+        // Force-open the form (don't toggle)
+        const formContainer = document.getElementById('section-manual-builder');
+        if (formContainer) {
+            formContainer.classList.remove('hidden');
+            setToggleButtonState(true);
+        }
+
+        // Change submit button text to "Update Invoice"
+        const submitBtn = document.getElementById('invoiceSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Update Invoice';
 
         const $form = $('#customInvoiceForm');
         if ($form.length) {
             $form.find('input[name="invoice_number"]').val(invoice.invoice_number);
             if (invoice.plant_id) {
-                $form.find('select[name="plant_id"]').val(invoice.plant_id).trigger('change');
+                if (window.invoiceClientTomSelect) {
+                    window.invoiceClientTomSelect.setValue(invoice.plant_id);
+                } else {
+                    $form.find('select#invoiceClientSelect').val(invoice.plant_id);
+                }
             }
             if (invoice.due_date) {
                 $form.find('input[name="due_date"]').val(invoice.due_date);
@@ -557,7 +619,7 @@
                 const row = document.createElement('div');
                 row.className = 'billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
                 row.innerHTML = `
-                    <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                         <option value="">Select product...</option>
                         @foreach ($finishedGoods as $g)
                             <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
@@ -567,12 +629,12 @@
                     <input type="number" name="unit_prices[]" value="${item.unit_price}" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
-                row.querySelector('select').value = item.finished_good_id;
+                row.querySelector('select').value = item.product_id;
                 container.appendChild(row);
             });
             
-            if (typeof recalculateCustomInvoice === 'function') {
-                recalculateCustomInvoice();
+            if (typeof window.recalculateCustomInvoice === 'function') {
+                window.recalculateCustomInvoice();
             }
         }
 
@@ -582,39 +644,9 @@
         }
     };
 
-    // Quit Edit mode handler
+    // Quit Edit mode handler (now uses shared resetInvoiceForm)
     window.quitEditMode = function() {
-        const quitBtn = document.getElementById('quitEditBtn');
-        if (quitBtn) quitBtn.classList.add('hidden');
-
-        const $form = $('#customInvoiceForm');
-        if ($form.length) {
-            $form[0].reset();
-            $form.find('input[name="invoice_number"]').val('{{ \App\Models\Invoice::generateNextInvoiceNumber() }}');
-            $form.find('select[name="plant_id"]').val('').trigger('change');
-            $form.find('input[name="due_date"]').val('{{ date("Y-m-d", strtotime("+30 days")) }}');
-        }
-
-        const container = document.getElementById('billingRowsContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <select name="finished_good_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                        <option value="">Select product...</option>
-                        @foreach ($finishedGoods as $g)
-                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
-                        @endforeach
-                    </select>
-                    <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
-                </div>
-            `;
-        }
-
-        if (typeof recalculateCustomInvoice === 'function') {
-            recalculateCustomInvoice();
-        }
+        resetInvoiceForm();
     };
 
     // Global delete invoice handler
@@ -682,14 +714,17 @@
 
 <script>
     (function() {
-        if (typeof window.recalculateCustomInvoice === 'function') {
-            window.recalculateCustomInvoice();
-        }
+        // Delayed recalculation to ensure DOM is fully settled after SPA load
         setTimeout(function() {
             if (typeof window.recalculateCustomInvoice === 'function') {
                 window.recalculateCustomInvoice();
             }
-        }, 100);
+        }, 50);
+        setTimeout(function() {
+            if (typeof window.recalculateCustomInvoice === 'function') {
+                window.recalculateCustomInvoice();
+            }
+        }, 200);
     })();
 </script>
 @endsection

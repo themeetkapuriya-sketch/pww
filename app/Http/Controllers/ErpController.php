@@ -673,7 +673,11 @@ class ErpController extends Controller
             'end_date', 'period', 'plant_id'
         ));
 
-        return $pdf->download("Ledger-Statement-{$client->company_name}-{$startDate}-to-{$endDate}.pdf");
+        $plantSegment = $selectedPlant ? "-" . $selectedPlant->plant_name : "";
+        $fileName = "Ledger-Statement-{$client->company_name}{$plantSegment}-{$startDate}-to-{$endDate}.pdf";
+        $fileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $fileName);
+
+        return $pdf->download($fileName);
     }
 
     /**
