@@ -36,9 +36,10 @@
                         <option value="industrial_gas">Industrial Gas / Consumables</option>
                         <option value="welding_consumables">Welding Consumables</option>
                         <option value="freight_transport">Freight & Transport Charges</option>
-                        <option value="office_rent">Office / Factory Rent</option>
+                        <option value="salary">Salary / Wages</option>
                         <option value="administrative">Administrative Expenses</option>
                         <option value="machinery_depreciation">Machinery Depreciation Schedule</option>
+                        <option value="others">Other Expenses / Miscellaneous</option>
                     </select>
                 </div>
 

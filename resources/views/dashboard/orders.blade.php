@@ -74,7 +74,7 @@
                 <!-- Product Line Items -->
                 <div class="border-t border-slate-200 pt-4 space-y-2">
                     <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Ordered Finished Goods</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase">Ordered Products</label>
                         <button type="button" id="addOrderRowBtn" class="text-blue-600 hover:text-blue-700 text-xs font-bold flex items-center">
                             + Add Item
                         </button>

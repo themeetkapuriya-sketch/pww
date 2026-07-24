@@ -291,6 +291,45 @@ class ErpController extends Controller
         $productId = $request->input('product_id', $request->input('finished_good_id'));
         $request->merge(['product_id' => $productId]);
 
+        // Support multi-row component array submission
+        if ($request->has('raw_material_ids') && is_array($request->input('raw_material_ids'))) {
+            $validated = $request->validate([
+                'product_id' => 'required|exists:products,id',
+                'raw_material_ids' => 'required|array|min:1',
+                'raw_material_ids.*' => 'required|exists:raw_materials,id',
+                'required_quantities' => 'required|array|min:1',
+                'required_quantities.*' => 'required|numeric|min:0.0001',
+                'waste_percentages' => 'required|array|min:1',
+                'waste_percentages.*' => 'required|numeric|min:0',
+            ]);
+
+            $savedCount = 0;
+            foreach ($validated['raw_material_ids'] as $idx => $matId) {
+                if (empty($matId)) continue;
+                $reqQty = (float) ($validated['required_quantities'][$idx] ?? 0);
+                $waste = (float) ($validated['waste_percentages'][$idx] ?? 0);
+                if ($reqQty <= 0) continue;
+
+                BillOfMaterial::updateOrCreate(
+                    [
+                        'product_id' => $validated['product_id'],
+                        'raw_material_id' => $matId,
+                    ],
+                    [
+                        'required_quantity' => $reqQty,
+                        'waste_percentage' => $waste,
+                    ]
+                );
+                $savedCount++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully assigned {$savedCount} BOM raw material components!",
+            ]);
+        }
+
+        // Single component fallback
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'raw_material_id' => 'required|exists:raw_materials,id',
@@ -313,6 +352,44 @@ class ErpController extends Controller
             'success' => true,
             'message' => "BOM component mapping assigned successfully!",
             'data' => $bom
+        ]);
+    }
+
+    /**
+     * Update BOM Item (AJAX).
+     */
+    public function updateBom(Request $request, $id)
+    {
+        $bom = BillOfMaterial::findOrFail($id);
+
+        $validated = $request->validate([
+            'required_quantity' => 'required|numeric|min:0.0001',
+            'waste_percentage' => 'required|numeric|min:0',
+        ]);
+
+        $bom->update([
+            'required_quantity' => $validated['required_quantity'],
+            'waste_percentage' => $validated['waste_percentage'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'BOM component updated successfully!',
+            'data' => $bom->load('rawMaterial')
+        ]);
+    }
+
+    /**
+     * Delete BOM Item (AJAX).
+     */
+    public function deleteBom($id)
+    {
+        $bom = BillOfMaterial::findOrFail($id);
+        $bom->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'BOM raw material component removed successfully!'
         ]);
     }
 
@@ -1174,7 +1251,7 @@ class ErpController extends Controller
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
-            'purchase_type' => 'required|in:raw_material,machinery,supplies,others',
+            'purchase_type' => 'required|in:raw_material,office_assets,machinery,factory_spares,supplies,vehicle_transport,others',
             'raw_material_id' => 'nullable|required_if:purchase_type,raw_material|exists:raw_materials,id',
             'item_name' => 'nullable|string|max:255',
             'quantity' => 'nullable|numeric|min:0.0001',
@@ -1259,16 +1336,22 @@ class ErpController extends Controller
             ->orderBy('purchase_date', 'desc')
             ->get();
 
-        // 3. Fetch Financials
+        // 3. Fetch Expenses
+        $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
+            ->orderBy('expense_date', 'desc')
+            ->get();
+
+        // 4. Fetch Financials
         $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
 
-        // 4. Calculate Summaries
+        // 5. Calculate Summaries
         $invoiceSummary = [
             'total_taxable' => $invoices->sum('total_taxable_value'),
             'total_cgst' => $invoices->sum('cgst'),
             'total_sgst' => $invoices->sum('sgst'),
             'total_igst' => $invoices->sum('igst'),
             'total_amount' => $invoices->sum('total_amount'),
+            'total_due' => $invoices->sum(fn($inv) => $inv->remaining_balance),
         ];
         $invoiceSummary['total_gst'] = $invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'] + $invoiceSummary['total_igst'];
 
@@ -1278,6 +1361,14 @@ class ErpController extends Controller
             'total_raw_material' => $purchases->where('purchase_type', 'raw_material')->sum('total_amount'),
             'total_machinery' => $purchases->where('purchase_type', 'machinery')->sum('total_amount'),
             'total_supplies' => $purchases->where('purchase_type', 'supplies')->sum('total_amount'),
+        ];
+
+        $expenseSummary = [
+            'total_spent' => $expenses->sum('amount'),
+            'total_count' => $expenses->count(),
+            'by_category' => $expenses->groupBy('expense_category')->map(function($group) {
+                return $group->sum('amount');
+            }),
         ];
 
         $gstSummary = [
@@ -1291,8 +1382,8 @@ class ErpController extends Controller
 
         return view('dashboard.reports', compact(
             'startDate', 'endDate', 'period', 'reportType',
-            'invoices', 'purchases', 'financials',
-            'invoiceSummary', 'purchaseSummary', 'gstSummary',
+            'invoices', 'purchases', 'expenses', 'financials',
+            'invoiceSummary', 'purchaseSummary', 'expenseSummary', 'gstSummary',
             'filterMonth', 'filterYear'
         ));
     }
@@ -1303,11 +1394,209 @@ class ErpController extends Controller
     public function exportCsv(Request $request)
     {
         [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
-        
-        $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
-        
-        // Exact same query as Reports UI invoices load
-        $invoices = Invoice::where(function($q) use ($startDate, $endDate) {
+        $reportType = $request->input('report_type', 'invoice');
+
+        $response = new StreamedResponse(function() use ($startDate, $endDate, $reportType) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+
+            if ($reportType === 'invoice') {
+                $invoices = Invoice::with(['plant.client'])
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('invoice_date', [$startDate, $endDate])
+                          ->orWhere(function($sub) use ($startDate, $endDate) {
+                              $sub->whereNull('invoice_date')
+                                  ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                          });
+                    })
+                    ->orderBy('invoice_date', 'desc')
+                    ->get();
+
+                fputcsv($handle, ['PRAFUL WELDING WORKS - SALES INVOICES AUDIT REPORT']);
+                fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                fputcsv($handle, []);
+                fputcsv($handle, ['Invoice No.', 'Client Company', 'Plant Name', 'Invoice Date', 'Taxable Value (INR)', 'CGST (9%)', 'SGST (9%)', 'IGST (18%)', 'Total Bill Amount (INR)', 'Due Amount (INR)', 'Payment Status']);
+
+                foreach ($invoices as $inv) {
+                    fputcsv($handle, [
+                        $inv->invoice_number,
+                        $inv->plant->client->company_name ?? 'N/A',
+                        $inv->plant->plant_name ?? 'HQ',
+                        \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
+                        $inv->total_taxable_value,
+                        $inv->cgst,
+                        $inv->sgst,
+                        $inv->igst,
+                        $inv->total_amount,
+                        $inv->remaining_balance,
+                        strtoupper($inv->payment_status ?? 'unpaid')
+                    ]);
+                }
+            } elseif ($reportType === 'purchase') {
+                $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])
+                    ->orderBy('purchase_date', 'desc')
+                    ->get();
+
+                fputcsv($handle, ['PRAFUL WELDING WORKS - PURCHASE LEDGER REPORT']);
+                fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                fputcsv($handle, []);
+                fputcsv($handle, ['Purchase Date', 'Bill No.', 'Vendor Name', 'Category', 'Item Description', 'Quantity', 'Unit', 'GST Rate (%)', 'GST Amount (INR)', 'Total Amount (INR)', 'Payment Status']);
+
+                foreach ($purchases as $pur) {
+                    fputcsv($handle, [
+                        \Carbon\Carbon::parse($pur->purchase_date)->format('d/m/Y'),
+                        $pur->bill_number ?? 'N/A',
+                        $pur->vendor_name,
+                        ucwords(str_replace('_', ' ', $pur->purchase_type)),
+                        $pur->item_name,
+                        $pur->quantity,
+                        $pur->unit,
+                        $pur->gst_rate,
+                        $pur->gst_amount,
+                        $pur->total_amount,
+                        strtoupper($pur->payment_status ?? 'paid')
+                    ]);
+                }
+            } elseif ($reportType === 'financial') {
+                $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
+
+                fputcsv($handle, ['PRAFUL WELDING WORKS - STATEMENT OF PROFIT & LOSS']);
+                fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                fputcsv($handle, []);
+                fputcsv($handle, ['Line Item', 'Accounting Description', 'Amount (INR)']);
+                fputcsv($handle, ['Total Sales Revenue (A)', 'Taxable invoiced amounts (excl. GST)', $financials['revenue']]);
+                fputcsv($handle, ['Total Purchases (B)', 'Raw material, machinery, tools, and vendor purchases', $financials['purchases']]);
+                fputcsv($handle, ['Total Expenses (C)', 'Operational overheads, salaries, rent, transport', $financials['expenses']]);
+                fputcsv($handle, ['NET PROFIT / LOSS', 'Calculation: A - B - C', $financials['net_profit']]);
+                fputcsv($handle, ['Gross Profit Margin (%)', 'Margin Ratio', $financials['gross_profit_margin'] . '%']);
+            } elseif ($reportType === 'expense') {
+                $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
+                    ->orderBy('expense_date', 'desc')
+                    ->get();
+
+                fputcsv($handle, ['PRAFUL WELDING WORKS - EXPENSES AUDIT REPORT']);
+                fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                fputcsv($handle, []);
+                fputcsv($handle, ['Expense Date', 'Expense Category', 'Memo Description', 'Amount (INR)']);
+
+                foreach ($expenses as $exp) {
+                    fputcsv($handle, [
+                        \Carbon\Carbon::parse($exp->expense_date)->format('d/m/Y'),
+                        ucwords(str_replace('_', ' ', $exp->expense_category)),
+                        $exp->description ?? 'N/A',
+                        $exp->amount
+                    ]);
+                }
+            } elseif ($reportType === 'gst') {
+                $gstType = $request->input('gst_type', 'gstr3b');
+
+                if ($gstType === 'gstr1') {
+                    $invoices = Invoice::with(['plant.client'])
+                        ->where(function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('invoice_date', [$startDate, $endDate])
+                              ->orWhere(function($sub) use ($startDate, $endDate) {
+                                  $sub->whereNull('invoice_date')
+                                      ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                              });
+                        })
+                        ->orderBy('invoice_date', 'desc')
+                        ->get();
+
+                    fputcsv($handle, ['PRAFUL WELDING WORKS - GSTR-1 OUTWARD SALES RETURN']);
+                    fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Invoice No.', 'Client GSTIN', 'Client Company', 'Plant Name', 'Invoice Date', 'Taxable Value (INR)', 'CGST (9%)', 'SGST (9%)', 'IGST (18%)', 'Total Invoice Amount (INR)']);
+
+                    foreach ($invoices as $inv) {
+                        fputcsv($handle, [
+                            $inv->invoice_number,
+                            $inv->plant->client->gstin ?? 'URP / Retail',
+                            $inv->plant->client->company_name ?? 'N/A',
+                            $inv->plant->plant_name ?? 'HQ',
+                            \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
+                            $inv->total_taxable_value,
+                            $inv->cgst,
+                            $inv->sgst,
+                            $inv->igst,
+                            $inv->total_amount
+                        ]);
+                    }
+                } elseif ($gstType === 'gstr2') {
+                    $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])
+                        ->orderBy('purchase_date', 'desc')
+                        ->get();
+
+                    fputcsv($handle, ['PRAFUL WELDING WORKS - GSTR-2 INWARD PURCHASES ITC RETURN']);
+                    fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Bill Date', 'Bill No.', 'Vendor / Supplier Name', 'Category', 'Item Description', 'Quantity', 'GST Rate (%)', 'Input Tax Credit GST Paid (INR)', 'Total Amount (INR)']);
+
+                    foreach ($purchases as $pur) {
+                        fputcsv($handle, [
+                            \Carbon\Carbon::parse($pur->purchase_date)->format('d/m/Y'),
+                            $pur->bill_number ?? 'N/A',
+                            $pur->vendor_name,
+                            ucwords(str_replace('_', ' ', $pur->purchase_type)),
+                            $pur->item_name,
+                            $pur->quantity,
+                            $pur->gst_rate,
+                            $pur->gst_amount,
+                            $pur->total_amount
+                        ]);
+                    }
+                } else { // gstr3b
+                    $invoices = Invoice::where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('invoice_date', [$startDate, $endDate])
+                          ->orWhere(function($sub) use ($startDate, $endDate) {
+                              $sub->whereNull('invoice_date')
+                                  ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                          });
+                    })->get();
+                    $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])->get();
+
+                    $totalSalesTaxable = $invoices->sum('total_taxable_value');
+                    $totalSalesCgst = $invoices->sum('cgst');
+                    $totalSalesSgst = $invoices->sum('sgst');
+                    $totalSalesIgst = $invoices->sum('igst');
+                    $totalSalesGst = $totalSalesCgst + $totalSalesSgst + $totalSalesIgst;
+                    $totalPurchaseGst = $purchases->sum('gst_amount');
+                    $netPayable = $totalSalesGst - $totalPurchaseGst;
+
+                    fputcsv($handle, ['PRAFUL WELDING WORKS - GSTR-3B MONTHLY RETURN SUMMARY']);
+                    fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Section', 'Details', 'Taxable Value (INR)', 'IGST (INR)', 'CGST & SGST (INR)', 'Total Tax (INR)']);
+                    fputcsv($handle, ['3.1 (a)', 'Outward Taxable Supplies (Sales)', $totalSalesTaxable, $totalSalesIgst, ($totalSalesCgst + $totalSalesSgst), $totalSalesGst]);
+                    fputcsv($handle, ['4. (A)', 'Eligible Input Tax Credit (Purchases)', '-', '-', '-', $totalPurchaseGst]);
+                    fputcsv($handle, ['6.1', 'Net Tax Liability / Carry Forward', '-', '-', '-', $netPayable]);
+                }
+            }
+
+            fclose($handle);
+        });
+
+        $gstTypeStr = $reportType === 'gst' ? '_' . strtoupper($request->input('gst_type', 'gstr1')) : '';
+        $filename = "PWW_" . ucfirst($reportType) . $gstTypeStr . "_Report_" . $startDate . "_to_" . $endDate . ".csv";
+
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
+    }
+
+    /**
+     * Export Reports Data to PDF.
+     */
+    public function exportPdf(Request $request)
+    {
+        [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
+        $reportType = $request->input('report_type', 'invoice');
+
+        $invoices = Invoice::with(['plant.client', 'items.product'])
+            ->where(function($q) use ($startDate, $endDate) {
                 $q->whereBetween('invoice_date', [$startDate, $endDate])
                   ->orWhere(function($sub) use ($startDate, $endDate) {
                       $sub->whereNull('invoice_date')
@@ -1318,88 +1607,45 @@ class ErpController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])->get();
+        $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])
+            ->orderBy('purchase_date', 'desc')
+            ->get();
 
-        $response = new StreamedResponse(function() use ($startDate, $endDate, $financials, $invoices, $expenses) {
-            $handle = fopen('php://output', 'w');
-            
-            // UTF-8 BOM
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+        $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
+            ->orderBy('expense_date', 'desc')
+            ->get();
 
-            // Section 1: Title
-            fputcsv($handle, ['PRAFUL WELDING WORKS (PWW) - FINANCIAL AUDIT REPORT']);
-            fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
-            fputcsv($handle, []);
+        $financials = $this->financialService->getFinancialSummary($startDate, $endDate);
 
-            // Section 2: Statement of Profit & Loss
-            fputcsv($handle, ['STATEMENT OF NET PROFIT & LOSS']);
-            fputcsv($handle, ['Line Item', 'Accounting Detail', 'Amount (INR)']);
-            fputcsv($handle, ['Total Sales Revenue (A)', 'Taxable invoiced amounts (excl. GST)', $financials['revenue']]);
-            fputcsv($handle, ['Cost of Goods Sold (B)', 'Weighted raw material stock consumption + waste', $financials['cogs']]);
-            fputcsv($handle, ['Direct Wages Paid (C)', 'Piece-rate labor log disbursements', $financials['direct_wages']]);
-            fputcsv($handle, ['Operational Overheads (D)', 'Electricity, gas, rent, admin, transport', $financials['overheads']]);
-            fputcsv($handle, ['Machinery Depreciation (E)', 'Wear and tear schedules', $financials['depreciation']]);
-            fputcsv($handle, ['NET CORPORATE PROFIT', 'Calculation: A - B - C - D - E', $financials['net_profit']]);
-            fputcsv($handle, ['Gross profit margin (%)', 'Margin ratio', $financials['gross_profit_margin'] . '%']);
-            fputcsv($handle, []);
+        $invoiceSummary = [
+            'total_taxable' => $invoices->sum('total_taxable_value'),
+            'total_cgst' => $invoices->sum('cgst'),
+            'total_sgst' => $invoices->sum('sgst'),
+            'total_igst' => $invoices->sum('igst'),
+            'total_amount' => $invoices->sum('total_amount'),
+            'total_due' => $invoices->sum(fn($inv) => $inv->remaining_balance),
+        ];
+        $invoiceSummary['total_gst'] = $invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'] + $invoiceSummary['total_igst'];
 
-            // Section 3: Invoices Audit Ledger
-            fputcsv($handle, ['INVOICES LEDGER AUDIT']);
-            fputcsv($handle, ['Invoice No', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Amount', 'Due Date', 'Status']);
-            foreach ($invoices as $inv) {
-                fputcsv($handle, [
-                    $inv->invoice_number,
-                    $inv->total_taxable_value,
-                    $inv->cgst,
-                    $inv->sgst,
-                    $inv->igst,
-                    $inv->total_amount,
-                    $inv->due_date ? $inv->due_date->toDateString() : ($inv->invoice_date ? Carbon::parse($inv->invoice_date)->toDateString() : 'N/A'),
-                    $inv->payment_status
-                ]);
-            }
-            fputcsv($handle, []);
+        $purchaseSummary = [
+            'total_spent' => $purchases->sum('total_amount'),
+            'total_gst' => $purchases->sum('gst_amount'),
+        ];
 
-            // Section 4: Expenses audit ledger
-            fputcsv($handle, ['EXPENSES LEDGER AUDIT']);
-            fputcsv($handle, ['Date', 'Expense Category', 'Memo Description', 'Amount (INR)']);
-            foreach ($expenses as $exp) {
-                fputcsv($handle, [
-                    $exp->expense_date->toDateString(),
-                    ucwords(str_replace('_', ' ', $exp->expense_category)),
-                    $exp->description,
-                    $exp->amount
-                ]);
-            }
+        $expenseSummary = [
+            'total_spent' => $expenses->sum('amount'),
+            'total_count' => $expenses->count(),
+            'by_category' => $expenses->groupBy('expense_category')->map(fn($g) => $g->sum('amount')),
+        ];
 
-            fclose($handle);
-        });
+        $pdf = Pdf::loadView('pdf.report_pdf', compact(
+            'startDate', 'endDate', 'period', 'reportType',
+            'invoices', 'purchases', 'expenses', 'financials',
+            'invoiceSummary', 'purchaseSummary', 'expenseSummary'
+        ));
 
-        // Determine filename dynamically based on period
-        switch ($period) {
-            case 'all':
-                $filename = "PWW-ERP-Audit-Report-All-Records.csv";
-                break;
-            case 'month':
-                $filename = "PWW-ERP-Audit-Report-Month-{$filterMonth}.csv";
-                break;
-            case 'year':
-                $nextYearShort = substr((int)$filterYear + 1, 2, 2);
-                $filename = "PWW-ERP-Audit-Report-FY-{$filterYear}-{$nextYearShort}.csv";
-                break;
-            case 'custom':
-            default:
-                $filename = "PWW-ERP-Audit-Report-{$startDate}-to-{$endDate}.csv";
-                break;
-        }
-
-        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('Expires', '0');
-
-        return $response;
+        $filename = "PWW_" . ucfirst($reportType) . "_Report_{$startDate}_to_{$endDate}.pdf";
+        return $pdf->download($filename);
     }
 
     /**
@@ -1495,14 +1741,33 @@ class ErpController extends Controller
             'business_subtitle' => 'required|string|max:255',
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'required|string|max:255',
-            'gstin' => 'required|string|max:255',
-            'msme_number' => 'nullable|string|max:255',
+            'gstin' => ['required', 'string', 'size:15', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/'],
+            'msme_number' => ['nullable', 'string', 'regex:/^UDYAM-[A-Za-z]{2}-[0-9]{2}-[0-9]{7}$/i'],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'bank_name' => 'required|string|max:255',
             'bank_account_name' => 'required|string|max:255',
-            'bank_account_no' => 'required|string|max:255',
-            'bank_ifsc' => 'required|string|max:255',
+            'bank_account_no' => 'required|string|min:9|max:18|regex:/^[0-9A-Za-z]+$/',
+            'bank_ifsc' => ['required', 'string', 'size:11', 'regex:/^[A-Za-z]{4}[0O][0-9A-Za-z]{6}$/'],
+        ], [
+            'gstin.regex' => 'Please enter a valid 15-character GSTIN (e.g. 24AAAAA1111A1Z5).',
+            'gstin.size' => 'GSTIN number must be exactly 15 characters long.',
+            'msme_number.regex' => 'Please enter a valid MSME Udyam Registration Number (e.g. UDYAM-GJ-24-0012345).',
+            'bank_ifsc.regex' => 'Please enter a valid 11-character Indian Bank IFSC Code (e.g. SBIN0001234).',
+            'bank_ifsc.size' => 'IFSC Code must be exactly 11 characters long.',
+            'bank_account_no.min' => 'Bank Account Number must be at least 9 digits.',
+            'bank_account_no.max' => 'Bank Account Number cannot exceed 18 characters.',
         ]);
+
+        $validated['gstin'] = strtoupper(trim($validated['gstin']));
+        if (!empty($validated['msme_number'])) {
+            $validated['msme_number'] = strtoupper(trim($validated['msme_number']));
+        }
+        
+        $ifsc = strtoupper(trim($validated['bank_ifsc']));
+        if (strlen($ifsc) === 11 && $ifsc[4] === 'O') {
+            $ifsc[4] = '0';
+        }
+        $validated['bank_ifsc'] = $ifsc;
 
         try {
             \App\Models\Setting::set('business_name', $validated['business_name']);

@@ -108,13 +108,17 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GSTIN Number</label>
                     <input type="text" name="gstin" value="{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                           minlength="15" maxlength="15" pattern="^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$"
+                           title="Please enter a valid 15-character GSTIN (e.g. 24AAAAA1111A1Z5)"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">MSME / Udyam No.</label>
                     <input type="text" name="msme_number" value="{{ \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345') }}" placeholder="UDYAM-GJ-24-0012345"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                           pattern="^UDYAM-[A-Za-z]{2}-[0-9]{2}-[0-9]{7}$"
+                           title="Format: UDYAM-XX-00-0000000 (e.g. UDYAM-GJ-24-0012345)"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
                 </div>
             </div>
 
@@ -150,13 +154,17 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">A/C Number</label>
                         <input type="text" name="bank_account_no" value="{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                               minlength="9" maxlength="18" pattern="^[0-9A-Za-z]+$"
+                               title="Please enter a valid 9 to 18 digit account number"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">IFSC Code</label>
                         <input type="text" name="bank_ifsc" value="{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                               minlength="11" maxlength="11" pattern="^[A-Za-z]{4}[0O][0-9A-Za-z]{6}$"
+                               title="Format: 11-character Bank IFSC Code (e.g. SBIN0001234)"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
                     </div>
                 </div>
             </div>

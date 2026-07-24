@@ -30,6 +30,8 @@ Route::middleware(['auth'])->group(function () {
     // 3. Bill of Materials
     Route::get('/bom', [ErpController::class, 'bom'])->name('bom');
     Route::post('/bom', [ErpController::class, 'storeBom'])->name('bom.store');
+    Route::put('/bom/{id}', [ErpController::class, 'updateBom'])->name('bom.update');
+    Route::delete('/bom/{id}', [ErpController::class, 'deleteBom'])->name('bom.delete');
 
     // 4. Production Logs
     Route::get('/production', [ErpController::class, 'production'])->name('production');
@@ -81,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
     // 10. Reports & Export
     Route::get('/reports', [ErpController::class, 'reports'])->name('reports');
     Route::get('/reports/export', [ErpController::class, 'exportCsv'])->name('reports.export');
+    Route::get('/reports/export-pdf', [ErpController::class, 'exportPdf'])->name('reports.export.pdf');
 
     // Reset demonstration utility
     Route::post('/reset-data', [ErpController::class, 'resetData'])->name('reset-data');

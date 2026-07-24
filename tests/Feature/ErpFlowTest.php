@@ -14,6 +14,7 @@ use App\Models\Invoice;
 use App\Models\StaffProfile;
 use App\Models\LaborLog;
 use App\Models\Expense;
+use App\Models\Purchase;
 use App\Models\ProductionLog;
 use App\Services\ProductionService;
 use App\Services\BillingService;
@@ -277,70 +278,28 @@ class ErpFlowTest extends TestCase
             'created_at' => Carbon::now(),
         ]);
 
-        // 2. COGS: mock raw material and production log in range
-        $iron = RawMaterial::create([
-            'material_name' => 'Wire',
+        // 2. Purchase entry: ₹2,000
+        Purchase::create([
+            'bill_number' => 'BILL-101',
+            'vendor_name' => 'Steel Supplier',
+            'purchase_type' => 'raw_material',
+            'item_name' => 'Wire Coil',
+            'quantity' => 100,
             'unit' => 'kg',
-            'current_stock' => 1000.00,
-            'safety_threshold' => 10.00,
-            'average_purchase_price' => 10.00, // Cost is 10/kg
+            'gst_rate' => 18,
+            'gst_amount' => 360,
+            'total_amount' => 2000.00,
+            'purchase_date' => Carbon::now()->toDateString(),
         ]);
 
-        $good = Product::create([
-            'product_name' => 'Rack',
-            'sku' => 'RK-01',
-            'current_stock' => 10,
-            'selling_price' => 500,
-        ]);
-
-        BillOfMaterial::create([
-            'product_id' => $good->id,
-            'raw_material_id' => $iron->id,
-            'required_quantity' => 10.0, // 10 kg
-            'waste_percentage' => 10.00, // 10% waste => 11 kg consumed per unit
-        ]);
-
-        $user = User::create([
-            'name' => 'Manager',
-            'email' => 'm@pww.com',
-            'password' => bcrypt('password'),
-            'role' => 'manager',
-        ]);
-
-        // Manufacturing 10 units => 110 kg iron consumed => COGS = 110 * 10 = ₹1,100
-        $prodLog = ProductionLog::create([
-            'product_id' => $good->id,
-            'quantity_manufactured' => 10,
-            'quantity_rejected' => 0,
-            'recorded_by' => $user->id,
-            'production_date' => Carbon::now()->toDateString(),
-            'created_at' => Carbon::now(),
-        ]);
-
-        // 3. Piece-Rate wages paid: ₹800
-        $staff = StaffProfile::create([
-            'user_id' => null,
-            'full_name' => 'Vijay',
-            'wage_type' => 'per-day',
-        ]);
-
-        LaborLog::create([
-            'staff_profile_id' => $staff->id,
-            'production_log_id' => $prodLog->id,
-            'units_completed' => 40,
-            'calculated_payout' => 800.00,
-            'status' => 'paid',
-            'created_at' => Carbon::now(),
-        ]);
-
-        // 4. Logged Overheads: Rent ₹1,500
+        // 3. Logged Expense: Rent ₹1,500
         Expense::create([
             'expense_category' => 'office_rent',
             'amount' => 1500.00,
             'expense_date' => Carbon::now()->toDateString(),
         ]);
 
-        // 5. Depreciation: Machinery depreciation ₹500
+        // 4. Logged Expense: Depreciation ₹500
         Expense::create([
             'expense_category' => 'machinery_depreciation',
             'amount' => 500.00,
@@ -349,11 +308,9 @@ class ErpFlowTest extends TestCase
 
         // Calculate expected net profit:
         // Revenue (excl tax): 10,000
-        // COGS: 1,100
-        // Wages: 800
-        // Overheads: 1,500
-        // Depreciation: 500
-        // Expected Net Profit = 10,000 - (1,100 + 800 + 1,500 + 500) = 10,000 - 3,900 = ₹6,100
+        // Purchases: 2,000
+        // Total Expenses: 1,500 + 500 = 2,000
+        // Expected Net Profit = 10,000 - 2,000 - 2,000 = ₹6,000
 
         $summary = $this->financialService->getFinancialSummary(
             Carbon::now()->subDay()->toDateString(),
@@ -361,11 +318,9 @@ class ErpFlowTest extends TestCase
         );
 
         $this->assertEquals(10000.00, $summary['revenue']);
-        $this->assertEquals(1100.00, $summary['cogs']);
-        $this->assertEquals(800.00, $summary['direct_wages']);
-        $this->assertEquals(1500.00, $summary['overheads']);
-        $this->assertEquals(500.00, $summary['depreciation']);
-        $this->assertEquals(6100.00, $summary['net_profit']);
+        $this->assertEquals(2000.00, $summary['total_purchases']);
+        $this->assertEquals(2000.00, $summary['total_expenses']);
+        $this->assertEquals(6000.00, $summary['net_profit']);
     }
 
     /**
@@ -657,9 +612,8 @@ class ErpFlowTest extends TestCase
         $responseFinancial->assertStatus(200);
         $responseFinancial->assertViewHas('period', 'all');
 
-        $responseGst = $this->actingAs($user)->get(route('reports', ['report_type' => 'gst']));
-        $responseGst->assertStatus(200);
-        $responseGst->assertViewHas('period', 'month'); // GST defaults to current month!
+        $responseExpense = $this->actingAs($user)->get(route('reports', ['report_type' => 'expense']));
+        $responseExpense->assertStatus(200);
 
         // 3. Test predefined period filters
         $responseMonth = $this->actingAs($user)->get(route('reports', [
@@ -681,24 +635,14 @@ class ErpFlowTest extends TestCase
         $responseAll = $this->actingAs($user)->get(route('reports', ['filter_period' => 'all']));
         $responseAll->assertStatus(200);
 
-        // 4. Test CSV Export filename format
-        $responseExportAll = $this->actingAs($user)->get(route('reports.export', ['filter_period' => 'all']));
+        // 4. Test CSV Export status and headers
+        $responseExportAll = $this->actingAs($user)->get(route('reports.export', ['report_type' => 'invoice', 'filter_period' => 'all']));
         $responseExportAll->assertStatus(200);
-        $responseExportAll->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-All-Records.csv"');
+        $this->assertTrue(str_contains($responseExportAll->headers->get('Content-Disposition'), 'PWW_Invoice_Report_'));
 
-        $responseExportMonth = $this->actingAs($user)->get(route('reports.export', [
-            'filter_period' => 'month',
-            'filter_month' => '2026-05'
-        ]));
-        $responseExportMonth->assertStatus(200);
-        $responseExportMonth->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-Month-2026-05.csv"');
-
-        $responseExportYear = $this->actingAs($user)->get(route('reports.export', [
-            'filter_period' => 'year',
-            'filter_year' => '2025'
-        ]));
-        $responseExportYear->assertStatus(200);
-        $responseExportYear->assertHeader('Content-Disposition', 'attachment; filename="PWW-ERP-Audit-Report-FY-2025-26.csv"');
+        $responseExportPurchase = $this->actingAs($user)->get(route('reports.export', ['report_type' => 'purchase']));
+        $responseExportPurchase->assertStatus(200);
+        $this->assertTrue(str_contains($responseExportPurchase->headers->get('Content-Disposition'), 'PWW_Purchase_Report_'));
     }
 
     /**
@@ -894,7 +838,7 @@ class ErpFlowTest extends TestCase
             'business_subtitle' => 'Industrial Fabrication Division',
             'address_line_1' => 'GIDC Plot 100',
             'address_line_2' => 'Baroda, Gujarat',
-            'gstin' => '24CUSTOM1234A1Z9',
+            'gstin' => '24CUSTO1234A1Z9',
             'bank_name' => 'State Bank of India',
             'bank_account_name' => 'Custom Weld Inc',
             'bank_account_no' => '12345678901',
@@ -912,7 +856,7 @@ class ErpFlowTest extends TestCase
         $this->assertEquals('Industrial Fabrication Division', \App\Models\Setting::get('business_subtitle'));
         $this->assertEquals('GIDC Plot 100', \App\Models\Setting::get('address_line_1'));
         $this->assertEquals('Baroda, Gujarat', \App\Models\Setting::get('address_line_2'));
-        $this->assertEquals('24CUSTOM1234A1Z9', \App\Models\Setting::get('gstin'));
+        $this->assertEquals('24CUSTO1234A1Z9', \App\Models\Setting::get('gstin'));
         $this->assertStringContainsString('uploads/logo_', \App\Models\Setting::get('logo_path'));
     }
 

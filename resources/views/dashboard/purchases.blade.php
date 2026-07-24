@@ -35,8 +35,11 @@
                     <select name="purchase_type" id="purchaseTypeSelect" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-bold">
                         <option value="raw_material" selected>Raw Material Purchase (Auto-Restocks Inventory)</option>
+                        <option value="office_assets">Office Assets & Electronics (Mobiles, Laptops, CCTV)</option>
                         <option value="machinery">Machinery & Capital Equipment</option>
+                        <option value="factory_spares">Welding Gas & Machinery Spare Parts</option>
                         <option value="supplies">Factory Consumables & Tools</option>
+                        <option value="vehicle_transport">Vehicle & Freight Expenses (Transport/Fuel)</option>
                         <option value="others">Other Purchases / Miscellaneous</option>
                     </select>
                 </div>
@@ -151,10 +154,16 @@
                             <td class="px-6 py-4">
                                 @if($pur->purchase_type === 'raw_material')
                                     <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 text-[10px] rounded font-bold uppercase">Raw Material</span>
+                                @elseif($pur->purchase_type === 'office_assets')
+                                    <span class="px-2.5 py-0.5 bg-cyan-50 text-cyan-700 border border-cyan-200 text-[10px] rounded font-bold uppercase">Office Assets</span>
                                 @elseif($pur->purchase_type === 'machinery')
                                     <span class="px-2.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] rounded font-bold uppercase">Machinery / Capital</span>
+                                @elseif($pur->purchase_type === 'factory_spares')
+                                    <span class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] rounded font-bold uppercase">Gas & Spares</span>
                                 @elseif($pur->purchase_type === 'supplies')
                                     <span class="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] rounded font-bold uppercase">Supplies & Tools</span>
+                                @elseif($pur->purchase_type === 'vehicle_transport')
+                                    <span class="px-2.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 text-[10px] rounded font-bold uppercase">Vehicle & Freight</span>
                                 @else
                                     <span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] rounded font-bold uppercase">Other Purchases</span>
                                 @endif

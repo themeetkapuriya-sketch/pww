@@ -254,6 +254,15 @@
             border-right: 1px solid #4371D7 !important;
         }
         
+        /* DataTables Empty State Container Styling */
+        table.erp-datatable td.dataTables_empty,
+        table.dataTable td.dataTables_empty {
+            padding: 2.5rem 1rem !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        
         /* Global Button Utility Styles */
         .btn-primary {
             background-color: #4371D7 !important;

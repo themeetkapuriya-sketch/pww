@@ -22,68 +22,55 @@ class FinancialService
         $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        // 1. Gross Revenue
-        $revenue = Invoice::whereBetween('created_at', [$start, $end])->sum('total_taxable_value');
+        // 1. Gross Sales Revenue
+        $revenue = round(Invoice::where(function($q) use ($start, $end) {
+            $q->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
+              ->orWhere(function($sub) use ($start, $end) {
+                  $sub->whereNull('invoice_date')
+                      ->whereBetween('created_at', [$start, $end]);
+              });
+        })->sum('total_taxable_value'), 2);
 
-        // 2. Total COGS (Purchases + Production BOM Material Cost)
-        $purchasesCogs = Purchase::whereBetween('purchase_date', [$start->toDateString(), $end->toDateString()])->sum('total_amount');
-        
-        $bomCogs = 0.00;
-        $prodLogs = ProductionLog::with('product.bom.rawMaterial')
-            ->where(function($q) use ($start, $end) {
-                $q->whereBetween('production_date', [$start->toDateString(), $end->toDateString()])
-                  ->orWhereBetween('created_at', [$start, $end]);
-            })->get();
-        foreach ($prodLogs as $pl) {
-            $prod = $pl->product ?? $pl->finishedGood;
-            if ($prod && $prod->bom) {
-                foreach ($prod->bom as $bom) {
-                    if ($bom->rawMaterial) {
-                        $qtyNeeded = ($pl->quantity_manufactured + $pl->quantity_rejected) * $bom->required_quantity * (1 + ($bom->waste_percentage / 100));
-                        $unitPrice = $bom->rawMaterial->average_purchase_price ?? $bom->rawMaterial->unit_price ?? 0;
-                        $bomCogs += $qtyNeeded * $unitPrice;
-                    }
-                }
-            }
-        }
-        $cogs = round($purchasesCogs + $bomCogs, 2);
+        // 2. Total Purchases
+        $totalPurchases = round(Purchase::whereBetween('purchase_date', [$start->toDateString(), $end->toDateString()])->sum('total_amount'), 2);
 
-        // 3. Direct Labor Wages
-        $directWages = round(LaborLog::whereBetween('created_at', [$start, $end])->sum('calculated_payout'), 2);
+        // 3. Total Expenses
+        $totalExpenses = round(Expense::whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])->sum('amount'), 2);
 
-        // 4. Overheads (Excluding Machinery Depreciation)
-        $overheads = round(Expense::where('expense_category', '!=', 'machinery_depreciation')
-            ->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
-            ->sum('amount'), 2);
-
-        // 5. Machinery Depreciation
-        $depreciation = round(Expense::where('expense_category', 'machinery_depreciation')
-            ->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])
-            ->sum('amount'), 2);
-
-        // 6. Total Expenses
-        $totalExpenses = round($cogs + $directWages + $overheads + $depreciation, 2);
-
-        // 7. Net Profit
-        $netProfit = round($revenue - $totalExpenses, 2);
+        // 4. Net Profit = Total Sales Revenue - Total Purchases - Total Expenses
+        $netProfit = round($revenue - $totalPurchases - $totalExpenses, 2);
 
         // Margin %
         $margin = $revenue > 0 ? round(($netProfit / $revenue) * 100, 2) : 0.00;
 
-        // 8. Outstanding Receivables
+        // Outstanding Receivables
         $invoices = Invoice::all();
-        $outstandingReceivables = $invoices->sum(fn($inv) => $inv->remaining_balance);
+        $outstandingReceivables = round($invoices->sum(fn($inv) => $inv->remaining_balance), 2);
+
+        // Outstanding Payables
+        $purchases = Purchase::where('payment_status', 'unpaid')->get();
+        $outstandingPayables = round($purchases->sum('total_amount'), 2);
+
+        // Payments Collections
+        $bankCollections = round(Payment::where('payment_method', '!=', 'cash')->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->sum('amount'), 2);
+        $cashCollections = round(Payment::where('payment_method', 'cash')->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->sum('amount'), 2);
 
         return [
             'revenue' => (float)$revenue,
-            'cogs' => (float)$cogs,
-            'direct_wages' => (float)$directWages,
-            'overheads' => (float)$overheads,
-            'depreciation' => (float)$depreciation,
+            'total_purchases' => (float)$totalPurchases,
+            'purchases' => (float)$totalPurchases,
+            'cogs' => (float)$totalPurchases,
             'total_expenses' => (float)$totalExpenses,
+            'expenses' => (float)$totalExpenses,
+            'direct_wages' => 0.00,
+            'overheads' => (float)$totalExpenses,
+            'depreciation' => 0.00,
             'net_profit' => (float)$netProfit,
             'gross_profit_margin' => (float)$margin,
             'outstanding_receivables' => (float)$outstandingReceivables,
+            'outstanding_payables' => (float)$outstandingPayables,
+            'bank_collections' => (float)$bankCollections,
+            'cash_collections' => (float)$cashCollections,
         ];
     }
 
