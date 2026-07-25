@@ -202,15 +202,7 @@ return new class extends Migration
         // 14. expenses
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
-            $table->enum('expense_category', [
-                'factory_electricity',
-                'industrial_gas',
-                'welding_consumables',
-                'freight_transport',
-                'office_rent',
-                'administrative',
-                'machinery_depreciation'
-            ]);
+            $table->string('expense_category', 100);
             $table->decimal('amount', 12, 2);
             $table->date('expense_date');
             $table->text('description')->nullable();
