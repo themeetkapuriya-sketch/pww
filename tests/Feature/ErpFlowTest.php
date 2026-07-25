@@ -307,20 +307,108 @@ class ErpFlowTest extends TestCase
         ]);
 
         // Calculate expected net profit:
-        // Revenue (excl tax): 10,000
+        // Total Billed Sales (incl tax): 11,800
         // Purchases: 2,000
         // Total Expenses: 1,500 + 500 = 2,000
-        // Expected Net Profit = 10,000 - 2,000 - 2,000 = ₹6,000
+        // Expected Net Profit = 11,800 - 2,000 - 2,000 = ₹7,800
 
         $summary = $this->financialService->getFinancialSummary(
             Carbon::now()->subDay()->toDateString(),
             Carbon::now()->addDay()->toDateString()
         );
 
-        $this->assertEquals(10000.00, $summary['revenue']);
+        $this->assertEquals(11800.00, $summary['revenue']);
         $this->assertEquals(2000.00, $summary['total_purchases']);
         $this->assertEquals(2000.00, $summary['total_expenses']);
-        $this->assertEquals(6000.00, $summary['net_profit']);
+        $this->assertEquals(7800.00, $summary['net_profit']);
+    }
+
+    /**
+     * Test GST payment status auto-detection from Expense Ledger.
+     */
+    public function test_gst_payment_status_from_expense_ledger()
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $client = Client::create(['company_name' => 'GST Test Client', 'gstin' => '24AAAAA0000A1Z5', 'contact_person' => 'John']);
+        $plant = ClientPlant::create(['client_id' => $client->id, 'plant_name' => 'HQ Plant', 'state' => 'Gujarat', 'city' => 'Surat']);
+
+        Invoice::create([
+            'plant_id' => $plant->id,
+            'invoice_number' => 'PWW-GST-001',
+            'invoice_date' => Carbon::now()->toDateString(),
+            'total_taxable_value' => 10000.00,
+            'cgst' => 900.00,
+            'sgst' => 900.00,
+            'igst' => 0.00,
+            'total_amount' => 11800.00,
+            'payment_status' => 'paid',
+            'paid_amount' => 11800.00,
+            'due_date' => Carbon::now()->toDateString(),
+        ]);
+
+        // Prior to logging expense: GST reports show UNPAID
+        $response1 = $this->actingAs($user)->get('/reports?report_type=gst&filter_period=month');
+        $response1->assertStatus(200);
+        $response1->assertSee('UNPAID');
+
+        // Log GST Payment in Expense Ledger
+        Expense::create([
+            'expense_category' => 'gst_payment',
+            'amount' => 1800.00,
+            'expense_date' => Carbon::now()->toDateString(),
+            'description' => 'GSTR-3B Tax Paid via Bank Challan'
+        ]);
+
+        // After logging expense: GST reports show PAID
+        $response2 = $this->actingAs($user)->get('/reports?report_type=gst&filter_period=month');
+        $response2->assertStatus(200);
+        $response2->assertSee('PAID');
+    }
+
+    /**
+     * Test Purchase Ledger logging workflow (Raw material & non-raw material).
+     */
+    public function test_purchase_logging_workflow()
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $mat = RawMaterial::create([
+            'material_name' => 'Test Steel Plate 5mm',
+            'unit' => 'kg',
+            'current_stock' => 100,
+            'safety_threshold' => 10,
+            'average_purchase_price' => 50
+        ]);
+
+        // 1. Raw Material Purchase
+        $response1 = $this->actingAs($user)->postJson('/purchases', [
+            'vendor_name' => 'Jindal Steel',
+            'purchase_type' => 'raw_material',
+            'raw_material_id' => $mat->id,
+            'quantity' => 500,
+            'total_amount' => 25000,
+            'gst_rate' => 18,
+            'purchase_date' => Carbon::now()->toDateString()
+        ]);
+
+        $response1->assertStatus(200);
+        $response1->assertJson(['success' => true]);
+        $this->assertEquals(600, $mat->fresh()->current_stock);
+
+        // 2. Machinery Purchase (Non-raw material)
+        $response2 = $this->actingAs($user)->postJson('/purchases', [
+            'vendor_name' => 'Atlas Copco',
+            'purchase_type' => 'machinery',
+            'item_name' => 'Air Compressor 10HP',
+            'quantity' => 1,
+            'unit' => 'unit',
+            'total_amount' => 150000,
+            'gst_rate' => 18,
+            'purchase_date' => Carbon::now()->toDateString()
+        ]);
+
+        $response2->assertStatus(200);
+        $response2->assertJson(['success' => true]);
     }
 
     /**
@@ -1049,5 +1137,34 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->delete(route('employees.delete', $staffId));
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertNull(StaffProfile::find($staffId));
+    }
+
+    /**
+     * Test Overview Dashboard rendering and metrics data passing.
+     */
+    public function test_overview_dashboard_rendering()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('overview'));
+        $response->assertStatus(200);
+        $response->assertViewHasAll([
+            'yearlyRevenue',
+            'yearlyTaxable',
+            'monthlyRevenue',
+            'monthlyTaxable',
+            'totalReceivables',
+            'currentMonthNetGst',
+            'activeOrdersCount',
+            'monthlyExpenses',
+            'lowStockCount',
+            'chartMonths',
+            'chartSalesData',
+            'chartExpenseData',
+            'topClientsData',
+            'recentInvoices',
+            'recentOrders',
+            'lowStockMaterials',
+        ]);
     }
 }

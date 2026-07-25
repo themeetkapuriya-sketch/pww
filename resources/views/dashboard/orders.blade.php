@@ -214,18 +214,19 @@
                             </td>
                             <td class="px-4 py-3 text-right font-mono font-extrabold text-slate-900">₹{{ number_format($ord->total_amount, 2) }}</td>
                             <td class="px-4 py-3 text-center">
-                                <select onchange="updateOrderStatus({{ $ord->id }}, this.value)" 
-                                        class="text-[10px] font-bold uppercase rounded-full px-2.5 py-1 focus:outline-none border border-slate-200 shadow-2xs 
-                                        {{ $ord->status === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-300' : '' }}
-                                        {{ $ord->status === 'in_production' ? 'bg-blue-100 text-blue-800 border-blue-300' : '' }}
-                                        {{ $ord->status === 'ready_for_dispatch' ? 'bg-indigo-100 text-indigo-800 border-indigo-300' : '' }}
-                                        {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : '' }}
-                                        {{ $ord->status === 'cancelled' ? 'bg-rose-100 text-rose-800 border-rose-300' : '' }}">
-                                    <option value="pending" {{ $ord->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                    <option value="in_production" {{ $ord->status === 'in_production' ? 'selected' : '' }}>In Production</option>
-                                    <option value="ready_for_dispatch" {{ $ord->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
-                                    <option value="dispatched" {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
-                                    <option value="cancelled" {{ $ord->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                <select onchange="updateOrderStatus({{ $ord->id }}, this)" 
+                                        class="text-[10px] font-bold uppercase rounded-full px-2.5 py-1 focus:outline-none border shadow-2xs bg-white 
+                                        {{ $ord->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
+                                        {{ $ord->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
+                                        {{ $ord->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}
+                                        {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'text-emerald-600 border-emerald-300' : '' }}
+                                        {{ $ord->status === 'cancelled' ? 'text-rose-600 border-rose-300' : '' }}"
+                                        style="background-color: #ffffff !important;">
+                                    <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $ord->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $ord->status === 'in_production' ? 'selected' : '' }}>In Production</option>
+                                    <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $ord->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
+                                    <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;" {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
+                                    <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;" {{ $ord->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                 </select>
                             </td>
                             <td class="px-4 py-3 text-center">
@@ -340,7 +341,11 @@
         }
     }
 
-    function updateOrderStatus(id, status) {
+    function updateOrderStatus(id, selectEl) {
+        const status = (typeof selectEl === 'object' && selectEl !== null) ? selectEl.value : selectEl;
+        if (typeof selectEl === 'object' && selectEl !== null) {
+            applyStatusSelectColor(selectEl);
+        }
         const token = $('meta[name="csrf-token"]').attr('content') || '';
         $.ajax({
             url: `/orders/${id}/status`,
@@ -353,6 +358,30 @@
                 alert(xhr.responseJSON?.message || 'Failed to update order status.');
             }
         });
+    }
+
+    function applyStatusSelectColor(selectEl) {
+        const val = selectEl.value;
+        selectEl.classList.remove(
+            'text-amber-600', 'border-amber-300',
+            'text-blue-600', 'border-blue-300',
+            'text-indigo-600', 'border-indigo-300',
+            'text-emerald-600', 'border-emerald-300',
+            'text-rose-600', 'border-rose-300'
+        );
+        selectEl.style.backgroundColor = '#ffffff';
+
+        if (val === 'pending') {
+            selectEl.classList.add('text-amber-600', 'border-amber-300');
+        } else if (val === 'in_production') {
+            selectEl.classList.add('text-blue-600', 'border-blue-300');
+        } else if (val === 'ready_for_dispatch') {
+            selectEl.classList.add('text-indigo-600', 'border-indigo-300');
+        } else if (val === 'dispatched' || val === 'completed') {
+            selectEl.classList.add('text-emerald-600', 'border-emerald-300');
+        } else if (val === 'cancelled') {
+            selectEl.classList.add('text-rose-600', 'border-rose-300');
+        }
     }
 
     function convertOrderToChallan(id, orderNumber) {

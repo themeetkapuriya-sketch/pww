@@ -56,7 +56,7 @@ $indianStates = [
             <p class="text-xs text-slate-500 font-medium mt-1">Manage client profiles, state-specific GSTINs, and delivery plant locations.</p>
         </div>
         <div class="flex items-center space-x-3">
-            <button type="button" onclick="toggleRegisterPlantForm()" class="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-2.5 px-4 rounded-xl text-xs font-bold transition duration-150 flex items-center">
+            <button type="button" onclick="toggleCreatePlantForm()" class="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-2.5 px-4 rounded-xl text-xs font-bold transition duration-150 flex items-center">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Register Plant</span>
             </button>
@@ -191,7 +191,7 @@ $indianStates = [
 
             <div class="flex items-center justify-end space-x-3 pt-2">
                 <button type="button" onclick="toggleCreatePlantForm()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
-                <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Register Plant Address</button>
+                <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Register Plant Detials</button>
             </div>
         </form>
     </div>
@@ -519,6 +519,7 @@ function toggleCreatePlantForm() {
         }
     }
 }
+window.toggleRegisterPlantForm = toggleCreatePlantForm;
 
 function openCreatePlantFormForClient(clientId, clientName) {
     if (window.resetFormAndErrors) window.resetFormAndErrors('#createPlantFormCard form');

@@ -22,14 +22,14 @@ class FinancialService
         $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->subDays(30)->startOfDay();
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        // 1. Gross Sales Revenue
+        // 1. Gross Sales Revenue (Including GST tax)
         $revenue = round(Invoice::where(function($q) use ($start, $end) {
             $q->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
               ->orWhere(function($sub) use ($start, $end) {
                   $sub->whereNull('invoice_date')
                       ->whereBetween('created_at', [$start, $end]);
               });
-        })->sum('total_taxable_value'), 2);
+        })->sum('total_amount'), 2);
 
         // 2. Total Purchases
         $totalPurchases = round(Purchase::whereBetween('purchase_date', [$start->toDateString(), $end->toDateString()])->sum('total_amount'), 2);

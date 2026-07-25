@@ -14,7 +14,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (file_exists(app_path('helpers.php'))) {
+            require_once app_path('helpers.php');
+        }
     }
 
     /**
@@ -22,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Blade::directive('inr', function ($expression) {
+            return "<?php echo format_indian({$expression}); ?>";
+        });
+
         if ($this->app->environment('production') || env('APP_ENV') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }

@@ -131,22 +131,22 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Opening Balance</span>
-            <span class="text-lg font-black text-slate-700 block mt-1">₹{{ number_format($opening_balance, 2) }}</span>
+            <span class="text-lg font-black text-slate-700 block mt-1">₹{{ format_indian($opening_balance, 2) }}</span>
             <span class="text-[10px] text-slate-400">Prior to {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Billed Invoices (+)</span>
-            <span class="text-lg font-black text-blue-600 block mt-1">₹{{ number_format($total_debit, 2) }}</span>
+            <span class="text-lg font-black text-blue-600 block mt-1">₹{{ format_indian($total_debit, 2) }}</span>
             <span class="text-[10px] text-slate-400">Debited during period</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Payments Received (-)</span>
-            <span class="text-lg font-black text-emerald-600 block mt-1">₹{{ number_format($total_credit, 2) }}</span>
+            <span class="text-lg font-black text-emerald-600 block mt-1">₹{{ format_indian($total_credit, 2) }}</span>
             <span class="text-[10px] text-slate-400">Credited during period</span>
         </div>
         <div class="bg-amber-500 text-white rounded-2xl p-5 shadow-md">
             <span class="text-[10px] font-bold uppercase tracking-wider opacity-90 block">Net Outstanding Balance</span>
-            <span class="text-xl font-extrabold block mt-1">₹{{ number_format($closing_balance, 2) }}</span>
+            <span class="text-xl font-extrabold block mt-1">₹{{ format_indian($closing_balance, 2) }}</span>
             <span class="text-[10px] opacity-80">Current amount due from client</span>
         </div>
     </div>
@@ -175,7 +175,7 @@
                         <td colspan="3" class="px-4 py-3 text-slate-700">Opening Balance (Before {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }})</td>
                         <td class="px-4 py-3 text-right text-slate-400">-</td>
                         <td class="px-4 py-3 text-right text-slate-400">-</td>
-                        <td class="px-4 py-3 text-right font-mono text-slate-900 font-extrabold">₹{{ number_format($opening_balance, 2) }}</td>
+                        <td class="px-4 py-3 text-right font-mono text-slate-900 font-extrabold">₹{{ format_indian($opening_balance, 2) }}</td>
                     </tr>
                     @forelse($entries as $row)
                         <tr class="hover:bg-slate-50/60 transition">
@@ -193,13 +193,13 @@
                                 {{ $row['description'] }}
                             </td>
                             <td class="px-4 py-3 text-right font-bold {{ $row['debit'] > 0 ? 'text-blue-600' : 'text-slate-400' }}">
-                                {{ $row['debit'] > 0 ? '₹' . number_format($row['debit'], 2) : '-' }}
+                                {{ $row['debit'] > 0 ? '₹' . format_indian($row['debit'], 2) : '-' }}
                             </td>
                             <td class="px-4 py-3 text-right font-bold {{ $row['credit'] > 0 ? 'text-emerald-600' : 'text-slate-400' }}">
-                                {{ $row['credit'] > 0 ? '₹' . number_format($row['credit'], 2) : '-' }}
+                                {{ $row['credit'] > 0 ? '₹' . format_indian($row['credit'], 2) : '-' }}
                             </td>
                             <td class="px-4 py-3 text-right font-mono font-extrabold text-slate-900">
-                                ₹{{ number_format($row['running_balance'], 2) }}
+                                ₹{{ format_indian($row['running_balance'], 2) }}
                             </td>
                         </tr>
                     @empty

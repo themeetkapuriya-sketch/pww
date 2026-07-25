@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -107,11 +107,15 @@
     <table class="header-table">
         <tr>
             <td style="width: 60%;">
-                <h1 class="company-name">PRAFUL WELDING WORKS</h1>
+                <h1 class="company-name">{{ \App\Models\Setting::get('business_name', 'PRAFUL WELDING WORKS') }}</h1>
                 <div class="company-details">
-                    Industrial Rack Manufacturing & Metal Fabrication<br>
-                    GSTIN: 24AAFFP1234A1Z9 | Phone: +91 98250 12345<br>
-                    Plot No. 45, GIDC Industrial Estate, Rajkot, Gujarat - 360002
+                    {{ \App\Models\Setting::get('business_subtitle', 'Industrial Rack Manufacturing & Metal Fabrication') }}<br>
+                    GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}
+                    @if($msme = \App\Models\Setting::get('msme_number'))
+                         | MSME: {{ $msme }}
+                    @endif
+                    <br>
+                    {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }} {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}
                 </div>
             </td>
             <td class="title-badge" style="width: 40%;">
@@ -142,25 +146,25 @@
                 <td style="width: 24%; padding-right: 8px;">
                     <div class="summary-card">
                         <div class="card-label">Total Taxable Value</div>
-                        <div class="card-val">₹{{ number_format($invoiceSummary['total_taxable'], 2) }}</div>
+                        <div class="card-val">₹{{ format_indian($invoiceSummary['total_taxable'], 2) }}</div>
                     </div>
                 </td>
                 <td style="width: 24%; padding-right: 8px;">
                     <div class="summary-card">
                         <div class="card-label">Total GST Collected</div>
-                        <div class="card-val text-blue">₹{{ number_format($invoiceSummary['total_gst'], 2) }}</div>
+                        <div class="card-val text-blue">₹{{ format_indian($invoiceSummary['total_gst'], 2) }}</div>
                     </div>
                 </td>
                 <td style="width: 26%; padding-right: 8px;">
                     <div class="summary-card">
                         <div class="card-label">Total Sales Revenue</div>
-                        <div class="card-val text-green">₹{{ number_format($invoiceSummary['total_amount'], 2) }}</div>
+                        <div class="card-val text-green">₹{{ format_indian($invoiceSummary['total_amount'], 2) }}</div>
                     </div>
                 </td>
                 <td style="width: 26%;">
                     <div class="summary-card">
                         <div class="card-label">Total Outstanding Due</div>
-                        <div class="card-val text-red">₹{{ number_format($invoiceSummary['total_due'] ?? 0, 2) }}</div>
+                        <div class="card-val text-red">₹{{ format_indian($invoiceSummary['total_due'] ?? 0, 2) }}</div>
                     </div>
                 </td>
             </tr>
@@ -186,13 +190,13 @@
                         <td class="font-bold text-blue">{{ $inv->invoice_number }}</td>
                         <td>{{ $inv->plant->client->company_name ?? 'N/A' }} ({{ $inv->plant->plant_name ?? 'HQ' }})</td>
                         <td>{{ \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y') }}</td>
-                        <td class="text-right">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
-                        <td class="text-right">₹{{ number_format($inv->cgst, 2) }}</td>
-                        <td class="text-right">₹{{ number_format($inv->sgst, 2) }}</td>
-                        <td class="text-right">₹{{ number_format($inv->igst, 2) }}</td>
-                        <td class="text-right font-bold">₹{{ number_format($inv->total_amount, 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($inv->cgst, 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($inv->sgst, 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($inv->igst, 2) }}</td>
+                        <td class="text-right font-bold">₹{{ format_indian($inv->total_amount, 2) }}</td>
                         <td class="text-right font-bold {{ $inv->remaining_balance > 0 ? 'text-red' : 'text-green' }}">
-                            ₹{{ number_format($inv->remaining_balance, 2) }}
+                            ₹{{ format_indian($inv->remaining_balance, 2) }}
                         </td>
                     </tr>
                 @empty
@@ -223,7 +227,7 @@
                         <td class="font-bold">{{ $pur->vendor_name }}</td>
                         <td>{{ ucfirst(str_replace('_', ' ', $pur->purchase_type)) }}</td>
                         <td>{{ $pur->item_name }}</td>
-                        <td class="text-right font-bold text-red">₹{{ number_format($pur->total_amount, 2) }}</td>
+                        <td class="text-right font-bold text-red">₹{{ format_indian($pur->total_amount, 2) }}</td>
                     </tr>
                 @empty
                     <tr>
@@ -243,21 +247,21 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>Total Sales Revenue (A)</td>
-                    <td class="text-right font-bold text-green">₹{{ number_format($financials['revenue'], 2) }}</td>
+                    <td>Total Billed Sales (A)</td>
+                    <td class="text-right font-bold text-green">₹{{ format_indian($financials['revenue'], 2) }}</td>
                 </tr>
                 <tr>
                     <td>Total Purchases (B)</td>
-                    <td class="text-right text-red">- ₹{{ number_format($financials['purchases'], 2) }}</td>
+                    <td class="text-right text-red">- ₹{{ format_indian($financials['purchases'], 2) }}</td>
                 </tr>
                 <tr>
                     <td>Total Expenses (C)</td>
-                    <td class="text-right text-red">- ₹{{ number_format($financials['expenses'], 2) }}</td>
+                    <td class="text-right text-red">- ₹{{ format_indian($financials['expenses'], 2) }}</td>
                 </tr>
                 <tr style="background-color: #f1f5f9; font-weight: bold;">
-                    <td style="font-size: 11px;">NET PROFIT / LOSS (A - B - C)</td>
+                    <td style="font-size: 11px;">NET REVENUE / PROFIT (A - B - C)</td>
                     <td class="text-right" style="font-size: 11px; {{ $financials['net_profit'] >= 0 ? 'color:#16a34a;' : 'color:#dc2626;' }}">
-                        ₹{{ number_format($financials['net_profit'], 2) }}
+                        ₹{{ format_indian($financials['net_profit'], 2) }}
                     </td>
                 </tr>
             </tbody>
@@ -277,9 +281,9 @@
                 @forelse($expenses as $exp)
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($exp->expense_date)->format('d/m/Y') }}</td>
-                        <td class="font-bold">{{ ucfirst(str_replace('_', ' ', $exp->expense_category)) }}</td>
+                        <td class="font-bold">{{ $exp->expense_category === 'gst_payment' ? 'GST Payment' : ucfirst(str_replace('_', ' ', $exp->expense_category)) }}</td>
                         <td>{{ $exp->description ?? 'N/A' }}</td>
-                        <td class="text-right font-bold text-red">₹{{ number_format($exp->amount, 2) }}</td>
+                        <td class="text-right font-bold text-red">₹{{ format_indian($exp->amount, 2) }}</td>
                     </tr>
                 @empty
                     <tr>
@@ -299,13 +303,13 @@
                     <td style="width: 32%; padding-right: 10px;">
                         <div class="summary-card">
                             <div class="card-label">Total Outward Taxable</div>
-                            <div class="card-val">₹{{ number_format($invoiceSummary['total_taxable'], 2) }}</div>
+                            <div class="card-val">₹{{ format_indian($invoiceSummary['total_taxable'], 2) }}</div>
                         </div>
                     </td>
                     <td style="width: 32%; padding-right: 10px;">
                         <div class="summary-card">
                             <div class="card-label">Total Output GST Collected</div>
-                            <div class="card-val text-green">₹{{ number_format($invoiceSummary['total_gst'], 2) }}</div>
+                            <div class="card-val text-green">₹{{ format_indian($invoiceSummary['total_gst'], 2) }}</div>
                         </div>
                     </td>
                     <td style="width: 36%;">
@@ -335,10 +339,10 @@
                             <td class="font-bold text-blue">{{ $inv->invoice_number }}</td>
                             <td>{{ $inv->plant->client->gstin ?? 'URP / Retail' }}</td>
                             <td>{{ $inv->plant->client->company_name ?? 'N/A' }}</td>
-                            <td class="text-right">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
-                            <td class="text-right">₹{{ number_format($inv->cgst, 2) }}</td>
-                            <td class="text-right">₹{{ number_format($inv->sgst, 2) }}</td>
-                            <td class="text-right">₹{{ number_format($inv->igst, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->cgst, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->sgst, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->igst, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -355,13 +359,13 @@
                     <td style="width: 50%; padding-right: 10px;">
                         <div class="summary-card">
                             <div class="card-label">Total Purchase Outlay</div>
-                            <div class="card-val">₹{{ number_format($purchaseSummary['total_spent'], 2) }}</div>
+                            <div class="card-val">₹{{ format_indian($purchaseSummary['total_spent'], 2) }}</div>
                         </div>
                     </td>
                     <td style="width: 50%;">
                         <div class="summary-card">
                             <div class="card-label">Total Input Tax Credit (ITC) Paid</div>
-                            <div class="card-val text-blue">₹{{ number_format($purchaseSummary['total_gst'], 2) }}</div>
+                            <div class="card-val text-blue">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</div>
                         </div>
                     </td>
                 </tr>
@@ -386,7 +390,7 @@
                             <td class="font-bold">{{ $pur->vendor_name }}</td>
                             <td>{{ $pur->item_name }}</td>
                             <td class="text-center">{{ number_format($pur->gst_rate, 0) }}%</td>
-                            <td class="text-right font-bold text-red">₹{{ number_format($pur->gst_amount, 2) }}</td>
+                            <td class="text-right font-bold text-red">₹{{ format_indian($pur->gst_amount, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -406,20 +410,20 @@
                     <td style="width: 32%; padding-right: 10px;">
                         <div class="summary-card">
                             <div class="card-label">Sales GST Output Liability</div>
-                            <div class="card-val text-red">₹{{ number_format($invoiceSummary['total_gst'], 2) }}</div>
+                            <div class="card-val text-red">₹{{ format_indian($invoiceSummary['total_gst'], 2) }}</div>
                         </div>
                     </td>
                     <td style="width: 32%; padding-right: 10px;">
                         <div class="summary-card">
                             <div class="card-label">Purchase Input Tax Credit (ITC)</div>
-                            <div class="card-val text-green">₹{{ number_format($purchaseSummary['total_gst'], 2) }}</div>
+                            <div class="card-val text-green">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</div>
                         </div>
                     </td>
                     <td style="width: 36%;">
                         <div class="summary-card">
                             <div class="card-label">Net Tax Payable / (Credit)</div>
                             <div class="card-val {{ $netGst > 0 ? 'text-red' : 'text-green' }}">
-                                ₹{{ number_format(abs($netGst), 2) }} {{ $netGst > 0 ? 'DUE' : 'ITC CREDIT' }}
+                                ₹{{ format_indian(abs($netGst), 2) }} {{ $netGst > 0 ? 'DUE' : 'ITC CREDIT' }}
                             </div>
                         </div>
                     </td>
@@ -439,9 +443,9 @@
                 <tbody>
                     <tr>
                         <td class="font-bold">(a) Outward Taxable Supplies (Other than Zero-Rated)</td>
-                        <td class="text-right font-bold">₹{{ number_format($invoiceSummary['total_taxable'], 2) }}</td>
-                        <td class="text-right">₹{{ number_format($invoiceSummary['total_igst'], 2) }}</td>
-                        <td class="text-right">₹{{ number_format($invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'], 2) }}</td>
+                        <td class="text-right font-bold">₹{{ format_indian($invoiceSummary['total_taxable'], 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($invoiceSummary['total_igst'], 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'], 2) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -457,7 +461,7 @@
                 <tbody>
                     <tr>
                         <td class="font-bold">(A) Input Tax Credit Available (All Inward Purchases & Raw Material)</td>
-                        <td class="text-right font-bold text-green">₹{{ number_format($purchaseSummary['total_gst'], 2) }}</td>
+                        <td class="text-right font-bold text-green">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</td>
                     </tr>
                 </tbody>
             </table>

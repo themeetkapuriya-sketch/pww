@@ -204,10 +204,10 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
-                                <td class="px-4 py-3 text-right text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
+                                <td class="px-4 py-3 text-right text-slate-700">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
                                 <td class="px-4 py-3 text-right text-slate-600">
                                     @if ($inv->cgst > 0)
-                                        ₹{{ number_format($inv->cgst + $inv->sgst, 2) }}
+                                        ₹{{ format_indian($inv->cgst + $inv->sgst, 2) }}
                                         <span class="text-[9px] block text-slate-400">(9% + 9%)</span>
                                     @else
                                         -
@@ -215,13 +215,13 @@
                                 </td>
                                 <td class="px-4 py-3 text-right text-slate-600">
                                     @if ($inv->igst > 0)
-                                        ₹{{ number_format($inv->igst, 2) }}
+                                        ₹{{ format_indian($inv->igst, 2) }}
                                         <span class="text-[9px] block text-slate-400">(18%)</span>
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ number_format($inv->total_amount, 2) }}</td>
+                                <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ format_indian($inv->total_amount, 2) }}</td>
                                 <td class="px-4 py-3 text-center">
                                     @if(($inv->payment_status ?? 'unpaid') === 'paid')
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
@@ -232,7 +232,7 @@
                                                 onclick="openInvoicePaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
                                                 title="Click to record next payment for this invoice"
                                                 class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer shadow-2xs">
-                                            PARTIAL (₹{{ number_format($inv->remaining_balance, 0) }} DUE)
+                                            PARTIAL (₹{{ format_indian($inv->remaining_balance, 0) }} DUE)
                                         </button>
                                     @else
                                         <button type="button" 

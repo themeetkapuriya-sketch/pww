@@ -105,7 +105,149 @@ class ErpController extends Controller
      */
     public function overview(Request $request)
     {
-        return view('dashboard.overview');
+        $now = Carbon::now();
+
+        // 1. Financial Year Range (April 1 to March 31)
+        $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
+        $fyStartDate = Carbon::create($fyStartYear, 4, 1)->startOfDay();
+        $fyEndDate = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
+
+        // 2. Current Month Range
+        $monthStart = $now->copy()->startOfMonth();
+        $monthEnd = $now->copy()->endOfMonth();
+
+        // Yearly Revenue & Taxable Base
+        $yearlyInvoices = Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
+            $q->whereBetween('invoice_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])
+              ->orWhere(function($sub) use ($fyStartDate, $fyEndDate) {
+                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
+              });
+        })->get();
+        $yearlyRevenue = (float)$yearlyInvoices->sum('total_amount');
+        $yearlyTaxable = (float)$yearlyInvoices->sum('total_taxable_value');
+
+        // Monthly Revenue & Taxable Base
+        $monthlyInvoices = Invoice::where(function($q) use ($monthStart, $monthEnd) {
+            $q->whereBetween('invoice_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+              ->orWhere(function($sub) use ($monthStart, $monthEnd) {
+                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$monthStart, $monthEnd]);
+              });
+        })->get();
+        $monthlyRevenue = (float)$monthlyInvoices->sum('total_amount');
+        $monthlyTaxable = (float)$monthlyInvoices->sum('total_taxable_value');
+        $monthlyInvoiceCount = $monthlyInvoices->count();
+
+        // Outstanding Receivables
+        $allInvoices = Invoice::all();
+        $totalReceivables = (float)$allInvoices->sum(fn($inv) => $inv->remaining_balance);
+
+        // Net GST Payable (Current Month)
+        $salesGstCollected = $monthlyInvoices->sum('cgst') + $monthlyInvoices->sum('sgst') + $monthlyInvoices->sum('igst');
+        $monthlyPurchases = Purchase::whereBetween('purchase_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->get();
+        $purchasesItc = $monthlyPurchases->sum('gst_amount');
+        $currentMonthNetGst = round($salesGstCollected - $purchasesItc, 2);
+
+        // Check Expense Ledger for GST Payment entry in Current Month
+        $currentMonthGstExpense = Expense::whereIn('expense_category', ['gst_payment', 'tax_payment'])
+            ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->orderBy('expense_date', 'desc')
+            ->first();
+
+        $currentMonthGstExpenseTotal = (float) Expense::whereIn('expense_category', ['gst_payment', 'tax_payment'])
+            ->whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->sum('amount');
+
+        if ($currentMonthNetGst <= 0) {
+            $currentMonthGstPaid = true;
+            $currentMonthGstStatus = 'settled';
+        } else if ($currentMonthGstExpenseTotal >= $currentMonthNetGst || $currentMonthGstExpense !== null) {
+            $currentMonthGstPaid = true;
+            $currentMonthGstStatus = 'paid';
+        } else {
+            $currentMonthGstPaid = false;
+            $currentMonthGstStatus = 'unpaid';
+        }
+
+        // Operational Metrics
+        $activeOrdersCount = SalesOrder::whereIn('status', ['pending', 'confirmed', 'in_production', 'ready_for_dispatch'])->count();
+        $monthlyExpensesTotal = Expense::whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('amount');
+        $monthlyPurchasesTotal = $monthlyPurchases->sum('total_amount');
+        $monthlyExpenses = round($monthlyExpensesTotal + $monthlyPurchasesTotal, 2);
+        $lowStockCount = RawMaterial::whereColumn('current_stock', '<=', 'safety_threshold')->count();
+
+        // 3 Net Revenue Cards Metrics (Revenue = Total Sales - Purchases - Expenses)
+        $lifetimeSales = (float) Invoice::sum('total_amount');
+        $lifetimePurchases = (float) Purchase::sum('total_amount');
+        $lifetimeExpenses = (float) Expense::sum('amount');
+        $lifetimeRevenue = round($lifetimeSales - $lifetimePurchases - $lifetimeExpenses, 2);
+
+        $fyPurchasesTotal = (float) Purchase::whereBetween('purchase_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('total_amount');
+        $fyExpensesTotal = (float) Expense::whereBetween('expense_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('amount');
+        $annualRevenue = round($yearlyRevenue - $fyPurchasesTotal - $fyExpensesTotal, 2);
+
+        $monthlyPurchasesTotalOnly = (float) $monthlyPurchases->sum('total_amount');
+        $monthlyExpensesTotalOnly = (float) Expense::whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('amount');
+        $monthlyNetRevenue = round($monthlyRevenue - $monthlyPurchasesTotalOnly - $monthlyExpensesTotalOnly, 2);
+
+        // 6-Month Chart Data (Sales vs Expenses)
+        $chartMonths = [];
+        $chartSalesData = [];
+        $chartExpenseData = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $mStart = $now->copy()->subMonths($i)->startOfMonth();
+            $mEnd = $now->copy()->subMonths($i)->endOfMonth();
+            $chartMonths[] = $mStart->format('M Y');
+
+            $salesVal = Invoice::where(function($q) use ($mStart, $mEnd) {
+                $q->whereBetween('invoice_date', [$mStart->toDateString(), $mEnd->toDateString()])
+                  ->orWhere(function($sub) use ($mStart, $mEnd) {
+                      $sub->whereNull('invoice_date')->whereBetween('created_at', [$mStart, $mEnd]);
+                  });
+            })->sum('total_amount');
+
+            $expVal = Expense::whereBetween('expense_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('amount') +
+                      Purchase::whereBetween('purchase_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('total_amount');
+
+            $chartSalesData[] = round($salesVal, 2);
+            $chartExpenseData[] = round($expVal, 2);
+        }
+
+        // Top 5 Clients Revenue Breakdown
+        $topClientsData = Invoice::with('plant.client')
+            ->select('plant_id', DB::raw('SUM(total_amount) as total_sales'))
+            ->groupBy('plant_id')
+            ->orderByDesc('total_sales')
+            ->take(5)
+            ->get()
+            ->map(function($inv) {
+                return [
+                    'name' => $inv->plant->client->company_name ?? ($inv->plant->plant_name ?? 'Client'),
+                    'sales' => (float)$inv->total_sales,
+                ];
+            });
+
+        // Recent Activity Lists
+        $recentInvoices = Invoice::with(['plant.client'])->orderByDesc('created_at')->take(5)->get();
+        $recentOrders = SalesOrder::with(['plant.client'])->orderByDesc('created_at')->take(5)->get();
+        
+        $lowStockMaterials = RawMaterial::whereColumn('current_stock', '<=', 'safety_threshold')->take(5)->get();
+        if ($lowStockMaterials->isEmpty()) {
+            $lowStockMaterials = RawMaterial::orderBy('current_stock', 'asc')->take(5)->get();
+        }
+
+        return view('dashboard.overview', compact(
+            'yearlyRevenue', 'yearlyTaxable', 'fyStartYear',
+            'monthlyRevenue', 'monthlyTaxable', 'monthlyInvoiceCount',
+            'totalReceivables', 'currentMonthNetGst', 'salesGstCollected', 'purchasesItc',
+            'currentMonthGstPaid', 'currentMonthGstStatus', 'currentMonthGstExpense',
+            'activeOrdersCount', 'monthlyExpenses', 'lowStockCount',
+            'lifetimeSales', 'lifetimePurchases', 'lifetimeExpenses', 'lifetimeRevenue',
+            'fyPurchasesTotal', 'fyExpensesTotal', 'annualRevenue',
+            'monthlyPurchasesTotalOnly', 'monthlyExpensesTotalOnly', 'monthlyNetRevenue',
+            'chartMonths', 'chartSalesData', 'chartExpenseData',
+            'topClientsData', 'recentInvoices', 'recentOrders', 'lowStockMaterials'
+        ));
     }
 
     /**
@@ -1234,6 +1376,57 @@ class ErpController extends Controller
     }
 
     /**
+     * Update Expense (AJAX).
+     */
+    public function updateExpense(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'expense_category' => 'required|string',
+            'amount' => 'required|numeric|min:0.01',
+            'expense_date' => 'required|date',
+            'description' => 'nullable|string',
+        ]);
+
+        try {
+            $expense = Expense::findOrFail($id);
+            $expense->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Expense entry updated successfully!",
+                'data' => $expense
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to update expense: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Expense (AJAX).
+     */
+    public function deleteExpense($id)
+    {
+        try {
+            $expense = Expense::findOrFail($id);
+            $cat = str_replace('_', ' ', $expense->expense_category);
+            $expense->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Expense record ('{$cat}') deleted successfully!"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Failed to delete expense: ' . $e->getMessage()]
+            ], 500);
+        }
+    }
+
+    /**
      * Purchase Ledger Page.
      */
     public function purchases()
@@ -1252,7 +1445,7 @@ class ErpController extends Controller
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
             'purchase_type' => 'required|in:raw_material,office_assets,machinery,factory_spares,supplies,vehicle_transport,others',
-            'raw_material_id' => 'nullable|required_if:purchase_type,raw_material|exists:raw_materials,id',
+            'raw_material_id' => 'nullable|exclude_unless:purchase_type,raw_material|required_if:purchase_type,raw_material|exists:raw_materials,id',
             'item_name' => 'nullable|string|max:255',
             'quantity' => 'nullable|numeric|min:0.0001',
             'unit' => 'nullable|string|max:50',
@@ -1263,7 +1456,13 @@ class ErpController extends Controller
 
         $gstRate = (float) $validated['gst_rate'];
         $totalAmt = (float) $validated['total_amount'];
-        $validated['gst_amount'] = round($totalAmt * ($gstRate / 100), 2);
+
+        if ($gstRate > 0) {
+            $taxableAmount = round($totalAmt / (1 + ($gstRate / 100)), 2);
+            $validated['gst_amount'] = round($totalAmt - $taxableAmount, 2);
+        } else {
+            $validated['gst_amount'] = 0.00;
+        }
 
         if (empty($validated['quantity'])) {
             $validated['quantity'] = 1.0;
@@ -1282,7 +1481,15 @@ class ErpController extends Controller
         }
 
         if (empty($validated['item_name'])) {
-            $validated['item_name'] = 'Purchased Item';
+            $typeLabels = [
+                'office_assets' => 'Office Assets & Electronics',
+                'machinery' => 'Machinery & Capital Equipment',
+                'factory_spares' => 'Welding Gas & Machinery Spare Parts',
+                'supplies' => 'Factory Consumables & Tools',
+                'vehicle_transport' => 'Vehicle & Freight Expenses',
+                'others' => 'Miscellaneous Purchase',
+            ];
+            $validated['item_name'] = $typeLabels[$validated['purchase_type']] ?? 'Purchased Item';
         }
         if (empty($validated['unit'])) {
             $validated['unit'] = 'pcs';
@@ -1308,6 +1515,104 @@ class ErpController extends Controller
             'message' => "Purchase record '{$purchase->item_name}' logged successfully! Stock & accounting updated.",
             'data' => $purchase
         ]);
+    }
+
+    /**
+     * Update Purchase Record (AJAX).
+     */
+    public function updatePurchase(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'bill_number' => 'nullable|string|max:100',
+            'vendor_name' => 'required|string|max:255',
+            'purchase_type' => 'required|in:raw_material,office_assets,machinery,factory_spares,supplies,vehicle_transport,others',
+            'raw_material_id' => 'nullable|exclude_unless:purchase_type,raw_material|required_if:purchase_type,raw_material|exists:raw_materials,id',
+            'item_name' => 'nullable|string|max:255',
+            'quantity' => 'nullable|numeric|min:0.0001',
+            'unit' => 'nullable|string|max:50',
+            'total_amount' => 'required|numeric|min:0',
+            'gst_rate' => 'required|numeric|in:0,5,12,18,28',
+            'purchase_date' => 'required|date',
+        ]);
+
+        $gstRate = (float) $validated['gst_rate'];
+        $totalAmt = (float) $validated['total_amount'];
+
+        if ($gstRate > 0) {
+            $taxableAmount = round($totalAmt / (1 + ($gstRate / 100)), 2);
+            $validated['gst_amount'] = round($totalAmt - $taxableAmount, 2);
+        } else {
+            $validated['gst_amount'] = 0.00;
+        }
+
+        if (empty($validated['quantity'])) {
+            $validated['quantity'] = 1.0;
+        }
+
+        if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+            $material = RawMaterial::find($validated['raw_material_id']);
+            if ($material) {
+                if (empty($validated['item_name'])) {
+                    $validated['item_name'] = $material->material_name;
+                }
+                if (empty($validated['unit'])) {
+                    $validated['unit'] = $material->unit;
+                }
+            }
+        }
+
+        if (empty($validated['item_name'])) {
+            $typeLabels = [
+                'office_assets' => 'Office Assets & Electronics',
+                'machinery' => 'Machinery & Capital Equipment',
+                'factory_spares' => 'Welding Gas & Machinery Spare Parts',
+                'supplies' => 'Factory Consumables & Tools',
+                'vehicle_transport' => 'Vehicle & Freight Expenses',
+                'others' => 'Miscellaneous Purchase',
+            ];
+            $validated['item_name'] = $typeLabels[$validated['purchase_type']] ?? 'Purchased Item';
+        }
+        if (empty($validated['unit'])) {
+            $validated['unit'] = 'pcs';
+        }
+
+        try {
+            $purchase = \App\Models\Purchase::findOrFail($id);
+            $purchase->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Purchase entry updated successfully!",
+                'data' => $purchase
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update purchase: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Purchase Record (AJAX).
+     */
+    public function deletePurchase($id)
+    {
+        try {
+            $purchase = \App\Models\Purchase::findOrFail($id);
+            $item = $purchase->item_name ?? 'Purchase Bill';
+            $purchase->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Purchase record '{$item}' deleted successfully!"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete purchase record: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -1378,12 +1683,74 @@ class ErpController extends Controller
             'sales_total_gst' => $invoiceSummary['total_gst'],
             'purchase_total_gst' => $purchaseSummary['total_gst'],
         ];
-        $gstSummary['net_gst_payable'] = $gstSummary['sales_total_gst'] - $gstSummary['purchase_total_gst'];
+        $gstSummary['net_gst_payable'] = round($gstSummary['sales_total_gst'] - $gstSummary['purchase_total_gst'], 2);
+
+        // Check Expense Ledger for GST Payment entries in the filtered period ($startDate to $endDate)
+        $matchingGstExpenses = Expense::whereIn('expense_category', ['gst_payment', 'tax_payment'])
+            ->whereBetween('expense_date', [$startDate, $endDate])
+            ->orderBy('expense_date', 'desc')
+            ->get();
+
+        $gstTotalPaid = (float) $matchingGstExpenses->sum('amount');
+        $gstExpenseEntry = $matchingGstExpenses->first();
+
+        if ($gstSummary['net_gst_payable'] <= 0) {
+            $gstSummary['is_paid'] = true;
+            $gstSummary['status'] = 'settled';
+            $gstSummary['status_label'] = 'No Tax Liability Due';
+            $gstSummary['expense_entry'] = null;
+            $gstSummary['total_paid'] = 0.00;
+        } else if ($gstTotalPaid >= $gstSummary['net_gst_payable'] || $matchingGstExpenses->isNotEmpty()) {
+            $gstSummary['is_paid'] = true;
+            $gstSummary['status'] = 'paid';
+            $gstSummary['status_label'] = 'PAID via Expense Ledger';
+            $gstSummary['expense_entry'] = $gstExpenseEntry;
+            $gstSummary['total_paid'] = $gstTotalPaid;
+        } else {
+            $gstSummary['is_paid'] = false;
+            $gstSummary['status'] = 'unpaid';
+            $gstSummary['status_label'] = 'UNPAID (Pending Payment)';
+            $gstSummary['expense_entry'] = null;
+            $gstSummary['total_paid'] = 0.00;
+        }
+
+        // 3 Net Revenue Metrics (Revenue = Total Sales - Purchases - Expenses)
+        $lifetimeSales = (float) Invoice::sum('total_amount');
+        $lifetimePurchases = (float) Purchase::sum('total_amount');
+        $lifetimeExpenses = (float) Expense::sum('amount');
+        $lifetimeRevenue = round($lifetimeSales - $lifetimePurchases - $lifetimeExpenses, 2);
+
+        $now = Carbon::now();
+        $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
+        $fyStartDate = Carbon::create($fyStartYear, 4, 1)->startOfDay();
+        $fyEndDate = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
+        $fySales = (float) Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
+            $q->whereBetween('invoice_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])
+              ->orWhere(function($sub) use ($fyStartDate, $fyEndDate) {
+                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
+              });
+        })->sum('total_amount');
+        $fyPurchases = (float) Purchase::whereBetween('purchase_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('total_amount');
+        $fyExpenses = (float) Expense::whereBetween('expense_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('amount');
+        $annualRevenue = round($fySales - $fyPurchases - $fyExpenses, 2);
+
+        $mStart = $now->copy()->startOfMonth();
+        $mEnd = $now->copy()->endOfMonth();
+        $mSales = (float) Invoice::where(function($q) use ($mStart, $mEnd) {
+            $q->whereBetween('invoice_date', [$mStart->toDateString(), $mEnd->toDateString()])
+              ->orWhere(function($sub) use ($mStart, $mEnd) {
+                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$mStart, $mEnd]);
+              });
+        })->sum('total_amount');
+        $mPurchases = (float) Purchase::whereBetween('purchase_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('total_amount');
+        $mExpenses = (float) Expense::whereBetween('expense_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('amount');
+        $monthlyNetRevenue = round($mSales - $mPurchases - $mExpenses, 2);
 
         return view('dashboard.reports', compact(
             'startDate', 'endDate', 'period', 'reportType',
             'invoices', 'purchases', 'expenses', 'financials',
             'invoiceSummary', 'purchaseSummary', 'expenseSummary', 'gstSummary',
+            'lifetimeRevenue', 'annualRevenue', 'monthlyNetRevenue',
             'filterMonth', 'filterYear'
         ));
     }
@@ -1464,10 +1831,10 @@ class ErpController extends Controller
                 fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
                 fputcsv($handle, []);
                 fputcsv($handle, ['Line Item', 'Accounting Description', 'Amount (INR)']);
-                fputcsv($handle, ['Total Sales Revenue (A)', 'Taxable invoiced amounts (excl. GST)', $financials['revenue']]);
+                fputcsv($handle, ['Total Billed Sales (A)', 'Total invoiced amounts (incl. GST)', $financials['revenue']]);
                 fputcsv($handle, ['Total Purchases (B)', 'Raw material, machinery, tools, and vendor purchases', $financials['purchases']]);
                 fputcsv($handle, ['Total Expenses (C)', 'Operational overheads, salaries, rent, transport', $financials['expenses']]);
-                fputcsv($handle, ['NET PROFIT / LOSS', 'Calculation: A - B - C', $financials['net_profit']]);
+                fputcsv($handle, ['NET REVENUE / PROFIT', 'Calculation: Total Sales - Purchases - Expenses', $financials['net_profit']]);
                 fputcsv($handle, ['Gross Profit Margin (%)', 'Margin Ratio', $financials['gross_profit_margin'] . '%']);
             } elseif ($reportType === 'expense') {
                 $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])

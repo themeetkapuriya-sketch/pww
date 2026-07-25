@@ -397,25 +397,25 @@
                     </thead>
                     <tbody class="divide-y divide-x divide-slate-100 bg-white">
                         <tr>
-                            <td class="px-6 py-4 font-semibold text-slate-800">Total Sales Revenue (A)</td>
-                            <td class="px-6 py-4 text-slate-500 text-xs">Sum of taxable values of all generated compliance invoices. (Excludes tax)</td>
-                            <td class="px-6 py-4 text-right font-bold text-emerald-600">₹{{ number_format($financials['revenue'], 2) }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">Total Billed Sales (A)</td>
+                            <td class="px-6 py-4 text-slate-500 text-xs">Sum of total invoiced amounts of all generated compliance invoices. (Includes GST tax)</td>
+                            <td class="px-6 py-4 text-right font-bold text-emerald-600">₹{{ format_indian($financials['revenue'], 2) }}</td>
                         </tr>
                         <tr>
                             <td class="px-6 py-4 font-semibold text-slate-800">Total Purchases (B)</td>
                             <td class="px-6 py-4 text-slate-500 text-xs">Total outlay for raw materials, machinery, tools, and vendor inventory purchases.</td>
-                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ number_format($financials['purchases'], 2) }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ format_indian($financials['purchases'], 2) }}</td>
                         </tr>
                         <tr>
                             <td class="px-6 py-4 font-semibold text-slate-800">Total Expenses (C)</td>
                             <td class="px-6 py-4 text-slate-500 text-xs">Total operational overheads (salaries, electricity, transport, administration, etc.).</td>
-                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ number_format($financials['expenses'], 2) }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-rose-600">- ₹{{ format_indian($financials['expenses'], 2) }}</td>
                         </tr>
                         <tr class="bg-slate-50 font-bold border-t-2 border-slate-300">
-                            <td class="px-6 py-4 text-slate-800 text-base">Net Profit / Loss (A - B - C)</td>
-                            <td class="px-6 py-4 text-slate-500 text-xs">PWW net corporate earnings for this audit period.</td>
+                            <td class="px-6 py-4 text-slate-800 text-base">Net Profit / Revenue (A - B - C)</td>
+                            <td class="px-6 py-4 text-slate-500 text-xs">PWW net earnings (Total Sales − Purchases − Expenses) for this audit period.</td>
                             <td class="px-6 py-4 text-right text-base {{ $financials['net_profit'] >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
-                                ₹{{ number_format($financials['net_profit'], 2) }}
+                                ₹{{ format_indian($financials['net_profit'], 2) }}
                             </td>
                         </tr>
                     </tbody>
@@ -493,7 +493,7 @@
                             <tr class="hover:bg-slate-50 transition">
                                 <td class="px-4 py-3 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                                 <td class="px-4 py-3 text-slate-700 font-medium whitespace-nowrap">{{ $exp->expense_date->format('d M Y') }}</td>
-                                <td class="px-4 py-3 text-slate-800 font-semibold capitalize">{{ str_replace('_', ' ', $exp->expense_category) }}</td>
+                                <td class="px-4 py-3 text-slate-800 font-semibold capitalize">{{ $exp->expense_category === 'gst_payment' ? 'GST Payment' : str_replace('_', ' ', $exp->expense_category) }}</td>
                                 <td class="px-4 py-3 text-slate-500">{{ $exp->description ?? 'N/A' }}</td>
                                 <td class="px-4 py-3 text-right font-bold text-rose-600">₹{{ number_format($exp->amount, 2) }}</td>
                             </tr>
@@ -686,17 +686,42 @@
                     <span class="text-xl font-black text-emerald-600 block mt-2">₹{{ number_format($gstSummary['purchase_total_gst'], 2) }}</span>
                     <p class="text-[10px] text-slate-400 mt-1">Input Tax Credit paid on vendor bills.</p>
                 </div>
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-                    <div class="flex items-center space-x-2">
-                        <span class="w-2.5 h-2.5 {{ $gstSummary['net_gst_payable'] > 0 ? 'bg-amber-500' : 'bg-emerald-500' }} rounded-full"></span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable</span>
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 {{ $gstSummary['is_paid'] ? 'bg-emerald-500' : 'bg-rose-500' }} rounded-full"></span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable</span>
+                            </div>
+                            @if($gstSummary['is_paid'])
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    🟢 PAID
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                    🔴 UNPAID
+                                </span>
+                            @endif
+                        </div>
+                        <span class="text-xl font-black {{ $gstSummary['is_paid'] ? 'text-emerald-700' : 'text-rose-600' }} block mt-2">
+                            ₹{{ format_indian(abs($gstSummary['net_gst_payable']), 2) }}
+                        </span>
                     </div>
-                    <span class="text-xl font-black {{ $gstSummary['net_gst_payable'] > 0 ? 'text-amber-600' : 'text-emerald-600' }} block mt-2">
-                        ₹{{ number_format(abs($gstSummary['net_gst_payable']), 2) }}
-                    </span>
-                    <p class="text-[10px] text-slate-400 mt-1">
-                        {{ $gstSummary['net_gst_payable'] > 0 ? 'Net Tax Liability due for GSTR-3B' : 'Excess ITC balance carried forward' }}
-                    </p>
+                    <div class="mt-2 pt-2 border-t border-slate-100 text-[10px]">
+                        @if($gstSummary['is_paid'])
+                            <span class="text-emerald-700 font-bold flex items-center justify-between">
+                                <span>✓ Settled via Expense Ledger</span>
+                                @if(!empty($gstSummary['expense_entry']))
+                                    <span>({{ \Carbon\Carbon::parse($gstSummary['expense_entry']->expense_date)->format('d/m/Y') }})</span>
+                                @endif
+                            </span>
+                        @else
+                            <span class="text-rose-600 font-bold flex items-center justify-between">
+                                <span>Net Tax Liability due for GSTR-3B</span>
+                                <a href="{{ route('expenses') }}" class="underline hover:text-rose-800">Log GST Expense →</a>
+                            </span>
+                        @endif
+                    </div>
                 </div>
             </div>
 

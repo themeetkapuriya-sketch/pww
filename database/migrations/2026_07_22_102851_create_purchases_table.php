@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('bill_number')->nullable();
             $table->string('vendor_name');
-            $table->enum('purchase_type', ['raw_material', 'machinery', 'supplies'])->default('raw_material');
+            $table->string('purchase_type', 100)->default('raw_material');
             $table->foreignId('raw_material_id')->nullable()->constrained('raw_materials')->nullOnDelete();
             $table->string('item_name');
             $table->decimal('quantity', 12, 4)->default(1);

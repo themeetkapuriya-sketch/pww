@@ -68,6 +68,8 @@ Route::middleware(['auth'])->group(function () {
     // 7. Purchase Ledger (Raw Materials, Machinery, Tools)
     Route::get('/purchases', [ErpController::class, 'purchases'])->name('purchases');
     Route::post('/purchases', [ErpController::class, 'storePurchase'])->name('purchases.store');
+    Route::put('/purchases/{id}', [ErpController::class, 'updatePurchase'])->name('purchases.update');
+    Route::delete('/purchases/{id}', [ErpController::class, 'deletePurchase'])->name('purchases.delete');
     Route::post('/purchases/{id}/record-payment', [ErpController::class, 'recordPurchasePayment'])->name('purchases.record-payment');
 
     // 8. Employees Directory
@@ -79,6 +81,8 @@ Route::middleware(['auth'])->group(function () {
     // 9. Operational Expenses
     Route::get('/expenses', [ErpController::class, 'expenses'])->name('expenses');
     Route::post('/expenses', [ErpController::class, 'logExpense'])->name('expense.store');
+    Route::put('/expenses/{id}', [ErpController::class, 'updateExpense'])->name('expense.update');
+    Route::delete('/expenses/{id}', [ErpController::class, 'deleteExpense'])->name('expense.delete');
 
     // 10. Reports & Export
     Route::get('/reports', [ErpController::class, 'reports'])->name('reports');

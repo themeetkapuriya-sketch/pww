@@ -1,3 +1,34 @@
+// Global Indian Currency Formatter (Lakhs & Crores format e.g. 10,00,00,000.00)
+window.formatIndianCurrency = function(amount, decimals = 2) {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+        amount = 0;
+    }
+    const numFloat = parseFloat(amount);
+    const isNegative = numFloat < 0;
+    const absFloat = Math.abs(numFloat);
+
+    const parts = absFloat.toFixed(decimals).split('.');
+    let num = parts[0];
+    const dec = parts[1] !== undefined && decimals > 0 ? '.' + parts[1] : '';
+
+    if (num.length <= 3) {
+        return (isNegative ? '-' : '') + num + dec;
+    }
+
+    const lastThree = num.substring(num.length - 3);
+    let rest = num.substring(0, num.length - 3);
+
+    let restFormatted = '';
+    while (rest.length > 2) {
+        restFormatted = ',' + rest.substring(rest.length - 2) + restFormatted;
+        rest = rest.substring(0, rest.length - 2);
+    }
+    restFormatted = rest + restFormatted;
+
+    return (isNegative ? '-' : '') + restFormatted + ',' + lastThree + dec;
+};
+window.formatINR = window.formatIndianCurrency;
+
 document.addEventListener('DOMContentLoaded', () => {
     // jQuery Check
     if (typeof jQuery === 'undefined') {
@@ -260,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let hasErrors = false;
             $form.find('input, select, textarea').each(function() {
                 const $input = $(this);
-                if ($input.is(':disabled') || $input.is(':submit') || $input.is(':button') || $input.attr('type') === 'hidden') return;
+                if ($input.is(':disabled') || $input.is(':hidden') || $input.closest('.hidden').length > 0 || $input.is(':submit') || $input.is(':button') || $input.attr('type') === 'hidden') return;
 
                 const val = $input.val();
                 let errorMsg = '';
@@ -403,6 +434,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+        function showGlobalFormError($form, message) {
+            let $alertContainer = $form.find('.form-alert');
+            if (!$alertContainer.length) {
+                $alertContainer = $('<div class="form-alert hidden mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-2xs"></div>');
+                $form.prepend($alertContainer);
+            }
+            $alertContainer.removeClass('hidden').html(`
+                <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>${message}</span>
+                </div>
+            `);
+            if (window.showToast) window.showToast('error', message);
+        }
 
         function showInlineError($element, message) {
             clearInlineError($element);

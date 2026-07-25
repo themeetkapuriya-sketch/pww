@@ -199,19 +199,19 @@
                     <table style="width: 100%;">
                         <tr>
                             <td class="stat-label">Opening Balance:</td>
-                            <td class="stat-val text-right">&#8377;{{ number_format($opening_balance, 2) }}</td>
+                            <td class="stat-val text-right">&#8377;{{ format_indian($opening_balance, 2) }}</td>
                         </tr>
                         <tr>
                             <td class="stat-label">Total Invoiced (+):</td>
-                            <td class="stat-val text-right debit-text">&#8377;{{ number_format($total_debit, 2) }}</td>
+                            <td class="stat-val text-right debit-text">&#8377;{{ format_indian($total_debit, 2) }}</td>
                         </tr>
                         <tr>
                             <td class="stat-label">Total Received (-):</td>
-                            <td class="stat-val text-right credit-text">&#8377;{{ number_format($total_credit, 2) }}</td>
+                            <td class="stat-val text-right credit-text">&#8377;{{ format_indian($total_credit, 2) }}</td>
                         </tr>
                         <tr style="border-top: 1px solid #cbd5e1;">
                             <td class="stat-label" style="padding-top: 4px;">Closing Outstanding:</td>
-                            <td class="stat-val outstanding text-right" style="padding-top: 4px;">&#8377;{{ number_format($closing_balance, 2) }}</td>
+                            <td class="stat-val outstanding text-right" style="padding-top: 4px;">&#8377;{{ format_indian($closing_balance, 2) }}</td>
                         </tr>
                     </table>
                 </td>
@@ -236,7 +236,7 @@
                 <td colspan="3">Opening Balance (Before {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }})</td>
                 <td class="text-right">-</td>
                 <td class="text-right">-</td>
-                <td class="text-right font-mono">&#8377;{{ number_format($opening_balance, 2) }}</td>
+                <td class="text-right font-mono">&#8377;{{ format_indian($opening_balance, 2) }}</td>
             </tr>
             @forelse($entries as $row)
                 <tr>
@@ -245,19 +245,19 @@
                     <td>{{ $row['description'] }}</td>
                     <td class="text-right {{ $row['debit'] > 0 ? 'debit-text' : '' }}">
                         @if($row['debit'] > 0)
-                            &#8377;{{ number_format($row['debit'], 2) }}
+                            &#8377;{{ format_indian($row['debit'], 2) }}
                         @else
                             -
                         @endif
                     </td>
                     <td class="text-right {{ $row['credit'] > 0 ? 'credit-text' : '' }}">
                         @if($row['credit'] > 0)
-                            &#8377;{{ number_format($row['credit'], 2) }}
+                            &#8377;{{ format_indian($row['credit'], 2) }}
                         @else
                             -
                         @endif
                     </td>
-                    <td class="text-right font-mono font-bold">&#8377;{{ number_format($row['running_balance'], 2) }}</td>
+                    <td class="text-right font-mono font-bold">&#8377;{{ format_indian($row['running_balance'], 2) }}</td>
                 </tr>
             @empty
                 <tr>
@@ -268,9 +268,9 @@
             @endforelse
             <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
                 <td colspan="3" class="text-right">TOTAL PERIOD SUMMARY:</td>
-                <td class="text-right debit-text">&#8377;{{ number_format($total_debit, 2) }}</td>
-                <td class="text-right credit-text">&#8377;{{ number_format($total_credit, 2) }}</td>
-                <td class="text-right font-mono" style="color: #d97706; font-size: 11px;">&#8377;{{ number_format($closing_balance, 2) }}</td>
+                <td class="text-right debit-text">&#8377;{{ format_indian($total_debit, 2) }}</td>
+                <td class="text-right credit-text">&#8377;{{ format_indian($total_credit, 2) }}</td>
+                <td class="text-right font-mono" style="color: #d97706; font-size: 11px;">&#8377;{{ format_indian($closing_balance, 2) }}</td>
             </tr>
         </tbody>
     </table>
