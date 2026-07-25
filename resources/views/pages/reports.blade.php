@@ -694,12 +694,14 @@
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable</span>
                             </div>
                             @if($gstSummary['is_paid'])
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                    🟢 PAID
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 whitespace-nowrap">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span>PAID</span>
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
-                                    🔴 UNPAID
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100/90 text-rose-800 border border-rose-300 whitespace-nowrap">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                                    <span>UNPAID</span>
                                 </span>
                             @endif
                         </div>
@@ -718,7 +720,7 @@
                         @else
                             <span class="text-rose-600 font-bold flex items-center justify-between">
                                 <span>Net Tax Liability due for GSTR-3B</span>
-                                <a href="{{ route('expenses') }}" class="underline hover:text-rose-800">Log GST Expense →</a>
+                                <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => abs($gstSummary['net_gst_payable']), 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="underline hover:text-rose-800">Log GST Expense →</a>
                             </span>
                         @endif
                     </div>

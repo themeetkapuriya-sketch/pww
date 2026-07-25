@@ -1,9 +1,12 @@
 // Global Indian Currency Formatter (Lakhs & Crores format e.g. 10,00,00,000.00)
 window.formatIndianCurrency = function(amount, decimals = 2) {
-    if (amount === null || amount === undefined || isNaN(amount)) {
-        amount = 0;
+    if (amount === null || amount === undefined || amount === '') {
+        return '';
     }
-    const numFloat = parseFloat(amount);
+    const cleanStr = String(amount).replace(/,/g, '').trim();
+    if (isNaN(cleanStr) || cleanStr === '') return amount;
+    
+    const numFloat = parseFloat(cleanStr);
     const isNegative = numFloat < 0;
     const absFloat = Math.abs(numFloat);
 
@@ -278,6 +281,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!$form.hasClass('ajax-form')) return;
             e.preventDefault();
             
+            // Clean commas from amount input fields before validation & serialization
+            $form.find('input.amount-input, input[name*="amount"], input[name*="price"], input[name*="salary"], input[name*="rate"]').each(function() {
+                const name = ($(this).attr('name') || '').toLowerCase();
+                if (name.includes('quantity') || name.includes('quantities') || name.includes('threshold')) return;
+                const val = $(this).val();
+                if (val) {
+                    $(this).val(val.replace(/,/g, ''));
+                }
+            });
+
             // Disable browser default tooltip popups dynamically
             $form.attr('novalidate', 'novalidate');
             
@@ -550,6 +563,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         };
+
+        window.initAmountInputs = function() {
+            $('input.amount-input, input[name*="amount"], input[name*="price"], input[name*="salary"], input[name*="rate"]').each(function() {
+                const $input = $(this);
+                const name = ($input.attr('name') || '').toLowerCase();
+                
+                if (name.includes('quantity') || name.includes('quantities') || name.includes('threshold') || name.includes('count') || name === 'remember') {
+                    return;
+                }
+
+                if ($input.attr('type') === 'number') {
+                    $input.attr('type', 'text').attr('inputmode', 'decimal').addClass('amount-input');
+                }
+
+                const rawVal = $input.val();
+                if (rawVal && !rawVal.includes(',')) {
+                    $input.val(window.formatIndianCurrency(rawVal));
+                }
+            });
+        };
+
+        function initializeForms() {
+            window.initSearchableSelects();
+            window.initAmountInputs();
+        }
+        window.initializeForms = initializeForms;
+
+        $(document).on('focus', 'input.amount-input, input[name*="amount"], input[name*="price"], input[name*="salary"], input[name*="rate"]', function() {
+            const name = ($(this).attr('name') || '').toLowerCase();
+            if (name.includes('quantity') || name.includes('quantities') || name.includes('threshold')) return;
+            const val = $(this).val();
+            if (val) {
+                $(this).val(val.replace(/,/g, ''));
+            }
+        });
+
+        $(document).on('blur', 'input.amount-input, input[name*="amount"], input[name*="price"], input[name*="salary"], input[name*="rate"]', function() {
+            const name = ($(this).attr('name') || '').toLowerCase();
+            if (name.includes('quantity') || name.includes('quantities') || name.includes('threshold')) return;
+            const val = $(this).val();
+            if (val && !isNaN(parseFloat(val.replace(/,/g, '')))) {
+                $(this).val(window.formatIndianCurrency(val));
+            }
+        });
 
         // Real-time 15-digit GSTIN UPPERCASE & State Code Validation
         $(document).on('input', 'input[name="gst_number"], input[name="plant_gst_number"]', function() {
@@ -934,6 +991,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function initializeForms() {
             $('form').attr('novalidate', 'novalidate');
             if (window.initSearchableSelects) window.initSearchableSelects();
+            if (window.initAmountInputs) window.initAmountInputs();
         }
 
         // Global Modal Teleport Engine: Moves top-level modal containers to document.body

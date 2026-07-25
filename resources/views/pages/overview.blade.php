@@ -140,12 +140,14 @@
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-slate-500 uppercase">4. {{ date('M Y') }} Net GST Liability</span>
                 @if($currentMonthGstPaid)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        🟢 PAID
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 whitespace-nowrap">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span>PAID</span>
                     </span>
                 @else
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
-                        🔴 UNPAID
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100/90 text-rose-800 border border-rose-300 whitespace-nowrap">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                        <span>UNPAID</span>
                     </span>
                 @endif
             </div>
@@ -160,7 +162,7 @@
                 @if($currentMonthGstPaid && isset($currentMonthGstExpense) && $currentMonthGstExpense)
                     <span class="text-emerald-700 font-bold">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
                 @elseif(!$currentMonthGstPaid)
-                    <a href="{{ route('expenses') }}" class="text-rose-600 font-bold hover:underline">Log GST Expense →</a>
+                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-rose-600 font-bold hover:underline">Log GST Expense →</a>
                 @endif
             </div>
         </div>

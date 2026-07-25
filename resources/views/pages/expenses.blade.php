@@ -3,6 +3,12 @@
 @section('title', 'Expenses Ledger')
 
 @section('content')
+@php
+    $prefillCategory = request('prefill_category');
+    $prefillAmount = request('prefill_amount');
+    $prefillDesc = request('prefill_desc');
+    $shouldShowForm = !empty($prefillCategory) || !empty($prefillAmount) || request()->has('log_gst');
+@endphp
 <div class="space-y-6">
     <div class="flex items-center justify-between pb-4 border-b border-slate-200">
         <div>
@@ -12,8 +18,8 @@
         <button type="button" 
                 id="toggleFormBtn"
                 onclick="toggleInlineForm('expenseFormContainer', this)" 
-                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
-            <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="{{ $shouldShowForm ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
+            <svg class="w-4 h-4 transition-transform duration-200" style="{{ $shouldShowForm ? 'transform: rotate(45deg);' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             <span id="toggleFormBtnText">Log New Expense</span>
@@ -21,7 +27,7 @@
     </div>
 
     <!-- 1. INSERT FORM AT THE TOP (Expandable) -->
-    <div id="expenseFormContainer" class="hidden transition-all duration-300 ease-in-out">
+    <div id="expenseFormContainer" class="{{ $shouldShowForm ? '' : 'hidden' }} transition-all duration-300 ease-in-out">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -33,21 +39,21 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Expense Category</label>
                         <select name="expense_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            <option value="factory_electricity">Factory Electricity</option>
-                            <option value="industrial_gas">Industrial Gas / Consumables</option>
-                            <option value="welding_consumables">Welding Consumables</option>
-                            <option value="freight_transport">Freight & Transport Charges</option>
-                            <option value="salary">Salary / Wages</option>
-                            <option value="gst_payment">GST Payment / Tax Payment</option>
-                            <option value="administrative">Administrative Expenses</option>
-                            <option value="machinery_depreciation">Machinery Depreciation Schedule</option>
-                            <option value="others">Other Expenses / Miscellaneous</option>
+                            <option value="factory_electricity" {{ $prefillCategory === 'factory_electricity' ? 'selected' : '' }}>Factory Electricity</option>
+                            <option value="industrial_gas" {{ $prefillCategory === 'industrial_gas' ? 'selected' : '' }}>Industrial Gas / Consumables</option>
+                            <option value="welding_consumables" {{ $prefillCategory === 'welding_consumables' ? 'selected' : '' }}>Welding Consumables</option>
+                            <option value="freight_transport" {{ $prefillCategory === 'freight_transport' ? 'selected' : '' }}>Freight & Transport Charges</option>
+                            <option value="salary" {{ $prefillCategory === 'salary' ? 'selected' : '' }}>Salary / Wages</option>
+                            <option value="gst_payment" {{ ($prefillCategory === 'gst_payment' || request()->has('log_gst') || (empty($prefillCategory) && $shouldShowForm)) ? 'selected' : '' }}>GST Payment / Tax Payment</option>
+                            <option value="administrative" {{ $prefillCategory === 'administrative' ? 'selected' : '' }}>Administrative Expenses</option>
+                            <option value="machinery_depreciation" {{ $prefillCategory === 'machinery_depreciation' ? 'selected' : '' }}>Machinery Depreciation Schedule</option>
+                            <option value="others" {{ $prefillCategory === 'others' ? 'selected' : '' }}>Other Expenses / Miscellaneous</option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Amount (₹)</label>
-                        <input type="number" name="amount" step="0.01" min="0.01" placeholder="₹ Value" required
+                        <input type="number" name="amount" value="{{ $prefillAmount ?? '' }}" step="0.01" min="0.01" placeholder="₹ Value" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
 
@@ -61,7 +67,7 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Memo / Detail Description</label>
                     <textarea name="description" rows="2" placeholder="Additional details (e.g. transport allocation)..."
-                              class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"></textarea>
+                              class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">{{ $prefillDesc ?? (request()->has('log_gst') ? 'GSTR-3B Tax Paid via Bank Challan' : '') }}</textarea>
                 </div>
 
                 <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
@@ -205,6 +211,42 @@
             }
         }
     };
+
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const cat = urlParams.get('prefill_category');
+        const amt = urlParams.get('prefill_amount');
+        const desc = urlParams.get('prefill_desc');
+        
+        if (cat || amt || urlParams.has('log_gst')) {
+            const container = document.getElementById('expenseFormContainer');
+            const toggleBtn = document.getElementById('toggleFormBtn');
+            if (container) {
+                container.classList.remove('hidden');
+                if (toggleBtn) {
+                    toggleBtn.classList.replace('bg-blue-600', 'bg-slate-700');
+                    toggleBtn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-800');
+                    const icon = toggleBtn.querySelector('svg');
+                    if (icon) icon.style.transform = 'rotate(45deg)';
+                }
+                if (cat) {
+                    const selectCat = container.querySelector('select[name="expense_category"]');
+                    if (selectCat) selectCat.value = cat;
+                }
+                if (amt) {
+                    const inputAmt = container.querySelector('input[name="amount"]');
+                    if (inputAmt) inputAmt.value = amt;
+                }
+                if (desc) {
+                    const inputDesc = container.querySelector('textarea[name="description"]');
+                    if (inputDesc) inputDesc.value = desc;
+                }
+                setTimeout(function() {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 150);
+            }
+        }
+    })();
 
     function openEditExpenseForm(id, category, amount, date, description) {
         // Hide create form if open
