@@ -1078,12 +1078,12 @@ class ErpFlowTest extends TestCase
         $this->assertEquals('pending', $order->status);
         $this->assertEquals(75000.00, $order->total_amount);
 
-        // 2. Update Order Status
+        // 2. Update Order Status (auto-promotes to ready_for_dispatch if stock available)
         $response = $this->actingAs($user)->patch(route('orders.updateStatus', $order->id), [
             'status' => 'in_production',
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertEquals('in_production', $order->fresh()->status);
+        $this->assertEquals('ready_for_dispatch', $order->fresh()->status);
 
         // 3. Visit Invoice Page with order_id prefill
         $response = $this->actingAs($user)->get(route('invoices', ['order_id' => $order->id]));

@@ -10,15 +10,25 @@
             <h1 class="text-2xl font-bold text-slate-800">Invoice Ledger</h1>
             <p class="text-sm text-slate-500">Review generated invoices or log new custom tax invoices.</p>
         </div>
-        <button type="button" 
-                id="toggleInvoiceFormBtn"
-                onclick="toggleInlineForm('section-manual-builder', this)" 
-                class="{{ !empty($prefillOrder) ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
-            <svg class="w-4 h-4 transition-transform duration-200" style="{{ !empty($prefillOrder) ? 'transform: rotate(45deg);' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            <span>Create Custom Invoice</span>
-        </button>
+        <div class="flex items-center space-x-3">
+            <a href="https://ewaybillgst.gov.in/" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               title="Open Official Government E-Way Bill Portal"
+               class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                <span>E-Way Bill Portal</span>
+            </a>
+            <button type="button" 
+                    id="toggleInvoiceFormBtn"
+                    onclick="toggleInlineForm('section-manual-builder', this)" 
+                    class="{{ !empty($prefillOrder) ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
+                <svg class="w-4 h-4 transition-transform duration-200" style="{{ !empty($prefillOrder) ? 'transform: rotate(45deg);' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>Create Custom Invoice</span>
+            </button>
+        </div>
     </div>
 
     <!-- Empty Billing Row Template for JS Cloning -->
@@ -101,7 +111,7 @@
                                         @endforeach
                                     </select>
                                     <input type="number" name="quantities[]" min="1" value="{{ (int)$it->quantity }}" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ $it->unit_price }}" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                                 </div>
                             @endforeach
@@ -168,20 +178,21 @@
                 Invoice Ledger
             </h3>
             
-            <div class="overflow-x-auto">
-                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+            <div class="overflow-x-auto w-full max-w-full">
+                <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
                     <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                         <tr>
-                            <th class="px-3 py-3 text-center text-xs font-bold uppercase w-12">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Invoice No</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold uppercase">Vehicle No</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold uppercase">Destination</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">Taxable Value</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">CGST+SGST</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">IGST</th>
-                            <th class="px-4 py-3 text-right text-xs font-bold uppercase">Total Amount</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold uppercase">Status</th>
-                            <th class="px-4 py-3 text-center text-xs font-bold uppercase">Actions</th>
+                            <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase w-8">#</th>
+                            <th class="px-2.5 py-2.5 text-left text-[11px] font-bold uppercase">Invoice No</th>
+                            <th class="px-2.5 py-2.5 text-left text-[11px] font-bold uppercase">Invoice Date</th>
+                            <th class="px-2.5 py-2.5 text-center text-[11px] font-bold uppercase">Vehicle No</th>
+                            <th class="px-2.5 py-2.5 text-left text-[11px] font-bold uppercase">Destination</th>
+                            <th class="px-2.5 py-2.5 text-right text-[11px] font-bold uppercase">Taxable Value</th>
+                            <th class="px-2.5 py-2.5 text-right text-[11px] font-bold uppercase">CGST+SGST</th>
+                            <th class="px-2.5 py-2.5 text-right text-[11px] font-bold uppercase">IGST</th>
+                            <th class="px-2.5 py-2.5 text-right text-[11px] font-bold uppercase">Total Amount</th>
+                            <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase">Status</th>
+                            <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -190,22 +201,25 @@
                                 $pName = $inv->plant ? $inv->plant->plant_name : 'HQ / Custom';
                             @endphp
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="px-3 py-3 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3 font-semibold text-slate-800">
+                                <td class="px-2 py-2 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
+                                <td class="px-2.5 py-2 font-semibold text-slate-800">
                                     <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline">
                                         {{ $inv->invoice_number }}
                                     </a>
                                 </td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="px-2.5 py-2 text-slate-600 font-medium whitespace-nowrap">
+                                    {{ $inv->invoice_date ? $inv->invoice_date->format('d M Y') : \Carbon\Carbon::parse($inv->created_at)->format('d M Y') }}
+                                </td>
+                                <td class="px-2.5 py-2 text-center">
                                     @if(!empty($inv->vehicle_number))
-                                        <span class="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 text-xs uppercase">{{ $inv->vehicle_number }}</span>
+                                        <span class="font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[10px] uppercase">{{ $inv->vehicle_number }}</span>
                                     @else
                                         <span class="text-slate-400 font-medium text-xs">-</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-slate-600">{{ $pName }}</td>
-                                <td class="px-4 py-3 text-right text-slate-700">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
-                                <td class="px-4 py-3 text-right text-slate-600">
+                                <td class="px-2.5 py-2 text-slate-600">{{ $pName }}</td>
+                                <td class="px-2.5 py-2 text-right text-slate-700">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
+                                <td class="px-2.5 py-2 text-right text-slate-600">
                                     @if ($inv->cgst > 0)
                                         ₹{{ format_indian($inv->cgst + $inv->sgst, 2) }}
                                         <span class="text-[9px] block text-slate-400">(9% + 9%)</span>
@@ -213,7 +227,7 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right text-slate-600">
+                                <td class="px-2.5 py-2 text-right text-slate-600">
                                     @if ($inv->igst > 0)
                                         ₹{{ format_indian($inv->igst, 2) }}
                                         <span class="text-[9px] block text-slate-400">(18%)</span>
@@ -221,42 +235,42 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-slate-800">₹{{ format_indian($inv->total_amount, 2) }}</td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="px-2.5 py-2 text-right font-bold text-slate-800">₹{{ format_indian($inv->total_amount, 2) }}</td>
+                                <td class="px-2 py-2 text-center">
                                     @if(($inv->payment_status ?? 'unpaid') === 'paid')
-                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                        <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                             PAID
                                         </span>
                                     @elseif(($inv->payment_status ?? 'unpaid') === 'partially_paid')
                                         <button type="button" 
                                                 onclick="openInvoicePaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
                                                 title="Click to record next payment for this invoice"
-                                                class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer shadow-2xs">
+                                                class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer shadow-2xs">
                                             PARTIAL (₹{{ format_indian($inv->remaining_balance, 0) }} DUE)
                                         </button>
                                     @else
                                         <button type="button" 
                                                 onclick="openInvoicePaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
                                                 title="Click to record payment for this invoice"
-                                                class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer shadow-2xs">
+                                                class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer shadow-2xs">
                                             UNPAID
                                         </button>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-center space-x-1.5 whitespace-nowrap">
-                                    <!-- Preview Button (Green Boxy Curved) -->
+                                <td class="px-2 py-2 text-center space-x-1 whitespace-nowrap">
+                                    <!-- Preview Button -->
                                     <a href="{{ route('invoice.preview', $inv->id) }}" 
                                        title="Preview Invoice"
-                                       class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                       class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     </a>
 
-                                    <!-- Print Button (Sky Blue Boxy Curved) -->
+                                    <!-- Print Button -->
                                     <a href="{{ route('invoice.print', $inv->id) }}" 
                                        target="_blank"
                                        title="Print Invoice"
-                                       class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                       class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                     </a>
 
                                     @php
@@ -277,19 +291,19 @@
                                             'items' => $itemsArray
                                         ]);
                                     @endphp
-                                    <!-- Edit Button (Amber Boxy Curved) -->
+                                    <!-- Edit Button -->
                                     <button type="button" 
                                             title="Edit Invoice Details"
                                             onclick="window.editInvoiceRecord({{ $inv->id }})"
-                                            class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     </button>
-                                    <!-- Delete Button (Rose Boxy Curved) -->
+                                    <!-- Delete Button -->
                                     <button type="button" 
                                             title="Delete Invoice"
                                             onclick="window.deleteInvoiceRecord({{ $inv->id }}, '{{ addslashes($inv->invoice_number) }}')"
-                                            class="w-8.5 h-8.5 p-2 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 </td>
                             </tr>
@@ -360,6 +374,13 @@
         }
     });
 
+    function parseCleanFloat(val) {
+        if (val === null || val === undefined) return 0;
+        const str = val.toString().replace(/,/g, '').trim();
+        const num = parseFloat(str);
+        return isNaN(num) ? 0 : num;
+    }
+
     // Dynamic tax calculation engine
     function recalculateCustomInvoice() {
         const container = document.getElementById('billingRowsContainer');
@@ -370,8 +391,8 @@
         rows.forEach(row => {
             const qtyInput = row.querySelector('input[name="quantities[]"]');
             const priceInput = row.querySelector('input[name="unit_prices[]"]');
-            const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
-            const price = parseFloat(priceInput ? priceInput.value : 0) || 0;
+            const qty = parseCleanFloat(qtyInput ? qtyInput.value : 0);
+            const price = parseCleanFloat(priceInput ? priceInput.value : 0);
             totalTaxable += qty * price;
         });
         

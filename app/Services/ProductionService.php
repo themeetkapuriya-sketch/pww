@@ -7,6 +7,7 @@ use App\Models\RawMaterial;
 use App\Models\ProductionLog;
 use App\Models\LaborLog;
 use App\Models\StaffProfile;
+use App\Models\SalesOrder;
 use App\Exceptions\InsufficientStockException;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,14 @@ class ProductionService
 
             // Increment product stock
             $product->increment('current_stock', $quantityManufactured);
+
+            // Auto-check and promote in_production Sales Orders if stock is now sufficient
+            $inProductionOrders = SalesOrder::where('status', 'in_production')
+                ->with('items.product')
+                ->get();
+            foreach ($inProductionOrders as $ord) {
+                $ord->autoPromoteIfStockAvailable();
+            }
 
             // Create production log
             $productionLog = ProductionLog::create([

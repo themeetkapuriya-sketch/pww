@@ -181,7 +181,7 @@
                     </a>
                 </div>
             </div>
-            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
@@ -296,7 +296,7 @@
                     </a>
                 </div>
             </div>
-            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
@@ -386,7 +386,7 @@
                     </a>
                 </div>
             </div>
-            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                         <tr>
@@ -477,7 +477,7 @@
                     </a>
                 </div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto w-full max-w-full">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
                     <thead class="bg-[#4371D7] text-white">
                         <tr>
@@ -563,7 +563,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                     <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
                         <thead class="bg-[#4371D7] text-white">
                             <tr>
@@ -633,7 +633,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                     <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
                         <thead class="bg-[#4371D7] text-white">
                             <tr>
@@ -751,7 +751,7 @@
                 <!-- 3.1 Table -->
                 <div class="space-y-2">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">3.1 Details of Outward Taxable Supplies (Output Tax Liability)</h4>
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                         <table class="min-w-full divide-y divide-slate-200 text-xs">
                             <thead class="bg-[#4371D7] text-white">
                                 <tr>
@@ -778,7 +778,7 @@
                 <!-- 4. Table -->
                 <div class="space-y-2">
                     <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">4. Eligible Input Tax Credit (ITC Available from Purchases)</h4>
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                    <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                         <table class="min-w-full divide-y divide-slate-200 text-xs">
                             <thead class="bg-[#4371D7] text-white">
                                 <tr>

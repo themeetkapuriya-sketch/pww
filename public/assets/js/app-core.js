@@ -406,38 +406,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (xhr.status === 422) {
                         const responseData = xhr.responseJSON || {};
                         const errors = responseData.errors || {};
+                        const globalMessage = responseData.message || '';
                         
-                        Object.keys(errors).forEach(key => {
-                            const errorMsg = errors[key].join(', ');
-                            
-                            let selector = `[name="${key}"]`;
-                            
-                            if (key.includes('.')) {
-                                const parts = key.split('.');
-                                const baseName = parts[0];
-                                const index = parseInt(parts[1]);
-                                const $inputs = $form.find(`[name="${baseName}[]"], [name^="${baseName}["]`);
-                                if ($inputs.length && $inputs.eq(index).length) {
-                                    showInlineError($inputs.eq(index), errorMsg);
-                                    return;
+                        let hasShownError = false;
+                        if (typeof errors === 'object' && errors !== null) {
+                            Object.keys(errors).forEach(key => {
+                                const val = errors[key];
+                                const errorMsg = Array.isArray(val) ? val.join(', ') : val;
+                                
+                                let selector = `[name="${key}"]`;
+                                
+                                if (key.includes('.')) {
+                                    const parts = key.split('.');
+                                    const baseName = parts[0];
+                                    const index = parseInt(parts[1]);
+                                    const $inputs = $form.find(`[name="${baseName}[]"], [name^="${baseName}["]`);
+                                    if ($inputs.length && $inputs.eq(index).length) {
+                                        showInlineError($inputs.eq(index), errorMsg);
+                                        hasShownError = true;
+                                        return;
+                                    }
                                 }
-                            }
-                            
-                            let $el = $form.find(selector);
-                            if (!$el.length) {
-                                $el = $form.find(`[name="${key}[]"]`);
-                            }
-                            if (!$el.length) {
-                                const parsedKey = key.replace(/\.(\w+)/g, '[$1]');
-                                $el = $form.find(`[name="${parsedKey}"]`);
-                            }
-                            
-                            if ($el.length) {
-                                showInlineError($el.first(), errorMsg);
-                            } else {
-                                showGlobalFormError($form, errorMsg);
-                            }
-                        });
+                                
+                                let $el = $form.find(selector);
+                                if (!$el.length) {
+                                    $el = $form.find(`[name="${key}[]"]`);
+                                }
+                                if (!$el.length) {
+                                    const parsedKey = key.replace(/\.(\w+)/g, '[$1]');
+                                    $el = $form.find(`[name="${parsedKey}"]`);
+                                }
+                                
+                                if ($el.length && $el.is(':visible')) {
+                                    showInlineError($el.first(), errorMsg);
+                                    hasShownError = true;
+                                } else {
+                                    showGlobalFormError($form, errorMsg);
+                                    hasShownError = true;
+                                }
+                            });
+                        }
+                        if (!hasShownError && globalMessage) {
+                            showGlobalFormError($form, globalMessage);
+                        }
                     } else {
                         const message = xhr.responseJSON && xhr.responseJSON.message 
                             ? xhr.responseJSON.message 
@@ -935,6 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 $(this).DataTable({
+                    dom: '<"flex flex-wrap items-center justify-between gap-4 mb-4"lf><"erp-datatable-scroll-container overflow-x-auto w-full my-2"t><"flex flex-wrap items-center justify-between gap-4 mt-4"ip>',
                     pageLength: 10,
                     lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "All"]],
                     columnDefs: [

@@ -23,14 +23,18 @@
 
     <!-- Smooth Expandable Order Booking Form -->
     <div id="orderFormContainer" class="hidden transition-all duration-300 ease-in-out">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-            <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                Sales Order Booking Form
-            </h3>
+        <div id="salesOrderFormCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 transition-all duration-300">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100/60">
+                <h3 id="salesOrderFormTitle" class="text-base font-bold text-slate-800 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    Sales Order Booking Form
+                </h3>
+                <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+            </div>
 
-            <form action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4">
+            <form id="salesOrderForm" action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4">
                 @csrf
+                <input type="hidden" name="_method" id="salesOrderFormMethod" value="POST">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Order Number</label>
@@ -88,8 +92,8 @@
                                     <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }} (Stock: {{ number_format($g->current_stock) }})</option>
                                 @endforeach
                             </select>
-                            <input type="number" name="quantities[]" min="1" placeholder="Qty" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
-                            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-36 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                            <input type="number" name="quantities[]" min="1" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                             <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                         </div>
                     </div>
@@ -167,7 +171,7 @@
             Sales Orders Ledger
         </h3>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>
@@ -214,30 +218,44 @@
                             </td>
                             <td class="px-4 py-3 text-right font-mono font-extrabold text-slate-900">₹{{ number_format($ord->total_amount, 2) }}</td>
                             <td class="px-4 py-3 text-center">
-                                <select onchange="updateOrderStatus({{ $ord->id }}, this)" 
-                                        class="text-[10px] font-bold uppercase rounded-full px-2.5 py-1 focus:outline-none border shadow-2xs bg-white 
-                                        {{ $ord->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
-                                        {{ $ord->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
-                                        {{ $ord->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}
-                                        {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'text-emerald-600 border-emerald-300' : '' }}
-                                        {{ $ord->status === 'cancelled' ? 'text-rose-600 border-rose-300' : '' }}"
-                                        style="background-color: #ffffff !important;">
-                                    <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $ord->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                    <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $ord->status === 'in_production' ? 'selected' : '' }}>In Production</option>
-                                    <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $ord->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
-                                    <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;" {{ $ord->status === 'dispatched' || $ord->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
-                                    <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;" {{ $ord->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                                </select>
+                                @if ($ord->status === 'dispatched' || $ord->status === 'completed')
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                        DISPATCHED
+                                    </span>
+                                @elseif ($ord->status === 'cancelled')
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                        CANCELLED
+                                    </span>
+                                @else
+                                    <select onchange="updateOrderStatus({{ $ord->id }}, this)" 
+                                            class="text-[10px] font-bold uppercase rounded-full px-2.5 py-1 focus:outline-none border shadow-2xs bg-white 
+                                            {{ $ord->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
+                                            {{ $ord->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
+                                            {{ $ord->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}"
+                                            style="background-color: #ffffff !important;">
+                                        <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $ord->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $ord->status === 'in_production' ? 'selected' : '' }}>In Production</option>
+                                        <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $ord->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
+                                        <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;">Dispatched</option>
+                                        <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;">Cancelled</option>
+                                    </select>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     @if($ord->status !== 'dispatched' && $ord->status !== 'completed' && $ord->status !== 'cancelled')
                                         <a href="{{ route('invoices', ['order_id' => $ord->id]) }}"
                                            title="Generate Tax Invoice"
-                                           class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition flex items-center space-x-1">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                           class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold shadow-2xs transition flex items-center space-x-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                             <span>Gen Invoice</span>
                                         </a>
+                                        <button type="button" 
+                                                onclick='openEditOrderModal(@json($ord))'
+                                                title="Edit Sales Order"
+                                                class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition transform hover:scale-105">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                        </button>
                                     @endif
                                     <button type="button" 
                                             onclick="deleteOrder({{ $ord->id }}, '{{ addslashes($ord->order_number) }}')"
@@ -268,6 +286,7 @@
         
         const isHidden = container.classList.contains('hidden');
         if (isHidden) {
+            resetSalesOrderForm();
             container.classList.remove('hidden');
             if (btn) {
                 btn.classList.replace('bg-blue-600', 'bg-slate-700');
@@ -320,6 +339,21 @@
         }
     }
 
+    function removeOrderRow(btn) {
+        const container = document.getElementById('orderRowsContainer');
+        if (!container) return;
+        const rows = container.querySelectorAll('.order-row');
+        if (rows.length > 1) {
+            btn.closest('.order-row').remove();
+        } else {
+            const row = rows[0];
+            const select = row.querySelector('select');
+            if (select) select.value = '';
+            row.querySelectorAll('input').forEach(inp => inp.value = '');
+        }
+    }
+    window.removeOrderRow = removeOrderRow;
+
     document.getElementById('addOrderRowBtn')?.addEventListener('click', function() {
         const container = document.getElementById('orderRowsContainer');
         const originalRow = container.querySelector('.order-row');
@@ -332,13 +366,135 @@
         container.appendChild(clone);
     });
 
-    function removeOrderRow(btn) {
-        const container = document.getElementById('orderRowsContainer');
-        if (container.querySelectorAll('.order-row').length > 1) {
-            btn.closest('.order-row').remove();
-        } else {
-            alert('At least one product item line is required for an order.');
+    function resetSalesOrderForm() {
+        const form = document.getElementById('salesOrderForm');
+        if (!form) return;
+        form.action = "{{ route('orders.store') }}";
+        document.getElementById('salesOrderFormMethod').value = "POST";
+
+        const card = document.getElementById('salesOrderFormCard');
+        if (card) card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 transition-all duration-300';
+
+        const title = document.getElementById('salesOrderFormTitle');
+        if (title) {
+            title.className = 'text-base font-bold text-slate-800 flex items-center';
+            title.innerHTML = `
+                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                Sales Order Booking Form
+            `;
         }
+
+        const closeBtn = document.getElementById('salesOrderCloseBtn');
+        if (closeBtn) closeBtn.className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
+
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]), textarea').forEach(el => {
+            if (!el.disabled) {
+                el.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
+            }
+        });
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerText = 'Book Sales Order';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold shadow-xs';
+        }
+
+        form.reset();
+        handleOrderClientChange();
+    }
+
+    function openEditOrderModal(ord) {
+        const container = document.getElementById('orderFormContainer');
+        const card = document.getElementById('salesOrderFormCard');
+        const form = document.getElementById('salesOrderForm');
+        const title = document.getElementById('salesOrderFormTitle');
+        const closeBtn = document.getElementById('salesOrderCloseBtn');
+        const methodInput = document.getElementById('salesOrderFormMethod');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        form.action = `/orders/${ord.id}`;
+        methodInput.value = 'PUT';
+
+        if (card) card.className = 'bg-[#FFFDF5] rounded-2xl shadow-sm border-2 border-amber-300 p-6 space-y-4 transition-all duration-300';
+        if (title) {
+            title.className = 'text-base font-bold text-amber-900 flex items-center';
+            title.innerHTML = `
+                <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                Edit Sales Order #${ord.order_number}
+            `;
+        }
+        if (closeBtn) closeBtn.className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
+
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]), textarea').forEach(el => {
+            if (!el.disabled) {
+                el.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
+            }
+        });
+
+        if (submitBtn) {
+            submitBtn.innerText = 'Update Sales Order';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+        }
+
+        const orderNumDisplay = form.querySelector('[name="order_number_display"]');
+        if (orderNumDisplay) orderNumDisplay.value = ord.order_number;
+
+        const clientSelect = form.querySelector('[name="client_id"]');
+        if (clientSelect) {
+            clientSelect.value = ord.client_id;
+            handleOrderClientChange();
+        }
+
+        if (ord.plant_id) {
+            setTimeout(() => {
+                const plantSelect = form.querySelector('[name="plant_id"]');
+                if (plantSelect) plantSelect.value = ord.plant_id;
+            }, 50);
+        }
+
+        const orderDateInput = form.querySelector('[name="order_date"]');
+        if (orderDateInput && ord.order_date) {
+            orderDateInput.value = ord.order_date.split('T')[0];
+        }
+
+        const deliveryDateInput = form.querySelector('[name="delivery_date"]');
+        if (deliveryDateInput && ord.delivery_date) {
+            deliveryDateInput.value = ord.delivery_date.split('T')[0];
+        }
+
+        const notesInput = form.querySelector('[name="notes"]');
+        if (notesInput) notesInput.value = ord.notes || '';
+
+        // Populate line items
+        const rowsContainer = document.getElementById('orderRowsContainer');
+        if (rowsContainer && ord.items && ord.items.length) {
+            rowsContainer.innerHTML = '';
+            const finishedGoods = @json($finishedGoods);
+
+            ord.items.forEach(it => {
+                const row = document.createElement('div');
+                row.className = 'order-row flex items-center space-x-3 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
+                
+                let options = '<option value="">Select product...</option>';
+                finishedGoods.forEach(g => {
+                    const sel = g.id == it.product_id ? 'selected' : '';
+                    options += `<option value="${g.id}" data-price="${g.selling_price}" ${sel}>${g.product_name} (Stock: ${g.current_stock})</option>`;
+                });
+
+                row.innerHTML = `
+                    <select name="product_ids[]" required class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" onchange="updateRowUnitPrice(this)">
+                        ${options}
+                    </select>
+                    <input type="number" name="quantities[]" value="${it.quantity}" min="1" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <input type="number" name="unit_prices[]" value="${it.unit_price}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                `;
+                rowsContainer.appendChild(row);
+            });
+        }
+
+        container.classList.remove('hidden');
+        container.scrollIntoView({ behavior: 'smooth' });
     }
 
     function updateOrderStatus(id, selectEl) {

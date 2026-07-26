@@ -158,7 +158,7 @@
             Chronological Account Ledger Entries
         </h3>
 
-        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>

@@ -72,4 +72,36 @@ class SalesOrder extends Model
             default => ucfirst($this->status),
         };
     }
+
+    /**
+     * Check if all items in this sales order have sufficient finished goods stock available.
+     */
+    public function hasSufficientStock(): bool
+    {
+        $this->loadMissing('items.product');
+        if ($this->items->isEmpty()) {
+            return false;
+        }
+
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            if (!$product || $product->current_stock < $item->quantity) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Auto promote status to ready_for_dispatch if stock is available.
+     */
+    public function autoPromoteIfStockAvailable(): bool
+    {
+        if ($this->status === 'in_production' && $this->hasSufficientStock()) {
+            $this->update(['status' => 'ready_for_dispatch']);
+            return true;
+        }
+        return false;
+    }
 }

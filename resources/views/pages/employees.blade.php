@@ -65,13 +65,12 @@
 
     <!-- 2. EDIT FORM CONTAINER (Hidden by default) -->
     <div id="editEmployeeFormCard" class="hidden transition-all duration-300 ease-in-out">
-        <div class="bg-amber-50/50 rounded-2xl shadow-sm border border-amber-200 p-6">
-            <div class="flex items-center justify-between mb-4">
+        <div class="bg-[#FFFDF5] rounded-2xl shadow-sm border-2 border-amber-300 p-6">
+            <div class="flex items-center justify-between border-b border-amber-200/60 pb-3 mb-4">
                 <h3 class="text-base font-bold text-amber-900 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit Employee Profile Details
                 </h3>
-                <button type="button" onclick="closeEditEmployeeForm()" class="text-amber-700 hover:text-amber-900 text-lg font-bold">&times; Close</button>
+                <button type="button" onclick="closeEditEmployeeForm()" class="text-xs font-bold text-amber-700 hover:text-amber-900">&times; Close</button>
             </div>
             <form id="editEmployeeForm" method="POST" class="ajax-form space-y-4">
                 @csrf
@@ -80,12 +79,12 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
                         <input type="text" name="full_name" id="edit_full_name" required
-                               class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                               class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Wage Configuration Type</label>
-                        <select name="wage_type" id="edit_wage_type" class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium" required>
+                        <select name="wage_type" id="edit_wage_type" class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium" required>
                             <option value="per-day">Per Day Wage (Daily Payout Rate)</option>
                             <option value="fixed">Fixed Salary (Monthly regular payout)</option>
                         </select>
@@ -93,20 +92,22 @@
                 </div>
 
                 <div id="editRateFieldContainer" class="space-y-1">
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Per Day Wage Rate (₹ / day)</label>
+                    <label id="editRateFieldLabel" class="block text-xs font-bold text-slate-600 uppercase mb-1">Per Day Wage Rate (₹ / day)</label>
                     <input type="number" id="edit_rateInput" name="piece_rate_per_unit" step="0.01" min="0" placeholder="e.g. 500.00"
-                           class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                           class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
                 </div>
 
                 <div id="editFixedSalaryField" class="hidden space-y-1">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Monthly Basic Fixed Salary (₹ / month)</label>
                     <input type="number" id="edit_fixedInput" name="monthly_salary" step="0.01" min="0" placeholder="e.g. 20000.00"
-                           class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                           class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
                 </div>
 
-                <div class="flex items-center justify-end space-x-3 pt-2">
+                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-amber-200/60">
                     <button type="button" onclick="closeEditEmployeeForm()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
-                    <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Update Employee Profile</button>
+                    <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
+                        Update Employee Profile
+                    </button>
                 </div>
             </form>
         </div>
@@ -119,7 +120,7 @@
             Employees Directory Ledger
         </h3>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>

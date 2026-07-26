@@ -5,23 +5,37 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
-    <div>
-        <h1 class="text-2xl font-bold text-slate-800">Production Logs</h1>
-        <p class="text-sm text-slate-500">Record rack manufacturing batches and monitor stock inventory.</p>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Production Logs</h1>
+            <p class="text-sm text-slate-500">Record rack manufacturing batches and monitor stock inventory.</p>
+        </div>
+        <div>
+            <button type="button" onclick="toggleProductionForm()" class="btn-primary py-2.5 px-5 text-xs font-bold shadow-xs flex items-center">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span id="btnProductionToggleText">+ Log Production Run</span>
+            </button>
+        </div>
     </div>
 
-    <!-- 1. INSERT FORM AT THE TOP -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Log Finished Rack Output
-        </h3>
-        <form action="{{ route('production.store') }}" method="POST" class="ajax-form space-y-4">
+    <!-- 1. COLLAPSIBLE PRODUCTION LOG FORM -->
+    <div id="productionFormCard" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100/60">
+            <h3 id="productionFormTitle" class="text-base font-bold text-slate-800 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Log Finished Rack Output
+            </h3>
+            <button type="button" id="productionCloseBtn" onclick="toggleProductionForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+        </div>
+
+        <form id="productionForm" action="{{ route('production.store') }}" method="POST" class="ajax-form space-y-4">
             @csrf
+            <input type="hidden" name="_method" id="production_form_method" value="POST">
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product</label>
-                    <select name="product_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <select id="prod_product_id" name="product_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
                         <option value="">Select Product...</option>
                         @foreach ($finishedGoods as $good)
                             <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
@@ -31,36 +45,39 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Qty Manufactured</label>
-                    <input type="number" name="quantity_manufactured" min="1" placeholder="e.g. 50" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                    <input type="number" id="prod_qty_manufactured" name="quantity_manufactured" min="1" placeholder="e.g. 50" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Qty Rejected</label>
-                    <input type="number" name="quantity_rejected" min="0" value="0" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                    <input type="number" id="prod_qty_rejected" name="quantity_rejected" min="0" value="0" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Production Date</label>
-                    <input type="date" name="production_date" value="{{ date('Y-m-d') }}" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                    <input type="date" id="prod_date" name="production_date" value="{{ date('Y-m-d') }}" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
-                <div>
+                <div id="recorded_by_wrapper">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Recorded By</label>
-                    <select name="recorded_by" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        @foreach ($users->whereIn('role', ['admin', 'manager']) as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                    <select id="prod_recorded_by" name="recorded_by" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
+                        @foreach ($users as $u)
+                            <option value="{{ $u->id }}" {{ $u->id == auth()->id() ? 'selected' : '' }}>{{ $u->name }}</option>
                         @endforeach
                     </select>
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
-                Log Production Run
-            </button>
+            <div class="flex items-center justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleProductionForm(false)" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                <button type="submit" id="productionSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
+                    Log Production Run
+                </button>
+            </div>
         </form>
     </div>
 
@@ -71,7 +88,7 @@
             Manufacturing Logs Ledger
         </h3>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>
@@ -81,17 +98,34 @@
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Manufactured</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Qty Rejected</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Recorded By</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @foreach ($productionLogs as $log)
-                        <tr class="hover:bg-slate-50 transition">
+                        <tr class="hover:bg-slate-50 transition" id="row-prod-{{ $log->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date->format('d M Y') }}</td>
+                            <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
                             <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
                             <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="flex items-center justify-center space-x-1.5">
+                                    <button type="button" 
+                                            onclick="openEditProductionModal({{ $log->id }}, {{ $log->product_id }}, {{ $log->quantity_manufactured }}, {{ $log->quantity_rejected }}, '{{ $log->production_date ? $log->production_date->format('Y-m-d') : '' }}')"
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
+                                            title="Edit Production Log">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    <button type="button" 
+                                            onclick="deleteProductionLog({{ $log->id }})"
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
+                                            title="Delete Production Log">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -99,4 +133,104 @@
         </div>
     </div>
 </div>
+
+<script>
+function resetProductionForm() {
+    const form = document.getElementById('productionForm');
+    if (!form) return;
+    form.action = "{{ route('production.store') }}";
+    document.getElementById('production_form_method').value = "POST";
+    
+    const card = document.getElementById('productionFormCard');
+    if (card) card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300';
+
+    document.getElementById('productionFormTitle').className = 'text-base font-bold text-slate-800 flex items-center';
+    document.getElementById('productionFormTitle').innerHTML = `
+        <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Log Finished Rack Output
+    `;
+    document.getElementById('productionCloseBtn').className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
+
+    document.querySelectorAll('#productionForm input, #productionForm select').forEach(el => {
+        if (el.type !== 'hidden') {
+            el.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
+        }
+    });
+
+    document.getElementById('prod_product_id').value = '';
+    document.getElementById('prod_qty_manufactured').value = '';
+    document.getElementById('prod_qty_rejected').value = '0';
+    document.getElementById('prod_date').value = "{{ date('Y-m-d') }}";
+    if (document.getElementById('recorded_by_wrapper')) document.getElementById('recorded_by_wrapper').style.display = 'block';
+    
+    const btn = document.getElementById('productionSubmitBtn');
+    btn.innerText = 'Log Production Run';
+    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+}
+
+function toggleProductionForm(showExplicit = null) {
+    const card = document.getElementById('productionFormCard');
+    if (!card) return;
+    const isHidden = card.classList.contains('hidden');
+    const shouldShow = showExplicit !== null ? showExplicit : isHidden;
+    
+    if (shouldShow) {
+        if (isHidden) resetProductionForm();
+        card.classList.remove('hidden');
+        card.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        card.classList.add('hidden');
+    }
+}
+
+function openEditProductionModal(id, productId, manufactured, rejected, date) {
+    const card = document.getElementById('productionFormCard');
+    if (!card) return;
+
+    document.getElementById('productionForm').action = `/production/${id}`;
+    document.getElementById('production_form_method').value = "PUT";
+    
+    card.className = 'bg-[#FFFDF5] rounded-2xl shadow-sm border-2 border-amber-300 p-6 transition-all duration-300';
+    document.getElementById('productionFormTitle').className = 'text-base font-bold text-amber-900 flex items-center';
+    document.getElementById('productionFormTitle').innerHTML = `Edit Production Batch #${id}`;
+    document.getElementById('productionCloseBtn').className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
+
+    document.querySelectorAll('#productionForm input, #productionForm select').forEach(el => {
+        if (el.type !== 'hidden') {
+            el.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
+        }
+    });
+
+    document.getElementById('prod_product_id').value = productId;
+    document.getElementById('prod_qty_manufactured').value = manufactured;
+    document.getElementById('prod_qty_rejected').value = rejected;
+    document.getElementById('prod_date').value = date;
+    if (document.getElementById('recorded_by_wrapper')) document.getElementById('recorded_by_wrapper').style.display = 'none';
+    
+    const btn = document.getElementById('productionSubmitBtn');
+    btn.innerText = 'Update Production Log';
+    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+
+    card.classList.remove('hidden');
+    card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteProductionLog(id) {
+    if (!confirm(`Are you sure you want to delete Production Batch #${id}?`)) return;
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+    $.ajax({
+        url: `/production/${id}`,
+        method: 'DELETE',
+        data: { _token: token },
+        success: function(res) {
+            if (window.showToast) window.showToast('success', res.message);
+            $(`#row-prod-${id}`).fadeOut(300, function() { $(this).remove(); });
+        },
+        error: function(xhr) {
+            alert(xhr.responseJSON?.message || 'Failed to delete production log.');
+        }
+    });
+}
+</script>
 @endsection

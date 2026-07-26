@@ -24,7 +24,7 @@
         <div class="bg-gradient-to-br from-emerald-600 to-teal-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-emerald-500/50">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-emerald-100 uppercase">1. Lifetime Revenue</span>
-                <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">💎</span>
+                <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">💵</span>
             </div>
             <div class="mt-3">
                 <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($lifetimeRevenue, 2) }}</div>
@@ -38,7 +38,7 @@
         <div class="bg-gradient-to-br from-indigo-700 to-indigo-900 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-indigo-200 uppercase">2. Annual Revenue</span>
-                <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">📅</span>
+                <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">📅</span>
             </div>
             <div class="mt-3">
                 <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($annualRevenue, 2) }}</div>
@@ -52,7 +52,7 @@
         <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-blue-100 uppercase">3. Monthly Revenue ({{ date('M Y') }})</span>
-                <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">📆</span>
+                <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">📆</span>
             </div>
             <div class="mt-3">
                 <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($monthlyNetRevenue, 2) }}</div>
@@ -219,30 +219,6 @@
         </div>
     </div>
 
-    <!-- Quick Actions Panel -->
-    <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 shadow-sm text-white flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center font-black border border-blue-400/30">⚡</div>
-            <div>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Quick Operations Bar</h2>
-                <p class="text-xs text-slate-400">Perform common ERP actions in 1-click</p>
-            </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('invoices') }}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-                <span>🧾</span> New Direct Invoice
-            </a>
-            <a href="{{ route('orders') }}" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-                <span>📦</span> New Sales Order
-            </a>
-            <a href="{{ route('purchases') }}" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-                <span>🛒</span> Purchase Bill
-            </a>
-            <a href="{{ route('production') }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-                <span>🔨</span> Production Log
-            </a>
-        </div>
-    </div>
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -263,8 +239,8 @@
         <!-- Top 5 Clients Donut Chart -->
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="pb-3 border-b border-slate-100">
-                <h2 class="text-base font-bold text-slate-800">Top Client Share</h2>
-                <p class="text-xs text-slate-500">Top sales contributing clients</p>
+                <h2 class="text-base font-bold text-slate-800">Top Client Share (Plant-Wise)</h2>
+                <p class="text-xs text-slate-500">Top sales contributing client plants</p>
             </div>
             <div class="relative h-64 w-full flex items-center justify-center">
                 <canvas id="topClientsChart"></canvas>
@@ -272,10 +248,89 @@
         </div>
     </div>
 
-    <!-- Recent Feeds Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Row 1 Below Chart: 1. Production Logs, 2. Active Sales Orders, 3. Recent Invoices (3-Column Grid) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        <!-- Recent Invoices -->
+        <!-- 1. Recent Production Logs -->
+        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>🔨</span> Recent Production Logs
+                </h2>
+                <a href="{{ route('production') }}" class="text-xs font-bold text-emerald-600 hover:underline">Production →</a>
+            </div>
+            <div class="space-y-2">
+                @forelse($recentProductionLogs as $log)
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
+                        <div>
+                            <div class="text-xs font-black text-slate-800">
+                                {{ $log->product->product_name ?? 'Finished Good' }}
+                            </div>
+                            <div class="text-[11px] font-medium text-slate-500">
+                                {{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}
+                                @if($log->quantity_rejected > 0)
+                                    • <span class="text-rose-600 font-semibold">{{ $log->quantity_rejected }} Rej</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-black text-emerald-600">+{{ format_indian($log->quantity_manufactured, 0) }} {{ $log->product->unit ?? 'Pcs' }}</div>
+                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 mt-0.5">
+                                COMPLETED
+                            </span>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 text-center py-4">No recent production logs recorded.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- 2. Active Sales Orders -->
+        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>📦</span> Active Sales Orders
+                </h2>
+                <a href="{{ route('orders') }}" class="text-xs font-bold text-blue-600 hover:underline">All Orders →</a>
+            </div>
+            <div class="space-y-2">
+                @forelse($recentOrders as $order)
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
+                        <div>
+                            <div class="text-xs font-black text-slate-800">#{{ $order->order_number }}</div>
+                            <div class="text-[11px] font-medium text-slate-500 truncate max-w-[180px]">
+                                {{ $order->client->company_name ?? ($order->plant->client->company_name ?? 'Client') }}
+                                @if($order->plant && $order->plant->plant_name)
+                                    <span class="text-[10px] font-bold text-blue-600">({{ $order->plant->plant_name }})</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-bold text-slate-900">₹{{ format_indian($order->total_amount, 2) }}</div>
+                            <select onchange="updateDashboardOrderStatus({{ $order->id }}, this)" 
+                                     class="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 focus:outline-none border shadow-2xs bg-white mt-0.5 cursor-pointer 
+                                     {{ $order->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
+                                     {{ $order->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
+                                     {{ $order->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}
+                                     {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'text-emerald-600 border-emerald-300' : '' }}
+                                     {{ $order->status === 'cancelled' ? 'text-rose-600 border-rose-300' : '' }}"
+                                     style="background-color: #ffffff !important;">
+                                <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $order->status === 'in_production' ? 'selected' : '' }}>In Production</option>
+                                <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $order->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
+                                <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;" {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
+                                <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 text-center py-4">No active sales orders.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- 3. Recent Invoices -->
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -318,51 +373,78 @@
             </div>
         </div>
 
-        <!-- Recent Sales Orders -->
+    </div>
+
+    <!-- Row 2 Below Row 1: Recent 5 Purchase Bills, Recent 5 Factory Expenses, Low Stock Alerts (3-Column Grid) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- 1. Latest 5 Purchase Records -->
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <span>📦</span> Active Sales Orders
+                    <span>🛒</span> Recent 5 Purchase Bills
                 </h2>
-                <a href="{{ route('orders') }}" class="text-xs font-bold text-blue-600 hover:underline">All Orders →</a>
+                <a href="{{ route('purchases') }}" class="text-xs font-bold text-purple-600 hover:underline">View Purchases →</a>
             </div>
             <div class="space-y-2">
-                @forelse($recentOrders as $order)
+                @forelse($latestPurchases as $pur)
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
                         <div>
-                            <div class="text-xs font-black text-slate-800">#{{ $order->order_number }}</div>
-                            <div class="text-[11px] font-medium text-slate-500 truncate max-w-[180px]">
-                                {{ $order->client->company_name ?? ($order->plant->client->company_name ?? 'Client') }}
-                                @if($order->plant && $order->plant->plant_name)
-                                    <span class="text-[10px] font-bold text-blue-600">({{ $order->plant->plant_name }})</span>
+                            <div class="text-xs font-black text-slate-800">
+                                {{ $pur->rawMaterial->material_name ?? ($pur->item_name ?? ucfirst(str_replace('_', ' ', $pur->purchase_type))) }}
+                            </div>
+                            <div class="text-[11px] font-medium text-slate-500">
+                                {{ $pur->purchase_date ? $pur->purchase_date->format('d M Y') : 'N/A' }}
+                                @if($pur->vendor_name)
+                                    • <span class="font-semibold text-slate-700">{{ $pur->vendor_name }}</span>
                                 @endif
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-xs font-bold text-slate-900">₹{{ format_indian($order->total_amount, 2) }}</div>
-                            <select onchange="updateDashboardOrderStatus({{ $order->id }}, this)" 
-                                    class="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 focus:outline-none border shadow-2xs bg-white mt-0.5 cursor-pointer 
-                                    {{ $order->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
-                                    {{ $order->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
-                                    {{ $order->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}
-                                    {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'text-emerald-600 border-emerald-300' : '' }}
-                                    {{ $order->status === 'cancelled' ? 'text-rose-600 border-rose-300' : '' }}"
-                                    style="background-color: #ffffff !important;">
-                                <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $order->status === 'in_production' ? 'selected' : '' }}>In Production</option>
-                                <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $order->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
-                                <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;" {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
-                                <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
+                            <div class="text-xs font-black text-purple-700">₹{{ format_indian($pur->total_amount, 2) }}</div>
+                            @if($pur->quantity > 0)
+                                <div class="text-[10px] font-bold text-slate-400">{{ format_indian($pur->quantity, 2) }} {{ $pur->unit ?? 'Units' }}</div>
+                            @endif
                         </div>
                     </div>
                 @empty
-                    <p class="text-xs text-slate-400 text-center py-4">No active sales orders.</p>
+                    <p class="text-xs text-slate-400 text-center py-4">No recent purchase records logged.</p>
                 @endforelse
             </div>
         </div>
 
-        <!-- Low Stock Inventory Alerts -->
+        <!-- 2. Latest 5 Expense Records -->
+        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <span>💸</span> Recent 5 Factory Expenses
+                </h2>
+                <a href="{{ route('expenses') }}" class="text-xs font-bold text-rose-600 hover:underline">View Expenses →</a>
+            </div>
+            <div class="space-y-2">
+                @forelse($latestExpenses as $exp)
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
+                        <div>
+                            <div class="text-xs font-black text-slate-800 capitalize">
+                                {{ $exp->expense_category === 'gst_payment' ? 'GST Payment / Tax' : str_replace('_', ' ', $exp->expense_category) }}
+                            </div>
+                            <div class="text-[11px] font-medium text-slate-500 truncate max-w-[200px]">
+                                {{ $exp->expense_date ? $exp->expense_date->format('d M Y') : 'N/A' }}
+                                @if($exp->description)
+                                    • {{ $exp->description }}
+                                @endif
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-black text-rose-600">₹{{ format_indian($exp->amount, 2) }}</div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-xs text-slate-400 text-center py-4">No recent expense records logged.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- 3. Low Stock Inventory Alerts -->
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2 text-rose-700">
@@ -387,7 +469,6 @@
                 @endforelse
             </div>
         </div>
-
     </div>
 </div>
 
@@ -395,37 +476,95 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Financial Trend Chart
+    // 1. Smooth Gradient Dual Line & Area Chart (6-Month Financial Performance)
     const trendCtx = document.getElementById('financialTrendChart').getContext('2d');
+    
+    // Create Emerald Sales Gradient
+    const salesGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
+    salesGrad.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+    salesGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+    // Create Indigo Outflows Gradient
+    const expGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
+    expGrad.addColorStop(0, 'rgba(99, 102, 241, 0.20)');
+    expGrad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
     new Chart(trendCtx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: @json($chartMonths),
             datasets: [
                 {
                     label: 'Total Billed Sales (₹)',
                     data: @json($chartSalesData),
-                    backgroundColor: '#2563eb',
-                    borderRadius: 6,
+                    borderColor: '#10b981',
+                    backgroundColor: salesGrad,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
                 },
                 {
                     label: 'Factory Outflows (₹)',
                     data: @json($chartExpenseData),
-                    backgroundColor: '#94a3b8',
-                    borderRadius: 6,
+                    borderColor: '#6366f1',
+                    backgroundColor: expGrad,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
-                legend: { position: 'top', labels: { font: { family: 'Outfit, sans-serif', size: 11, weight: 'bold' } } }
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { family: 'Outfit, sans-serif', size: 11, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
+                    bodyFont: { family: 'Outfit, sans-serif', size: 11 },
+                    padding: 10,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: function(ctx) {
+                            let label = ctx.dataset.label || '';
+                            if (label) label += ': ';
+                            label += '₹' + window.formatIndianCurrency(ctx.parsed.y, 2);
+                            return label;
+                        }
+                    }
+                }
             },
             scales: {
+                x: {
+                    grid: { display: false }
+                },
                 y: {
                     beginAtZero: true,
+                    grid: { color: '#f1f5f9' },
                     ticks: {
+                        font: { family: 'Outfit, sans-serif', size: 10, weight: '600' },
                         callback: function(value) { return '₹' + window.formatIndianCurrency(value, 0); }
                     }
                 }
@@ -433,27 +572,52 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 2. Top Clients Donut Chart
+    // 2. Vibrant Multi-Color Client Revenue Share Donut Chart
     const topClientsData = @json($topClientsData);
     const clientNames = topClientsData.map(c => c.name);
     const clientSales = topClientsData.map(c => c.sales);
+    const totalSalesSum = clientSales.reduce((a, b) => a + b, 0);
 
     const clientCtx = document.getElementById('topClientsChart').getContext('2d');
     new Chart(clientCtx, {
         type: 'doughnut',
         data: {
-            labels: clientNames.length ? clientNames : ['No Sales Yet'],
+            labels: clientNames.length ? clientNames : ['General Clients'],
             datasets: [{
                 data: clientSales.length ? clientSales : [1],
-                backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#cbd5e1'],
-                borderWidth: 2
+                backgroundColor: ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'],
+                hoverBackgroundColor: ['#059669', '#2563eb', '#7c3aed', '#d97706', '#db2777'],
+                borderWidth: 3,
+                borderColor: '#ffffff',
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '72%',
             plugins: {
-                legend: { position: 'bottom', labels: { font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' } } }
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
+                    bodyFont: { family: 'Outfit, sans-serif', size: 11 },
+                    padding: 10,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: function(ctx) {
+                            const val = ctx.parsed;
+                            const pct = totalSalesSum > 0 ? ((val / totalSalesSum) * 100).toFixed(1) : 0;
+                            return ` ${ctx.label}: ₹${window.formatIndianCurrency(val, 2)} (${pct}%)`;
+                        }
+                    }
+                }
             }
         }
     });

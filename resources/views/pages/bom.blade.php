@@ -110,7 +110,7 @@
                 @if ($good->billOfMaterials->isEmpty())
                     <p class="text-xs text-slate-400 py-4 border border-dashed rounded-xl border-slate-200 text-center font-medium">No BOM components assigned yet. Click "Add BOM Formula" above to assign raw materials.</p>
                 @else
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto w-full max-w-full">
                         <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                             <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                                 <tr>
@@ -159,43 +159,6 @@
     </div>
 </div>
 
-<!-- 3. Edit BOM Component Form Card -->
-<div id="editBomFormCard" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl border-2 border-amber-500/40 p-6 max-w-lg w-full transition-all duration-300">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-            <h3 class="text-base font-bold text-slate-800 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                <span>Edit Component:</span>
-                <span id="edit_bom_title_text" class="ml-1.5 text-blue-600 font-extrabold"></span>
-            </h3>
-            <button type="button" onclick="closeEditBomModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
-        </div>
-
-        <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4">
-            @csrf
-            @method('PUT')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Required Quantity</label>
-                    <input type="number" id="edit_required_quantity" name="required_quantity" step="0.0001" min="0.0001" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Waste Factor (%)</label>
-                    <input type="number" id="edit_waste_percentage" name="waste_percentage" step="0.01" min="0" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeEditBomModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
-                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-xs transition duration-150">Update Component</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Template for Dynamic Raw Material Row -->
 <template id="emptyBomRowTemplate">
     <div class="bom-row flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
         <div class="flex-grow">
@@ -224,6 +187,42 @@
         </div>
     </div>
 </template>
+
+<!-- Edit BOM Component Modal Dialog -->
+<div id="editBomFormCard" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-[#FFFDF5] rounded-2xl shadow-2xl border-2 border-amber-300 p-6 max-w-lg w-full transition-all duration-300">
+        <div class="flex items-center justify-between border-b border-amber-200/60 pb-3 mb-4">
+            <h3 class="text-base font-bold text-amber-900 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <span>Edit Component:</span>
+                <span id="edit_bom_title_text" class="ml-1.5 text-amber-800 font-extrabold"></span>
+            </h3>
+            <button type="button" onclick="closeEditBomModal()" class="text-xs font-bold text-amber-700 hover:text-amber-900">&times; Close</button>
+        </div>
+
+        <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4">
+            @csrf
+            @method('PUT')
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Required Quantity</label>
+                    <input type="number" id="edit_required_quantity" name="required_quantity" step="0.0001" min="0.0001" required
+                           class="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Waste Factor (%)</label>
+                    <input type="number" id="edit_waste_percentage" name="waste_percentage" step="0.01" min="0" required
+                           class="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-amber-200/60">
+                <button type="button" onclick="closeEditBomModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                <button type="submit" class="btn-primary py-2.5 px-6 text-xs font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">Update Component</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
 function toggleAddBomForm() {

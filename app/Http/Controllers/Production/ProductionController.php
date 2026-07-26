@@ -45,10 +45,16 @@ class ProductionController extends Controller
             'product_id' => 'required|exists:products,id',
             'quantity_manufactured' => 'required|integer|min:1',
             'quantity_rejected' => 'required|integer|min:0',
-            'recorded_by' => 'required|exists:users,id',
+            'recorded_by' => 'nullable|exists:users,id',
             'production_date' => 'required|date',
             'labor' => 'nullable|array',
         ]);
+
+        $recordedBy = !empty($validated['recorded_by']) ? $validated['recorded_by'] : auth()->id();
+        if (!$recordedBy) {
+            $firstUser = User::first();
+            $recordedBy = $firstUser ? $firstUser->id : 1;
+        }
 
         try {
             $laborData = [];
@@ -67,26 +73,91 @@ class ProductionController extends Controller
                 $validated['product_id'],
                 $validated['quantity_manufactured'],
                 $validated['quantity_rejected'],
-                $validated['recorded_by'],
+                $recordedBy,
                 $validated['production_date'],
                 $laborData
             );
 
             return response()->json([
                 'success' => true,
-                'message' => "Production batch {$log->id} logged. Stock auto-deductions processed!",
+                'message' => "Production batch #{$log->id} logged. Stock auto-deductions processed!",
                 'data' => $log
             ]);
         } catch (InsufficientStockException $e) {
             return response()->json([
                 'success' => false,
-                'errors' => [$e->getMessage()]
+                'message' => $e->getMessage(),
+                'errors' => [
+                    'quantity_manufactured' => [$e->getMessage()]
+                ]
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'errors' => ['Execution failed: ' . $e->getMessage()]
-            ], 500);
+                'message' => 'Execution failed: ' . $e->getMessage(),
+                'errors' => [
+                    'quantity_manufactured' => ['Execution failed: ' . $e->getMessage()]
+                ]
+            ], 422);
         }
+    }
+
+    /**
+     * Update Production Log (AJAX).
+     */
+    public function updateProductionLog(Request $request, $id)
+    {
+        $log = ProductionLog::findOrFail($id);
+
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity_manufactured' => 'required|integer|min:1',
+            'quantity_rejected' => 'required|integer|min:0',
+            'production_date' => 'required|date',
+        ]);
+
+        // Adjust finished product stock difference
+        if ($log->product_id == $validated['product_id']) {
+            $diff = $validated['quantity_manufactured'] - $log->quantity_manufactured;
+            if ($diff != 0) {
+                $product = Product::find($validated['product_id']);
+                if ($product) {
+                    $product->current_stock = max(0, $product->current_stock + $diff);
+                    $product->save();
+                }
+            }
+        }
+
+        $log->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Production batch #{$log->id} updated successfully!",
+            'data' => $log
+        ]);
+    }
+
+    /**
+     * Delete Production Log (AJAX).
+     */
+    public function deleteProductionLog($id)
+    {
+        $log = ProductionLog::findOrFail($id);
+        $batchId = $log->id;
+
+        // Deduct manufactured qty from product stock upon deletion
+        $product = Product::find($log->product_id);
+        if ($product) {
+            $product->current_stock = max(0, $product->current_stock - $log->quantity_manufactured);
+            $product->save();
+        }
+
+        $log->laborLogs()->delete();
+        $log->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Production batch #{$batchId} deleted successfully!"
+        ]);
     }
 }

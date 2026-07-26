@@ -18,10 +18,31 @@ class OrderController extends Controller
      */
     public function orders(Request $request)
     {
-        $orders = SalesOrder::with(['client', 'plant', 'items.product'])->orderBy('created_at', 'desc')->paginate(20);
+        $status = $request->get('status', 'all');
+
+        $query = SalesOrder::with(['client', 'plant', 'items.product']);
+
+        if ($status !== 'all' && !empty($status)) {
+            if ($status === 'dispatched') {
+                $query->whereIn('status', ['dispatched', 'completed']);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')->paginate(20)->appends($request->query());
         $clients = Client::with('plants')->orderBy('company_name')->get();
         $finishedGoods = Product::orderBy('product_name')->get();
-        return view('pages.orders', compact('orders', 'clients', 'finishedGoods'));
+
+        $stats = [
+            'total' => SalesOrder::count(),
+            'pending' => SalesOrder::where('status', 'pending')->count(),
+            'in_production' => SalesOrder::where('status', 'in_production')->count(),
+            'ready' => SalesOrder::where('status', 'ready_for_dispatch')->count(),
+            'completed' => SalesOrder::whereIn('status', ['dispatched', 'completed'])->count(),
+        ];
+
+        return view('pages.orders', compact('orders', 'clients', 'finishedGoods', 'stats', 'status'));
     }
 
     /**
@@ -83,21 +104,116 @@ class OrderController extends Controller
     }
 
     /**
+     * Update Sales Order (AJAX).
+     */
+    public function updateOrder(Request $request, $id)
+    {
+        $order = SalesOrder::findOrFail($id);
+
+        if (in_array($order->status, ['dispatched', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dispatched/Completed Sales Orders cannot be edited.'
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'plant_id' => 'required|exists:client_plants,id',
+            'po_number' => 'nullable|string|max:100',
+            'order_date' => 'required|date',
+            'delivery_date' => 'nullable|date',
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'required|exists:products,id',
+            'quantities' => 'required|array|min:1',
+            'quantities.*' => 'required|integer|min:1',
+            'unit_prices' => 'required|array|min:1',
+            'unit_prices.*' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        DB::transaction(function () use ($order, $validated) {
+            $totalAmount = 0.00;
+            foreach ($validated['product_ids'] as $idx => $pid) {
+                $totalAmount += $validated['quantities'][$idx] * $validated['unit_prices'][$idx];
+            }
+
+            $order->update([
+                'po_number' => $validated['po_number'] ?? null,
+                'client_id' => $validated['client_id'],
+                'plant_id' => $validated['plant_id'],
+                'order_date' => $validated['order_date'],
+                'delivery_date' => $validated['delivery_date'] ?? null,
+                'total_amount' => round($totalAmount, 2),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Replace line items
+            $order->items()->delete();
+
+            foreach ($validated['product_ids'] as $idx => $pid) {
+                SalesOrderItem::create([
+                    'sales_order_id' => $order->id,
+                    'product_id' => $pid,
+                    'quantity' => $validated['quantities'][$idx],
+                    'unit_price' => $validated['unit_prices'][$idx],
+                    'total_price' => round($validated['quantities'][$idx] * $validated['unit_prices'][$idx], 2),
+                ]);
+            }
+
+            $order->autoPromoteIfStockAvailable();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sales Order '{$order->order_number}' updated successfully!",
+            'data' => $order
+        ]);
+    }
+
+    /**
      * Update Sales Order Status (AJAX).
      */
     public function updateOrderStatus(Request $request, $id)
     {
         $order = SalesOrder::findOrFail($id);
 
+        if (in_array($order->status, ['dispatched', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "Dispatched / Completed orders cannot be reverted to pending or modified."
+            ], 422);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,in_production,ready_for_dispatch,dispatched,cancelled',
         ]);
 
-        $order->update(['status' => $validated['status']]);
+        $requestedStatus = $validated['status'];
+        $order->update(['status' => $requestedStatus]);
+
+        if (in_array($requestedStatus, ['dispatched', 'completed'])) {
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->decrement('current_stock', $item->quantity);
+                }
+            }
+        }
+
+        $autoPromoted = false;
+        if (in_array($requestedStatus, ['in_production', 'pending'])) {
+            $autoPromoted = $order->autoPromoteIfStockAvailable();
+        }
+
+        $statusText = strtoupper(str_replace('_', ' ', $order->status));
+        $message = "Order '{$order->order_number}' status updated to '{$statusText}'!";
+        if ($autoPromoted) {
+            $message = "Order '{$order->order_number}' has required stock available & was automatically marked READY FOR DISPATCH!";
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "Order '{$order->order_number}' status updated to '" . strtoupper(str_replace('_', ' ', $order->status)) . "'!",
+            'message' => $message,
             'data' => $order
         ]);
     }

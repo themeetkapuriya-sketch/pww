@@ -13,6 +13,8 @@ use App\Models\SalesOrder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
+use App\Models\ProductionLog;
+
 class OverviewController extends Controller
 {
     /**
@@ -128,23 +130,42 @@ class OverviewController extends Controller
             $chartExpenseData[] = round($expVal, 2);
         }
 
-        // Top 5 Clients Revenue Breakdown
-        $topClientsData = Invoice::with('plant.client')
-            ->select('plant_id', DB::raw('SUM(total_amount) as total_sales'))
-            ->groupBy('plant_id')
-            ->orderByDesc('total_sales')
+        // Top 5 Client Plants Revenue Breakdown (Plant-Wise)
+        $topClientsData = DB::table('invoices')
+            ->join('client_plants', 'invoices.plant_id', '=', 'client_plants.id')
+            ->join('clients', 'client_plants.client_id', '=', 'clients.id')
+            ->select(
+                'clients.company_name',
+                'client_plants.plant_name',
+                DB::raw('SUM(invoices.total_amount) as sales')
+            )
+            ->groupBy('client_plants.id', 'clients.company_name', 'client_plants.plant_name')
+            ->orderByDesc('sales')
             ->take(5)
             ->get()
-            ->map(function($inv) {
+            ->map(function($item) {
+                $displayName = $item->company_name;
+                if (!empty($item->plant_name)) {
+                    $displayName .= ' (' . $item->plant_name . ')';
+                }
                 return [
-                    'name' => $inv->plant->client->company_name ?? ($inv->plant->plant_name ?? 'Client'),
-                    'sales' => (float)$inv->total_sales,
+                    'name' => $displayName,
+                    'sales' => (float)$item->sales,
                 ];
             });
+
+        if ($topClientsData->isEmpty()) {
+            $topClientsData = collect([
+                ['name' => 'Main Plant', 'sales' => (float)Invoice::sum('total_amount')]
+            ]);
+        }
 
         // Recent Activity Feed
         $recentInvoices = Invoice::with('plant.client')->orderBy('created_at', 'desc')->take(5)->get();
         $recentOrders = SalesOrder::with(['client', 'plant'])->orderBy('created_at', 'desc')->take(5)->get();
+        $recentProductionLogs = ProductionLog::with('product')->orderBy('production_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
+        $latestPurchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
+        $latestExpenses = Expense::orderBy('expense_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
         $lowStockMaterials = RawMaterial::whereColumn('current_stock', '<=', 'safety_threshold')->take(5)->get();
         if ($lowStockMaterials->isEmpty()) {
             $lowStockMaterials = RawMaterial::orderBy('current_stock', 'asc')->take(5)->get();
@@ -160,7 +181,7 @@ class OverviewController extends Controller
             'fyPurchasesTotal', 'fyExpensesTotal', 'annualRevenue',
             'monthlyPurchasesTotalOnly', 'monthlyExpensesTotalOnly', 'monthlyNetRevenue',
             'chartMonths', 'chartSalesData', 'chartExpenseData',
-            'topClientsData', 'recentInvoices', 'recentOrders', 'lowStockMaterials'
+            'topClientsData', 'recentInvoices', 'recentOrders', 'recentProductionLogs', 'latestPurchases', 'latestExpenses', 'lowStockMaterials'
         ));
     }
 }

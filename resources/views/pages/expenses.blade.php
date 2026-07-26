@@ -140,7 +140,7 @@
             Logged Operational Expenses
         </h3>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
                     <tr>

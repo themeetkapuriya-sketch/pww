@@ -115,11 +115,21 @@
 
         /* DataTables Custom Tailwind Integration Styles */
         .dataTables_wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
         }
+        .erp-datatable-scroll-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            border-radius: 0.75rem;
+        }
         .dataTables_wrapper .dataTables_length {
-            margin-bottom: 1rem;
+            margin-bottom: 0;
             font-size: 0.75rem;
             font-weight: 700;
             color: #64748b;
@@ -136,7 +146,7 @@
             margin: 0 0.5rem;
         }
         .dataTables_wrapper .dataTables_filter {
-            margin-bottom: 1rem;
+            margin-bottom: 0;
             font-size: 0.75rem;
             font-weight: 700;
             color: #64748b;

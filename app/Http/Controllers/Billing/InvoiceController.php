@@ -104,13 +104,20 @@ class InvoiceController extends Controller
                 ]);
 
                 foreach ($validated['product_ids'] as $idx => $fgId) {
+                    $qty = (int)$validated['quantities'][$idx];
                     InvoiceItem::create([
                         'invoice_id' => $invoice->id,
                         'product_id' => $fgId,
-                        'quantity' => $validated['quantities'][$idx],
+                        'quantity' => $qty,
                         'unit_price' => $validated['unit_prices'][$idx],
-                        'total_price' => round($validated['quantities'][$idx] * $validated['unit_prices'][$idx], 2),
+                        'total_price' => round($qty * $validated['unit_prices'][$idx], 2),
                     ]);
+
+                    // Automatically deduct finished goods stock upon sale
+                    $product = Product::find($fgId);
+                    if ($product) {
+                        $product->decrement('current_stock', $qty);
+                    }
                 }
 
                 if (!empty($validated['sales_order_id'])) {
