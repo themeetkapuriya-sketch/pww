@@ -32,7 +32,7 @@
                     <img class="h-12 w-12 object-contain rounded-xl border border-slate-100 p-1 bg-white shadow-2xs" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo">
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h2>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }} {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}</p>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021'))) }} | Email: {{ \App\Models\Setting::get('business_email', 'pww@example.com') }}</p>
                         @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
                         <p class="text-xs text-slate-400 font-semibold mt-0.5">
                             GSTIN: <span class="text-slate-700 font-bold">{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
@@ -138,7 +138,7 @@
                                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ $pName }}</td>
                                 <td class="py-3.5 px-4 text-center text-xs font-mono text-slate-500">{{ $pSku }}</td>
                                 <td class="py-3.5 px-4 text-right">₹{{ number_format($item->unit_price, 2) }}</td>
-                                <td class="py-3.5 px-4 text-center font-bold text-slate-800">{{ $item->quantity }}</td>
+                                <td class="py-3.5 px-4 text-center font-bold text-slate-800">{{ $item->quantity }} {{ strtolower($item->billing_uom ?? ($item->product->uom ?? $item->finishedGood->uom ?? 'piece')) }}</td>
                                 <td class="py-3.5 px-4 text-right font-extrabold text-slate-900">₹{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @empty

@@ -185,16 +185,26 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit of Measurement)</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Primary Unit)</label>
                         <input type="text" id="good_uom" name="uom" placeholder="e.g. piece, kg, box" value="piece" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Selling Price (Excl. Tax)</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Unit Weight (Kg/Pcs)</label>
+                        <input type="number" id="good_unit_weight_kg" name="unit_weight_kg" step="0.001" min="0" placeholder="e.g. 14.500" value="0.000"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Price / Piece (₹)</label>
                         <input type="number" id="good_price" name="selling_price" step="0.01" min="0" placeholder="e.g. 1850.00" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Price / Kg (₹)</label>
+                        <input type="number" id="good_price_per_kg" name="price_per_kg" step="0.01" min="0" placeholder="Optional (e.g. 125.00)"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GST Rate (%)</label>
@@ -234,9 +244,10 @@
                             <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">SKU</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">HSN Code</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">UOM</th>
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Unit Weight</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">GST Rate</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Price</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Prices</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
                         </tr>
                     </thead>
@@ -251,14 +262,29 @@
                                     <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">{{ $good->uom ?? 'piece' }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
+                                    @if(($good->unit_weight_kg ?? 0) > 0)
+                                        <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold font-mono">{{ number_format($good->unit_weight_kg, 3) }} Kg/Pcs</span>
+                                    @else
+                                        <span class="text-xs text-slate-400 font-medium">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-center">
                                     <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">{{ number_format($good->gst_rate ?? 18, 0) }}% GST</span>
                                 </td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $good->current_stock }} {{ $good->uom ?? 'piece' }}</td>
-                                <td class="px-6 py-4 text-right font-bold text-slate-850">₹{{ number_format($good->selling_price, 2) }}</td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="font-bold text-slate-850">₹{{ number_format($good->selling_price, 2) }} / Pcs</div>
+                                    @php
+                                        $effectiveKgPrice = $good->price_per_kg ?? (($good->unit_weight_kg ?? 0) > 0 ? round($good->selling_price / $good->unit_weight_kg, 2) : null);
+                                    @endphp
+                                    @if($effectiveKgPrice)
+                                        <div class="text-[11px] text-purple-700 font-semibold font-mono">₹{{ number_format($effectiveKgPrice, 2) }} / Kg</div>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center space-x-1.5">
                                         <button type="button" 
-                                                onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ addslashes($good->hsn_code ?? '') }}', '{{ $good->uom ?? 'piece' }}', {{ $good->current_stock ?? 0 }}, {{ $good->selling_price }}, {{ $good->gst_rate ?? 18.00 }})"
+                                                onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ addslashes($good->hsn_code ?? '') }}', '{{ $good->uom ?? 'piece' }}', {{ $good->current_stock ?? 0 }}, {{ $good->selling_price }}, {{ $good->gst_rate ?? 18.00 }}, {{ $good->unit_weight_kg ?? 0.000 }}, {{ $good->price_per_kg ? $good->price_per_kg : "''" }})"
                                                 class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                                 title="Edit Product">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -409,7 +435,9 @@ function resetProductForm() {
     document.getElementById('good_sku').value = '';
     document.getElementById('good_hsn').value = '';
     document.getElementById('good_uom').value = 'piece';
+    if (document.getElementById('good_unit_weight_kg')) document.getElementById('good_unit_weight_kg').value = '0.000';
     document.getElementById('good_price').value = '';
+    if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = '';
     if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = '18.00';
     
     const btn = document.getElementById('productSubmitBtn');
@@ -432,7 +460,7 @@ function toggleProductForm(showExplicit = null) {
     }
 }
 
-function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 18.00) {
+function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 18.00, unitWeight = 0.000, pricePerKg = '') {
     const card = document.getElementById('productCard');
     if (!card) return;
 
@@ -454,7 +482,9 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 1
     document.getElementById('good_sku').value = sku;
     document.getElementById('good_hsn').value = hsn;
     document.getElementById('good_uom').value = uom;
+    if (document.getElementById('good_unit_weight_kg')) document.getElementById('good_unit_weight_kg').value = parseFloat(unitWeight).toFixed(3);
     document.getElementById('good_price').value = price;
+    if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = (pricePerKg !== '' && pricePerKg !== null && pricePerKg !== undefined) ? parseFloat(pricePerKg).toFixed(2) : '';
     if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = parseFloat(gstRate).toFixed(2);
     
     const btn = document.getElementById('productSubmitBtn');

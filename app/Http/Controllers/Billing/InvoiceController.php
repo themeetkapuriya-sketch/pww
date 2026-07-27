@@ -57,12 +57,13 @@ class InvoiceController extends Controller
             'quantities.*' => 'required|integer|min:1',
             'unit_prices' => 'required|array|min:1',
             'unit_prices.*' => 'required|numeric|min:0',
+            'billing_uoms' => 'nullable|array',
         ], [
             'vehicle_number.regex' => 'Enter valid vehicle number',
         ]);
 
         try {
-            $invoice = DB::transaction(function () use ($validated) {
+            $invoice = DB::transaction(function () use ($validated, $request) {
                 $plant = ClientPlant::findOrFail($validated['plant_id']);
                 $isGujarat = strcasecmp(trim($plant->state), 'Gujarat') === 0;
 
@@ -114,9 +115,11 @@ class InvoiceController extends Controller
 
                 foreach ($validated['product_ids'] as $idx => $fgId) {
                     $qty = (int)$validated['quantities'][$idx];
+                    $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : 'Pcs';
                     InvoiceItem::create([
                         'invoice_id' => $invoice->id,
                         'product_id' => $fgId,
+                        'billing_uom' => $buom,
                         'quantity' => $qty,
                         'unit_price' => $validated['unit_prices'][$idx],
                         'total_price' => round($qty * $validated['unit_prices'][$idx], 2),

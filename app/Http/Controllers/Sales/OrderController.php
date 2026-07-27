@@ -62,10 +62,11 @@ class OrderController extends Controller
             'quantities.*' => 'required|integer|min:1',
             'unit_prices' => 'required|array|min:1',
             'unit_prices.*' => 'required|numeric|min:0',
+            'billing_uoms' => 'nullable|array',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $order = DB::transaction(function () use ($validated) {
+        $order = DB::transaction(function () use ($validated, $request) {
             $totalAmount = 0.00;
             foreach ($validated['product_ids'] as $idx => $pid) {
                 $totalAmount += $validated['quantities'][$idx] * $validated['unit_prices'][$idx];
@@ -84,9 +85,11 @@ class OrderController extends Controller
             ]);
 
             foreach ($validated['product_ids'] as $idx => $pid) {
+                $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : 'Pcs';
                 SalesOrderItem::create([
                     'sales_order_id' => $order->id,
                     'product_id' => $pid,
+                    'billing_uom' => $buom,
                     'quantity' => $validated['quantities'][$idx],
                     'unit_price' => $validated['unit_prices'][$idx],
                     'total_price' => round($validated['quantities'][$idx] * $validated['unit_prices'][$idx], 2),
@@ -129,10 +132,11 @@ class OrderController extends Controller
             'quantities.*' => 'required|integer|min:1',
             'unit_prices' => 'required|array|min:1',
             'unit_prices.*' => 'required|numeric|min:0',
+            'billing_uoms' => 'nullable|array',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        DB::transaction(function () use ($order, $validated) {
+        DB::transaction(function () use ($order, $validated, $request) {
             $totalAmount = 0.00;
             foreach ($validated['product_ids'] as $idx => $pid) {
                 $totalAmount += $validated['quantities'][$idx] * $validated['unit_prices'][$idx];
@@ -152,9 +156,11 @@ class OrderController extends Controller
             $order->items()->delete();
 
             foreach ($validated['product_ids'] as $idx => $pid) {
+                $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : 'Pcs';
                 SalesOrderItem::create([
                     'sales_order_id' => $order->id,
                     'product_id' => $pid,
+                    'billing_uom' => $buom,
                     'quantity' => $validated['quantities'][$idx],
                     'unit_price' => $validated['unit_prices'][$idx],
                     'total_price' => round($validated['quantities'][$idx] * $validated['unit_prices'][$idx], 2),

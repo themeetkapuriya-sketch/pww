@@ -85,12 +85,21 @@
                     </div>
 
                     <div id="orderRowsContainer" class="space-y-2">
-                        <div class="order-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <div class="order-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <select name="product_ids[]" required class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" onchange="updateRowUnitPrice(this)">
                                 <option value="">Select product...</option>
                                 @foreach ($finishedGoods as $g)
-                                    <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }} (Stock: {{ number_format($g->current_stock) }})</option>
+                                    @php
+                                        $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                    @endphp
+                                    <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                        {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif (Stock: {{ number_format($g->current_stock) }})
+                                    </option>
                                 @endforeach
+                            </select>
+                            <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="updateRowUnitPrice(this)">
+                                <option value="Pcs">Pcs</option>
+                                <option value="Kg">Kg</option>
                             </select>
                             <input type="number" name="quantities[]" min="1" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                             <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
@@ -205,7 +214,7 @@
                                 <ul class="space-y-0.5">
                                     @foreach($ord->items as $it)
                                         <li class="text-slate-700 font-medium">
-                                            • {{ $it->product->product_name ?? $it->finishedGood->product_name ?? 'Product' }}: <strong class="text-slate-900">{{ number_format($it->quantity) }}</strong> @ ₹{{ number_format($it->unit_price, 2) }}
+                                            • {{ $it->product->product_name ?? $it->finishedGood->product_name ?? 'Product' }}: <strong class="text-slate-900">{{ number_format($it->quantity) }} {{ strtolower($it->billing_uom ?? ($it->product->uom ?? 'piece')) }}</strong> @ ₹{{ number_format($it->unit_price, 2) }}
                                         </li>
                                     @endforeach
                                 </ul>
@@ -361,12 +370,22 @@
         }
     }
 
-    function updateRowUnitPrice(selectElem) {
-        const row = selectElem.closest('.order-row');
-        const opt = selectElem.options[selectElem.selectedIndex];
+    function updateRowUnitPrice(elem) {
+        const row = elem.closest('.order-row');
+        if (!row) return;
+        const prodSelect = row.querySelector('select[name="product_ids[]"]');
+        const uomSelect = row.querySelector('.billing-uom-select');
         const priceInput = row.querySelector('input[name="unit_prices[]"]');
-        if (opt && opt.dataset.price && priceInput) {
-            priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
+
+        if (!prodSelect || !priceInput) return;
+        const opt = prodSelect.options[prodSelect.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        const uomVal = uomSelect ? uomSelect.value : 'Pcs';
+        if (uomVal === 'Kg' && opt.dataset.priceKg && parseFloat(opt.dataset.priceKg) > 0) {
+            priceInput.value = parseFloat(opt.dataset.priceKg).toFixed(2);
+        } else if (opt.dataset.pricePcs || opt.dataset.price) {
+            priceInput.value = parseFloat(opt.dataset.pricePcs || opt.dataset.price).toFixed(2);
         }
     }
 
@@ -397,6 +416,9 @@
         container.appendChild(clone);
     });
 
+    // Cache default clean row template for resets
+    window.defaultOrderRowHtml = document.getElementById('orderRowsContainer')?.innerHTML || '';
+
     function resetSalesOrderForm() {
         const form = document.getElementById('salesOrderForm');
         if (!form) return;
@@ -418,7 +440,7 @@
         const closeBtn = document.getElementById('salesOrderCloseBtn');
         if (closeBtn) closeBtn.className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
 
-        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]), textarea').forEach(el => {
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').forEach(el => {
             if (!el.disabled) {
                 el.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
             }
@@ -428,6 +450,12 @@
         if (submitBtn) {
             submitBtn.innerText = 'Book Sales Order';
             submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold shadow-xs';
+        }
+
+        // Restore clean default single item row
+        const rowsContainer = document.getElementById('orderRowsContainer');
+        if (rowsContainer && window.defaultOrderRowHtml) {
+            rowsContainer.innerHTML = window.defaultOrderRowHtml;
         }
 
         form.reset();
@@ -456,7 +484,7 @@
         }
         if (closeBtn) closeBtn.className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
 
-        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]), textarea').forEach(el => {
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').forEach(el => {
             if (!el.disabled) {
                 el.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
             }
@@ -504,17 +532,23 @@
 
             ord.items.forEach(it => {
                 const row = document.createElement('div');
-                row.className = 'order-row flex items-center space-x-3 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
+                row.className = 'order-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
                 
                 let options = '<option value="">Select product...</option>';
                 finishedGoods.forEach(g => {
                     const sel = g.id == it.product_id ? 'selected' : '';
-                    options += `<option value="${g.id}" data-price="${g.selling_price}" ${sel}>${g.product_name} (Stock: ${g.current_stock})</option>`;
+                    const kgPrice = g.price_per_kg || (g.unit_weight_kg > 0 ? (g.selling_price / g.unit_weight_kg).toFixed(2) : 0);
+                    const weightLabel = g.unit_weight_kg > 0 ? ` (${parseFloat(g.unit_weight_kg).toFixed(3)} Kg)` : '';
+                    options += `<option value="${g.id}" data-price="${g.selling_price}" data-price-pcs="${g.selling_price}" data-price-kg="${kgPrice}" data-weight="${g.unit_weight_kg || 0}" data-uom="${g.uom || 'piece'}" ${sel}>${g.product_name}${weightLabel} (Stock: ${g.current_stock})</option>`;
                 });
 
                 row.innerHTML = `
                     <select name="product_ids[]" required class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" onchange="updateRowUnitPrice(this)">
                         ${options}
+                    </select>
+                    <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateRowUnitPrice(this)">
+                        <option value="Pcs">Pcs</option>
+                        <option value="Kg">Kg</option>
                     </select>
                     <input type="number" name="quantities[]" value="${it.quantity}" min="1" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
                     <input type="number" name="unit_prices[]" value="${it.unit_price}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">

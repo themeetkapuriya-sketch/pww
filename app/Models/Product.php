@@ -14,8 +14,10 @@ class Product extends Model
         'sku',
         'hsn_code',
         'uom',
+        'unit_weight_kg',
         'current_stock',
         'selling_price',
+        'price_per_kg',
         'gst_rate',
         'alerts_enabled',
     ];
@@ -23,7 +25,9 @@ class Product extends Model
     protected $casts = [
         'current_stock' => 'integer',
         'selling_price' => 'decimal:2',
+        'price_per_kg' => 'decimal:2',
         'gst_rate' => 'decimal:2',
+        'unit_weight_kg' => 'decimal:3',
         'alerts_enabled' => 'boolean',
     ];
 

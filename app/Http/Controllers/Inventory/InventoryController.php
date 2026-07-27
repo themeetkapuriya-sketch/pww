@@ -114,13 +114,17 @@ class InventoryController extends Controller
             'sku' => 'required|string|unique:products,sku|max:100',
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|max:50',
+            'unit_weight_kg' => 'nullable|numeric|min:0',
             'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'price_per_kg' => 'nullable|numeric|min:0',
             'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $validated['current_stock'] = $request->input('current_stock', 0);
         $validated['uom'] = $request->input('uom', 'piece');
+        $validated['unit_weight_kg'] = $request->input('unit_weight_kg', 0.000);
+        $validated['price_per_kg'] = $request->filled('price_per_kg') ? $request->input('price_per_kg') : null;
         $validated['gst_rate'] = $request->input('gst_rate', 18.00);
 
         $good = Product::create($validated);
@@ -144,8 +148,10 @@ class InventoryController extends Controller
             'sku' => 'required|string|max:100|unique:products,sku,' . $id,
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|max:50',
+            'unit_weight_kg' => 'nullable|numeric|min:0',
             'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'price_per_kg' => 'nullable|numeric|min:0',
             'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
@@ -155,6 +161,10 @@ class InventoryController extends Controller
         if (!isset($validated['gst_rate'])) {
             $validated['gst_rate'] = 18.00;
         }
+        if (!isset($validated['unit_weight_kg'])) {
+            $validated['unit_weight_kg'] = 0.000;
+        }
+        $validated['price_per_kg'] = $request->filled('price_per_kg') ? $request->input('price_per_kg') : null;
 
         $good->update($validated);
 

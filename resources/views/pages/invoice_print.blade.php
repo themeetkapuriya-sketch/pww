@@ -44,7 +44,7 @@
         /* PDF and Print Optimized Stylesheet */
         @page {
             size: A4 portrait;
-            margin: 15px !important;
+            margin: 12mm !important;
         }
         
         * {
@@ -57,11 +57,11 @@
             background-color: #f1f5f9;
             margin: 0;
             padding: 15px;
-            font-size: 11px;
+            font-size: 10.5px;
             line-height: 1.4;
         }
         
-        /* Control bar styling matching exactly the mockup */
+        /* Control bar styling matching panel aesthetic */
         .no-print-bar {
             background-color: #ffffff;
             border: 1px solid #cbd5e1;
@@ -95,11 +95,11 @@
             transition: all 0.15s ease;
         }
         .btn-primary {
-            background-color: #0f9d58;
+            background-color: #2563eb;
             color: white;
         }
         .btn-primary:hover {
-            background-color: #0b8043;
+            background-color: #1d4ed8;
         }
         .btn-secondary {
             background-color: #f1f5f9;
@@ -111,12 +111,13 @@
             background-color: #e2e8f0;
         }
         
-        /* Full Page Invoice Box with Clean Simple Outer Border */
+        /* Full Page Executive Invoice Box */
         .invoice-box {
             max-width: 850px;
             margin: auto;
             background-color: #ffffff;
-            border: 1px solid #94a3b8;
+            border: 1.5px solid #0f172a;
+            border-radius: 4px;
             padding: 24px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
@@ -127,27 +128,27 @@
             justify-content: space-between;
         }
 
-        /* Top Header Grid */
+        /* Header Layout */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
-            border-bottom: 1px solid #cbd5e1;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #0f172a;
             padding-bottom: 14px;
         }
         .header-table td {
             vertical-align: top;
         }
         .header-logo {
-            width: 52px;
-            height: 52px;
+            width: 56px;
+            height: 56px;
             object-fit: contain;
             border-radius: 6px;
-            margin-right: 12px;
+            margin-right: 14px;
         }
         .business-title {
-            font-size: 18px;
-            font-weight: 800;
+            font-size: 20px;
+            font-weight: 900;
             color: #0f172a;
             text-transform: uppercase;
             margin: 0;
@@ -155,33 +156,38 @@
         }
         .business-subtitle {
             font-size: 9px;
-            color: #64748b;
+            color: #475569;
             margin: 2px 0 0 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-weight: 600;
+            font-weight: 700;
         }
-        .invoice-title {
-            font-size: 16px;
-            font-weight: 800;
-            color: #0f172a;
+        .tax-invoice-badge {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 5px 14px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0 0 4px 0;
+            letter-spacing: 1.5px;
+            display: inline-block;
+            margin-bottom: 4px;
         }
         .invoice-number {
             font-size: 15px;
-            font-weight: 700;
+            font-weight: 800;
             color: #2563eb;
-            margin: 0;
+            margin: 4px 0 0 0;
+            font-family: monospace;
         }
 
-        /* Metadata 4-Column Grid with Simple Borders */
+        /* 4-Column Metadata Matrix */
         .meta-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 18px;
-            border: 1px solid #cbd5e1;
+            margin-bottom: 16px;
+            border: 1px solid #94a3b8;
         }
         .meta-table td {
             width: 25%;
@@ -193,197 +199,225 @@
             border-right: none;
         }
         .cell-header {
-            background-color: #f8fafc;
-            border-bottom: 1px solid #cbd5e1;
-            padding: 6px 10px;
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 5px 8px;
             font-size: 8.5px;
             font-weight: 800;
-            color: #475569;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }
         .cell-body {
-            padding: 8px 10px;
-            font-size: 10.5px;
+            padding: 8px;
+            font-size: 10px;
+            line-height: 1.45;
             color: #334155;
-            line-height: 1.5;
         }
         .meta-value-bold {
             font-weight: 700;
             color: #0f172a;
         }
 
-        /* Middle Items Section Wrapper */
+        /* Line Items Table */
         .items-section-wrapper {
             flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
-
-        /* Items Table with Clean Simple Borders */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #94a3b8;
         }
         .items-table th {
-            background-color: #f8fafc;
-            color: #334155;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            border-bottom: 1.5px solid #0f172a;
+            border-right: 1px solid #cbd5e1;
+            padding: 7px 8px;
             font-size: 9px;
             font-weight: 800;
             text-transform: uppercase;
-            padding: 8px 10px;
             letter-spacing: 0.5px;
-            border-right: 1px solid #cbd5e1;
-            border-bottom: 1px solid #cbd5e1;
         }
         .items-table th:last-child {
             border-right: none;
         }
         .items-table td {
-            padding: 10px;
-            border-right: 1px solid #e2e8f0;
+            padding: 7px 8px;
             border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            font-size: 10px;
             vertical-align: middle;
-            font-size: 11px;
         }
         .items-table td:last-child {
             border-right: none;
         }
+        .items-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
         .item-name {
             font-weight: 700;
             color: #0f172a;
-            font-size: 11px;
+            font-size: 10.5px;
         }
         .item-sku {
             font-size: 8.5px;
             color: #64748b;
-            font-weight: 600;
-            margin-top: 2px;
-            text-transform: uppercase;
+            font-family: monospace;
+            margin-top: 1px;
+        }
+        .hsn-badge {
+            background-color: #e2e8f0;
+            color: #334155;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 8.5px;
+            font-family: monospace;
+            font-weight: 700;
         }
 
-        /* Bottom Section Wrapper */
+        /* Bottom Section: Bank Details, Tax Summary & Words */
         .bottom-section-wrapper {
             margin-top: auto;
         }
+        
+        .words-bar {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 6px 12px;
+            margin-bottom: 12px;
+            font-size: 9.5px;
+            color: #1e293b;
+        }
+        .words-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            font-size: 8.5px;
+            margin-right: 6px;
+        }
 
-        /* Summary & Totals Block with Simple Grid Borders */
         .totals-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #cbd5e1;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #94a3b8;
         }
         .totals-table td {
             vertical-align: top;
-            padding: 12px 14px;
+            padding: 0;
         }
         .bank-cell {
             width: 55%;
+            padding: 10px 12px;
             border-right: 1px solid #cbd5e1;
-            background-color: #fafafa;
+            background-color: #ffffff;
         }
         .totals-cell {
             width: 45%;
-            background-color: #ffffff;
+            padding: 8px 12px;
+            background-color: #f8fafc;
         }
+        
         .bank-title {
+            font-size: 9px;
             font-weight: 800;
-            color: #334155;
             text-transform: uppercase;
-            font-size: 8.5px;
-            letter-spacing: 0.5px;
+            color: #0f172a;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 3px;
             margin-bottom: 6px;
             display: block;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 4px;
+            letter-spacing: 0.5px;
         }
         .bank-details-table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 9.5px;
         }
         .bank-details-table td {
-            padding: 2.5px 0;
-            font-size: 10px;
+            padding: 2px 0;
+            vertical-align: middle;
         }
+
         .total-row {
-            display: table;
-            width: 100%;
-            margin-bottom: 6px;
-            font-size: 10.5px;
-            color: #475569;
-            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 10px;
+            color: #334155;
+            border-bottom: 1px dashed #e2e8f0;
         }
         .total-label {
-            display: table-cell;
-            text-align: left;
+            font-weight: 600;
         }
         .total-value {
-            display: table-cell;
-            text-align: right;
             font-weight: 700;
             color: #0f172a;
         }
+        
         .grand-total-row {
-            display: table;
-            width: 100%;
-            background-color: #f8fafc;
-            border: 1px solid #cbd5e1;
-            padding: 8px 10px;
-            margin-top: 8px;
-            font-size: 12.5px;
-            font-weight: 800;
-            color: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 6px 10px;
             border-radius: 4px;
+            margin-top: 6px;
+            align-items: center;
         }
 
-        /* Footer Terms & Signatures */
+        /* Footer & Signature Table */
         .footer-table {
             width: 100%;
             border-collapse: collapse;
-            border-top: 1px solid #cbd5e1;
-            padding-top: 12px;
+            border: 1px solid #cbd5e1;
+            background-color: #ffffff;
         }
         .footer-table td {
-            padding-top: 10px;
-            vertical-align: bottom;
-            font-size: 9px;
-            color: #64748b;
+            padding: 10px 12px;
+            vertical-align: top;
         }
         .terms-title {
-            font-weight: 800;
-            color: #334155;
             font-size: 8.5px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #64748b;
             display: block;
             margin-bottom: 4px;
         }
         .terms-list {
             margin: 0;
-            padding-left: 12px;
+            padding-left: 14px;
             font-size: 8.5px;
-            color: #64748b;
+            color: #475569;
             line-height: 1.4;
         }
         .signature-title {
+            font-size: 8.5px;
             font-weight: 800;
             text-transform: uppercase;
-            font-size: 8px;
-            color: #475569;
-            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 30px;
         }
         .signature-line {
-            width: 130px;
-            border-bottom: 1px solid #0f172a;
-            margin-top: 30px;
+            border-top: 1px solid #0f172a;
+            width: 140px;
+            margin-left: auto;
             margin-bottom: 4px;
-            display: inline-block;
         }
-        
-        /* Print and PDF overrides */
+        .computer-gen-notice {
+            text-align: center;
+            font-size: 8px;
+            color: #94a3b8;
+            margin-top: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Print Media Overrides */
         @media print {
             .no-print-bar {
                 display: none !important;
@@ -391,71 +425,111 @@
             body {
                 background-color: #ffffff !important;
                 padding: 0 !important;
-                margin: 0 !important;
             }
             .invoice-box {
-                border: 1px solid #64748b !important;
                 box-shadow: none !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                min-height: 275mm !important;
-                border-radius: 0 !important;
-                padding: 20px !important;
+                border: 1.5px solid #0f172a !important;
+                padding: 18px !important;
+                min-height: 100vh !important;
             }
         }
-
-        @if(isset($isPdf) && $isPdf)
-            @page {
-                margin: 8mm !important;
-            }
-            body {
-                background-color: #ffffff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .invoice-box {
-                border: 1px solid #64748b !important;
-                box-shadow: none !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                min-height: 275mm !important;
-                border-radius: 0 !important;
-                background-color: #ffffff !important;
-                padding: 20px !important;
-            }
-        @endif
     </style>
 </head>
 <body>
 
-    @if(!isset($isPdf) || !$isPdf)
-    <!-- Print Control Bar (Hidden on print) -->
+    @php
+        // Helper function for converting numbers to Indian Rupees Words
+        if (!function_exists('numberToWordsIndianTaxInvoice')) {
+            function numberToWordsIndianTaxInvoice($number) {
+                $decimal = round($number - ($no = floor($number)), 2) * 100;
+                $hundred = null;
+                $digits_length = strlen($no);
+                $i = 0;
+                $str = array();
+                $words = array(
+                    0 => '', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five',
+                    6 => 'Six', 7 => 'Seven', 8 => 'Eight', 9 => 'Nine', 10 => 'Ten',
+                    11 => 'Eleven', 12 => 'Twelve', 13 => 'Thirteen', 14 => 'Fourteen', 15 => 'Fifteen',
+                    16 => 'Sixteen', 17 => 'Seventeen', 18 => 'Eighteen', 19 => 'Nineteen', 20 => 'Twenty',
+                    30 => 'Thirty', 40 => 'Forty', 50 => 'Fifty', 60 => 'Sixty', 70 => 'Seventy', 80 => 'Eighty', 90 => 'Ninety'
+                );
+                $digits = array('', 'Hundred', 'Thousand', 'Lakh', 'Crore');
+                while ($i < $digits_length) {
+                    $divider = ($i == 2) ? 10 : 100;
+                    $number = floor($no % $divider);
+                    $no = floor($no / $divider);
+                    $i += $divider == 10 ? 1 : 2;
+                    if ($number) {
+                        $plural = (($counter = count($str)) && $number > 9) ? 's' : '';
+                        $hundred = ($counter == 1 && $str[0]) ? ' and ' : '';
+                        $str [] = ($number < 21) ? $words[$number] . ' ' . $digits[$counter] . $plural . ' ' . $hundred
+                            : $words[floor($number / 10) * 10] . ' ' . $words[$number % 10] . ' ' . $digits[$counter] . $plural . ' ' . $hundred;
+                    } else {
+                        $str[] = null;
+                    }
+                }
+                $Rupees = implode('', array_reverse($str));
+                $paise = ($decimal > 0) ? " and " . ($words[$decimal - $decimal%10] . " " . $words[$decimal%10]) . ' Paise' : '';
+                return ($Rupees ? 'Rupees ' . trim($Rupees) : 'Rupees Zero') . $paise . ' Only';
+            }
+        }
+
+        if (!function_exists('printResolveStateCode')) {
+            function printResolveStateCode($stateName) {
+                $map = [
+                    'Jammu & Kashmir' => '01', 'Himachal Pradesh' => '02', 'Punjab' => '03', 'Chandigarh' => '04',
+                    'Uttarakhand' => '05', 'Haryana' => '06', 'Delhi' => '07', 'Rajasthan' => '08',
+                    'Uttar Pradesh' => '09', 'Bihar' => '10', 'Sikkim' => '11', 'Arunachal Pradesh' => '12',
+                    'Nagaland' => '13', 'Manipur' => '14', 'Mizoram' => '15', 'Tripura' => '16',
+                    'Meghalaya' => '17', 'Assam' => '18', 'West Bengal' => '19', 'Jharkhand' => '20',
+                    'Odisha' => '21', 'Chhattisgarh' => '22', 'Madhya Pradesh' => '23', 'Gujarat' => '24',
+                    'Daman & Diu' => '25', 'Dadra & Nagar Haveli' => '26', 'Maharashtra' => '27',
+                    'Andhra Pradesh' => '37', 'Karnataka' => '29', 'Goa' => '30', 'Lakshadweep' => '31',
+                    'Kerala' => '32', 'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar Islands' => '35',
+                    'Telangana' => '36', 'Ladakh' => '38',
+                ];
+                return $map[trim($stateName ?? '')] ?? '24';
+            }
+        }
+
+        $plant = $invoice->plant;
+        $client = $plant ? $plant->client : null;
+        $pState = $plant->state ?? 'Gujarat';
+        $pCode = printResolveStateCode($pState);
+        $billedAddress = (!empty($plant->shipping_address)) ? $plant->shipping_address : ($client->corporate_address ?? 'N/A');
+        $billedGst = (!empty($plant->gst_number)) ? $plant->gst_number : ($client->gst_number ?? 'N/A');
+        $sellerAddress = \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021')));
+        $sellerEmail = \App\Models\Setting::get('business_email', 'pww@example.com');
+        $amountInWords = numberToWordsIndianTaxInvoice($invoice->total_amount);
+    @endphp
+
+    <!-- Top Action Control Bar -->
     <div class="no-print-bar">
         <div class="control-left">
-            <span style="font-weight: 800; font-size: 13px; color: #0f172a;">Tax Invoice View (A4 Print-Optimized)</span>
+            <a href="{{ route('invoices') }}" onclick="handleBackToERP(event)" class="btn btn-secondary" style="margin-right: 12px; text-decoration: none; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">← Back to System</a>
+            <span style="font-weight: 800; font-size: 13px; color: #0f172a;">Tax Invoice #{{ $invoice->invoice_number }}</span>
+            <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $client->company_name ?? 'Client' }}</span>
         </div>
         <div class="control-right">
-            <button onclick="window.print()" class="btn btn-primary">Print / Save as PDF</button>
-            <button onclick="window.close()" class="btn btn-secondary">Close</button>
+            <button onclick="window.print()" class="btn btn-primary">🖨️ Print Invoice</button>
+            <a href="{{ route('invoice.download', $invoice->id) }}" class="btn btn-secondary">📥 Download PDF</a>
         </div>
     </div>
-    @endif
 
-    <!-- Main Invoice Document -->
+    <!-- Main Printable Frame -->
     <div class="invoice-box">
-        
         <div>
-            <!-- Header Table -->
+            <!-- Header Section -->
             <table class="header-table">
                 <tr>
                     <td style="width: 60%;">
-                        <table cellpadding="0" cellspacing="0" border="0">
+                        <table style="border-collapse: collapse;">
                             <tr>
-                                <td>
+                                <td style="vertical-align: middle;">
                                     @php
                                         $logoPath = \App\Models\Setting::get('logo_path', 'logo.jpg');
                                         $fullLogoPath = public_path($logoPath);
-                                        if (file_exists($fullLogoPath)) {
+                                        if (file_exists($fullLogoPath) && is_file($fullLogoPath)) {
                                             $logoData = base64_encode(file_get_contents($fullLogoPath));
                                             $logoSrc = 'data:image/' . pathinfo($fullLogoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
                                         } else {
@@ -464,57 +538,33 @@
                                     @endphp
                                     <img src="{{ $logoSrc }}" alt="Logo" class="header-logo">
                                 </td>
-                                <td>
+                                <td style="vertical-align: middle;">
                                     <h1 class="business-title">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
                                     <p class="business-subtitle">{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}</p>
                                 </td>
                             </tr>
                         </table>
                     </td>
-                    <td style="width: 40%; text-align: right;">
-                        <h2 class="invoice-title">Tax Invoice</h2>
-                        <p class="invoice-number">{{ $invoice->invoice_number }}</p>
+                    <td style="width: 40%; text-align: right; vertical-align: top;">
+                        <div class="tax-invoice-badge">Tax Invoice</div>
+                        <div class="invoice-number">{{ $invoice->invoice_number }}</div>
                     </td>
                 </tr>
             </table>
 
-            @php
-            if (!function_exists('printResolveStateCode')) {
-                function printResolveStateCode($stateName) {
-                    $map = [
-                        'Jammu & Kashmir' => '01', 'Himachal Pradesh' => '02', 'Punjab' => '03', 'Chandigarh' => '04',
-                        'Uttarakhand' => '05', 'Haryana' => '06', 'Delhi' => '07', 'Rajasthan' => '08',
-                        'Uttar Pradesh' => '09', 'Bihar' => '10', 'Sikkim' => '11', 'Arunachal Pradesh' => '12',
-                        'Nagaland' => '13', 'Manipur' => '14', 'Mizoram' => '15', 'Tripura' => '16',
-                        'Meghalaya' => '17', 'Assam' => '18', 'West Bengal' => '19', 'Jharkhand' => '20',
-                        'Odisha' => '21', 'Chhattisgarh' => '22', 'Madhya Pradesh' => '23', 'Gujarat' => '24',
-                        'Daman & Diu' => '25', 'Dadra & Nagar Haveli' => '26', 'Maharashtra' => '27',
-                        'Andhra Pradesh' => '37', 'Karnataka' => '29', 'Goa' => '30', 'Lakshadweep' => '31',
-                        'Kerala' => '32', 'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar Islands' => '35',
-                        'Telangana' => '36', 'Ladakh' => '38',
-                    ];
-                    return $map[trim($stateName ?? '')] ?? '24';
-                }
-            }
-            $pState = $plant->state ?? 'Gujarat';
-            $pCode = printResolveStateCode($pState);
-            $billedAddress = (!empty($plant->shipping_address)) ? $plant->shipping_address : ($client->corporate_address ?? 'N/A');
-            $billedGst = (!empty($plant->gst_number)) ? $plant->gst_number : ($client->gst_number ?? 'N/A');
-            @endphp
-
-            <!-- Metadata Block (Simple Clean Grid with Borders) -->
+            <!-- 4-Column Party Metadata Block -->
             <table class="meta-table">
                 <tr>
                     <td>
                         <div class="cell-header">Seller (Issued By)</div>
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
-                            {{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}<br>
-                            {{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}<br>
-                            <span style="font-weight: 700; color: #334155; font-family: monospace;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span><br>
+                            {{ $sellerAddress }}<br>
+                            Email: <span class="meta-value-bold">{{ $sellerEmail }}</span><br>
+                            <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span><br>
                             @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
                             @if(!empty($msme))
-                                <span style="font-weight: 700; color: #334155; font-family: monospace;">MSME NO: {{ $msme }}</span><br>
+                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">MSME: {{ $msme }}</span><br>
                             @endif
                             State: <span class="meta-value-bold">Gujarat (24)</span>
                         </div>
@@ -524,7 +574,7 @@
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ $client->company_name ?? 'N/A' }}</span><br>
                             {{ $billedAddress }}<br>
-                            <span style="font-weight: 700; color: #334155; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
+                            <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
                     </td>
@@ -533,14 +583,15 @@
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ $plant->plant_name ?? 'N/A' }}</span><br>
                             {{ $plant->shipping_address ?? 'N/A' }}<br>
-                            <span style="font-weight: 700; color: #334155; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
+                            <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
                     </td>
                     <td>
-                        <div class="cell-header">Invoice Details</div>
+                        <div class="cell-header">Invoice & Transport</div>
                         <div class="cell-body">
-                            Invoice Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span><br>
+                            Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span><br>
+                            Due Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->due_date ?? ($invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->addDays(30) : now()))->format('d M Y') }}</span><br>
                             @if(!empty($invoice->vehicle_number))
                                 Vehicle No: <span class="meta-value-bold" style="font-family: monospace;">{{ $invoice->vehicle_number }}</span><br>
                             @endif
@@ -550,34 +601,47 @@
                 </tr>
             </table>
 
-            <!-- Items Table Section -->
+            <!-- Line Items Table -->
             <div class="items-section-wrapper">
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th style="text-align: center; width: 6%;">#</th>
-                            <th style="text-align: left; width: 44%;">Item Description / SKU</th>
-                            <th style="text-align: right; width: 14%;">Quantity</th>
-                            <th style="text-align: right; width: 18%;">Unit Rate (&#8377;)</th>
-                            <th style="text-align: right; width: 18%;">Taxable Value (&#8377;)</th>
+                            <th style="text-align: center; width: 5%;">#</th>
+                            <th style="text-align: left; width: 38%;">Item Description / SKU</th>
+                            <th style="text-align: center; width: 12%;">HSN/SAC</th>
+                            <th style="text-align: right; width: 13%;">Qty & UOM</th>
+                            <th style="text-align: right; width: 14%;">Rate (&#8377;)</th>
+                            <th style="text-align: center; width: 8%;">GST %</th>
+                            <th style="text-align: right; width: 10%;">Taxable (&#8377;)</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @php
+                            $groupedItems = isset($groupedItems) ? $groupedItems : ($invoice->items ?? []);
+                        @endphp
                         @foreach ($groupedItems as $index => $item)
                             @php
-                                $pName = isset($item->product_name) ? $item->product_name : ($item->product->product_name ?? $item->finishedGood->product_name ?? 'Product');
-                                $pSku = isset($item->sku) ? $item->sku : ($item->product->sku ?? $item->finishedGood->sku ?? 'N/A');
+                                $pGood = $item->finishedGood ?? $item->product ?? null;
+                                $pName = isset($item->product_name) ? $item->product_name : ($pGood->product_name ?? 'Product');
+                                $pSku = isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A');
+                                $pHsn = $pGood->hsn_code ?? '73089090';
+                                $pUom = $item->billing_uom ?? ($pGood->uom ?? 'piece');
+                                $pGst = $pGood->gst_rate ?? 18.00;
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
                             @endphp
                             <tr>
-                                <td style="text-align: center; font-weight: 600; color: #64748b;">{{ $index + 1 }}</td>
+                                <td style="text-align: center; font-weight: 700; color: #64748b;">{{ $index + 1 }}</td>
                                 <td>
                                     <div class="item-name">{{ $pName }}</div>
                                     <div class="item-sku">SKU: {{ $pSku }}</div>
                                 </td>
-                                <td style="text-align: right; font-weight: 700; color: #0f172a;">{{ number_format($item->quantity) }} units</td>
-                                <td style="text-align: right; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
-                                <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: 'Outfit', 'DejaVu Sans', sans-serif;">&#8377;{{ number_format($pTotal, 2) }}</td>
+                                <td style="text-align: center;">
+                                    <span class="hsn-badge">{{ $pHsn }}</span>
+                                </td>
+                                <td style="text-align: right; font-weight: 700; color: #0f172a;">{{ number_format($item->quantity) }} {{ strtolower($pUom) }}</td>
+                                <td style="text-align: right;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
+                                <td style="text-align: center; font-weight: 700; color: #2563eb;">{{ number_format($pGst, 1) }}%</td>
+                                <td style="text-align: right; font-weight: 700; color: #0f172a;">&#8377;{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -585,29 +649,35 @@
             </div>
         </div>
 
-        <!-- Bottom Section (Anchored cleanly at the bottom of full page A4 frame) -->
+        <!-- Bottom Summary, Bank Details & Footer Signatures -->
         <div class="bottom-section-wrapper">
-            <!-- Summary & Totals Block -->
+            <!-- Amount in Words -->
+            <div class="words-bar">
+                <span class="words-title">Amount in Words:</span>
+                <span style="font-weight: 700; font-style: italic; color: #0f172a;">{{ $amountInWords }}</span>
+            </div>
+
+            <!-- Settlement Bank & Totals Block -->
             <table class="totals-table">
                 <tr>
                     <td class="bank-cell">
-                        <span class="bank-title">Settlement Bank Accounts</span>
+                        <span class="bank-title">Settlement Bank Account Details</span>
                         <table class="bank-details-table">
                             <tr>
-                                <td style="font-weight: 700; color: #64748b; width: 90px;">Bank Name:</td>
-                                <td style="color: #0f172a; font-weight: 600;">{{ \App\Models\Setting::get('bank_name', 'State Bank of India (SBI)') }}</td>
+                                <td style="font-weight: 700; color: #64748b; width: 95px;">Bank Name:</td>
+                                <td style="color: #0f172a; font-weight: 700;">{{ \App\Models\Setting::get('bank_name', 'State Bank of India (SBI)') }}</td>
                             </tr>
                             <tr>
                                 <td style="font-weight: 700; color: #64748b;">Account Name:</td>
-                                <td style="color: #0f172a; font-weight: 600;">{{ \App\Models\Setting::get('bank_account_name', 'Praful Welding Works') }}</td>
+                                <td style="color: #0f172a; font-weight: 700;">{{ \App\Models\Setting::get('bank_account_name', 'Praful Welding Works') }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 700; color: #64748b;">A/C No:</td>
-                                <td style="font-weight: 700; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</td>
+                                <td style="font-weight: 700; color: #64748b;">Account No:</td>
+                                <td style="font-weight: 800; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</td>
                             </tr>
                             <tr>
                                 <td style="font-weight: 700; color: #64748b;">IFSC Code:</td>
-                                <td style="font-weight: 700; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</td>
+                                <td style="font-weight: 800; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</td>
                             </tr>
                         </table>
                     </td>
@@ -619,23 +689,23 @@
                         
                         @if ($invoice->igst > 0)
                             <div class="total-row">
-                                <span class="total-label">IGST (18.0%):</span>
+                                <span class="total-label">IGST Total:</span>
                                 <span class="total-value">&#8377;{{ number_format($invoice->igst, 2) }}</span>
                             </div>
                         @else
                             <div class="total-row">
-                                <span class="total-label">CGST (9.0%):</span>
+                                <span class="total-label">CGST Total:</span>
                                 <span class="total-value">&#8377;{{ number_format($invoice->cgst, 2) }}</span>
                             </div>
                             <div class="total-row">
-                                <span class="total-label">SGST (9.0%):</span>
+                                <span class="total-label">SGST Total:</span>
                                 <span class="total-value">&#8377;{{ number_format($invoice->sgst, 2) }}</span>
                             </div>
                         @endif
 
                         <div class="grand-total-row">
-                            <span class="total-label" style="font-weight: 800;">Total Amount:</span>
-                            <span class="total-value" style="font-size: 14px; color: #0f172a; font-weight: 900;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
+                            <span class="total-label" style="font-weight: 800; font-size: 11px;">Total Amount (Incl. Tax):</span>
+                            <span class="total-value" style="font-size: 14px; color: #ffffff; font-weight: 900;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
                         </div>
                     </td>
                 </tr>
@@ -647,25 +717,44 @@
                     <td style="width: 60%;">
                         <span class="terms-title">Terms & Conditions</span>
                         <ul class="terms-list">
-                            <li>All disputes subject to Rajkot jurisdiction.</li>
-                            <li>Interest @18% p.a. charged on overdue invoices.</li>
-                            <li>Goods once sold will not be taken back or exchanged.</li>
+                            <li>All disputes are subject to Rajkot jurisdiction.</li>
+                            <li>Interest @18% p.a. charged on overdue payments after due date.</li>
+                            <li>Goods once dispatched/sold cannot be returned or exchanged.</li>
                         </ul>
                     </td>
                     <td style="width: 40%; text-align: right;">
                         <div class="signature-title">Authorized Signatory</div>
                         <div class="signature-line"></div>
-                        <div style="font-size: 9.5px; color: #0f172a; font-weight: 700;">Praful Welding Works</div>
+                        <div style="font-size: 9.5px; color: #0f172a; font-weight: 800; text-transform: uppercase;">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</div>
                     </td>
                 </tr>
             </table>
-        </div>
 
+            <div class="computer-gen-notice">
+                This is a computer-generated tax invoice • Issued under GST Rules, 2017
+            </div>
+        </div>
     </div>
 
     <script>
+        function handleBackToERP(e) {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.focus();
+                    window.close();
+                    e.preventDefault();
+                    return false;
+                } catch(err) {}
+            }
+            if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+                e.preventDefault();
+                window.history.back();
+                return false;
+            }
+            // Fallback: Let default link href navigate to route('invoices')
+        }
+
         window.addEventListener('load', function() {
-            // Auto trigger browser print if screen view, not in pdf download
             if (!window.location.href.includes('download')) {
                 setTimeout(function() {
                     window.print();

@@ -48,8 +48,14 @@
 
     <!-- Direct Invoice Builder (Expandable Full Width) -->
     <div id="section-manual-builder" class="{{ !empty($prefillOrder) ? '' : 'hidden' }} transition-all duration-300 ease-in-out space-y-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <h3 class="text-base font-bold text-slate-800 mb-4">Direct Invoice Itemizer</h3>
+        <div id="invoiceFormCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col transition-all duration-300">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="invoiceFormTitle" class="text-base font-bold text-slate-800 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Direct Invoice Itemizer
+                </h3>
+                <button type="button" id="invoiceFormCloseBtn" onclick="cancelInvoiceForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+            </div>
             <form id="customInvoiceForm" action="{{ route('invoice.generate') }}" method="POST" class="ajax-form space-y-4 flex-grow">
                 @csrf
                 <input type="hidden" name="sales_order_id" id="salesOrderIdHidden" value="{{ $prefillOrder->id ?? '' }}">
@@ -103,28 +109,46 @@
                     <div id="billingRowsContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                         @if(!empty($prefillOrder) && $prefillOrder->items->isNotEmpty())
                             @foreach($prefillOrder->items as $it)
-                                <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                                     <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                         <option value="">Select product...</option>
                                         @foreach ($finishedGoods as $g)
-                                            <option value="{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                                            @php
+                                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                            @endphp
+                                            <option value="{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                                            </option>
                                         @endforeach
                                     </select>
-                                    <input type="number" name="quantities[]" min="1" value="{{ (int)$it->quantity }}" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="Pcs">Pcs</option>
+                                        <option value="Kg">Kg</option>
+                                    </select>
+                                    <input type="number" name="quantities[]" min="1" value="{{ (int)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                                 </div>
                             @endforeach
                         @else
-                            <div class="billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                                 <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <option value="">Select product...</option>
                                     @foreach ($finishedGoods as $g)
-                                        <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                                        @php
+                                            $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                        @endphp
+                                        <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                            {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                                        </option>
                                     @endforeach
                                 </select>
-                                <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="Pcs">Pcs</option>
+                                    <option value="Kg">Kg</option>
+                                </select>
+                                <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                 <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                             </div>
                         @endif
@@ -339,18 +363,24 @@
         recalculateCustomInvoice();
     });
 
-    // Event delegation on billingRowsContainer — auto-fill price on product select
+    // Event delegation on billingRowsContainer — auto-fill price on product or UOM select
     billingRowsContainer.addEventListener('change', function(e) {
-        if (e.target.name === 'product_ids[]') {
-            const select = e.target;
-            const opt = select.options[select.selectedIndex];
-            if (opt) {
-                const price = opt.getAttribute('data-price');
-                const row = select.closest('.billing-row');
-                if (row) {
-                    const priceInput = row.querySelector('input[name="unit_prices[]"]');
-                    if (priceInput) {
-                        priceInput.value = price || '';
+        if (e.target.name === 'product_ids[]' || e.target.name === 'billing_uoms[]' || e.target.classList.contains('billing-uom-select')) {
+            const row = e.target.closest('.billing-row');
+            if (row) {
+                const prodSelect = row.querySelector('select[name="product_ids[]"]');
+                const uomSelect = row.querySelector('.billing-uom-select');
+                const priceInput = row.querySelector('input[name="unit_prices[]"]');
+
+                if (prodSelect && priceInput) {
+                    const opt = prodSelect.options[prodSelect.selectedIndex];
+                    if (opt && opt.value) {
+                        const uomVal = uomSelect ? uomSelect.value : 'Pcs';
+                        if (uomVal === 'Kg' && opt.dataset.priceKg && parseFloat(opt.dataset.priceKg) > 0) {
+                            priceInput.value = parseFloat(opt.dataset.priceKg).toFixed(2);
+                        } else if (opt.dataset.pricePcs || opt.dataset.price) {
+                            priceInput.value = parseFloat(opt.dataset.pricePcs || opt.dataset.price).toFixed(2);
+                        }
                         priceInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 }
@@ -570,6 +600,21 @@
 
     // Shared form reset helper
     window.resetInvoiceForm = function() {
+        const card = document.getElementById('invoiceFormCard');
+        if (card) card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col transition-all duration-300';
+
+        const title = document.getElementById('invoiceFormTitle');
+        if (title) {
+            title.className = 'text-base font-bold text-slate-800 flex items-center';
+            title.innerHTML = `
+                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Direct Invoice Itemizer
+            `;
+        }
+
+        const closeBtn = document.getElementById('invoiceFormCloseBtn');
+        if (closeBtn) closeBtn.className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
+
         const $form = $('#customInvoiceForm');
         if ($form.length) {
             $form[0].reset();
@@ -581,18 +626,31 @@
             } else {
                 $form.find('select#invoiceClientSelect').val('');
             }
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
+                if (!this.disabled) {
+                    this.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
+                }
+            });
         }
         
         // Reset billing rows to single empty row from HTML template
+        window.defaultInvoiceRowHtml = window.defaultInvoiceRowHtml || (document.querySelector('#billingRowsContainer .billing-row') ? document.querySelector('#billingRowsContainer .billing-row').outerHTML : '');
         const container = document.getElementById('billingRowsContainer');
-        const template = document.getElementById('emptyBillingRowTemplate');
-        if (container && template) {
-            container.innerHTML = '';
-            container.appendChild(template.content.cloneNode(true));
+        if (container && window.defaultInvoiceRowHtml) {
+            container.innerHTML = window.defaultInvoiceRowHtml;
+            const row = container.querySelector('.billing-row');
+            if (row) {
+                row.className = 'billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+                row.querySelectorAll('select').forEach(s => s.value = '');
+                row.querySelectorAll('input').forEach(i => i.value = '');
+            }
         }
         // Reset submit button text
         const submitBtn = document.getElementById('invoiceSubmitBtn');
-        if (submitBtn) submitBtn.textContent = 'Generate & Save Invoice';
+        if (submitBtn) {
+            submitBtn.textContent = 'Generate & Save Invoice';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold shadow-xs';
+        }
         // Recalculate (will show ₹0.00)
         if (typeof window.recalculateCustomInvoice === 'function') {
             window.recalculateCustomInvoice();
@@ -614,9 +672,28 @@
             setToggleButtonState(true);
         }
 
+        // Warm Amber Edit Styling
+        const card = document.getElementById('invoiceFormCard');
+        if (card) card.className = 'bg-[#FFFDF5] rounded-2xl shadow-sm border-2 border-amber-300 p-6 flex flex-col transition-all duration-300';
+
+        const title = document.getElementById('invoiceFormTitle');
+        if (title) {
+            title.className = 'text-base font-bold text-amber-900 flex items-center';
+            title.innerHTML = `
+                <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                Edit Tax Invoice #${invoice.invoice_number}
+            `;
+        }
+
+        const closeBtn = document.getElementById('invoiceFormCloseBtn');
+        if (closeBtn) closeBtn.className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
+
         // Change submit button text to "Update Invoice"
         const submitBtn = document.getElementById('invoiceSubmitBtn');
-        if (submitBtn) submitBtn.textContent = 'Update Invoice';
+        if (submitBtn) {
+            submitBtn.textContent = 'Update Invoice';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+        }
 
         const $form = $('#customInvoiceForm');
         if ($form.length) {
@@ -631,6 +708,11 @@
             if (invoice.due_date) {
                 $form.find('input[name="due_date"]').val(invoice.due_date);
             }
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
+                if (!this.disabled) {
+                    this.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
+                }
+            });
         }
 
         const container = document.getElementById('billingRowsContainer');
@@ -638,19 +720,28 @@
             container.innerHTML = '';
             invoice.items.forEach(item => {
                 const row = document.createElement('div');
-                row.className = 'billing-row flex items-center space-x-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+                row.className = 'billing-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
                 row.innerHTML = `
-                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <select name="product_ids[]" class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
                         <option value="">Select product...</option>
                         @foreach ($finishedGoods as $g)
-                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}">{{ $g->product_name }}</option>
+                            @php
+                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                            @endphp
+                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                            </option>
                         @endforeach
                     </select>
-                    <input type="number" name="quantities[]" value="${item.quantity}" min="1" placeholder="Qty" class="w-24 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                    <input type="number" name="unit_prices[]" value="${item.unit_price}" step="0.01" min="0" placeholder="Price" class="w-32 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="Pcs">Pcs</option>
+                        <option value="Kg">Kg</option>
+                    </select>
+                    <input type="number" name="quantities[]" value="${item.quantity}" min="1" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
+                    <input type="number" name="unit_prices[]" value="${item.unit_price}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
-                row.querySelector('select').value = item.product_id;
+                row.querySelector('select[name="product_ids[]"]').value = item.product_id;
                 container.appendChild(row);
             });
             
