@@ -59,6 +59,7 @@
             <form id="customInvoiceForm" action="{{ route('invoice.generate') }}" method="POST" class="ajax-form space-y-4 flex-grow">
                 @csrf
                 <input type="hidden" name="sales_order_id" id="salesOrderIdHidden" value="{{ $prefillOrder->id ?? '' }}">
+                <input type="hidden" name="invoice_id" id="invoiceIdHidden" value="">
                 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div class="md:col-span-3">
@@ -125,7 +126,7 @@
                                         <option value="Pcs">Pcs</option>
                                         <option value="Kg">Kg</option>
                                     </select>
-                                    <input type="number" name="quantities[]" min="1" value="{{ (int)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                                 </div>
@@ -147,7 +148,7 @@
                                     <option value="Pcs">Pcs</option>
                                     <option value="Kg">Kg</option>
                                 </select>
-                                <input type="number" name="quantities[]" min="1" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                 <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
                                 <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                             </div>
@@ -618,6 +619,7 @@
         const $form = $('#customInvoiceForm');
         if ($form.length) {
             $form[0].reset();
+            $form.find('input[name="invoice_id"]').val('');
             $form.find('input[name="invoice_number"]').val('{{ \App\Models\Invoice::generateNextInvoiceNumber() }}');
             $form.find('input[name="invoice_date"]').val('{{ date("Y-m-d") }}');
             $form.find('input[name="sales_order_id"]').val('');
@@ -697,6 +699,7 @@
 
         const $form = $('#customInvoiceForm');
         if ($form.length) {
+            $form.find('input[name="invoice_id"]').val(invoice.id);
             $form.find('input[name="invoice_number"]').val(invoice.invoice_number);
             if (invoice.plant_id) {
                 if (window.invoiceClientTomSelect) {
@@ -737,11 +740,14 @@
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" value="${item.quantity}" min="1" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
-                    <input type="number" name="unit_prices[]" value="${item.unit_price}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
+                    <input type="number" name="quantities[]" value="${parseFloat(item.quantity)}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
+                    <input type="number" name="unit_prices[]" value="${parseFloat(item.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
                 row.querySelector('select[name="product_ids[]"]').value = item.product_id;
+                if (row.querySelector('select[name="billing_uoms[]"]')) {
+                    row.querySelector('select[name="billing_uoms[]"]').value = item.billing_uom || 'Pcs';
+                }
                 container.appendChild(row);
             });
             

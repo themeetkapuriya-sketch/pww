@@ -44,8 +44,11 @@ class InvoiceController extends Controller
         $pIds = $request->input('product_ids', $request->input('finished_good_ids'));
         $request->merge(['product_ids' => $pIds]);
 
+        $invoiceId = $request->input('invoice_id');
+
         $validated = $request->validate([
-            'invoice_number' => 'required|string|unique:invoices,invoice_number',
+            'invoice_id' => 'nullable|exists:invoices,id',
+            'invoice_number' => 'required|string|unique:invoices,invoice_number' . ($invoiceId ? ',' . $invoiceId : ''),
             'plant_id' => 'required|exists:client_plants,id',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
@@ -54,7 +57,7 @@ class InvoiceController extends Controller
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'required|exists:products,id',
             'quantities' => 'required|array|min:1',
-            'quantities.*' => 'required|integer|min:1',
+            'quantities.*' => 'required|numeric|min:0.01',
             'unit_prices' => 'required|array|min:1',
             'unit_prices.*' => 'required|numeric|min:0',
             'billing_uoms' => 'nullable|array',
@@ -63,7 +66,7 @@ class InvoiceController extends Controller
         ]);
 
         try {
-            $invoice = DB::transaction(function () use ($validated, $request) {
+            $invoice = DB::transaction(function () use ($validated, $request, $invoiceId) {
                 $plant = ClientPlant::findOrFail($validated['plant_id']);
                 $isGujarat = strcasecmp(trim($plant->state), 'Gujarat') === 0;
 
@@ -97,21 +100,47 @@ class InvoiceController extends Controller
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
                 $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
 
-                $invoice = Invoice::create([
-                    'plant_id' => $plant->id,
-                    'invoice_number' => $validated['invoice_number'],
-                    'vehicle_number' => $validated['vehicle_number'] ?? null,
-                    'invoice_date' => $invDate,
-                    'total_taxable_value' => $taxable,
-                    'cgst' => $cgst,
-                    'sgst' => $sgst,
-                    'igst' => $igst,
-                    'total_amount' => $total,
-                    'payment_status' => 'unpaid',
-                    'paid_amount' => 0.00,
-                    'due_date' => $dueDate,
-                    'created_at' => $invDate . ' ' . now()->format('H:i:s'),
-                ]);
+                if ($invoiceId) {
+                    $invoice = Invoice::findOrFail($invoiceId);
+                    
+                    // Restore stock before updating
+                    foreach ($invoice->items as $oldItem) {
+                        $product = Product::find($oldItem->product_id);
+                        if ($product) {
+                            $product->increment('current_stock', (int)$oldItem->quantity);
+                        }
+                    }
+                    $invoice->items()->delete();
+
+                    $invoice->update([
+                        'plant_id' => $plant->id,
+                        'invoice_number' => $validated['invoice_number'],
+                        'vehicle_number' => $validated['vehicle_number'] ?? null,
+                        'invoice_date' => $invDate,
+                        'total_taxable_value' => $taxable,
+                        'cgst' => $cgst,
+                        'sgst' => $sgst,
+                        'igst' => $igst,
+                        'total_amount' => $total,
+                        'due_date' => $dueDate,
+                    ]);
+                } else {
+                    $invoice = Invoice::create([
+                        'plant_id' => $plant->id,
+                        'invoice_number' => $validated['invoice_number'],
+                        'vehicle_number' => $validated['vehicle_number'] ?? null,
+                        'invoice_date' => $invDate,
+                        'total_taxable_value' => $taxable,
+                        'cgst' => $cgst,
+                        'sgst' => $sgst,
+                        'igst' => $igst,
+                        'total_amount' => $total,
+                        'payment_status' => 'unpaid',
+                        'paid_amount' => 0.00,
+                        'due_date' => $dueDate,
+                        'created_at' => $invDate . ' ' . now()->format('H:i:s'),
+                    ]);
+                }
 
                 foreach ($validated['product_ids'] as $idx => $fgId) {
                     $qty = (int)$validated['quantities'][$idx];

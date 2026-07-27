@@ -101,7 +101,7 @@
                                 <option value="Pcs">Pcs</option>
                                 <option value="Kg">Kg</option>
                             </select>
-                            <input type="number" name="quantities[]" min="1" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                             <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                             <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                         </div>
@@ -550,10 +550,13 @@
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" value="${it.quantity}" min="1" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
-                    <input type="number" name="unit_prices[]" value="${it.unit_price}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <input type="number" name="quantities[]" value="${parseFloat(it.quantity)}" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <input type="number" name="unit_prices[]" value="${parseFloat(it.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
                     <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
+                if (row.querySelector('select[name="billing_uoms[]"]')) {
+                    row.querySelector('select[name="billing_uoms[]"]').value = it.billing_uom || 'Pcs';
+                }
                 rowsContainer.appendChild(row);
             });
         }
