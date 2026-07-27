@@ -44,7 +44,7 @@
         /* PDF and Print Optimized Stylesheet */
         @page {
             size: A4 portrait;
-            margin: 12mm !important;
+            margin: 8mm 10mm !important;
         }
         
         * {
@@ -118,14 +118,12 @@
             background-color: #ffffff;
             border: 1.5px solid #0f172a;
             border-radius: 4px;
-            padding: 24px;
+            padding: 16px 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
             width: 100%;
-            min-height: 275mm;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            height: auto;
+            page-break-inside: avoid;
         }
 
         /* Header Layout */
@@ -417,6 +415,25 @@
             letter-spacing: 0.5px;
         }
 
+        @if(isset($isPdf) && $isPdf)
+            .no-print-bar {
+                display: none !important;
+            }
+            body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .invoice-box {
+                box-shadow: none !important;
+                border: 1.5px solid #0f172a !important;
+                padding: 12px 14px !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+        @endif
+
         /* Print Media Overrides */
         @media print {
             .no-print-bar {
@@ -425,12 +442,14 @@
             body {
                 background-color: #ffffff !important;
                 padding: 0 !important;
+                margin: 0 !important;
             }
             .invoice-box {
                 box-shadow: none !important;
                 border: 1.5px solid #0f172a !important;
-                padding: 18px !important;
-                min-height: 100vh !important;
+                padding: 14px !important;
+                height: auto !important;
+                min-height: auto !important;
             }
         }
     </style>
@@ -503,18 +522,25 @@
         $amountInWords = numberToWordsIndianTaxInvoice($invoice->total_amount);
     @endphp
 
+    @if(!isset($isPdf) || !$isPdf)
     <!-- Top Action Control Bar -->
     <div class="no-print-bar">
         <div class="control-left">
             <a href="{{ route('invoices') }}" onclick="handleBackToERP(event)" class="btn btn-secondary" style="margin-right: 12px; text-decoration: none; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">← Back to System</a>
-            <span style="font-weight: 800; font-size: 13px; color: #0f172a;">Tax Invoice #{{ $invoice->invoice_number }}</span>
-            <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $client->company_name ?? 'Client' }}</span>
+            @if($invoice->invoice_mode === 'raw_material')
+                <span style="font-weight: 800; font-size: 13px; color: #b45309;">Raw Material / Scrap Sale Voucher</span>
+                <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $invoice->custom_client_name ?? 'Buyer' }}</span>
+            @else
+                <span style="font-weight: 800; font-size: 13px; color: #0f172a;">Tax Invoice #{{ $invoice->invoice_number }}</span>
+                <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $client->company_name ?? 'Client' }}</span>
+            @endif
         </div>
         <div class="control-right">
-            <button onclick="window.print()" class="btn btn-primary">🖨️ Print Invoice</button>
+            <button onclick="window.print()" class="btn btn-primary">🖨️ {{ $invoice->invoice_mode === 'raw_material' ? 'Print Sale Bill' : 'Print Invoice' }}</button>
             <a href="{{ route('invoice.download', $invoice->id) }}" class="btn btn-secondary">📥 Download PDF</a>
         </div>
     </div>
+    @endif
 
     <!-- Main Printable Frame -->
     <div class="invoice-box">
@@ -546,8 +572,12 @@
                         </table>
                     </td>
                     <td style="width: 40%; text-align: right; vertical-align: top;">
-                        <div class="tax-invoice-badge">Tax Invoice</div>
-                        <div class="invoice-number">{{ $invoice->invoice_number }}</div>
+                        @if($invoice->invoice_mode === 'raw_material')
+                            <div class="tax-invoice-badge" style="background-color: #d97706; color: white;">RAW MATERIAL SALE MEMO</div>
+                        @else
+                            <div class="tax-invoice-badge">Tax Invoice</div>
+                            <div class="invoice-number">{{ $invoice->invoice_number }}</div>
+                        @endif
                     </td>
                 </tr>
             </table>
@@ -572,9 +602,13 @@
                     <td>
                         <div class="cell-header">Billed To (Buyer)</div>
                         <div class="cell-body">
-                            <span class="meta-value-bold">{{ $client->company_name ?? 'N/A' }}</span><br>
-                            {{ $billedAddress }}<br>
-                            <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
+                            <span class="meta-value-bold">{{ $invoice->custom_client_name ?? ($client->company_name ?? 'N/A') }}</span><br>
+                            @if(!empty($invoice->custom_client_name))
+                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ !empty($invoice->custom_buyer_gstin) ? $invoice->custom_buyer_gstin : 'URP (Unregistered Buyer)' }}</span><br>
+                            @else
+                                {{ $billedAddress }}<br>
+                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
+                            @endif
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
                     </td>
@@ -606,13 +640,14 @@
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th style="text-align: center; width: 5%;">#</th>
-                            <th style="text-align: left; width: 38%;">Item Description / SKU</th>
-                            <th style="text-align: center; width: 12%;">HSN/SAC</th>
-                            <th style="text-align: right; width: 13%;">Qty & UOM</th>
-                            <th style="text-align: right; width: 14%;">Rate (&#8377;)</th>
+                            <th style="text-align: center; width: 4%;">#</th>
+                            <th style="text-align: left; width: 40%;">Item Description / SKU</th>
+                            <th style="text-align: center; width: 10%;">HSN/SAC</th>
+                            <th style="text-align: right; width: 9%;">QTY</th>
+                            <th style="text-align: center; width: 6%;">UOM</th>
+                            <th style="text-align: right; width: 11%;">Rate (&#8377;)</th>
                             <th style="text-align: center; width: 8%;">GST %</th>
-                            <th style="text-align: right; width: 10%;">Taxable (&#8377;)</th>
+                            <th style="text-align: right; width: 12%;">Taxable (&#8377;)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -631,6 +666,26 @@
                                 $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pGst = $isRaw ? 18.00 : ($pGood->gst_rate ?? 18.00);
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
+
+                                $qtyVal = (float)$item->quantity;
+                                $qtyFormatted = ($qtyVal == (int)$qtyVal) ? number_format($qtyVal) : number_format($qtyVal, 2);
+                                
+                                $unitWeight = ($pGood && ($pGood->unit_weight_kg ?? 0) > 0) ? (float)$pGood->unit_weight_kg : 0;
+                                
+                                $uomLower = strtolower($pUom);
+                                $unitConversionNotice = '';
+                                
+                                if (!$isRaw && $unitWeight > 0) {
+                                    if ($uomLower === 'kg') {
+                                        $pcsCount = $qtyVal / $unitWeight;
+                                        $pcsFormatted = ($pcsCount == (int)$pcsCount) ? number_format($pcsCount) : number_format($pcsCount, 1);
+                                        $unitConversionNotice = "≈ {$pcsFormatted} Pcs (@ {$unitWeight} Kg/pc)";
+                                    } elseif ($uomLower === 'pcs' || $uomLower === 'piece') {
+                                        $totalWt = $qtyVal * $unitWeight;
+                                        $wtFormatted = ($totalWt == (int)$totalWt) ? number_format($totalWt) : number_format($totalWt, 2);
+                                        $unitConversionNotice = "Total Wt: {$wtFormatted} Kg (@ {$unitWeight} Kg/pc)";
+                                    }
+                                }
                             @endphp
                             <tr>
                                 <td style="text-align: center; font-weight: 700; color: #64748b;">{{ $index + 1 }}</td>
@@ -641,7 +696,15 @@
                                 <td style="text-align: center;">
                                     <span class="hsn-badge">{{ $pHsn }}</span>
                                 </td>
-                                <td style="text-align: right; font-weight: 700; color: #0f172a;">{{ number_format($item->quantity) }} {{ strtolower($pUom) }}</td>
+                                <td style="text-align: right; font-weight: 700; color: #0f172a;">
+                                    <div>{{ $qtyFormatted }}</div>
+                                    @if($unitConversionNotice)
+                                        <div style="font-size: 8px; font-weight: 700; color: #475569; margin-top: 2px;">{{ $unitConversionNotice }}</div>
+                                    @endif
+                                </td>
+                                <td style="text-align: center; font-weight: 700; color: #475569; text-transform: uppercase;">
+                                    {{ $pUom }}
+                                </td>
                                 <td style="text-align: right;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align: center; font-weight: 700; color: #2563eb;">{{ number_format($pGst, 1) }}%</td>
                                 <td style="text-align: right; font-weight: 700; color: #0f172a;">&#8377;{{ number_format($pTotal, 2) }}</td>
@@ -719,15 +782,42 @@
                 <tr>
                     <td style="width: 60%;">
                         <span class="terms-title">Terms & Conditions</span>
+                        @php
+                            $defaultTerms = "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged.";
+                            $rawTerms = \App\Models\Setting::get('terms_and_conditions', $defaultTerms);
+                            $termsLines = array_filter(array_map('trim', explode("\n", $rawTerms)));
+                        @endphp
                         <ul class="terms-list">
-                            <li>All disputes are subject to Rajkot jurisdiction.</li>
-                            <li>Interest @18% p.a. charged on overdue payments after due date.</li>
-                            <li>Goods once dispatched/sold cannot be returned or exchanged.</li>
+                            @foreach($termsLines as $line)
+                                <li>{{ $line }}</li>
+                            @endforeach
                         </ul>
                     </td>
-                    <td style="width: 40%; text-align: right;">
+                    <td style="width: 40%; text-align: right; vertical-align: bottom;">
                         <div class="signature-title">Authorized Signatory</div>
-                        <div class="signature-line"></div>
+                        @php
+                            $sigPath = \App\Models\Setting::get('signature_path');
+                            $hasSig = false;
+                            $sigSrc = '';
+                            if ($sigPath) {
+                                $fullSigPath = public_path($sigPath);
+                                if (file_exists($fullSigPath) && is_file($fullSigPath)) {
+                                    $sigData = base64_encode(file_get_contents($fullSigPath));
+                                    $sigSrc = 'data:image/' . pathinfo($fullSigPath, PATHINFO_EXTENSION) . ';base64,' . $sigData;
+                                    $hasSig = true;
+                                } else {
+                                    $sigSrc = asset($sigPath);
+                                    $hasSig = true;
+                                }
+                            }
+                        @endphp
+                        @if($hasSig)
+                            <div style="height: 48px; margin: 4px 0; text-align: right;">
+                                <img src="{{ $sigSrc }}" alt="Signature Stamp" style="max-height: 44px; max-width: 140px; object-fit: contain; display: inline-block;">
+                            </div>
+                        @else
+                            <div class="signature-line"></div>
+                        @endif
                         <div style="font-size: 9.5px; color: #0f172a; font-weight: 800; text-transform: uppercase;">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</div>
                     </td>
                 </tr>

@@ -273,28 +273,32 @@ document.addEventListener('click', function(e) {
 });
 
 function deleteBomComponent(id, name) {
-    if (confirm(`Are you sure you want to remove '${name}' from this product BOM?`)) {
-        $.ajax({
-            url: `/bom/${id}`,
-            type: 'DELETE',
-            data: {
-                _token: '{{ csrf_token() }}'
-            },
-            success: function(response) {
-                if (response.success) {
-                    $(`#row-bom-${id}`).fadeOut(300, function() { $(this).remove(); });
-                    if (typeof window.showToast === 'function') {
-                        window.showToast(response.message, 'success');
-                    } else {
-                        alert(response.message);
+    window.confirmDelete(
+        'Remove BOM Component?',
+        `Are you sure you want to remove '${name}' from this product BOM?`,
+        function() {
+            $.ajax({
+                url: `/bom/${id}`,
+                type: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $(`#row-bom-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        if (typeof window.showToast === 'function') {
+                            window.showToast('success', response.message);
+                        } else {
+                            alert(response.message);
+                        }
                     }
+                },
+                error: function(xhr) {
+                    alert('Error removing BOM component.');
                 }
-            },
-            error: function(xhr) {
-                alert('Error removing BOM component.');
-            }
-        });
-    }
+            });
+        }
+    );
 }
 </script>
 @endsection

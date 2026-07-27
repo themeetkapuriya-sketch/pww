@@ -632,20 +632,25 @@
     }
 
     function deleteOrder(id, orderNumber) {
-        if (!confirm(`Are you sure you want to delete Sales Order '${orderNumber}'?`)) return;
-        const token = $('meta[name="csrf-token"]').attr('content') || '';
-        $.ajax({
-            url: `/orders/${id}`,
-            method: 'DELETE',
-            data: { _token: token },
-            success: async function(res) {
-                if (window.showToast) window.showToast('success', res.message);
-                await window.loadPage(window.location.href);
-            },
-            error: function(xhr) {
-                alert(xhr.responseJSON?.message || 'Failed to delete order.');
+        window.confirmDelete(
+            'Delete Sales Order?',
+            `Are you sure you want to delete Sales Order '${orderNumber}'? This action cannot be undone.`,
+            function() {
+                const token = $('meta[name="csrf-token"]').attr('content') || '';
+                $.ajax({
+                    url: `/orders/${id}`,
+                    method: 'DELETE',
+                    data: { _token: token },
+                    success: async function(res) {
+                        if (window.showToast) window.showToast('success', res.message);
+                        await window.loadPage(window.location.href);
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message || 'Failed to delete order.');
+                    }
+                });
             }
-        });
+        );
     }
 </script>
 @endsection

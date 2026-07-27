@@ -11,6 +11,10 @@ class Invoice extends Model
 
     protected $fillable = [
         'plant_id',
+        'invoice_mode',
+        'custom_client_name',
+        'custom_gst_rate',
+        'custom_buyer_gstin',
         'invoice_number',
         'vehicle_number',
         'invoice_date',
@@ -91,9 +95,40 @@ class Invoice extends Model
         }
 
         $prefix = Setting::get('invoice_prefix', 'PWW-');
-        $count = self::whereBetween('created_at', [$fyStart, $fyEnd])->count();
+        $count = self::where(function($q) {
+            $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
+        })->whereBetween('created_at', [$fyStart, $fyEnd])->count();
+
         $nextSequence = $count + 1;
-        $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-        return $prefix . date('Ymd') . '-' . $sequenceStr;
+        $candidate = $prefix . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        while (self::where('invoice_number', $candidate)->exists()) {
+            $nextSequence++;
+            $candidate = $prefix . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        }
+        return $candidate;
+    }
+
+    /**
+     * Generate separate voucher number sequence for Raw Material / Scrap Sales.
+     */
+    public static function generateNextRawMaterialNumber(): string
+    {
+        $now = \Carbon\Carbon::now();
+        if ($now->month >= 4) {
+            $fyStart = \Carbon\Carbon::create($now->year, 4, 1, 0, 0, 0);
+            $fyEnd = \Carbon\Carbon::create($now->year + 1, 3, 31, 23, 59, 59);
+        } else {
+            $fyStart = \Carbon\Carbon::create($now->year - 1, 4, 1, 0, 0, 0);
+            $fyEnd = \Carbon\Carbon::create($now->year, 3, 31, 23, 59, 59);
+        }
+
+        $count = self::where('invoice_mode', 'raw_material')->whereBetween('created_at', [$fyStart, $fyEnd])->count();
+        $nextSequence = $count + 1;
+        $candidate = 'RMS-' . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        while (self::where('invoice_number', $candidate)->exists()) {
+            $nextSequence++;
+            $candidate = 'RMS-' . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        }
+        return $candidate;
     }
 }

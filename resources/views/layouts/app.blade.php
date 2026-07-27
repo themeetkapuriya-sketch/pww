@@ -652,54 +652,39 @@
         };
 
         window.deleteInvoiceRecord = function(id, invoiceNumber) {
-            const doDelete = function() {
-                const token = $('meta[name="csrf-token"]').attr('content') || '';
-                $.ajax({
-                    url: `/invoices/${id}`,
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': token,
-                        'Accept': 'application/json'
-                    },
-                    success: async function(response) {
-                        if (window.showToast) {
-                            window.showToast('success', response.message || 'Invoice deleted successfully!');
+            window.confirmDelete(
+                'Delete Invoice?',
+                `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
+                function() {
+                    const token = $('meta[name="csrf-token"]').attr('content') || '';
+                    $.ajax({
+                        url: `/invoices/${id}`,
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        },
+                        success: async function(response) {
+                            if (window.showToast) {
+                                window.showToast('success', response.message || 'Invoice deleted successfully!');
+                            }
+                            if (window.loadPage) {
+                                await window.loadPage(window.location.href);
+                            } else {
+                                window.location.reload();
+                            }
+                        },
+                        error: function(xhr) {
+                            const msg = xhr.responseJSON && xhr.responseJSON.message ? (xhr.responseJSON.message || (xhr.responseJSON.errors ? xhr.responseJSON.errors[0] : 'Failed to delete invoice.')) : 'Failed to delete invoice.';
+                            if (window.showToast) {
+                                window.showToast('error', msg);
+                            } else {
+                                alert(msg);
+                            }
                         }
-                        if (window.loadPage) {
-                            await window.loadPage(window.location.href);
-                        } else {
-                            window.location.reload();
-                        }
-                    },
-                    error: function(xhr) {
-                        const msg = xhr.responseJSON && xhr.responseJSON.message ? (xhr.responseJSON.message || (xhr.responseJSON.errors ? xhr.responseJSON.errors[0] : 'Failed to delete invoice.')) : 'Failed to delete invoice.';
-                        if (window.showToast) {
-                            window.showToast('error', msg);
-                        } else {
-                            alert(msg);
-                        }
-                    }
-                });
-            };
-
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Delete Invoice?',
-                    text: `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#f43f5e',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Yes, Delete Invoice',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        doDelete();
-                    }
-                });
-            } else if (confirm(`Are you sure you want to delete Invoice '${invoiceNumber}'?`)) {
-                doDelete();
-            }
+                    });
+                }
+            );
         };
     </script>
 </body>

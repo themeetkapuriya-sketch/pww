@@ -84,9 +84,14 @@
                 <!-- Billed To (Buyer) -->
                 <div class="space-y-1">
                     <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Billed To (Buyer):</span>
-                    <h4 class="text-xs font-bold text-slate-900">{{ $client->company_name ?? 'Direct Customer' }}</h4>
-                    <p class="text-[11px] text-slate-600 font-medium">{{ $previewBilledAddress }}</p>
-                    <p class="text-[11px] text-slate-500 font-semibold">GSTIN: <span class="text-slate-800 font-mono font-bold">{{ $previewBilledGst }}</span></p>
+                    <h4 class="text-xs font-bold text-slate-900">{{ $invoice->custom_client_name ?? ($client->company_name ?? 'Direct Customer') }}</h4>
+                    @if(!empty($invoice->custom_client_name))
+                        <p class="text-[11px] text-slate-600 font-medium">Custom Direct Buyer</p>
+                        <p class="text-[11px] text-slate-500 font-semibold">GSTIN: <span class="text-slate-800 font-mono font-bold">URP (Unregistered)</span></p>
+                    @else
+                        <p class="text-[11px] text-slate-600 font-medium">{{ $previewBilledAddress }}</p>
+                        <p class="text-[11px] text-slate-500 font-semibold">GSTIN: <span class="text-slate-800 font-mono font-bold">{{ $previewBilledGst }}</span></p>
+                    @endif
                     <p class="text-[11px] text-slate-500">State: <span class="font-bold text-slate-700">{{ $plantState }} (State Code: {{ $plantStateCode }})</span></p>
                     @if(!empty($client->client_email))
                         <p class="text-[11px] text-blue-600 font-medium pt-0.5">✉ {{ $client->client_email }}</p>
@@ -123,7 +128,8 @@
                             <th class="py-3 px-4">Item / Product Name</th>
                             <th class="py-3 px-4 text-center">SKU</th>
                             <th class="py-3 px-4 text-right">Cost</th>
-                            <th class="py-3 px-4 text-center">Qty</th>
+                            <th class="py-3 px-4 text-right">Qty</th>
+                            <th class="py-3 px-4 text-center">UOM</th>
                             <th class="py-3 px-4 text-right">Price</th>
                         </tr>
                     </thead>
@@ -138,17 +144,45 @@
                                 $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A'));
                                 $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
+
+                                $qtyVal = (float)$item->quantity;
+                                $qtyFormatted = ($qtyVal == (int)$qtyVal) ? number_format($qtyVal) : number_format($qtyVal, 2);
+                                
+                                $unitWeight = ($pGood && ($pGood->unit_weight_kg ?? 0) > 0) ? (float)$pGood->unit_weight_kg : 0;
+                                
+                                $uomLower = strtolower($pUom);
+                                $unitConversionNotice = '';
+                                
+                                if (!$isRaw && $unitWeight > 0) {
+                                    if ($uomLower === 'kg') {
+                                        $pcsCount = $qtyVal / $unitWeight;
+                                        $pcsFormatted = ($pcsCount == (int)$pcsCount) ? number_format($pcsCount) : number_format($pcsCount, 1);
+                                        $unitConversionNotice = "≈ {$pcsFormatted} Pcs (@ {$unitWeight} Kg/pc)";
+                                    } elseif ($uomLower === 'pcs' || $uomLower === 'piece') {
+                                        $totalWt = $qtyVal * $unitWeight;
+                                        $wtFormatted = ($totalWt == (int)$totalWt) ? number_format($totalWt) : number_format($totalWt, 2);
+                                        $unitConversionNotice = "Total Wt: {$wtFormatted} Kg (@ {$unitWeight} Kg/pc)";
+                                    }
+                                }
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ $pName }}</td>
                                 <td class="py-3.5 px-4 text-center text-xs font-mono text-slate-500">{{ $pSku }}</td>
                                 <td class="py-3.5 px-4 text-right">₹{{ number_format($item->unit_price, 2) }}</td>
-                                <td class="py-3.5 px-4 text-center font-bold text-slate-800">{{ $item->quantity }} {{ strtolower($pUom) }}</td>
+                                <td class="py-3.5 px-4 text-right font-bold text-slate-800">
+                                    <div>{{ $qtyFormatted }}</div>
+                                    @if($unitConversionNotice)
+                                        <div class="text-[10px] text-slate-500 font-semibold mt-0.5">{{ $unitConversionNotice }}</div>
+                                    @endif
+                                </td>
+                                <td class="py-3.5 px-4 text-center font-bold text-slate-600 uppercase">
+                                    {{ $pUom }}
+                                </td>
                                 <td class="py-3.5 px-4 text-right font-extrabold text-slate-900">₹{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="py-6 text-center text-slate-400 font-medium">No items registered for this invoice.</td>
+                                <td colspan="6" class="py-6 text-center text-slate-400 font-medium">No items registered for this invoice.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -227,9 +261,10 @@
 
             <!-- 4. Edit Invoice Button -->
             <a 
-                href="{{ route('invoices', ['tab' => 'manual-builder']) }}" 
+                href="{{ route('invoices', ['edit' => $invoice->id]) }}" 
                 class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition duration-150"
             >
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 <span>Edit Invoice</span>
             </a>
 

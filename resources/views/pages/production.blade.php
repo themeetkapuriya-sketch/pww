@@ -221,21 +221,25 @@ function openEditProductionModal(id, productId, manufactured, rejected, date) {
 }
 
 function deleteProductionLog(id) {
-    if (!confirm(`Are you sure you want to delete Production Batch #${id}?`)) return;
-
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-    $.ajax({
-        url: `/production/${id}`,
-        method: 'DELETE',
-        data: { _token: token },
-        success: function(res) {
-            if (window.showToast) window.showToast('success', res.message);
-            $(`#row-prod-${id}`).fadeOut(300, function() { $(this).remove(); });
-        },
-        error: function(xhr) {
-            alert(xhr.responseJSON?.message || 'Failed to delete production log.');
+    window.confirmDelete(
+        'Delete Production Batch?',
+        `Are you sure you want to delete Production Batch #${id}? This action cannot be undone.`,
+        function() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            $.ajax({
+                url: `/production/${id}`,
+                method: 'DELETE',
+                data: { _token: token },
+                success: function(res) {
+                    if (window.showToast) window.showToast('success', res.message);
+                    $(`#row-prod-${id}`).fadeOut(300, function() { $(this).remove(); });
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON?.message || 'Failed to delete production log.');
+                }
+            });
         }
-    });
+    );
 }
 </script>
 @endsection

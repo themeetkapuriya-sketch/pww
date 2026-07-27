@@ -208,6 +208,7 @@ class ClientController extends Controller
             'plant_name' => 'required|string|max:255',
             'state' => 'required|string|max:100',
             'gst_number' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
             'shipping_address' => 'required|string',
         ]);
 
@@ -251,6 +252,7 @@ class ClientController extends Controller
             'plant_name' => 'required|string|max:255',
             'state' => 'required|string|max:100',
             'gst_number' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
             'shipping_address' => 'required|string',
         ]);
 

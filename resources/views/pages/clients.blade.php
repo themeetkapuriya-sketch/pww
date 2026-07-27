@@ -176,11 +176,16 @@ $indianStates = [
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">State Plant GSTIN (Optional, 15 Digits)</label>
                     <input type="text" name="gst_number" placeholder="e.g. 27AAAAB1111A1Z5 (Leave blank if same as Main GSTIN)" minlength="15" maxlength="15"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plant Email Address (Optional)</label>
+                    <input type="email" name="email" placeholder="e.g. factory@client.com"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Shipping Warehouse Address</label>
@@ -356,6 +361,12 @@ $indianStates = [
                                                     </span>
                                                 </div>
                                                 <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">{{ $p->shipping_address }}</p>
+                                                @if ($p->email)
+                                                    <p class="text-xs text-slate-500 mt-1 flex items-center">
+                                                        <svg class="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                                        <a href="mailto:{{ $p->email }}" class="text-blue-600 font-medium hover:underline">{{ $p->email }}</a>
+                                                    </p>
+                                                @endif
                                                 
                                                 <div class="mt-2.5 pt-2 border-t border-slate-200/60 text-[11px] font-mono flex items-center justify-between">
                                                     <div>
@@ -385,7 +396,7 @@ $indianStates = [
                                                 <div class="flex items-center space-x-1.5">
                                                     <button type="button" 
                                                             title="Edit Plant Details"
-                                                            onclick="openEditPlantForm({{ $p->id }}, '{{ addslashes($p->plant_name) }}', '{{ addslashes($p->state) }}', '{{ addslashes($p->gst_number ?? '') }}', '{{ addslashes($p->shipping_address) }}')"
+                                                            onclick="openEditPlantForm({{ $p->id }}, '{{ addslashes($p->plant_name) }}', '{{ addslashes($p->state) }}', '{{ addslashes($p->gst_number ?? '') }}', '{{ addslashes($p->shipping_address) }}', '{{ addslashes($p->email ?? '') }}')"
                                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     </button>
@@ -428,6 +439,11 @@ $indianStates = [
                                                                placeholder="{{ $isDiffState ? 'e.g. ' . $pStateCode . 'AAAAB1111A1Z5 (Required for ' . $p->state . ')' : 'Leave blank if same as Main GSTIN' }}" 
                                                                minlength="15" maxlength="15" {{ $isDiffState && empty($p->gst_number) ? 'required' : '' }}
                                                                class="w-full bg-white border border-slate-200 rounded py-1 px-2 text-xs font-mono text-slate-700 uppercase">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Plant Contact Email (Optional)</label>
+                                                        <input type="email" name="email" id="edit_plant_email_{{ $p->id }}" value="{{ $p->email }}" placeholder="e.g. factory@client.com"
+                                                               class="w-full bg-white border border-slate-200 rounded py-1 px-2 text-xs text-slate-700">
                                                     </div>
                                                     <div>
                                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Shipping Address</label>
@@ -559,7 +575,7 @@ function closeEditClientForm(id) {
     if (formCard) formCard.classList.add('hidden');
 }
 
-function openEditPlantForm(id, name, state, gst, address) {
+function openEditPlantForm(id, name, state, gst, address, email) {
     var formCard = document.getElementById('inlineEditPlantForm-' + id);
     if (formCard) {
         if (formCard.classList.contains('hidden')) {
@@ -571,6 +587,8 @@ function openEditPlantForm(id, name, state, gst, address) {
             if (stateEl) stateEl.value = state;
             var gstEl = document.getElementById('edit_plant_gst_number_' + id);
             if (gstEl) gstEl.value = gst;
+            var emailEl = document.getElementById('edit_plant_email_' + id);
+            if (emailEl) emailEl.value = email || '';
             var addrEl = document.getElementById('edit_plant_shipping_address_' + id);
             if (addrEl) addrEl.value = address;
             formCard.classList.remove('hidden');

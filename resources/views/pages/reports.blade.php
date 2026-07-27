@@ -200,12 +200,17 @@
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($invoices as $inv)
                             @php
-                                $clientName = $inv->client ? $inv->client->company_name : 'N/A';
-                                $plantName = $inv->plant ? $inv->plant->plant_name : 'HQ';
+                                $isRawMaterial = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
+                                $clientName = $isRawMaterial ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->client ? $inv->client->company_name : 'N/A');
+                                $plantName = $isRawMaterial ? 'Raw Material Sale' : ($inv->plant ? $inv->plant->plant_name : 'HQ');
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
-                                <td class="px-4 py-3 font-bold text-blue-600 font-mono text-xs">
-                                    <a href="{{ route('invoice.preview', $inv->id) }}" class="hover:underline">{{ $inv->invoice_number }}</a>
+                                <td class="px-4 py-3 font-bold font-mono text-xs">
+                                    @if($isRawMaterial)
+                                        <span class="text-amber-800 font-bold uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded border border-amber-200">NILL</span>
+                                    @else
+                                        <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:underline">{{ $inv->invoice_number }}</a>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs">
                                     <div class="font-bold text-slate-800">{{ $clientName }}</div>

@@ -191,15 +191,44 @@
             </div>
 
             <div class="border-t border-slate-100 pt-6">
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-3">Company Brand Logo</label>
-                <div class="flex items-center space-x-6">
-                    <div class="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <img id="logo-preview-img" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo" class="w-full h-full object-contain">
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Terms & Conditions (One rule per line)</label>
+                @php
+                    $defaultTerms = "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged.";
+                    $termsVal = \App\Models\Setting::get('terms_and_conditions', $defaultTerms);
+                @endphp
+                <textarea name="terms_and_conditions" rows="3" placeholder="Enter terms and conditions line by line..."
+                          class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">{{ $termsVal }}</textarea>
+                <p class="text-[10px] text-slate-400 mt-1">Each line will be printed as a bullet point at the bottom of tax invoices and sale bills.</p>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-3">Company Brand Logo</label>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img id="logo-preview-img" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo" class="w-full h-full object-contain">
+                        </div>
+                        <div class="flex-grow">
+                            <input type="file" name="logo" accept="image/*" id="logo-file-input"
+                                   class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-[10px] text-slate-400 mt-1.5">Recommended: Square PNG format. Max 2MB.</p>
+                        </div>
                     </div>
-                    <div class="flex-grow">
-                        <input type="file" name="logo" accept="image/*" id="logo-file-input"
-                               class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                        <p class="text-[10px] text-slate-400 mt-1.5">Recommended: Square PNG format. Maximum file size: 2MB.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-3">Authorized Signature Image / Stamp</label>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-24 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+                            @php $sigPath = \App\Models\Setting::get('signature_path'); @endphp
+                            <img id="signature-preview-img" src="{{ $sigPath ? asset($sigPath) : '' }}" alt="Signature Preview" class="{{ $sigPath ? '' : 'hidden' }} max-h-full max-w-full object-contain">
+                            <span id="signature-placeholder" class="{{ $sigPath ? 'hidden' : '' }} text-[10px] text-slate-400 font-bold text-center">No Stamp</span>
+                        </div>
+                        <div class="flex-grow">
+                            <input type="file" name="signature" accept="image/*" id="signature-file-input"
+                                   class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-[10px] text-slate-400 mt-1.5">Printed above Authorized Signatory line. Max 2MB.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -220,6 +249,23 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 document.getElementById('logo-preview-img').src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('signature-file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.getElementById('signature-preview-img');
+                const ph = document.getElementById('signature-placeholder');
+                if (img) {
+                    img.src = event.target.result;
+                    img.classList.remove('hidden');
+                }
+                if (ph) ph.classList.add('hidden');
             };
             reader.readAsDataURL(file);
         }

@@ -235,10 +235,11 @@ class ReportController extends Controller
                 fputcsv($handle, ['Invoice No.', 'Client Company', 'Plant Name', 'Invoice Date', 'Taxable Value (INR)', 'CGST (9%)', 'SGST (9%)', 'IGST (18%)', 'Total Bill Amount (INR)', 'Due Amount (INR)', 'Payment Status']);
 
                 foreach ($invoices as $inv) {
+                    $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
                     fputcsv($handle, [
-                        $inv->invoice_number,
-                        $inv->plant->client->company_name ?? 'N/A',
-                        $inv->plant->plant_name ?? 'HQ',
+                        $isRm ? 'NILL' : $inv->invoice_number,
+                        $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A'),
+                        $isRm ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ'),
                         Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
                         $inv->total_taxable_value,
                         $inv->cgst,
@@ -325,11 +326,12 @@ class ReportController extends Controller
                     fputcsv($handle, ['Invoice No.', 'Client GSTIN', 'Client Company', 'Plant Name', 'Invoice Date', 'Taxable Value (INR)', 'CGST (9%)', 'SGST (9%)', 'IGST (18%)', 'Total Invoice Amount (INR)']);
 
                     foreach ($invoices as $inv) {
+                        $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
                         fputcsv($handle, [
-                            $inv->invoice_number,
-                            $inv->plant->client->gstin ?? 'URP / Retail',
-                            $inv->plant->client->company_name ?? 'N/A',
-                            $inv->plant->plant_name ?? 'HQ',
+                            $isRm ? 'NILL' : $inv->invoice_number,
+                            $isRm ? ($inv->custom_buyer_gstin ?? 'URP / Retail') : ($inv->plant->client->gstin ?? 'URP / Retail'),
+                            $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A'),
+                            $isRm ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ'),
                             Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
                             $inv->total_taxable_value,
                             $inv->cgst,

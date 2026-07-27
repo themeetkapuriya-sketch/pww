@@ -186,9 +186,14 @@
             </thead>
             <tbody>
                 @forelse($invoices as $inv)
+                    @php
+                        $isRawMaterial = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
+                        $clientName = $isRawMaterial ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A');
+                        $plantInfo = $isRawMaterial ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ');
+                    @endphp
                     <tr>
-                        <td class="font-bold text-blue">{{ $inv->invoice_number }}</td>
-                        <td>{{ $inv->plant->client->company_name ?? 'N/A' }} ({{ $inv->plant->plant_name ?? 'HQ' }})</td>
+                        <td class="font-bold {{ $isRawMaterial ? '' : 'text-blue' }}">{{ $isRawMaterial ? 'NILL' : $inv->invoice_number }}</td>
+                        <td>{{ $clientName }} ({{ $plantInfo }})</td>
                         <td>{{ \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y') }}</td>
                         <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
                         <td class="text-right">₹{{ format_indian($inv->cgst, 2) }}</td>

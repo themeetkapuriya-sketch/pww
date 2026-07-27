@@ -25,7 +25,19 @@ class InvoiceController extends Controller
      */
     public function invoices(Request $request)
     {
-        $invoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->orderBy('created_at', 'desc')->paginate(20);
+        $invoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->orderBy('created_at', 'desc')->paginate(50);
+        $finishedGoodsInvoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])
+            ->where(function($q) {
+                $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'fg_page');
+
+        $rawMaterialInvoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])
+            ->where('invoice_mode', 'raw_material')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20, ['*'], 'rm_page');
+
         $finishedGoods = Product::all();
         $rawMaterials = RawMaterial::orderBy('material_name')->get();
         $clients = Client::with('plants')->get();
@@ -35,7 +47,22 @@ class InvoiceController extends Controller
             $prefillOrder = SalesOrder::with(['items.product', 'client', 'plant'])->find($request->input('order_id'));
         }
 
-        return view('pages.invoices', compact('invoices', 'finishedGoods', 'rawMaterials', 'clients', 'prefillOrder'));
+        $editInvoice = null;
+        $editId = $request->input('edit') ?: $request->input('edit_id');
+        if ($editId) {
+            $editInvoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->find($editId);
+        }
+
+        return view('pages.invoices', compact(
+            'invoices',
+            'finishedGoodsInvoices',
+            'rawMaterialInvoices',
+            'finishedGoods',
+            'rawMaterials',
+            'clients',
+            'prefillOrder',
+            'editInvoice'
+        ));
     }
 
     /**
@@ -47,11 +74,16 @@ class InvoiceController extends Controller
         $request->merge(['product_ids' => $pIds]);
 
         $invoiceId = $request->input('invoice_id');
+        $invMode = $request->input('invoice_mode', 'finished_goods');
 
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
-            'invoice_number' => 'required|string|unique:invoices,invoice_number' . ($invoiceId ? ',' . $invoiceId : ''),
-            'plant_id' => 'required|exists:client_plants,id',
+            'invoice_mode' => 'nullable|string|in:finished_goods,raw_material',
+            'invoice_number' => ($invMode === 'raw_material' ? 'nullable|string' : 'required|string|unique:invoices,invoice_number' . ($invoiceId ? ',' . $invoiceId : '')),
+            'plant_id' => ($invMode === 'raw_material' ? 'nullable|exists:client_plants,id' : 'required|exists:client_plants,id'),
+            'custom_client_name' => ($invMode === 'raw_material' ? 'required|string|max:255' : 'nullable|string|max:255'),
+            'custom_buyer_gstin' => 'nullable|string|max:30',
+            'gst_rate' => 'nullable|numeric|min:0|max:100',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
             'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
@@ -65,12 +97,15 @@ class InvoiceController extends Controller
             'billing_uoms' => 'nullable|array',
         ], [
             'vehicle_number.regex' => 'Enter valid vehicle number',
+            'custom_client_name.required' => 'Please enter the Buyer / Client Name',
         ]);
 
         try {
-            $invoice = DB::transaction(function () use ($validated, $request, $invoiceId) {
-                $plant = ClientPlant::findOrFail($validated['plant_id']);
-                $isGujarat = strcasecmp(trim($plant->state), 'Gujarat') === 0;
+            $invoice = DB::transaction(function () use ($validated, $request, $invoiceId, $invMode) {
+                $plantId = !empty($validated['plant_id']) ? $validated['plant_id'] : null;
+                $plant = $plantId ? ClientPlant::find($plantId) : null;
+                $isGujarat = $plant ? (strcasecmp(trim($plant->state), 'Gujarat') === 0) : true;
+                $customGstRate = isset($validated['gst_rate']) ? (float)$validated['gst_rate'] : null;
 
                 // Parse line items (Products vs Raw Materials)
                 $parsedItems = [];
@@ -85,7 +120,7 @@ class InvoiceController extends Controller
                     $lineTotal = round($qty * $price, 2);
                     $taxable += $lineTotal;
 
-                    $itemType = 'product';
+                    $itemType = ($invMode === 'raw_material') ? 'raw_material' : 'product';
                     $productId = null;
                     $rawMaterialId = null;
                     $itemName = 'Item';
@@ -100,7 +135,7 @@ class InvoiceController extends Controller
                             $itemName = $rm->material_name;
                             $defaultUom = $rm->unit ?? 'kg';
                         }
-                    } else {
+                    } else if (str_starts_with($rawKey, 'product_')) {
                         $itemType = 'product';
                         $productId = (int) str_replace('product_', '', $rawKey);
                         $product = Product::find($productId);
@@ -109,13 +144,41 @@ class InvoiceController extends Controller
                             $rate = isset($product->gst_rate) ? (float)$product->gst_rate : 18.00;
                             $defaultUom = $product->uom ?? 'piece';
                         }
+                    } else {
+                        // Numeric ID fallback
+                        $numId = (int)$rawKey;
+                        if ($invMode === 'raw_material') {
+                            $itemType = 'raw_material';
+                            $rawMaterialId = $numId;
+                            $rm = RawMaterial::find($rawMaterialId);
+                            if ($rm) {
+                                $itemName = $rm->material_name;
+                                $defaultUom = $rm->unit ?? 'kg';
+                            }
+                        } else {
+                            $itemType = 'product';
+                            $productId = $numId;
+                            $product = Product::find($productId);
+                            if ($product) {
+                                $itemName = $product->product_name;
+                                $rate = isset($product->gst_rate) ? (float)$product->gst_rate : 18.00;
+                                $defaultUom = $product->uom ?? 'piece';
+                            }
+                        }
                     }
 
-                    if ($isGujarat) {
-                        $cgst += round($lineTotal * ($rate / 200.0), 2);
-                        $sgst += round($lineTotal * ($rate / 200.0), 2);
-                    } else {
-                        $igst += round($lineTotal * ($rate / 100.0), 2);
+                    // Apply custom GST rate if explicitly set in raw material mode
+                    if ($customGstRate !== null) {
+                        $rate = $customGstRate;
+                    }
+
+                    if ($rate > 0) {
+                        if ($isGujarat) {
+                            $cgst += round($lineTotal * ($rate / 200.0), 2);
+                            $sgst += round($lineTotal * ($rate / 200.0), 2);
+                        } else {
+                            $igst += round($lineTotal * ($rate / 100.0), 2);
+                        }
                     }
 
                     $parsedItems[] = [
@@ -133,6 +196,21 @@ class InvoiceController extends Controller
                 $total = round($taxable + $cgst + $sgst + $igst, 2);
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
                 $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
+
+                $customClientName = ($invMode === 'raw_material') ? ($validated['custom_client_name'] ?? 'Local Buyer') : null;
+
+                if ($invMode === 'raw_material') {
+                    if ($invoiceId) {
+                        $existingInv = Invoice::find($invoiceId);
+                        $finalInvoiceNumber = ($existingInv && str_starts_with($existingInv->invoice_number, 'RMS-'))
+                            ? $existingInv->invoice_number
+                            : Invoice::generateNextRawMaterialNumber();
+                    } else {
+                        $finalInvoiceNumber = Invoice::generateNextRawMaterialNumber();
+                    }
+                } else {
+                    $finalInvoiceNumber = $validated['invoice_number'];
+                }
 
                 if ($invoiceId) {
                     $invoice = Invoice::findOrFail($invoiceId);
@@ -154,8 +232,12 @@ class InvoiceController extends Controller
                     $invoice->items()->delete();
 
                     $invoice->update([
-                        'plant_id' => $plant->id,
-                        'invoice_number' => $validated['invoice_number'],
+                        'plant_id' => $plantId,
+                        'invoice_mode' => $invMode,
+                        'custom_client_name' => $customClientName,
+                        'custom_gst_rate' => $customGstRate,
+                        'custom_buyer_gstin' => $validated['custom_buyer_gstin'] ?? null,
+                        'invoice_number' => $finalInvoiceNumber,
                         'vehicle_number' => $validated['vehicle_number'] ?? null,
                         'invoice_date' => $invDate,
                         'total_taxable_value' => $taxable,
@@ -167,8 +249,12 @@ class InvoiceController extends Controller
                     ]);
                 } else {
                     $invoice = Invoice::create([
-                        'plant_id' => $plant->id,
-                        'invoice_number' => $validated['invoice_number'],
+                        'plant_id' => $plantId,
+                        'invoice_mode' => $invMode,
+                        'custom_client_name' => $customClientName,
+                        'custom_gst_rate' => $customGstRate,
+                        'custom_buyer_gstin' => $validated['custom_buyer_gstin'] ?? null,
+                        'invoice_number' => $finalInvoiceNumber,
                         'vehicle_number' => $validated['vehicle_number'] ?? null,
                         'invoice_date' => $invDate,
                         'total_taxable_value' => $taxable,

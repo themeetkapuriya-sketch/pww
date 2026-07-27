@@ -391,21 +391,25 @@ function openEditMaterialModal(id, name, unit, threshold, price) {
 }
 
 function deleteMaterial(id, name) {
-    if (!confirm(`Are you sure you want to delete Raw Material '${name}'?`)) return;
-
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-    $.ajax({
-        url: `/inventory/materials/${id}`,
-        method: 'DELETE',
-        data: { _token: token },
-        success: function(res) {
-            if (window.showToast) window.showToast('success', res.message);
-            $(`#row-mat-${id}`).fadeOut(300, function() { $(this).remove(); });
-        },
-        error: function(xhr) {
-            alert(xhr.responseJSON?.message || 'Failed to delete raw material.');
+    window.confirmDelete(
+        'Delete Raw Material?',
+        `Are you sure you want to delete Raw Material '${name}'? This action cannot be undone.`,
+        function() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            $.ajax({
+                url: `/inventory/materials/${id}`,
+                method: 'DELETE',
+                data: { _token: token },
+                success: function(res) {
+                    if (window.showToast) window.showToast('success', res.message);
+                    $(`#row-mat-${id}`).fadeOut(300, function() { $(this).remove(); });
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON?.message || 'Failed to delete raw material.');
+                }
+            });
         }
-    });
+    );
 }
 
 // --- PRODUCT CATALOG HANDLERS ---
@@ -496,21 +500,25 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 1
 }
 
 function deleteProduct(id, name) {
-    if (!confirm(`Are you sure you want to delete Product '${name}'?`)) return;
-
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
-    $.ajax({
-        url: `/inventory/goods/${id}`,
-        method: 'DELETE',
-        data: { _token: token },
-        success: function(res) {
-            if (window.showToast) window.showToast('success', res.message);
-            $(`#row-good-${id}`).fadeOut(300, function() { $(this).remove(); });
-        },
-        error: function(xhr) {
-            alert(xhr.responseJSON?.message || 'Failed to delete product.');
+    window.confirmDelete(
+        'Delete Product?',
+        `Are you sure you want to delete Product '${name}'? This action cannot be undone.`,
+        function() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            $.ajax({
+                url: `/inventory/goods/${id}`,
+                method: 'DELETE',
+                data: { _token: token },
+                success: function(res) {
+                    if (window.showToast) window.showToast('success', res.message);
+                    $(`#row-good-${id}`).fadeOut(300, function() { $(this).remove(); });
+                },
+                error: function(xhr) {
+                    alert(xhr.responseJSON?.message || 'Failed to delete product.');
+                }
+            });
         }
-    });
+    );
 }
 </script>
 @endsection

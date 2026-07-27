@@ -80,13 +80,15 @@ class ProfileController extends Controller
             'business_email' => 'required|email|max:255',
             'gstin' => ['required', 'string', 'size:15', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/'],
             'msme_number' => ['nullable', 'string', 'regex:/^UDYAM-[A-Za-z]{2}-[0-9]{2}-[0-9]{7}$/i'],
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'signature' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'bank_name' => 'required|string|max:255',
             'bank_account_name' => 'required|string|max:255',
             'bank_account_no' => 'required|string|min:9|max:18|regex:/^[0-9A-Za-z]+$/',
             'bank_ifsc' => ['required', 'string', 'size:11', 'regex:/^[A-Za-z]{4}[0O][0-9A-Za-z]{6}$/'],
             'invoice_prefix' => 'nullable|string|max:50',
             'order_prefix' => 'nullable|string|max:50',
+            'terms_and_conditions' => 'nullable|string|max:2000',
         ], [
             'gstin.regex' => 'Please enter a valid 15-character GSTIN (e.g. 24AAAAA1111A1Z5).',
             'gstin.size' => 'GSTIN number must be exactly 15 characters long.',
@@ -123,12 +125,20 @@ class ProfileController extends Controller
             Setting::set('bank_ifsc', $validated['bank_ifsc']);
             Setting::set('invoice_prefix', strtoupper(trim($request->input('invoice_prefix', 'PWW-'))));
             Setting::set('order_prefix', strtoupper(trim($request->input('order_prefix', 'PWW-ORD-'))));
+            Setting::set('terms_and_conditions', $request->input('terms_and_conditions', "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged."));
 
             if ($request->hasFile('logo')) {
                 $file = $request->file('logo');
                 $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
                 $file->move(public_path('uploads'), $filename);
                 Setting::set('logo_path', 'uploads/' . $filename);
+            }
+
+            if ($request->hasFile('signature')) {
+                $file = $request->file('signature');
+                $filename = 'signature_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads'), $filename);
+                Setting::set('signature_path', 'uploads/' . $filename);
             }
 
             return response()->json([
