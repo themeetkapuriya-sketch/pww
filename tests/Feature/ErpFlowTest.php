@@ -924,8 +924,8 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('profile.business'), [
             'business_name' => 'Custom Weld Inc',
             'business_subtitle' => 'Industrial Fabrication Division',
-            'address_line_1' => 'GIDC Plot 100',
-            'address_line_2' => 'Baroda, Gujarat',
+            'address' => 'GIDC Plot 100, Baroda, Gujarat',
+            'business_email' => 'customweld@example.com',
             'gstin' => '24CUSTO1234A1Z9',
             'bank_name' => 'State Bank of India',
             'bank_account_name' => 'Custom Weld Inc',
@@ -942,8 +942,8 @@ class ErpFlowTest extends TestCase
 
         $this->assertEquals('Custom Weld Inc', \App\Models\Setting::get('business_name'));
         $this->assertEquals('Industrial Fabrication Division', \App\Models\Setting::get('business_subtitle'));
-        $this->assertEquals('GIDC Plot 100', \App\Models\Setting::get('address_line_1'));
-        $this->assertEquals('Baroda, Gujarat', \App\Models\Setting::get('address_line_2'));
+        $this->assertEquals('GIDC Plot 100, Baroda, Gujarat', \App\Models\Setting::get('address'));
+        $this->assertEquals('customweld@example.com', \App\Models\Setting::get('business_email'));
         $this->assertEquals('24CUSTO1234A1Z9', \App\Models\Setting::get('gstin'));
         $this->assertStringContainsString('uploads/logo_', \App\Models\Setting::get('logo_path'));
     }

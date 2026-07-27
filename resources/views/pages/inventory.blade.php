@@ -185,19 +185,27 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit of Measurement)</label>
-                        <select id="good_uom" name="uom" required
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                            <option value="piece" selected>Piece (Pcs)</option>
-                            <option value="kg">Kg (Kilograms)</option>
-                        </select>
+                        <input type="text" id="good_uom" name="uom" placeholder="e.g. piece, kg, box" value="piece" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Selling Price (Excl. Tax)</label>
                         <input type="number" id="good_price" name="selling_price" step="0.01" min="0" placeholder="e.g. 1850.00" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GST Rate (%)</label>
+                        <select id="good_gst_rate" name="gst_rate" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                            <option value="18.00" selected>18% (Standard GST)</option>
+                            <option value="12.00">12% (Reduced Tax)</option>
+                            <option value="5.00">5% (Essential Goods)</option>
+                            <option value="28.00">28% (Luxury / Heavy Equipment)</option>
+                            <option value="0.00">0% (Exempt Goods)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -226,6 +234,7 @@
                             <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">SKU</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">HSN Code</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">UOM</th>
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">GST Rate</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Price</th>
                             <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
@@ -241,12 +250,15 @@
                                 <td class="px-6 py-4 text-center">
                                     <span class="px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">{{ $good->uom ?? 'piece' }}</span>
                                 </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">{{ number_format($good->gst_rate ?? 18, 0) }}% GST</span>
+                                </td>
                                 <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $good->current_stock }} {{ $good->uom ?? 'piece' }}</td>
                                 <td class="px-6 py-4 text-right font-bold text-slate-850">₹{{ number_format($good->selling_price, 2) }}</td>
                                 <td class="px-6 py-4 text-center">
                                     <div class="flex items-center justify-center space-x-1.5">
                                         <button type="button" 
-                                                onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ addslashes($good->hsn_code ?? '') }}', '{{ $good->uom ?? 'piece' }}', {{ $good->current_stock ?? 0 }}, {{ $good->selling_price }})"
+                                                onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku) }}', '{{ addslashes($good->hsn_code ?? '') }}', '{{ $good->uom ?? 'piece' }}', {{ $good->current_stock ?? 0 }}, {{ $good->selling_price }}, {{ $good->gst_rate ?? 18.00 }})"
                                                 class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                                 title="Edit Product">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -398,6 +410,7 @@ function resetProductForm() {
     document.getElementById('good_hsn').value = '';
     document.getElementById('good_uom').value = 'piece';
     document.getElementById('good_price').value = '';
+    if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = '18.00';
     
     const btn = document.getElementById('productSubmitBtn');
     btn.innerText = 'Save Product';
@@ -419,7 +432,7 @@ function toggleProductForm(showExplicit = null) {
     }
 }
 
-function openEditProductModal(id, name, sku, hsn, uom, stock, price) {
+function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 18.00) {
     const card = document.getElementById('productCard');
     if (!card) return;
 
@@ -442,6 +455,7 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price) {
     document.getElementById('good_hsn').value = hsn;
     document.getElementById('good_uom').value = uom;
     document.getElementById('good_price').value = price;
+    if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = parseFloat(gstRate).toFixed(2);
     
     const btn = document.getElementById('productSubmitBtn');
     btn.innerText = 'Update Product';

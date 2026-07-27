@@ -122,17 +122,19 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Address Line 1</label>
-                    <input type="text" name="address_line_1" value="{{ \App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') }}" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business Address</label>
+                    <input type="text" name="address" value="{{ \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021'))) }}" required
+                           placeholder="Plot No. 12, G.I.D.C. Metoda, Rajkot, Gujarat - 360021"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Address Line 2</label>
-                    <input type="text" name="address_line_2" value="{{ \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021') }}" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business Email</label>
+                    <input type="email" name="business_email" value="{{ \App\Models\Setting::get('business_email', 'pww@example.com') }}" required
+                           placeholder="e.g. pww@example.com"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
                 </div>
             </div>
 
@@ -165,6 +167,25 @@
                                minlength="11" maxlength="11" pattern="^[A-Za-z]{4}[0O][0-9A-Za-z]{6}$"
                                title="Format: 11-character Bank IFSC Code (e.g. SBIN0001234)"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-4">Invoice & Order Prefix Formatting</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Number Prefix</label>
+                        <input type="text" name="invoice_prefix" value="{{ \App\Models\Setting::get('invoice_prefix', 'PWW-') }}" placeholder="e.g. PWW- or PWW/2026-27/" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
+                        <p class="text-[10px] text-slate-400 mt-1">Generated Invoice Format: <code class="font-bold text-blue-600">{{ \App\Models\Setting::get('invoice_prefix', 'PWW-') }}20260727-0001</code></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sales Order Prefix</label>
+                        <input type="text" name="order_prefix" value="{{ \App\Models\Setting::get('order_prefix', 'PWW-ORD-') }}" placeholder="e.g. PWW-ORD- or ORD/" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono uppercase">
+                        <p class="text-[10px] text-slate-400 mt-1">Generated Order Format: <code class="font-bold text-amber-600">{{ \App\Models\Setting::get('order_prefix', 'PWW-ORD-') }}20260727-0001</code></p>
                     </div>
                 </div>
             </div>

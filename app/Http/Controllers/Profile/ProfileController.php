@@ -76,8 +76,8 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'business_name' => 'required|string|max:255',
             'business_subtitle' => 'required|string|max:255',
-            'address_line_1' => 'required|string|max:255',
-            'address_line_2' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'business_email' => 'required|email|max:255',
             'gstin' => ['required', 'string', 'size:15', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/'],
             'msme_number' => ['nullable', 'string', 'regex:/^UDYAM-[A-Za-z]{2}-[0-9]{2}-[0-9]{7}$/i'],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -85,6 +85,8 @@ class ProfileController extends Controller
             'bank_account_name' => 'required|string|max:255',
             'bank_account_no' => 'required|string|min:9|max:18|regex:/^[0-9A-Za-z]+$/',
             'bank_ifsc' => ['required', 'string', 'size:11', 'regex:/^[A-Za-z]{4}[0O][0-9A-Za-z]{6}$/'],
+            'invoice_prefix' => 'nullable|string|max:50',
+            'order_prefix' => 'nullable|string|max:50',
         ], [
             'gstin.regex' => 'Please enter a valid 15-character GSTIN (e.g. 24AAAAA1111A1Z5).',
             'gstin.size' => 'GSTIN number must be exactly 15 characters long.',
@@ -109,14 +111,18 @@ class ProfileController extends Controller
         try {
             Setting::set('business_name', $validated['business_name']);
             Setting::set('business_subtitle', $validated['business_subtitle']);
-            Setting::set('address_line_1', $validated['address_line_1']);
-            Setting::set('address_line_2', $validated['address_line_2']);
+            Setting::set('address', $validated['address']);
+            Setting::set('address_line_1', $validated['address']);
+            Setting::set('address_line_2', '');
+            Setting::set('business_email', strtolower(trim($validated['business_email'])));
             Setting::set('gstin', $validated['gstin']);
             Setting::set('msme_number', $request->input('msme_number', ''));
             Setting::set('bank_name', $validated['bank_name']);
             Setting::set('bank_account_name', $validated['bank_account_name']);
             Setting::set('bank_account_no', $validated['bank_account_no']);
             Setting::set('bank_ifsc', $validated['bank_ifsc']);
+            Setting::set('invoice_prefix', strtoupper(trim($request->input('invoice_prefix', 'PWW-'))));
+            Setting::set('order_prefix', strtoupper(trim($request->input('order_prefix', 'PWW-ORD-'))));
 
             if ($request->hasFile('logo')) {
                 $file = $request->file('logo');

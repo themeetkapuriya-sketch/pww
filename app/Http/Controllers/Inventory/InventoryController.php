@@ -113,19 +113,21 @@ class InventoryController extends Controller
             'product_name' => 'required|string|max:255',
             'sku' => 'required|string|unique:products,sku|max:100',
             'hsn_code' => 'required|string|max:50',
-            'uom' => 'required|string|in:piece,kg',
+            'uom' => 'required|string|max:50',
             'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $validated['current_stock'] = $request->input('current_stock', 0);
         $validated['uom'] = $request->input('uom', 'piece');
+        $validated['gst_rate'] = $request->input('gst_rate', 18.00);
 
         $good = Product::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => "Product '{$good->product_name}' cataloged successfully!",
+            'message' => "Product '{$good->product_name}' (GST {$good->gst_rate}%) cataloged successfully!",
             'data' => $good
         ]);
     }
@@ -141,13 +143,17 @@ class InventoryController extends Controller
             'product_name' => 'required|string|max:255',
             'sku' => 'required|string|max:100|unique:products,sku,' . $id,
             'hsn_code' => 'required|string|max:50',
-            'uom' => 'required|string|in:piece,kg',
+            'uom' => 'required|string|max:50',
             'current_stock' => 'nullable|integer|min:0',
             'selling_price' => 'required|numeric|min:0',
+            'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
         if (!array_key_exists('current_stock', $validated) || is_null($validated['current_stock'])) {
             unset($validated['current_stock']);
+        }
+        if (!isset($validated['gst_rate'])) {
+            $validated['gst_rate'] = 18.00;
         }
 
         $good->update($validated);

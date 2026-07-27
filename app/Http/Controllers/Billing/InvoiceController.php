@@ -68,22 +68,31 @@ class InvoiceController extends Controller
 
                 // Calculate taxable subtotal
                 $taxable = 0.00;
-                foreach ($validated['product_ids'] as $idx => $fgId) {
-                    $taxable += $validated['quantities'][$idx] * $validated['unit_prices'][$idx];
-                }
-
                 $cgst = 0.00;
                 $sgst = 0.00;
                 $igst = 0.00;
 
-                if ($isGujarat) {
-                    $cgst = round($taxable * 0.09, 2);
-                    $sgst = round($taxable * 0.09, 2);
-                } else {
-                    $igst = round($taxable * 0.18, 2);
+                foreach ($validated['product_ids'] as $idx => $fgId) {
+                    $qty = (int)$validated['quantities'][$idx];
+                    $price = (float)$validated['unit_prices'][$idx];
+                    $lineTotal = round($qty * $price, 2);
+                    $taxable += $lineTotal;
+
+                    $product = Product::find($fgId);
+                    $rate = ($product && isset($product->gst_rate)) ? (float)$product->gst_rate : 18.00;
+
+                    if ($isGujarat) {
+                        $cgst += round($lineTotal * ($rate / 200.0), 2);
+                        $sgst += round($lineTotal * ($rate / 200.0), 2);
+                    } else {
+                        $igst += round($lineTotal * ($rate / 100.0), 2);
+                    }
                 }
 
-                $total = $taxable + $cgst + $sgst + $igst;
+                $cgst = round($cgst, 2);
+                $sgst = round($sgst, 2);
+                $igst = round($igst, 2);
+                $total = round($taxable + $cgst + $sgst + $igst, 2);
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
                 $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
 

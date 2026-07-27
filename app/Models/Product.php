@@ -16,12 +16,14 @@ class Product extends Model
         'uom',
         'current_stock',
         'selling_price',
+        'gst_rate',
         'alerts_enabled',
     ];
 
     protected $casts = [
         'current_stock' => 'integer',
         'selling_price' => 'decimal:2',
+        'gst_rate' => 'decimal:2',
         'alerts_enabled' => 'boolean',
     ];
 

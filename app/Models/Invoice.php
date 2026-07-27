@@ -90,9 +90,10 @@ class Invoice extends Model
             $fyEnd = \Carbon\Carbon::create($now->year, 3, 31, 23, 59, 59);
         }
 
+        $prefix = Setting::get('invoice_prefix', 'PWW-');
         $count = self::whereBetween('created_at', [$fyStart, $fyEnd])->count();
         $nextSequence = $count + 1;
         $sequenceStr = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
-        return 'PWW-' . date('Ymd') . '-' . $sequenceStr;
+        return $prefix . date('Ymd') . '-' . $sequenceStr;
     }
 }

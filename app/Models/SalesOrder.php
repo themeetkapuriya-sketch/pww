@@ -44,7 +44,7 @@ class SalesOrder extends Model
 
     public static function generateNextOrderNumber(): string
     {
-        $prefix = 'PWW-ORD-';
+        $prefix = Setting::get('order_prefix', 'PWW-ORD-');
         $dateStr = date('Ymd');
         $latest = self::where('order_number', 'like', "{$prefix}{$dateStr}-%")
             ->orderBy('id', 'desc')

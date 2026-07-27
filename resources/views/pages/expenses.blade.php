@@ -38,17 +38,19 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Expense Category</label>
-                        <select name="expense_category" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            <option value="factory_electricity" {{ $prefillCategory === 'factory_electricity' ? 'selected' : '' }}>Factory Electricity</option>
-                            <option value="industrial_gas" {{ $prefillCategory === 'industrial_gas' ? 'selected' : '' }}>Industrial Gas / Consumables</option>
-                            <option value="welding_consumables" {{ $prefillCategory === 'welding_consumables' ? 'selected' : '' }}>Welding Consumables</option>
-                            <option value="freight_transport" {{ $prefillCategory === 'freight_transport' ? 'selected' : '' }}>Freight & Transport Charges</option>
-                            <option value="salary" {{ $prefillCategory === 'salary' ? 'selected' : '' }}>Salary / Wages</option>
-                            <option value="gst_payment" {{ ($prefillCategory === 'gst_payment' || request()->has('log_gst') || (empty($prefillCategory) && $shouldShowForm)) ? 'selected' : '' }}>GST Payment / Tax Payment</option>
-                            <option value="administrative" {{ $prefillCategory === 'administrative' ? 'selected' : '' }}>Administrative Expenses</option>
-                            <option value="machinery_depreciation" {{ $prefillCategory === 'machinery_depreciation' ? 'selected' : '' }}>Machinery Depreciation Schedule</option>
-                            <option value="others" {{ $prefillCategory === 'others' ? 'selected' : '' }}>Other Expenses / Miscellaneous</option>
-                        </select>
+                        <input type="text" name="expense_category" list="expense_category_list" placeholder="e.g. Factory Electricity, Transport..." value="{{ $prefillCategory ?? (request()->has('log_gst') ? 'gst_payment' : '') }}" required
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        <datalist id="expense_category_list">
+                            <option value="factory_electricity">Factory Electricity</option>
+                            <option value="industrial_gas">Industrial Gas / Consumables</option>
+                            <option value="welding_consumables">Welding Consumables</option>
+                            <option value="freight_transport">Freight & Transport Charges</option>
+                            <option value="salary">Salary / Wages</option>
+                            <option value="gst_payment">GST Payment / Tax Payment</option>
+                            <option value="administrative">Administrative Expenses</option>
+                            <option value="machinery_depreciation">Machinery Depreciation Schedule</option>
+                            <option value="others">Other Expenses / Miscellaneous</option>
+                        </datalist>
                     </div>
 
                     <div>
