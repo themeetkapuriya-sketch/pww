@@ -93,7 +93,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GST Rate Slab (%)</label>
                     <select name="gst_rate" id="gstRateSelect" required
@@ -103,6 +103,15 @@
                         <option value="12">12% GST</option>
                         <option value="18" selected>18% GST (Standard)</option>
                         <option value="28">28% GST</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Payment Status</label>
+                    <select name="payment_status" id="paymentStatusSelect"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-bold">
+                        <option value="paid" selected>✓ Paid (Fully Settled)</option>
+                        <option value="unpaid">⏳ Unpaid (Pending Bill)</option>
+                        <option value="partially_paid">⚡ Partially Paid</option>
                     </select>
                 </div>
                 <div>
@@ -196,7 +205,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GST Rate Slab (%)</label>
                         <select name="gst_rate" id="edit_gst_rate" required
@@ -206,6 +215,15 @@
                             <option value="12">12% GST</option>
                             <option value="18">18% GST (Standard)</option>
                             <option value="28">28% GST</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Payment Status</label>
+                        <select name="payment_status" id="edit_payment_status"
+                                class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold">
+                            <option value="paid">✓ Paid (Fully Settled)</option>
+                            <option value="unpaid">⏳ Unpaid (Pending Bill)</option>
+                            <option value="partially_paid">⚡ Partially Paid</option>
                         </select>
                     </div>
                     <div>
@@ -306,7 +324,7 @@
                                 <div class="flex items-center justify-center space-x-2">
                                     <button type="button" 
                                             title="Edit Purchase Record"
-                                            onclick="openEditPurchaseForm({{ $pur->id }}, '{{ $pur->purchase_type }}', '{{ $pur->raw_material_id ?? '' }}', '{{ addslashes($pur->vendor_name) }}', '{{ addslashes($pur->bill_number ?? '') }}', '{{ addslashes($pur->item_name) }}', {{ $pur->quantity }}, '{{ $pur->unit }}', {{ $pur->total_amount }}, {{ (int)$pur->gst_rate }}, '{{ $pur->purchase_date->format('Y-m-d') }}')"
+                                            onclick="openEditPurchaseForm({{ $pur->id }}, '{{ $pur->purchase_type }}', '{{ $pur->raw_material_id ?? '' }}', '{{ addslashes($pur->vendor_name) }}', '{{ addslashes($pur->bill_number ?? '') }}', '{{ addslashes($pur->item_name) }}', {{ $pur->quantity }}, '{{ $pur->unit }}', {{ $pur->total_amount }}, {{ (int)$pur->gst_rate }}, '{{ $pur->purchase_date->format('Y-m-d') }}', '{{ $pur->payment_status ?? 'paid' }}')"
                                             class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     </button>
@@ -512,7 +530,7 @@ window.closeVendorPaymentModal = function() {
         }
     };
 
-    window.openEditPurchaseForm = function(id, type, rawMaterialId, vendorName, billNumber, itemName, qty, unit, totalAmount, gstRate, purchaseDate) {
+    window.openEditPurchaseForm = function(id, type, rawMaterialId, vendorName, billNumber, itemName, qty, unit, totalAmount, gstRate, purchaseDate, paymentStatus) {
         const createForm = document.getElementById('purchaseFormContainer');
         if (createForm && !createForm.classList.contains('hidden')) {
             createForm.classList.add('hidden');
@@ -532,6 +550,9 @@ window.closeVendorPaymentModal = function() {
         document.getElementById('edit_total_amount').value = totalAmount;
         document.getElementById('edit_gst_rate').value = gstRate;
         document.getElementById('edit_purchase_date').value = purchaseDate;
+        if (document.getElementById('edit_payment_status')) {
+            document.getElementById('edit_payment_status').value = paymentStatus || 'paid';
+        }
 
         window.handleEditPurchaseTypeChange();
 

@@ -112,15 +112,26 @@
                             @foreach($prefillOrder->items as $it)
                                 <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                                     <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                        <option value="">Select product...</option>
-                                        @foreach ($finishedGoods as $g)
-                                            @php
-                                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                                            @endphp
-                                            <option value="{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
-                                            </option>
-                                        @endforeach
+                                        <option value="">Select product or raw material...</option>
+                                        <optgroup label="📦 Finished Goods Products">
+                                            @foreach ($finishedGoods as $g)
+                                                @php
+                                                    $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                                @endphp
+                                                <option value="product_{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-type="product" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                                    {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                        @if(isset($rawMaterials) && $rawMaterials->isNotEmpty())
+                                            <optgroup label="🧱 Raw Materials Inventory">
+                                                @foreach ($rawMaterials as $rm)
+                                                    <option value="raw_material_{{ $rm->id }}" data-type="raw_material" data-price="0.00" data-price-pcs="0.00" data-price-kg="0.00" data-weight="1.000" data-uom="{{ $rm->unit ?? 'kg' }}">
+                                                        {{ $rm->material_name }} (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endif
                                     </select>
                                     <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="Pcs">Pcs</option>
@@ -134,15 +145,26 @@
                         @else
                             <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                                 <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                    <option value="">Select product...</option>
-                                    @foreach ($finishedGoods as $g)
-                                        @php
-                                            $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                                        @endphp
-                                        <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                            {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
-                                        </option>
-                                    @endforeach
+                                    <option value="">Select product or raw material...</option>
+                                    <optgroup label="📦 Finished Goods Products">
+                                        @foreach ($finishedGoods as $g)
+                                            @php
+                                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                            @endphp
+                                            <option value="product_{{ $g->id }}" data-type="product" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                    @if(isset($rawMaterials) && $rawMaterials->isNotEmpty())
+                                        <optgroup label="🧱 Raw Materials Inventory">
+                                            @foreach ($rawMaterials as $rm)
+                                                <option value="raw_material_{{ $rm->id }}" data-type="raw_material" data-price="0.00" data-price-pcs="0.00" data-price-kg="0.00" data-weight="1.000" data-uom="{{ $rm->unit ?? 'kg' }}">
+                                                    {{ $rm->material_name }} (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 </select>
                                 <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="Pcs">Pcs</option>
@@ -542,8 +564,13 @@
         @php
             $itemsArray = [];
             foreach ($inv->items as $it) {
+                $itemKey = ($it->item_type === 'raw_material') ? ('raw_material_' . $it->raw_material_id) : ('product_' . ($it->product_id ?? $it->finished_good_id));
                 $itemsArray[] = [
+                    'key' => $itemKey,
+                    'item_type' => $it->item_type ?? 'product',
                     'product_id' => $it->product_id ?? $it->finished_good_id,
+                    'raw_material_id' => $it->raw_material_id,
+                    'billing_uom' => $it->billing_uom,
                     'quantity' => $it->quantity,
                     'unit_price' => $it->unit_price
                 ];
@@ -628,11 +655,15 @@
             } else {
                 $form.find('select#invoiceClientSelect').val('');
             }
-            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#invoiceClientSelect), textarea').each(function() {
                 if (!this.disabled) {
                     this.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
                 }
             });
+            if (window.invoiceClientTomSelect && window.invoiceClientTomSelect.control) {
+                window.invoiceClientTomSelect.control.style.backgroundColor = '#f8fafc';
+                window.invoiceClientTomSelect.control.style.borderColor = '#e2e8f0';
+            }
         }
         
         // Reset billing rows to single empty row from HTML template
@@ -711,11 +742,15 @@
             if (invoice.due_date) {
                 $form.find('input[name="due_date"]').val(invoice.due_date);
             }
-            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#invoiceClientSelect), textarea').each(function() {
                 if (!this.disabled) {
                     this.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
                 }
             });
+            if (window.invoiceClientTomSelect && window.invoiceClientTomSelect.control) {
+                window.invoiceClientTomSelect.control.style.backgroundColor = '#ffffff';
+                window.invoiceClientTomSelect.control.style.borderColor = '#fde68a';
+            }
         }
 
         const container = document.getElementById('billingRowsContainer');
@@ -726,15 +761,26 @@
                 row.className = 'billing-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
                 row.innerHTML = `
                     <select name="product_ids[]" class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
-                        <option value="">Select product...</option>
-                        @foreach ($finishedGoods as $g)
-                            @php
-                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                            @endphp
-                            <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
-                            </option>
-                        @endforeach
+                        <option value="">Select product or raw material...</option>
+                        <optgroup label="📦 Finished Goods Products">
+                            @foreach ($finishedGoods as $g)
+                                @php
+                                    $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+                                @endphp
+                                <option value="product_{{ $g->id }}" data-type="product" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
+                                    {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
+                                </option>
+                            @endforeach
+                        </optgroup>
+                        @if(isset($rawMaterials) && $rawMaterials->isNotEmpty())
+                            <optgroup label="🧱 Raw Materials Inventory">
+                                @foreach ($rawMaterials as $rm)
+                                    <option value="raw_material_{{ $rm->id }}" data-type="raw_material" data-price="0.00" data-price-pcs="0.00" data-price-kg="0.00" data-weight="1.000" data-uom="{{ $rm->unit ?? 'kg' }}">
+                                        {{ $rm->material_name }} (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
                     <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         <option value="Pcs">Pcs</option>
@@ -744,7 +790,8 @@
                     <input type="number" name="unit_prices[]" value="${parseFloat(item.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
-                row.querySelector('select[name="product_ids[]"]').value = item.product_id;
+                const itemVal = item.key || (item.item_type === 'raw_material' ? ('raw_material_' + item.raw_material_id) : ('product_' + (item.product_id || item.finished_good_id)));
+                row.querySelector('select[name="product_ids[]"]').value = itemVal;
                 if (row.querySelector('select[name="billing_uoms[]"]')) {
                     row.querySelector('select[name="billing_uoms[]"]').value = item.billing_uom || 'Pcs';
                 }

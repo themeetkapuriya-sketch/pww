@@ -38,10 +38,23 @@ class PurchaseController extends Controller
             'total_amount' => 'required|numeric|min:0',
             'gst_rate' => 'required|numeric|in:0,5,12,18,28',
             'purchase_date' => 'required|date',
+            'payment_status' => 'nullable|string|in:paid,unpaid,partially_paid',
         ]);
 
         $gstRate = (float) $validated['gst_rate'];
         $totalAmt = (float) $validated['total_amount'];
+
+        $status = $validated['payment_status'] ?? 'paid';
+        if (empty($status)) {
+            $status = 'paid';
+        }
+        $validated['payment_status'] = $status;
+
+        if ($status === 'paid') {
+            $validated['paid_amount'] = $totalAmt;
+        } elseif ($status === 'unpaid') {
+            $validated['paid_amount'] = 0.00;
+        }
 
         if ($gstRate > 0) {
             $taxableAmount = round($totalAmt / (1 + ($gstRate / 100)), 2);
@@ -118,10 +131,23 @@ class PurchaseController extends Controller
             'total_amount' => 'required|numeric|min:0',
             'gst_rate' => 'required|numeric|in:0,5,12,18,28',
             'purchase_date' => 'required|date',
+            'payment_status' => 'nullable|string|in:paid,unpaid,partially_paid',
         ]);
 
         $gstRate = (float) $validated['gst_rate'];
         $totalAmt = (float) $validated['total_amount'];
+
+        $status = $validated['payment_status'] ?? 'paid';
+        if (empty($status)) {
+            $status = 'paid';
+        }
+        $validated['payment_status'] = $status;
+
+        if ($status === 'paid') {
+            $validated['paid_amount'] = $totalAmt;
+        } elseif ($status === 'unpaid') {
+            $validated['paid_amount'] = 0.00;
+        }
 
         if ($gstRate > 0) {
             $taxableAmount = round($totalAmt / (1 + ($gstRate / 100)), 2);

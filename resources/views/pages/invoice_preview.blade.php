@@ -130,15 +130,20 @@
                     <tbody class="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
                         @forelse($groupedItems as $item)
                             @php
-                                $pName = isset($item->product_name) ? $item->product_name : ($item->product->product_name ?? $item->finishedGood->product_name ?? 'Product');
-                                $pSku = isset($item->sku) ? $item->sku : ($item->product->sku ?? $item->finishedGood->sku ?? 'N/A');
+                                $isRaw = ($item->item_type === 'raw_material');
+                                $rawMat = $item->rawMaterial ?? null;
+                                $pGood = $item->finishedGood ?? $item->product ?? null;
+                                
+                                $pName = $item->item_name ?? ($isRaw ? ($rawMat->material_name ?? 'Raw Material') : ($pGood->product_name ?? 'Product'));
+                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A'));
+                                $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ $pName }}</td>
                                 <td class="py-3.5 px-4 text-center text-xs font-mono text-slate-500">{{ $pSku }}</td>
                                 <td class="py-3.5 px-4 text-right">₹{{ number_format($item->unit_price, 2) }}</td>
-                                <td class="py-3.5 px-4 text-center font-bold text-slate-800">{{ $item->quantity }} {{ strtolower($item->billing_uom ?? ($item->product->uom ?? $item->finishedGood->uom ?? 'piece')) }}</td>
+                                <td class="py-3.5 px-4 text-center font-bold text-slate-800">{{ $item->quantity }} {{ strtolower($pUom) }}</td>
                                 <td class="py-3.5 px-4 text-right font-extrabold text-slate-900">₹{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @empty

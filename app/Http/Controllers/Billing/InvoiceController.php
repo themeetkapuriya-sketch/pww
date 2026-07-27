@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Product;
+use App\Models\RawMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
 use App\Models\SalesOrder;
@@ -24,8 +25,9 @@ class InvoiceController extends Controller
      */
     public function invoices(Request $request)
     {
-        $invoices = Invoice::with(['plant.client', 'items.product'])->orderBy('created_at', 'desc')->paginate(20);
+        $invoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->orderBy('created_at', 'desc')->paginate(20);
         $finishedGoods = Product::all();
+        $rawMaterials = RawMaterial::orderBy('material_name')->get();
         $clients = Client::with('plants')->get();
 
         $prefillOrder = null;
@@ -33,7 +35,7 @@ class InvoiceController extends Controller
             $prefillOrder = SalesOrder::with(['items.product', 'client', 'plant'])->find($request->input('order_id'));
         }
 
-        return view('pages.invoices', compact('invoices', 'finishedGoods', 'clients', 'prefillOrder'));
+        return view('pages.invoices', compact('invoices', 'finishedGoods', 'rawMaterials', 'clients', 'prefillOrder'));
     }
 
     /**
@@ -41,7 +43,7 @@ class InvoiceController extends Controller
      */
     public function generateCustomInvoice(Request $request)
     {
-        $pIds = $request->input('product_ids', $request->input('finished_good_ids'));
+        $pIds = $request->input('product_ids', $request->input('finished_good_ids', $request->input('item_keys')));
         $request->merge(['product_ids' => $pIds]);
 
         $invoiceId = $request->input('invoice_id');
@@ -55,7 +57,7 @@ class InvoiceController extends Controller
             'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
             'due_date' => 'nullable|date',
             'product_ids' => 'required|array|min:1',
-            'product_ids.*' => 'required|exists:products,id',
+            'product_ids.*' => 'required',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|numeric|min:0.01',
             'unit_prices' => 'required|array|min:1',
@@ -70,20 +72,44 @@ class InvoiceController extends Controller
                 $plant = ClientPlant::findOrFail($validated['plant_id']);
                 $isGujarat = strcasecmp(trim($plant->state), 'Gujarat') === 0;
 
-                // Calculate taxable subtotal
+                // Parse line items (Products vs Raw Materials)
+                $parsedItems = [];
                 $taxable = 0.00;
                 $cgst = 0.00;
                 $sgst = 0.00;
                 $igst = 0.00;
 
-                foreach ($validated['product_ids'] as $idx => $fgId) {
-                    $qty = (int)$validated['quantities'][$idx];
+                foreach ($validated['product_ids'] as $idx => $rawKey) {
+                    $qty = (float)$validated['quantities'][$idx];
                     $price = (float)$validated['unit_prices'][$idx];
                     $lineTotal = round($qty * $price, 2);
                     $taxable += $lineTotal;
 
-                    $product = Product::find($fgId);
-                    $rate = ($product && isset($product->gst_rate)) ? (float)$product->gst_rate : 18.00;
+                    $itemType = 'product';
+                    $productId = null;
+                    $rawMaterialId = null;
+                    $itemName = 'Item';
+                    $rate = 18.00;
+                    $defaultUom = 'Pcs';
+
+                    if (str_starts_with($rawKey, 'raw_material_')) {
+                        $itemType = 'raw_material';
+                        $rawMaterialId = (int) str_replace('raw_material_', '', $rawKey);
+                        $rm = RawMaterial::find($rawMaterialId);
+                        if ($rm) {
+                            $itemName = $rm->material_name;
+                            $defaultUom = $rm->unit ?? 'kg';
+                        }
+                    } else {
+                        $itemType = 'product';
+                        $productId = (int) str_replace('product_', '', $rawKey);
+                        $product = Product::find($productId);
+                        if ($product) {
+                            $itemName = $product->product_name;
+                            $rate = isset($product->gst_rate) ? (float)$product->gst_rate : 18.00;
+                            $defaultUom = $product->uom ?? 'piece';
+                        }
+                    }
 
                     if ($isGujarat) {
                         $cgst += round($lineTotal * ($rate / 200.0), 2);
@@ -91,6 +117,14 @@ class InvoiceController extends Controller
                     } else {
                         $igst += round($lineTotal * ($rate / 100.0), 2);
                     }
+
+                    $parsedItems[] = [
+                        'type' => $itemType,
+                        'product_id' => $productId,
+                        'raw_material_id' => $rawMaterialId,
+                        'name' => $itemName,
+                        'default_uom' => $defaultUom,
+                    ];
                 }
 
                 $cgst = round($cgst, 2);
@@ -105,9 +139,16 @@ class InvoiceController extends Controller
                     
                     // Restore stock before updating
                     foreach ($invoice->items as $oldItem) {
-                        $product = Product::find($oldItem->product_id);
-                        if ($product) {
-                            $product->increment('current_stock', (int)$oldItem->quantity);
+                        if ($oldItem->item_type === 'raw_material' && $oldItem->raw_material_id) {
+                            $rm = RawMaterial::find($oldItem->raw_material_id);
+                            if ($rm) {
+                                $rm->increment('current_stock', (float)$oldItem->quantity);
+                            }
+                        } else if ($oldItem->product_id) {
+                            $product = Product::find($oldItem->product_id);
+                            if ($product) {
+                                $product->increment('current_stock', (float)$oldItem->quantity);
+                            }
                         }
                     }
                     $invoice->items()->delete();
@@ -142,22 +183,32 @@ class InvoiceController extends Controller
                     ]);
                 }
 
-                foreach ($validated['product_ids'] as $idx => $fgId) {
-                    $qty = (int)$validated['quantities'][$idx];
-                    $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : 'Pcs';
+                foreach ($parsedItems as $idx => $itemData) {
+                    $qty = (float)$validated['quantities'][$idx];
+                    $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : $itemData['default_uom'];
                     InvoiceItem::create([
                         'invoice_id' => $invoice->id,
-                        'product_id' => $fgId,
+                        'item_type' => $itemData['type'],
+                        'product_id' => $itemData['product_id'],
+                        'raw_material_id' => $itemData['raw_material_id'],
+                        'item_name' => $itemData['name'],
                         'billing_uom' => $buom,
                         'quantity' => $qty,
                         'unit_price' => $validated['unit_prices'][$idx],
                         'total_price' => round($qty * $validated['unit_prices'][$idx], 2),
                     ]);
 
-                    // Automatically deduct finished goods stock upon sale
-                    $product = Product::find($fgId);
-                    if ($product) {
-                        $product->decrement('current_stock', $qty);
+                    // Automatically deduct inventory stock upon sale
+                    if ($itemData['type'] === 'raw_material' && $itemData['raw_material_id']) {
+                        $rm = RawMaterial::find($itemData['raw_material_id']);
+                        if ($rm) {
+                            $rm->decrement('current_stock', $qty);
+                        }
+                    } else if ($itemData['product_id']) {
+                        $product = Product::find($itemData['product_id']);
+                        if ($product) {
+                            $product->decrement('current_stock', $qty);
+                        }
                     }
                 }
 
@@ -309,11 +360,24 @@ class InvoiceController extends Controller
     public function deleteInvoice($id)
     {
         try {
-            $invoice = Invoice::findOrFail($id);
+            $invoice = Invoice::with('items')->findOrFail($id);
             $invNum = $invoice->invoice_number;
 
             DB::transaction(function () use ($invoice) {
                 Payment::where('invoice_id', $invoice->id)->delete();
+                foreach ($invoice->items as $item) {
+                    if ($item->item_type === 'raw_material' && $item->raw_material_id) {
+                        $rm = RawMaterial::find($item->raw_material_id);
+                        if ($rm) {
+                            $rm->increment('current_stock', (float)$item->quantity);
+                        }
+                    } else if ($item->product_id) {
+                        $product = Product::find($item->product_id);
+                        if ($product) {
+                            $product->increment('current_stock', (float)$item->quantity);
+                        }
+                    }
+                }
                 $invoice->items()->delete();
                 $invoice->delete();
             });
@@ -335,7 +399,7 @@ class InvoiceController extends Controller
      */
     public function printInvoice($id)
     {
-        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
         $client = $invoice->client;
         $plant = $invoice->plant;
         $groupedItems = $invoice->items;
@@ -348,7 +412,7 @@ class InvoiceController extends Controller
      */
     public function previewInvoice($id)
     {
-        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
         $client = $invoice->client;
         $plant = $invoice->plant;
         $groupedItems = $invoice->items;
@@ -361,7 +425,7 @@ class InvoiceController extends Controller
      */
     public function downloadInvoicePdf($id)
     {
-        $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+        $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
         $client = $invoice->client;
         $plant = $invoice->plant;
         $groupedItems = $invoice->items;

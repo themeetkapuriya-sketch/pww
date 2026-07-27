@@ -11,7 +11,10 @@ class InvoiceItem extends Model
 
     protected $fillable = [
         'invoice_id',
+        'item_type',
         'product_id',
+        'raw_material_id',
+        'item_name',
         'billing_uom',
         'quantity',
         'unit_price',
@@ -37,5 +40,10 @@ class InvoiceItem extends Model
     public function finishedGood()
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function rawMaterial()
+    {
+        return $this->belongsTo(RawMaterial::class, 'raw_material_id');
     }
 }

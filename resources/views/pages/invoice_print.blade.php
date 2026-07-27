@@ -621,12 +621,15 @@
                         @endphp
                         @foreach ($groupedItems as $index => $item)
                             @php
+                                $isRaw = ($item->item_type === 'raw_material');
+                                $rawMat = $item->rawMaterial ?? null;
                                 $pGood = $item->finishedGood ?? $item->product ?? null;
-                                $pName = isset($item->product_name) ? $item->product_name : ($pGood->product_name ?? 'Product');
-                                $pSku = isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A');
-                                $pHsn = $pGood->hsn_code ?? '73089090';
-                                $pUom = $item->billing_uom ?? ($pGood->uom ?? 'piece');
-                                $pGst = $pGood->gst_rate ?? 18.00;
+                                
+                                $pName = $item->item_name ?? ($isRaw ? ($rawMat->material_name ?? 'Raw Material') : ($pGood->product_name ?? 'Product'));
+                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A'));
+                                $pHsn = $isRaw ? '72040000' : ($pGood->hsn_code ?? '73089090');
+                                $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
+                                $pGst = $isRaw ? 18.00 : ($pGood->gst_rate ?? 18.00);
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
                             @endphp
                             <tr>
