@@ -104,4 +104,30 @@ class SalesOrder extends Model
         }
         return false;
     }
+
+    /**
+     * Get stock deficit details if any items lack sufficient stock.
+     */
+    public function getStockDeficitDetails(): array
+    {
+        $this->loadMissing('items.product');
+        $deficits = [];
+
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            $current = $product ? (int)$product->current_stock : 0;
+            $required = (int)$item->quantity;
+
+            if ($current < $required) {
+                $deficits[] = [
+                    'product_name' => $product ? $product->product_name : 'Unknown Item',
+                    'current_stock' => $current,
+                    'required_quantity' => $required,
+                    'missing_quantity' => $required - $current,
+                ];
+            }
+        }
+
+        return $deficits;
+    }
 }

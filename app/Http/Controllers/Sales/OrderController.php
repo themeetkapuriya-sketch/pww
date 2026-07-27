@@ -190,6 +190,21 @@ class OrderController extends Controller
         ]);
 
         $requestedStatus = $validated['status'];
+
+        if (in_array($requestedStatus, ['ready_for_dispatch', 'dispatched', 'completed'])) {
+            $deficits = $order->getStockDeficitDetails();
+            if (!empty($deficits)) {
+                $deficitMsgs = array_map(function($d) {
+                    return "'{$d['product_name']}' (Requires {$d['required_quantity']}, Current Stock: {$d['current_stock']} - Short by {$d['missing_quantity']})";
+                }, $deficits);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => "Insufficient stock to mark as " . strtoupper(str_replace('_', ' ', $requestedStatus)) . ". Shortage: " . implode('; ', $deficitMsgs)
+                ], 422);
+            }
+        }
+
         $order->update(['status' => $requestedStatus]);
 
         if (in_array($requestedStatus, ['dispatched', 'completed'])) {

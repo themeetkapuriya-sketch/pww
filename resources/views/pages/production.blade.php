@@ -106,7 +106,12 @@
                         <tr class="hover:bg-slate-50 transition" id="row-prod-{{ $log->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">
+                                {{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}
+                                @if(isset($log->product->current_stock))
+                                    <span class="text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md ml-1.5">Stock: {{ number_format($log->product->current_stock) }} {{ $log->product->uom ?? 'Pcs' }}</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
                             <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
                             <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>

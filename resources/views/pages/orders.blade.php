@@ -217,39 +217,70 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right font-mono font-extrabold text-slate-900">₹{{ number_format($ord->total_amount, 2) }}</td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
+                                @php
+                                    $hasStock = $ord->hasSufficientStock();
+                                    $deficits = $ord->getStockDeficitDetails();
+                                @endphp
+
                                 @if ($ord->status === 'dispatched' || $ord->status === 'completed')
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                        DISPATCHED
-                                    </span>
+                                    <div class="inline-flex flex-col items-center">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                            ✓ DISPATCHED
+                                        </span>
+                                        <span class="text-[9px] text-emerald-600 font-semibold mt-0.5">Stock Deducted</span>
+                                    </div>
+
                                 @elseif ($ord->status === 'cancelled')
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-                                        CANCELLED
+                                        ✕ CANCELLED
                                     </span>
-                                @else
-                                    <select onchange="updateOrderStatus({{ $ord->id }}, this)" 
-                                            class="text-[10px] font-bold uppercase rounded-full px-2.5 py-1 focus:outline-none border shadow-2xs bg-white 
-                                            {{ $ord->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
-                                            {{ $ord->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
-                                            {{ $ord->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}"
-                                            style="background-color: #ffffff !important;">
-                                        <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $ord->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                        <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $ord->status === 'in_production' ? 'selected' : '' }}>In Production</option>
-                                        <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $ord->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
-                                        <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;">Dispatched</option>
-                                        <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;">Cancelled</option>
-                                    </select>
+
+                                @elseif ($ord->status === 'pending')
+                                    <div class="inline-flex flex-col items-center space-y-1">
+                                        <button type="button" 
+                                                onclick="updateOrderStatus({{ $ord->id }}, 'in_production')"
+                                                title="Click to start manufacturing run for this order"
+                                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer">
+                                            <span>▶ Start Production</span>
+                                        </button>
+                                        <span class="text-[9.5px] text-amber-600 font-semibold">Stage 1: Pending</span>
+                                    </div>
+
+                                @elseif ($ord->status === 'in_production')
+                                    @if ($hasStock)
+                                        <div class="inline-flex flex-col items-center space-y-1">
+                                            <button type="button" 
+                                                    onclick="updateOrderStatus({{ $ord->id }}, 'ready_for_dispatch')"
+                                                    title="Sufficient stock available! Click to mark Ready for Dispatch"
+                                                    class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer animate-pulse">
+                                                <span>📦 Mark Ready for Dispatch</span>
+                                            </button>
+                                            <span class="text-[9.5px] text-blue-600 font-semibold">Stock Ready</span>
+                                        </div>
+                                    @else
+                                        <div class="inline-flex flex-col items-center space-y-1" title="{{ implode('; ', array_map(fn($d) => $d['product_name'] . ': missing ' . $d['missing_quantity'] . ' pcs', $deficits)) }}">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                                ⏳ In Production (Awaiting Stock)
+                                            </span>
+                                            <a href="{{ route('production') }}" class="text-[9.5px] text-amber-700 hover:underline font-bold">+ Log Batch in Production →</a>
+                                        </div>
+                                    @endif
+
+                                @elseif ($ord->status === 'ready_for_dispatch')
+                                    <div class="inline-flex flex-col items-center space-y-1">
+                                        <a href="{{ route('invoices', ['order_id' => $ord->id]) }}" 
+                                           title="Stock is ready! Click to generate Tax Invoice & dispatch order"
+                                           class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1">
+                                            <span>🚀 Gen Invoice & Dispatch</span>
+                                        </a>
+                                        <span class="text-[9.5px] text-indigo-600 font-semibold">Stage 3: Ready for Dispatch</span>
+                                    </div>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     @if($ord->status !== 'dispatched' && $ord->status !== 'completed' && $ord->status !== 'cancelled')
-                                        <a href="{{ route('invoices', ['order_id' => $ord->id]) }}"
-                                           title="Generate Tax Invoice"
-                                           class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold shadow-2xs transition flex items-center space-x-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                            <span>Gen Invoice</span>
-                                        </a>
                                         <button type="button" 
                                                 onclick='openEditOrderModal(@json($ord))'
                                                 title="Edit Sales Order"
@@ -497,21 +528,27 @@
         container.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function updateOrderStatus(id, selectEl) {
-        const status = (typeof selectEl === 'object' && selectEl !== null) ? selectEl.value : selectEl;
-        if (typeof selectEl === 'object' && selectEl !== null) {
-            applyStatusSelectColor(selectEl);
-        }
+    function updateOrderStatus(id, status) {
         const token = $('meta[name="csrf-token"]').attr('content') || '';
         $.ajax({
             url: `/orders/${id}/status`,
             method: 'PATCH',
             data: { status: status, _token: token },
-            success: function(res) {
-                if (window.showToast) window.showToast('success', res.message);
+            success: async function(res) {
+                if (window.showToast) window.showToast('success', res.message || 'Status updated!');
+                if (window.loadPage) {
+                    await window.loadPage(window.location.href);
+                } else {
+                    window.location.reload();
+                }
             },
             error: function(xhr) {
-                alert(xhr.responseJSON?.message || 'Failed to update order status.');
+                const msg = xhr.responseJSON?.message || 'Failed to update order status.';
+                if (window.showToast) {
+                    window.showToast('error', msg);
+                } else {
+                    alert(msg);
+                }
             }
         });
     }

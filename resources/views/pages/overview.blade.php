@@ -229,7 +229,6 @@
                     <h2 class="text-base font-bold text-slate-800">6-Month Financial Performance</h2>
                     <p class="text-xs text-slate-500">Total Billed Sales vs Total Outflows (Purchases + Overheads)</p>
                 </div>
-                <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">Historical Comparison</span>
             </div>
             <div class="relative h-64 w-full">
                 <canvas id="financialTrendChart"></canvas>
@@ -263,10 +262,13 @@
                 @forelse($recentProductionLogs as $log)
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
                         <div>
-                            <div class="text-xs font-black text-slate-800">
-                                {{ $log->product->product_name ?? 'Finished Good' }}
+                            <div class="text-xs font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
+                                <span>{{ $log->product->product_name ?? 'Finished Good' }}</span>
+                                @if(isset($log->product->current_stock))
+                                    <span class="text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">Stock: {{ format_indian($log->product->current_stock, 0) }} {{ $log->product->uom ?? $log->product->unit ?? 'Pcs' }}</span>
+                                @endif
                             </div>
-                            <div class="text-[11px] font-medium text-slate-500">
+                            <div class="text-[11px] font-medium text-slate-500 mt-0.5">
                                 {{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}
                                 @if($log->quantity_rejected > 0)
                                     • <span class="text-rose-600 font-semibold">{{ $log->quantity_rejected }} Rej</span>
@@ -306,22 +308,43 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right whitespace-nowrap">
                             <div class="text-xs font-bold text-slate-900">₹{{ format_indian($order->total_amount, 2) }}</div>
-                            <select onchange="updateDashboardOrderStatus({{ $order->id }}, this)" 
-                                     class="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 focus:outline-none border shadow-2xs bg-white mt-0.5 cursor-pointer 
-                                     {{ $order->status === 'pending' ? 'text-amber-600 border-amber-300' : '' }}
-                                     {{ $order->status === 'in_production' ? 'text-blue-600 border-blue-300' : '' }}
-                                     {{ $order->status === 'ready_for_dispatch' ? 'text-indigo-600 border-indigo-300' : '' }}
-                                     {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'text-emerald-600 border-emerald-300' : '' }}
-                                     {{ $order->status === 'cancelled' ? 'text-rose-600 border-rose-300' : '' }}"
-                                     style="background-color: #ffffff !important;">
-                                <option value="pending" class="bg-white text-amber-600 font-bold" style="background-color: #ffffff; color: #d97706;" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="in_production" class="bg-white text-blue-600 font-bold" style="background-color: #ffffff; color: #2563eb;" {{ $order->status === 'in_production' ? 'selected' : '' }}>In Production</option>
-                                <option value="ready_for_dispatch" class="bg-white text-indigo-600 font-bold" style="background-color: #ffffff; color: #4f46e5;" {{ $order->status === 'ready_for_dispatch' ? 'selected' : '' }}>Ready For Dispatch</option>
-                                <option value="dispatched" class="bg-white text-emerald-600 font-bold" style="background-color: #ffffff; color: #16a34a;" {{ $order->status === 'dispatched' || $order->status === 'completed' ? 'selected' : '' }}>Dispatched</option>
-                                <option value="cancelled" class="bg-white text-rose-600 font-bold" style="background-color: #ffffff; color: #dc2626;" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
+                            @php
+                                $ordHasStock = $order->hasSufficientStock();
+                            @endphp
+
+                            @if ($order->status === 'pending')
+                                <button type="button" 
+                                        onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'in_production')"
+                                        title="Click to start manufacturing order"
+                                        class="mt-1 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer">
+                                    <span>▶ Start Production</span>
+                                </button>
+                            @elseif ($order->status === 'in_production')
+                                @if ($ordHasStock)
+                                    <button type="button" 
+                                            onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'ready_for_dispatch')"
+                                            title="Stock ready! Click to mark Ready for Dispatch"
+                                            class="mt-1 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer animate-pulse">
+                                        <span>📦 Mark Ready</span>
+                                    </button>
+                                @else
+                                    <span class="inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mt-1">
+                                        ⏳ Awaiting Stock
+                                    </span>
+                                @endif
+                            @elseif ($order->status === 'ready_for_dispatch')
+                                <a href="{{ route('invoices', ['order_id' => $order->id]) }}" 
+                                   title="Stock ready! Click to generate Tax Invoice & dispatch"
+                                   class="mt-1 px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1">
+                                    <span>🚀 Gen Invoice</span>
+                                </a>
+                            @else
+                                <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 mt-1">
+                                    ✓ {{ strtoupper($order->status) }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -763,4 +786,30 @@ function submitDashboardPayForm(e) {
         </form>
     </div>
 </div>
+<script>
+    function updateOrderStatusFromDashboard(id, status) {
+        const token = $('meta[name="csrf-token"]').attr('content') || '';
+        $.ajax({
+            url: `/orders/${id}/status`,
+            method: 'PATCH',
+            data: { status: status, _token: token },
+            success: async function(res) {
+                if (window.showToast) window.showToast('success', res.message || 'Status updated!');
+                if (window.loadPage) {
+                    await window.loadPage(window.location.href);
+                } else {
+                    window.location.reload();
+                }
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || 'Failed to update order status.';
+                if (window.showToast) {
+                    window.showToast('error', msg);
+                } else {
+                    alert(msg);
+                }
+            }
+        });
+    }
+</script>
 @endsection

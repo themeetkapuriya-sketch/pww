@@ -1101,7 +1101,30 @@ class ErpFlowTest extends TestCase
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertEquals('dispatched', $order->fresh()->status);
 
-        // 5. Delete Order
+        // 5. Test Stock Shortage Guard: create high qty order exceeding stock
+        $largeOrder = \App\Models\SalesOrder::create([
+            'order_number' => \App\Models\SalesOrder::generateNextOrderNumber(),
+            'client_id' => $client->id,
+            'plant_id' => $plant->id,
+            'order_date' => date('Y-m-d'),
+            'status' => 'pending',
+            'total_amount' => 7500000.00,
+        ]);
+        \App\Models\SalesOrderItem::create([
+            'sales_order_id' => $largeOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 9999,
+            'unit_price' => 7500.00,
+            'total_price' => 7500000.00,
+        ]);
+
+        $failResp = $this->actingAs($user)->patch(route('orders.updateStatus', $largeOrder->id), [
+            'status' => 'ready_for_dispatch',
+        ]);
+        $failResp->assertStatus(422)->assertJson(['success' => false]);
+
+        // 6. Delete Orders
+        $this->actingAs($user)->delete(route('orders.delete', $largeOrder->id));
         $response = $this->actingAs($user)->delete(route('orders.delete', $order->id));
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertNull(\App\Models\SalesOrder::find($order->id));
