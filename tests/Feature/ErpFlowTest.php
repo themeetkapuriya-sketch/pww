@@ -1190,4 +1190,78 @@ class ErpFlowTest extends TestCase
             'lowStockMaterials',
         ]);
     }
+
+    /**
+     * Test Multi-Product Batch Production Logging.
+     */
+    public function test_multi_product_batch_production_logging()
+    {
+        $user = User::factory()->create();
+
+        $rawMaterial1 = RawMaterial::create([
+            'material_name' => 'Steel Wire 4mm',
+            'unit' => 'kg',
+            'current_stock' => 500.0,
+            'safety_threshold' => 50.0,
+            'average_purchase_price' => 70.0
+        ]);
+
+        $product1 = Product::create([
+            'product_name' => 'Rack Frame A',
+            'sku' => 'RACK-A',
+            'hsn_code' => '7308',
+            'uom' => 'pcs',
+            'unit_weight_kg' => 2.0,
+            'selling_price' => 350.0,
+            'current_stock' => 10
+        ]);
+
+        $product2 = Product::create([
+            'product_name' => 'Rack Frame B',
+            'sku' => 'RACK-B',
+            'hsn_code' => '7308',
+            'uom' => 'pcs',
+            'unit_weight_kg' => 3.0,
+            'selling_price' => 500.0,
+            'current_stock' => 5
+        ]);
+
+        BillOfMaterial::create([
+            'product_id' => $product1->id,
+            'raw_material_id' => $rawMaterial1->id,
+            'required_quantity' => 2.0
+        ]);
+
+        BillOfMaterial::create([
+            'product_id' => $product2->id,
+            'raw_material_id' => $rawMaterial1->id,
+            'required_quantity' => 3.0
+        ]);
+
+        $response = $this->actingAs($user)->post(route('production.store'), [
+            'production_date' => now()->format('Y-m-d'),
+            'recorded_by' => $user->id,
+            'items' => [
+                [
+                    'product_id' => $product1->id,
+                    'quantity_manufactured' => 10,
+                    'quantity_rejected' => 1
+                ],
+                [
+                    'product_id' => $product2->id,
+                    'quantity_manufactured' => 5,
+                    'quantity_rejected' => 0
+                ]
+            ]
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+
+        // Check finished goods stock increased
+        $this->assertEquals(20, Product::find($product1->id)->current_stock);
+        $this->assertEquals(10, Product::find($product2->id)->current_stock);
+
+        // Check raw material auto-deducted: 500 - (10*2 + 5*3) = 500 - (20 + 15) = 465
+        $this->assertEquals(465.0, RawMaterial::find($rawMaterial1->id)->current_stock);
+    }
 }

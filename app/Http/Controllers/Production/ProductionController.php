@@ -38,6 +38,85 @@ class ProductionController extends Controller
      */
     public function logProduction(Request $request)
     {
+        $recordedBy = $request->input('recorded_by', auth()->id());
+        if (!$recordedBy) {
+            $firstUser = User::first();
+            $recordedBy = $firstUser ? $firstUser->id : 1;
+        }
+
+        // Multi-Item Batch Submission Support
+        if ($request->has('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
+            $validated = $request->validate([
+                'production_date' => 'required|date',
+                'recorded_by' => 'nullable|exists:users,id',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity_manufactured' => 'required|integer|min:1',
+                'items.*.quantity_rejected' => 'nullable|integer|min:0',
+                'labor' => 'nullable|array',
+            ]);
+
+            $loggedCount = 0;
+            $logs = [];
+
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                $laborData = [];
+                if (!empty($validated['labor'])) {
+                    foreach ($validated['labor'] as $profileId => $units) {
+                        if ($units > 0) {
+                            $laborData[] = [
+                                'staff_profile_id' => $profileId,
+                                'units_completed' => (int) $units
+                            ];
+                        }
+                    }
+                }
+
+                foreach ($validated['items'] as $item) {
+                    $prodId = $item['product_id'];
+                    $qtyMfg = (int) $item['quantity_manufactured'];
+                    $qtyRej = isset($item['quantity_rejected']) ? (int) $item['quantity_rejected'] : 0;
+
+                    $log = $this->productionService->logProduction(
+                        $prodId,
+                        $qtyMfg,
+                        $qtyRej,
+                        $recordedBy,
+                        $validated['production_date'],
+                        $laborData
+                    );
+
+                    $logs[] = $log;
+                    $loggedCount++;
+                }
+
+                \Illuminate\Support\Facades\DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully logged {$loggedCount} production run(s)! Stock auto-deductions processed.",
+                    'data' => $logs
+                ]);
+            } catch (InsufficientStockException $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'errors' => ['items' => [$e->getMessage()]]
+                ], 422);
+            } catch (Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Execution failed: ' . $e->getMessage(),
+                    'errors' => ['items' => ['Execution failed: ' . $e->getMessage()]]
+                ], 422);
+            }
+        }
+
+        // Single Item Fallback
         $productId = $request->input('product_id', $request->input('finished_good_id'));
         $request->merge(['product_id' => $productId]);
 
@@ -49,12 +128,6 @@ class ProductionController extends Controller
             'production_date' => 'required|date',
             'labor' => 'nullable|array',
         ]);
-
-        $recordedBy = !empty($validated['recorded_by']) ? $validated['recorded_by'] : auth()->id();
-        if (!$recordedBy) {
-            $firstUser = User::first();
-            $recordedBy = $firstUser ? $firstUser->id : 1;
-        }
 
         $duplicateCheck = ProductionLog::where('product_id', $validated['product_id'])
             ->where('quantity_manufactured', $validated['quantity_manufactured'])

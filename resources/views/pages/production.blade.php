@@ -13,7 +13,7 @@
         <div>
             <button type="button" onclick="toggleProductionForm()" class="btn-primary py-2.5 px-5 text-xs font-bold shadow-xs flex items-center">
                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                <span id="btnProductionToggleText">+ Log Production Run</span>
+                <span id="btnProductionToggleText">Log Production Run</span>
             </button>
         </div>
     </div>
@@ -32,31 +32,8 @@
             @csrf
             <input type="hidden" name="_method" id="production_form_method" value="POST">
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Product</label>
-                    <select id="prod_product_id" name="product_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
-                        <option value="">Select Product...</option>
-                        @foreach ($finishedGoods as $good)
-                            <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Qty Manufactured</label>
-                    <input type="number" id="prod_qty_manufactured" name="quantity_manufactured" min="1" placeholder="e.g. 50" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Qty Rejected</label>
-                    <input type="number" id="prod_qty_rejected" name="quantity_rejected" min="0" value="0" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Shift Information Header -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-3 border-b border-slate-100">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Production Date</label>
                     <input type="date" id="prod_date" name="production_date" value="{{ date('Y-m-d') }}" required
@@ -69,6 +46,53 @@
                             <option value="{{ $u->id }}" {{ $u->id == auth()->id() ? 'selected' : '' }}>{{ $u->name }}</option>
                         @endforeach
                     </select>
+                </div>
+            </div>
+
+            <!-- Single Edit Mode Hidden Inputs -->
+            <div id="single_edit_inputs" class="hidden">
+                <input type="hidden" id="single_product_id" name="product_id" disabled>
+                <input type="hidden" id="single_qty_mfg" name="quantity_manufactured" disabled>
+                <input type="hidden" id="single_qty_rej" name="quantity_rejected" disabled>
+            </div>
+
+            <!-- Multi-Product Output Items Container -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-bold text-slate-600 uppercase">Manufactured Product Items</label>
+                    <button type="button" id="btnAddProductRow" onclick="addProductRow()" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition flex items-center gap-1 cursor-pointer">
+                        <span>+ Add Another Product</span>
+                    </button>
+                </div>
+
+                <div id="productionItemsList" class="space-y-3">
+                    <!-- Default Row 0 -->
+                    <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="0">
+                        <div class="md:col-span-6">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
+                            <select name="items[0][product_id]" id="prod_product_id_0" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
+                                <option value="">Select Product...</option>
+                                @foreach ($finishedGoods as $good)
+                                    <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
+                            <input type="number" name="items[0][quantity_manufactured]" id="prod_qty_mfg_0" min="1" placeholder="Qty Mfg" required
+                                   class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
+                            <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" value="0" placeholder="Rejected" required
+                                   class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        </div>
+                        <div class="md:col-span-1 text-right flex items-center justify-end">
+                            <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -108,13 +132,11 @@
                             <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">
                                 {{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}
-                                @if(isset($log->product->current_stock))
-                                    <span class="text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-md ml-1.5">Stock: {{ number_format($log->product->current_stock) }} {{ $log->product->uom ?? 'Pcs' }}</span>
-                                @endif
+                                <span class="block text-xs font-normal text-slate-400">SKU: {{ $log->product->sku ?? 'N/A' }}</span>
                             </td>
-                            <td class="px-6 py-4 text-right font-medium text-slate-700">{{ $log->quantity_manufactured }} units</td>
-                            <td class="px-6 py-4 text-right text-rose-600 font-semibold">{{ $log->quantity_rejected }} units</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $log->recordedByUser->name ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-emerald-600 font-mono">+{{ number_format($log->quantity_manufactured) }} {{ $log->product->uom ?? 'pcs' }}</td>
+                            <td class="px-6 py-4 text-right font-medium text-rose-500 font-mono">{{ number_format($log->quantity_rejected) }}</td>
+                            <td class="px-6 py-4 text-slate-600 font-medium">{{ $log->recordedByUser->name ?? 'System Admin' }}</td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <button type="button" 
@@ -140,6 +162,60 @@
 </div>
 
 <script>
+let productRowCounter = 1;
+
+function getProductsOptionsHtml() {
+    return `
+        <option value="">Select Product...</option>
+        @foreach ($finishedGoods as $good)
+            <option value="{{ $good->id }}">{{ addslashes($good->product_name) }} (SKU: {{ addslashes($good->sku) }})</option>
+        @endforeach
+    `;
+}
+
+function addProductRow() {
+    const list = document.getElementById('productionItemsList');
+    if (!list) return;
+    
+    const idx = productRowCounter++;
+    const rowHtml = `
+        <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="${idx}">
+            <div class="md:col-span-6">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
+                <select name="items[${idx}][product_id]" id="prod_product_id_${idx}" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
+                    ${getProductsOptionsHtml()}
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
+                <input type="number" name="items[${idx}][quantity_manufactured]" id="prod_qty_mfg_${idx}" min="1" placeholder="Qty Mfg" required
+                       class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
+                <input type="number" name="items[${idx}][quantity_rejected]" id="prod_qty_rej_${idx}" min="0" value="0" placeholder="Rejected" required
+                       class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+            </div>
+            <div class="md:col-span-1 text-right flex items-center justify-end">
+                <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    `;
+    list.insertAdjacentHTML('beforeend', rowHtml);
+}
+
+function removeProductRow(btn) {
+    const rows = document.querySelectorAll('.production-item-row');
+    if (rows.length <= 1) {
+        if (window.showToast) window.showToast('info', 'At least one product row is required.');
+        return;
+    }
+    const row = btn.closest('.production-item-row');
+    if (row) row.remove();
+}
+
 function resetProductionForm() {
     const form = document.getElementById('productionForm');
     if (!form) return;
@@ -156,15 +232,42 @@ function resetProductionForm() {
     `;
     document.getElementById('productionCloseBtn').className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
 
-    document.querySelectorAll('#productionForm input, #productionForm select').forEach(el => {
-        if (el.type !== 'hidden') {
-            el.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
-        }
-    });
+    document.getElementById('btnAddProductRow').style.display = 'flex';
+    document.getElementById('single_edit_inputs').style.display = 'none';
 
-    document.getElementById('prod_product_id').value = '';
-    document.getElementById('prod_qty_manufactured').value = '';
-    document.getElementById('prod_qty_rejected').value = '0';
+    // Disable single edit inputs
+    document.getElementById('single_product_id').disabled = true;
+    document.getElementById('single_qty_mfg').disabled = true;
+    document.getElementById('single_qty_rej').disabled = true;
+
+    // Reset items list to 1 row
+    const list = document.getElementById('productionItemsList');
+    list.innerHTML = `
+        <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="0">
+            <div class="md:col-span-6">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
+                <select name="items[0][product_id]" id="prod_product_id_0" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
+                    ${getProductsOptionsHtml()}
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
+                <input type="number" name="items[0][quantity_manufactured]" id="prod_qty_mfg_0" min="1" placeholder="Qty Mfg" required
+                       class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
+                <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" value="0" placeholder="Rejected" required
+                       class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+            </div>
+            <div class="md:col-span-1 text-right flex items-center justify-end">
+                <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    `;
+
     document.getElementById('prod_date').value = "{{ date('Y-m-d') }}";
     if (document.getElementById('recorded_by_wrapper')) document.getElementById('recorded_by_wrapper').style.display = 'block';
     
@@ -200,15 +303,45 @@ function openEditProductionModal(id, productId, manufactured, rejected, date) {
     document.getElementById('productionFormTitle').innerHTML = `Edit Production Batch #${id}`;
     document.getElementById('productionCloseBtn').className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
 
-    document.querySelectorAll('#productionForm input, #productionForm select').forEach(el => {
-        if (el.type !== 'hidden') {
-            el.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
-        }
-    });
+    document.getElementById('btnAddProductRow').style.display = 'none';
 
-    document.getElementById('prod_product_id').value = productId;
-    document.getElementById('prod_qty_manufactured').value = manufactured;
-    document.getElementById('prod_qty_rejected').value = rejected;
+    // Enable single edit inputs for PUT request
+    document.getElementById('single_edit_inputs').style.display = 'block';
+    document.getElementById('single_product_id').disabled = false;
+    document.getElementById('single_product_id').value = productId;
+
+    document.getElementById('single_qty_mfg').disabled = false;
+    document.getElementById('single_qty_mfg').value = manufactured;
+
+    document.getElementById('single_qty_rej').disabled = false;
+    document.getElementById('single_qty_rej').value = rejected;
+
+    // Single item edit row view
+    const list = document.getElementById('productionItemsList');
+    list.innerHTML = `
+        <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-white p-3 rounded-xl border border-amber-200" data-row-index="0">
+            <div class="md:col-span-6">
+                <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1 md:hidden">Product</label>
+                <select onchange="document.getElementById('single_product_id').value = this.value" class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium" required>
+                    ${getProductsOptionsHtml()}
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1 md:hidden">Qty Manufactured</label>
+                <input type="number" oninput="document.getElementById('single_qty_mfg').value = this.value" value="${manufactured}" min="1" placeholder="Qty Mfg" required
+                       class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1 md:hidden">Qty Rejected</label>
+                <input type="number" oninput="document.getElementById('single_qty_rej').value = this.value" value="${rejected}" min="0" placeholder="Rejected" required
+                       class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium">
+            </div>
+        </div>
+    `;
+
+    const selectEl = list.querySelector('select');
+    if (selectEl) selectEl.value = productId;
+
     document.getElementById('prod_date').value = date;
     if (document.getElementById('recorded_by_wrapper')) document.getElementById('recorded_by_wrapper').style.display = 'none';
     

@@ -619,6 +619,23 @@ window.closeVendorPaymentModal = function() {
 
     $(document).ready(function() {
         window.handlePurchaseTypeChange();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('open') || urlParams.has('material_id')) {
+            const formContainer = document.getElementById('purchaseFormContainer');
+            if (formContainer) {
+                formContainer.classList.remove('hidden');
+                formContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+            if (urlParams.has('material_id')) {
+                const matSelect = document.getElementById('rawMaterialSelect');
+                if (matSelect) {
+                    matSelect.value = urlParams.get('material_id');
+                    $(matSelect).trigger('change');
+                }
+            }
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     });
     window.submitVendorPayment = function(e) {
         e.preventDefault();
