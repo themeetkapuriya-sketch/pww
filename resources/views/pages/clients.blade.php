@@ -74,7 +74,7 @@ $indianStates = [
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Create Client Profile
             </h3>
-            <button type="button" onclick="toggleCreateClientForm()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times; Close</button>
+            <button type="button" onclick="toggleCreateClientForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
         <form action="{{ route('clients.store') }}" method="POST" class="ajax-form space-y-4">
@@ -134,7 +134,7 @@ $indianStates = [
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-2 border-t border-slate-100">
-                <button type="button" onclick="toggleCreateClientForm()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                <button type="button" onclick="toggleCreateClientForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Save Client Profile</button>
             </div>
         </form>
@@ -147,7 +147,7 @@ $indianStates = [
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Register B2B Delivery Plant
             </h3>
-            <button type="button" onclick="toggleCreatePlantForm()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times; Close</button>
+            <button type="button" onclick="toggleCreatePlantForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
         <form action="{{ route('clients.plants.store') }}" method="POST" class="ajax-form space-y-4">
             @csrf
@@ -195,7 +195,7 @@ $indianStates = [
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-2">
-                <button type="button" onclick="toggleCreatePlantForm()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                <button type="button" onclick="toggleCreatePlantForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Register Plant Detials</button>
             </div>
         </form>
@@ -277,7 +277,7 @@ $indianStates = [
                     <div id="inlineEditClientForm-{{ $c->id }}" class="hidden mb-6 p-5 bg-amber-50/60 border border-amber-200 rounded-xl">
                         <div class="flex items-center justify-between border-b border-amber-200/60 pb-3 mb-3">
                             <h4 class="text-sm font-bold text-amber-900">Edit Client Profile</h4>
-                            <button type="button" onclick="closeEditClientForm({{ $c->id }})" class="text-amber-700 hover:text-amber-900 text-xs font-bold">&times; Close</button>
+                            <button type="button" onclick="closeEditClientForm({{ $c->id }})" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
                         </div>
                         <form action="{{ route('clients.update', $c->id) }}" method="POST" class="ajax-form space-y-3">
                             @csrf
@@ -305,7 +305,7 @@ $indianStates = [
                                           class="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">{{ $c->corporate_address }}</textarea>
                             </div>
                             <div class="flex items-center justify-end space-x-2 pt-2">
-                                <button type="button" onclick="closeEditClientForm({{ $c->id }})" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                                <button type="button" onclick="closeEditClientForm({{ $c->id }})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-xl transition cursor-pointer">Cancel</button>
                                 <button type="submit" class="btn-primary py-1.5 px-4 text-xs font-bold">Update Profile</button>
                             </div>
                         </form>
@@ -413,7 +413,7 @@ $indianStates = [
                                             <div id="inlineEditPlantForm-{{ $p->id }}" class="hidden mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-lg">
                                                 <div class="flex items-center justify-between border-b border-amber-200/60 pb-2 mb-2">
                                                     <h5 class="text-xs font-bold text-amber-900">Edit Plant</h5>
-                                                    <button type="button" onclick="closeEditPlantForm({{ $p->id }})" class="text-amber-700 hover:text-amber-900 text-xs font-bold">&times;</button>
+                                                    <button type="button" onclick="closeEditPlantForm({{ $p->id }})" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
                                                 </div>
                                                 <form action="{{ route('clients.plants.update', $p->id) }}" method="POST" class="ajax-form space-y-2">
                                                     @csrf
@@ -451,7 +451,7 @@ $indianStates = [
                                                                   class="w-full bg-white border border-slate-200 rounded py-1 px-2 text-xs text-slate-700">{{ $p->shipping_address }}</textarea>
                                                     </div>
                                                     <div class="flex items-center justify-end space-x-2 pt-1">
-                                                        <button type="button" onclick="closeEditPlantForm({{ $p->id }})" class="px-2 py-1 text-[11px] font-bold text-slate-600">Cancel</button>
+                                                        <button type="button" onclick="closeEditPlantForm({{ $p->id }})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-1 px-3 rounded-lg transition cursor-pointer">Cancel</button>
                                                         <button type="submit" class="btn-primary py-1 px-3 text-[11px] font-bold">Save</button>
                                                     </div>
                                                 </form>

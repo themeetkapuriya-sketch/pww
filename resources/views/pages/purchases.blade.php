@@ -23,10 +23,13 @@
     <!-- 1. Log Purchase Bill Form (Expandable) -->
     <div id="purchaseFormContainer" class="hidden transition-all duration-300 ease-in-out">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Record Purchase Invoice / Bill
-        </h3>
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-800 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Record Purchase Invoice / Bill
+            </h3>
+            <button type="button" onclick="toggleInlineForm('purchaseFormContainer', document.querySelector('button[onclick*=\'purchaseFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+        </div>
         <form action="{{ route('purchases.store') }}" method="POST" class="ajax-form space-y-4">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -121,9 +124,12 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold">
-                Log Purchase Entry
-            </button>
+            <div class="flex items-center justify-end space-x-3 pt-2">
+                <button type="button" onclick="toggleInlineForm('purchaseFormContainer', document.querySelector('button[onclick*=\'purchaseFormContainer\']'))" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold shadow-xs">
+                    Log Purchase Entry
+                </button>
+            </div>
         </form>
     </div>
 </div>
@@ -136,7 +142,7 @@
                     <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit Purchase Record Details
                 </h3>
-                <button type="button" onclick="closeEditPurchaseCard()" class="text-amber-700 hover:text-amber-900 text-sm font-bold">&times; Close</button>
+                <button type="button" onclick="closeEditPurchaseCard()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
             <form id="editPurchaseForm" method="POST" class="ajax-form space-y-4">
                 @csrf
@@ -234,7 +240,7 @@
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" onclick="closeEditPurchaseCard()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                    <button type="button" onclick="closeEditPurchaseCard()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                     <button type="submit" class="btn-primary py-2 px-6 text-xs font-bold">Update Purchase Entry</button>
                 </div>
             </form>

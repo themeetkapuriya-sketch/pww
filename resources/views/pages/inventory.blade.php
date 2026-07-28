@@ -40,7 +40,7 @@
                     <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     Add Raw Material
                 </h3>
-                <button type="button" id="rawMaterialCloseBtn" onclick="toggleMaterialForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+                <button type="button" id="rawMaterialCloseBtn" onclick="toggleMaterialForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
 
             <form id="rawMaterialForm" action="{{ route('inventory.materials.store') }}" method="POST" class="ajax-form space-y-4">
@@ -84,7 +84,7 @@
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" onclick="toggleMaterialForm(false)" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                    <button type="button" onclick="toggleMaterialForm(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                     <button type="submit" id="materialSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
                         Create Raw Material
                     </button>
@@ -160,7 +160,7 @@
                     <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     Add Product
                 </h3>
-                <button type="button" id="productCloseBtn" onclick="toggleProductForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+                <button type="button" id="productCloseBtn" onclick="toggleProductForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
 
             <form id="productForm" action="{{ route('inventory.goods.store') }}" method="POST" class="ajax-form space-y-4">
@@ -220,7 +220,7 @@
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" onclick="toggleProductForm(false)" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                    <button type="button" onclick="toggleProductForm(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                     <button type="submit" id="productSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
                         Save Product
                     </button>

@@ -29,7 +29,7 @@
                     <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     Sales Order Booking Form
                 </h3>
-                <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
+                <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
 
             <form id="salesOrderForm" action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4">
@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                    <button type="button" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                     <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold shadow-xs">
                         Book Sales Order
                     </button>

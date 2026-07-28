@@ -30,7 +30,7 @@
                 <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Assign Raw Material Components to Product
             </h3>
-            <button type="button" onclick="toggleAddBomForm()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times; Close</button>
+            <button type="button" onclick="toggleAddBomForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
         <form action="{{ route('bom.store') }}" method="POST" class="ajax-form space-y-5">
@@ -87,7 +87,7 @@
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
-                <button type="button" onclick="toggleAddBomForm()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                <button type="button" onclick="toggleAddBomForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" class="btn-primary py-2.5 px-6 text-xs font-bold">Assign Components to Product</button>
             </div>
         </form>
@@ -197,7 +197,7 @@
                 <span>Edit Component:</span>
                 <span id="edit_bom_title_text" class="ml-1.5 text-amber-800 font-extrabold"></span>
             </h3>
-            <button type="button" onclick="closeEditBomModal()" class="text-xs font-bold text-amber-700 hover:text-amber-900">&times; Close</button>
+            <button type="button" onclick="closeEditBomModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
         <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4">
@@ -217,8 +217,10 @@
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-3 border-t border-amber-200/60">
-                <button type="button" onclick="closeEditBomModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
-                <button type="submit" class="btn-primary py-2.5 px-6 text-xs font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">Update Component</button>
+                <button type="button" onclick="closeEditBomModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
+                    Update Component Formula
+                </button>
             </div>
         </form>
     </div>
