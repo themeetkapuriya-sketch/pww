@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
     <!-- Outfit Font for browser rendering -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +15,7 @@
             font-style: normal;
             font-weight: 400;
             @if(isset($isPdf) && $isPdf)
-                src: url('{{ public_path("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
+                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-Regular.ttf")) }}') format('truetype');
             @else
                 src: url('{{ asset("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
             @endif
@@ -25,7 +25,7 @@
             font-style: normal;
             font-weight: 600;
             @if(isset($isPdf) && $isPdf)
-                src: url('{{ public_path("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
+                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-SemiBold.ttf")) }}') format('truetype');
             @else
                 src: url('{{ asset("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
             @endif
@@ -35,7 +35,7 @@
             font-style: normal;
             font-weight: 700;
             @if(isset($isPdf) && $isPdf)
-                src: url('{{ public_path("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
+                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-Bold.ttf")) }}') format('truetype');
             @else
                 src: url('{{ asset("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
             @endif
@@ -407,9 +407,6 @@
             border-bottom: 1px solid #475569;
             display: block;
         }
-            display: block;
-            margin-bottom: 4px;
-        }
         .terms-list {
             margin: 0;
             padding-left: 14px;
@@ -432,13 +429,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Letterhead Print Mode Styles */
-        body.letterhead-active .header-table {
-            display: none !important;
-        }
-        body.letterhead-active .invoice-box {
-            padding-top: 32mm !important;
-        }
 
         /* Subtle Centered Background Watermark */
         .invoice-box {
@@ -473,11 +463,19 @@
             font-family: 'Outfit', sans-serif;
         }
 
+        .rupee-sym {
+            font-family: 'DejaVu Sans', sans-serif !important;
+        }
+
         @if(isset($isPdf) && $isPdf)
+            @page {
+                size: A4 portrait;
+                margin: 8mm 10mm !important;
+            }
             .no-print-bar {
                 display: none !important;
             }
-            body {
+            html, body {
                 background-color: #ffffff !important;
                 padding: 0 !important;
                 margin: 0 !important;
@@ -485,10 +483,45 @@
             .invoice-box {
                 box-shadow: none !important;
                 border: 1.5px solid #0f172a !important;
-                padding: 12px 14px !important;
-                margin: 0 auto !important;
+                padding: 6px 8px !important;
+                margin: 0 !important;
                 max-width: 100% !important;
+                width: auto !important;
+                min-height: 0 !important;
+                height: auto !important;
+                display: block !important;
+                page-break-inside: avoid !important;
+            }
+            .items-section-wrapper {
+                display: block !important;
+                flex-grow: 0 !important;
+                margin-bottom: 6px !important;
+            }
+            .bottom-section-wrapper {
+                display: block !important;
+                margin-top: 0 !important;
+            }
+            .items-table {
+                height: auto !important;
+            }
+            .empty-filler-row td {
+                height: 12px !important;
+                padding: 2px 8px !important;
+            }
+            .total-row, .grand-total-row {
+                display: table !important;
                 width: 100% !important;
+            }
+            .total-label {
+                display: table-cell !important;
+                text-align: left !important;
+            }
+            .total-value {
+                display: table-cell !important;
+                text-align: right !important;
+            }
+            .footer-table table {
+                height: auto !important;
             }
         @endif
 
@@ -604,10 +637,6 @@
             @endif
         </div>
         <div class="control-right">
-            <label style="margin-right: 14px; font-size: 11px; font-weight: 700; color: #334155; cursor: pointer; display: inline-flex; align-items: center; user-select: none;" title="Check this if printing on paper that already has your physical letterhead header pre-printed at the top">
-                <input type="checkbox" id="letterheadToggle" onchange="toggleLetterheadMode(this.checked)" style="margin-right: 6px; width: 14px; height: 14px; cursor: pointer; accent-color: #2563eb;">
-                📜 Print on Letterhead (Hide Top Header)
-            </label>
             <button onclick="window.print()" class="btn btn-primary">🖨️ {{ $invoice->invoice_mode === 'raw_material' ? 'Print Sale Bill' : 'Print Invoice' }}</button>
             <a href="{{ route('invoice.download', $invoice->id) }}" class="btn btn-secondary">📥 Download PDF</a>
         </div>
@@ -709,14 +738,15 @@
                             <th style="text-align: left; width: 38%;">DESCRIPTION OF GOODS</th>
                             <th style="text-align: center; width: 11%;">HSN/SAC</th>
                             <th style="text-align: right; width: 13%;">QTY</th>
-                            <th style="text-align: right; width: 12%;">RATE (&#8377;)</th>
+                            <th style="text-align: right; width: 12%;">RATE (<span class="rupee-sym">&#8377;</span>)</th>
                             <th style="text-align: center; width: 7%;">per</th>
-                            <th style="text-align: right; width: 15%;">AMOUNT (&#8377;)</th>
+                            <th style="text-align: right; width: 15%;">AMOUNT (<span class="rupee-sym">&#8377;</span>)</th>
                         </tr>
                     </thead>
                     <tbody>
                         @php
                             $groupedItems = isset($groupedItems) ? $groupedItems : ($invoice->items ?? []);
+                            $calcSubtotal = 0;
                         @endphp
                         @foreach ($groupedItems as $index => $item)
                             @php
@@ -730,6 +760,7 @@
                                 $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pGst = $isRaw ? 18.00 : ($pGood->gst_rate ?? 18.00);
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
+                                $calcSubtotal += (float)$pTotal;
 
                                 $qtyVal = (float)$item->quantity;
                                 $qtyFormatted = ($qtyVal == (int)$qtyVal) ? number_format($qtyVal) : number_format($qtyVal, 2);
@@ -766,16 +797,16 @@
                                         <div style="font-size: 9px; font-weight: 700; color: #475569; margin-top: 2px;">{{ $unitConversionNotice }}</div>
                                     @endif
                                 </td>
-                                <td style="text-align: right; font-weight: 600;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
+                                <td style="text-align: right; font-weight: 600;"><span class="rupee-sym">&#8377;</span>{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align: center; font-weight: 700; color: #334155; text-transform: uppercase;">
                                     {{ strtoupper($pUom) }}
                                 </td>
-                                <td style="text-align: right; font-weight: 800; color: #0f172a;">&#8377;{{ number_format($pTotal, 2) }}</td>
+                                <td style="text-align: right; font-weight: 800; color: #0f172a;"><span class="rupee-sym">&#8377;</span>{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @endforeach
                         @php
                             $itemCount = count($groupedItems);
-                            $minRows = 7;
+                            $minRows = 6;
                         @endphp
                         @for ($emptyIdx = $itemCount; $emptyIdx < $minRows; $emptyIdx++)
                             <tr class="empty-filler-row">
@@ -788,6 +819,19 @@
                                 <td>&nbsp;</td>
                             </tr>
                         @endfor
+                        @php
+                            $subtotalVal = (isset($invoice->total_taxable_value) && (float)$invoice->total_taxable_value > 0)
+                                ? (float)$invoice->total_taxable_value
+                                : $calcSubtotal;
+                        @endphp
+                        <tr class="total-row-item-table" style="background-color: #f1f5f9; font-weight: 800;">
+                            <td colspan="6" style="text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; border-top: 1px solid #475569; border-bottom: 1px solid #475569; border-right: 1px solid #475569; padding: 7px 10px;">
+                                Subtotal
+                            </td>
+                            <td style="text-align: right; font-size: 12px; font-weight: 800; color: #0f172a; border-top: 1px solid #475569; border-bottom: 1px solid #475569; padding: 7px 10px;">
+                                <span class="rupee-sym">&#8377;</span>{{ number_format($subtotalVal, 2) }}
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -822,7 +866,7 @@
                     <td class="totals-cell">
                         <div class="total-row">
                             <span class="total-label">Taxable Subtotal:</span>
-                            <span class="total-value">&#8377;{{ number_format($invoice->total_taxable_value, 2) }}</span>
+                            <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->total_taxable_value, 2) }}</span>
                         </div>
                         
                         @php
@@ -841,22 +885,22 @@
                         @if ($invoice->igst > 0)
                             <div class="total-row">
                                 <span class="total-label">IGST Total ({{ $igstPct }}%):</span>
-                                <span class="total-value">&#8377;{{ number_format($invoice->igst, 2) }}</span>
+                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->igst, 2) }}</span>
                             </div>
                         @else
                             <div class="total-row">
                                 <span class="total-label">CGST Total ({{ $cgstPct }}%):</span>
-                                <span class="total-value">&#8377;{{ number_format($invoice->cgst, 2) }}</span>
+                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->cgst, 2) }}</span>
                             </div>
                             <div class="total-row">
                                 <span class="total-label">SGST Total ({{ $sgstPct }}%):</span>
-                                <span class="total-value">&#8377;{{ number_format($invoice->sgst, 2) }}</span>
+                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->sgst, 2) }}</span>
                             </div>
                         @endif
 
                         <div class="grand-total-row">
                             <span class="total-label" style="font-weight: 800; font-size: 11.5px; color: #0f172a;">Total Amount (Incl. Tax):</span>
-                            <span class="total-value" style="font-size: 15px; color: #0f172a; font-weight: 900;">&#8377;{{ number_format($invoice->total_amount, 2) }}</span>
+                            <span class="total-value" style="font-size: 15px; color: #0f172a; font-weight: 900;"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->total_amount, 2) }}</span>
                         </div>
                     </td>
                 </tr>
@@ -887,7 +931,7 @@
                         </div>
                     </td>
                     <td style="width: 42%; vertical-align: top; padding: 0;">
-                        <table style="width: 100%; border-collapse: collapse; border: none; height: 100%;">
+                        <table style="width: 100%; border-collapse: collapse; border: none; height: auto;">
                             <tr>
                                 <td style="border: none; padding: 0;">
                                     <div class="signature-title" style="text-align: center;">Authorized Signature</div>
@@ -952,27 +996,6 @@
             // Fallback: Let default link href navigate to route('invoices')
         }
 
-        function toggleLetterheadMode(enabled) {
-            if (enabled) {
-                document.body.classList.add('letterhead-active');
-                try { localStorage.setItem('pww_letterhead_mode', '1'); } catch(e) {}
-            } else {
-                document.body.classList.remove('letterhead-active');
-                try { localStorage.setItem('pww_letterhead_mode', '0'); } catch(e) {}
-            }
-        }
-
-        (function() {
-            try {
-                if (localStorage.getItem('pww_letterhead_mode') === '1') {
-                    document.body.classList.add('letterhead-active');
-                    window.addEventListener('DOMContentLoaded', function() {
-                        const t = document.getElementById('letterheadToggle');
-                        if (t) t.checked = true;
-                    });
-                }
-            } catch(e) {}
-        })();
 
         window.addEventListener('load', function() {
             if (!window.location.href.includes('download')) {

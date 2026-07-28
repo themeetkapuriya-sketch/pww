@@ -517,7 +517,15 @@ class InvoiceController extends Controller
         $groupedItems = $invoice->items;
 
         $isPdf = true;
-        $pdf = Pdf::loadView('pages.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'));
+        $pdf = Pdf::loadView('pages.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isRemoteEnabled' => true,
+                'isHtml5ParserEnabled' => true,
+                'isFontSubsettingEnabled' => true,
+                'defaultMediaType' => 'print',
+                'dpi' => 96
+            ]);
         return $pdf->download("Invoice-{$invoice->invoice_number}.pdf");
     }
 
@@ -533,16 +541,19 @@ class InvoiceController extends Controller
                 'message_body' => 'required|string',
             ]);
 
-            $invoice = Invoice::with(['plant.client', 'items.product'])->findOrFail($id);
+            $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
             $client = $invoice->client;
             $plant = $invoice->plant;
             $groupedItems = $invoice->items;
 
             $isPdf = true;
             $pdfContent = Pdf::loadView('pages.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
-                ->setOption([
-                    'isRemoteEnabled' => false,
+                ->setPaper('a4', 'portrait')
+                ->setOptions([
+                    'isRemoteEnabled' => true,
+                    'isHtml5ParserEnabled' => true,
                     'isFontSubsettingEnabled' => true,
+                    'defaultMediaType' => 'print',
                     'dpi' => 96
                 ])
                 ->output();

@@ -168,16 +168,14 @@
                 </h3>
                 <div class="flex items-center space-x-2">
                     <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export PDF Document">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        <span>Export PDF</span>
+                        <x-icon-export-pdf class="w-6 h-6 shrink-0" />
                     </a>
                     <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export CSV File">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span>Export CSV</span>
+                        <x-icon-export-csv class="w-6 h-6 shrink-0" />
                     </a>
                 </div>
             </div>
@@ -288,16 +286,29 @@
                 </h3>
                 <div class="flex items-center space-x-2">
                     <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export PDF Document">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        <span>Export PDF</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#DC2626"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#F87171"/>
+                            <text x="13" y="19" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="7.5" fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.2">PDF</text>
+                        </svg>
                     </a>
                     <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export CSV File">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span>Export CSV</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#047857"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#34D399"/>
+                            <rect x="7" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                        </svg>
                     </a>
                 </div>
             </div>
@@ -378,16 +389,29 @@
                 </h3>
                 <div class="flex items-center space-x-2">
                     <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export PDF Document">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        <span>Export PDF</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#DC2626"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#F87171"/>
+                            <text x="13" y="19" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="7.5" fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.2">PDF</text>
+                        </svg>
                     </a>
                     <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export CSV File">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span>Export CSV</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#047857"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#34D399"/>
+                            <rect x="7" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                        </svg>
                     </a>
                 </div>
             </div>
@@ -469,16 +493,29 @@
                 </h3>
                 <div class="flex items-center space-x-2">
                     <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export PDF Document">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        <span>Export PDF</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#DC2626"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#F87171"/>
+                            <text x="13" y="19" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="7.5" fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.2">PDF</text>
+                        </svg>
                     </a>
                     <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => $reportType]) }}" 
-                       class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax"
+                       class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
                        title="Export CSV File">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span>Export CSV</span>
+                        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 2.5 3 C 2.5 1.343 3.843 0 5.5 0 L 15.5 0 L 23.5 8 L 23.5 25 C 23.5 26.657 22.157 28 20.5 28 L 5.5 28 C 3.843 28 2.5 26.657 2.5 25 Z" fill="#047857"/>
+                            <path d="M 15.5 0 L 23.5 8 L 15.5 8 Z" fill="#34D399"/>
+                            <rect x="7" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="11" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="14.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="18" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="7" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                            <rect x="13" y="21.5" width="4" height="2" rx="0.5" fill="#FFFFFF"/>
+                        </svg>
                     </a>
                 </div>
             </div>
@@ -557,14 +594,14 @@
                     </h3>
                     <div class="flex items-center space-x-2">
                         <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr1']) }}" 
-                           class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            <span>Export GSTR-1 PDF</span>
+                           class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-1 PDF">
+                            <x-icon-export-pdf class="w-6 h-6 shrink-0" />
                         </a>
                         <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr1']) }}" 
-                           class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <span>Export GSTR-1 CSV</span>
+                           class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-1 CSV">
+                            <x-icon-export-csv class="w-6 h-6 shrink-0" />
                         </a>
                     </div>
                 </div>
@@ -627,14 +664,14 @@
                     </h3>
                     <div class="flex items-center space-x-2">
                         <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr2']) }}" 
-                           class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            <span>Export GSTR-2 PDF</span>
+                           class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-2 PDF">
+                            <x-icon-export-pdf class="w-6 h-6 shrink-0" />
                         </a>
                         <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr2']) }}" 
-                           class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <span>Export GSTR-2 CSV</span>
+                           class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-2 CSV">
+                            <x-icon-export-csv class="w-6 h-6 shrink-0" />
                         </a>
                     </div>
                 </div>
@@ -741,14 +778,14 @@
                     </h3>
                     <div class="flex items-center space-x-2">
                         <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr3b']) }}" 
-                           class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            <span>Export GSTR-3B PDF</span>
+                           class="p-1 hover:bg-rose-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-3B PDF">
+                            <x-icon-export-pdf class="w-6 h-6 shrink-0" />
                         </a>
                         <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'gstr3b']) }}" 
-                           class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition flex items-center space-x-1.5 no-ajax">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <span>Export GSTR-3B CSV</span>
+                           class="p-1 hover:bg-emerald-50 rounded-xl transition hover:scale-105 flex items-center justify-center no-ajax"
+                           title="Export GSTR-3B CSV">
+                            <x-icon-export-csv class="w-6 h-6 shrink-0" />
                         </a>
                     </div>
                 </div>
