@@ -275,10 +275,10 @@
         
         /* Global Button Utility Styles */
         .btn-primary {
-            background-color: #4371D7 !important;
+            background-color: #2563EB !important;
             color: #ffffff !important;
             border-radius: 0.75rem !important;
-            box-shadow: 0 4px 6px -1px rgba(67, 113, 215, 0.25), 0 2px 4px -2px rgba(67, 113, 215, 0.1) !important;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25), 0 2px 4px -2px rgba(37, 99, 235, 0.1) !important;
             transition: all 0.15s ease-in-out !important;
             display: inline-flex !important;
             align-items: center !important;
@@ -287,14 +287,14 @@
             cursor: pointer !important;
         }
         .btn-primary:hover {
-            background-color: #365ebd !important;
+            background-color: #1d4ed8 !important;
             color: #ffffff !important;
-            box-shadow: 0 10px 15px -3px rgba(67, 113, 215, 0.35) !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.35) !important;
             transform: translateY(-1px) !important;
         }
         .btn-primary:active {
             transform: translateY(0) !important;
-            box-shadow: 0 2px 4px -1px rgba(82, 135, 247, 0.2) !important;
+            box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.2) !important;
         }
 
         .btn-secondary {

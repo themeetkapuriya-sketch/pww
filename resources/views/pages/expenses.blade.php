@@ -252,6 +252,11 @@
                 setTimeout(function() {
                     container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 150);
+
+                // Clean the prefill URL parameters from address bar & history so it won't reopen on reload/subsequent submits
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             }
         }
     })();

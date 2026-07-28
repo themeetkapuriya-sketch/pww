@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalBtnHtml = $submitBtn.length ? $submitBtn.html() : '';
             
             if ($submitBtn.length) {
-                $submitBtn.prop('disabled', true);
+                $submitBtn.prop('disabled', true).addClass('opacity-50 pointer-events-none');
             }
             
             let ajaxData;
@@ -395,6 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.showToast('success', response.message || 'Operation completed successfully!');
                     if (!$form.hasClass('no-reset')) {
                         $form[0].reset();
+                    }
+                    if (window.location.search.includes('prefill_') || window.location.search.includes('log_gst')) {
+                        if (window.history && window.history.replaceState) {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
                     }
                     await window.loadPage(window.location.href);
                 },

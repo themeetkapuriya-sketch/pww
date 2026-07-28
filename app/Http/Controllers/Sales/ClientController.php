@@ -108,6 +108,17 @@ class ClientController extends Controller
             'shipping_address' => 'nullable|string',
         ]);
 
+        $existingClient = Client::where('company_name', $validated['company_name'])
+            ->orWhere('gst_number', $validated['gst_number'])
+            ->first();
+        if ($existingClient) {
+            return response()->json([
+                'success' => false,
+                'message' => "A client profile with company name '{$validated['company_name']}' or GSTIN '{$validated['gst_number']}' already exists!",
+                'errors' => ['company_name' => ["A client profile with company name or GSTIN already exists!"]]
+            ], 422);
+        }
+
         $clientData = [
             'company_name' => $validated['company_name'],
             'client_email' => $validated['client_email'],

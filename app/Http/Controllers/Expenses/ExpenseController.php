@@ -29,6 +29,26 @@ class ExpenseController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        $duplicateExists = Expense::where('expense_category', $validated['expense_category'])
+            ->where('amount', $validated['amount'])
+            ->whereDate('expense_date', $validated['expense_date'])
+            ->where(function($q) use ($validated) {
+                if (!empty($validated['description'])) {
+                    $q->where('description', $validated['description']);
+                } else {
+                    $q->whereNull('description')->orWhere('description', '');
+                }
+            })
+            ->exists();
+
+        if ($duplicateExists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An identical expense record already exists for this category, date, and amount!',
+                'errors' => ['amount' => ['An identical expense record already exists for this category, date, and amount!']]
+            ], 422);
+        }
+
         $expense = Expense::create($validated);
 
         return response()->json([

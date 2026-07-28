@@ -90,8 +90,23 @@ class PurchaseController extends Controller
             ];
             $validated['item_name'] = $typeLabels[$validated['purchase_type']] ?? 'Purchased Item';
         }
-        if (empty($validated['unit'])) {
-            $validated['unit'] = 'pcs';
+        $duplicateCheck = Purchase::where('vendor_name', $validated['vendor_name'])
+            ->where('purchase_type', $validated['purchase_type'])
+            ->where('total_amount', $totalAmt)
+            ->whereDate('purchase_date', $validated['purchase_date'])
+            ->where(function($q) use ($validated) {
+                if (!empty($validated['bill_number'])) {
+                    $q->where('bill_number', $validated['bill_number']);
+                }
+            })
+            ->exists();
+
+        if ($duplicateCheck) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An identical purchase entry already exists for this vendor, date, and amount!',
+                'errors' => ['vendor_name' => ['An identical purchase entry already exists for this vendor, date, and amount!']]
+            ], 422);
         }
 
         $purchase = DB::transaction(function() use ($validated) {

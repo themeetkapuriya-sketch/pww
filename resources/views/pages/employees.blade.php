@@ -111,7 +111,7 @@
 
                 <div class="flex items-center justify-end space-x-3 pt-3 border-t border-amber-200/60">
                     <button type="button" onclick="closeEditEmployeeForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
-                    <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
+                    <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs">
                         Update Employee Profile
                     </button>
                 </div>

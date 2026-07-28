@@ -74,7 +74,7 @@
 
             <div class="flex items-center justify-end space-x-3 pt-2">
                 <button type="button" onclick="toggleProductionForm(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
-                <button type="submit" id="productionSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs">
+                <button type="submit" id="productionSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs">
                     Log Production Run
                 </button>
             </div>
@@ -170,7 +170,7 @@ function resetProductionForm() {
     
     const btn = document.getElementById('productionSubmitBtn');
     btn.innerText = 'Log Production Run';
-    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs';
 }
 
 function toggleProductionForm(showExplicit = null) {
@@ -214,7 +214,7 @@ function openEditProductionModal(id, productId, manufactured, rejected, date) {
     
     const btn = document.getElementById('productionSubmitBtn');
     btn.innerText = 'Update Production Log';
-    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+    btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs';
 
     card.classList.remove('hidden');
     card.scrollIntoView({ behavior: 'smooth' });

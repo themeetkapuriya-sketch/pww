@@ -710,22 +710,33 @@
             </div>
 
         @else
+            @php
+                if ($period === 'month' && !empty($filterMonth)) {
+                    $taxPeriodLabel = \Carbon\Carbon::parse($filterMonth . '-01')->format('F Y');
+                } elseif ($period === 'year' && !empty($filterYear)) {
+                    $taxPeriodLabel = 'FY ' . $filterYear . '-' . substr($filterYear + 1, 2, 2);
+                } elseif ($period === 'custom') {
+                    $taxPeriodLabel = \Carbon\Carbon::parse($startDate)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($endDate)->format('d M Y');
+                } else {
+                    $taxPeriodLabel = \Carbon\Carbon::parse($startDate)->format('F Y');
+                }
+            @endphp
             <!-- 5.3 GSTR-3B MONTHLY RETURN SUMMARY VIEW -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
                     <div class="flex items-center space-x-2">
-                        <span class="w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">3.1 Output GST Liability (Sales)</span>
                     </div>
-                    <span class="text-xl font-black text-rose-600 block mt-2">₹{{ number_format($gstSummary['sales_total_gst'], 2) }}</span>
+                    <span class="text-xl font-black text-emerald-600 block mt-2">₹{{ number_format($gstSummary['sales_total_gst'], 2) }}</span>
                     <p class="text-[10px] text-slate-400 mt-1">Tax collected from client invoices.</p>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
                     <div class="flex items-center space-x-2">
-                        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+                        <span class="w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">4. Eligible ITC Credit (Purchases)</span>
                     </div>
-                    <span class="text-xl font-black text-emerald-600 block mt-2">₹{{ number_format($gstSummary['purchase_total_gst'], 2) }}</span>
+                    <span class="text-xl font-black text-rose-600 block mt-2">₹{{ number_format($gstSummary['purchase_total_gst'], 2) }}</span>
                     <p class="text-[10px] text-slate-400 mt-1">Input Tax Credit paid on vendor bills.</p>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
@@ -733,7 +744,7 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
                                 <span class="w-2.5 h-2.5 {{ $gstSummary['is_paid'] ? 'bg-emerald-500' : 'bg-rose-500' }} rounded-full"></span>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable</span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable ({{ $taxPeriodLabel }})</span>
                             </div>
                             @if($gstSummary['is_paid'])
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 whitespace-nowrap">
@@ -754,15 +765,15 @@
                     <div class="mt-2 pt-2 border-t border-slate-100 text-[10px]">
                         @if($gstSummary['is_paid'])
                             <span class="text-emerald-700 font-bold flex items-center justify-between">
-                                <span>✓ Settled via Expense Ledger</span>
+                                <span>✓ Settled for {{ $taxPeriodLabel }} via Expense Ledger</span>
                                 @if(!empty($gstSummary['expense_entry']))
                                     <span>({{ \Carbon\Carbon::parse($gstSummary['expense_entry']->expense_date)->format('d/m/Y') }})</span>
                                 @endif
                             </span>
                         @else
                             <span class="text-rose-600 font-bold flex items-center justify-between">
-                                <span>Net Tax Liability due for GSTR-3B</span>
-                                <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => abs($gstSummary['net_gst_payable']), 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="underline hover:text-rose-800">Log GST Expense →</a>
+                                <span>Net Tax Liability for <strong>{{ $taxPeriodLabel }}</strong> due for GSTR-3B</span>
+                                <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => abs($gstSummary['net_gst_payable']), 'prefill_desc' => 'GSTR-3B Tax Paid for ' . $taxPeriodLabel . ' via Bank Challan']) }}" class="underline hover:text-rose-800">Log GST Expense →</a>
                             </span>
                         @endif
                     </div>

@@ -2,7 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Dashboard\OverviewController;
-use App\Http\Controllers\Inventory\InventoryController;
+use App\Http\Controllers\Inventory\RawMaterialController;
+use App\Http\Controllers\Inventory\ProductController;
 use App\Http\Controllers\Production\BomController;
 use App\Http\Controllers\Production\ProductionController;
 use App\Http\Controllers\Sales\ClientController;
@@ -26,14 +27,22 @@ Route::middleware(['auth'])->group(function () {
     // 1. Dashboard Overview
     Route::get('/overview', [OverviewController::class, 'overview'])->name('overview');
 
-    // 2. Inventory Management
-    Route::get('/inventory', [InventoryController::class, 'inventory'])->name('inventory');
-    Route::post('/inventory/materials', [InventoryController::class, 'storeRawMaterial'])->name('inventory.materials.store');
-    Route::put('/inventory/materials/{id}', [InventoryController::class, 'updateRawMaterial'])->name('inventory.materials.update');
-    Route::delete('/inventory/materials/{id}', [InventoryController::class, 'deleteRawMaterial'])->name('inventory.materials.delete');
-    Route::post('/inventory/goods', [InventoryController::class, 'storeFinishedGood'])->name('inventory.goods.store');
-    Route::put('/inventory/goods/{id}', [InventoryController::class, 'updateFinishedGood'])->name('inventory.goods.update');
-    Route::delete('/inventory/goods/{id}', [InventoryController::class, 'deleteFinishedGood'])->name('inventory.goods.delete');
+    // 2. Raw Materials & Products Catalog Management
+    Route::get('/rawmaterial', [RawMaterialController::class, 'index'])->name('rawmaterial');
+    Route::get('/product', [ProductController::class, 'index'])->name('product');
+    Route::get('/inventory', function (\Illuminate\Http\Request $request) {
+        if ($request->input('tab') === 'materials') {
+            return redirect()->route('rawmaterial');
+        }
+        return redirect()->route('product');
+    })->name('inventory');
+
+    Route::post('/inventory/materials', [RawMaterialController::class, 'store'])->name('inventory.materials.store');
+    Route::put('/inventory/materials/{id}', [RawMaterialController::class, 'update'])->name('inventory.materials.update');
+    Route::delete('/inventory/materials/{id}', [RawMaterialController::class, 'destroy'])->name('inventory.materials.delete');
+    Route::post('/inventory/goods', [ProductController::class, 'store'])->name('inventory.goods.store');
+    Route::put('/inventory/goods/{id}', [ProductController::class, 'update'])->name('inventory.goods.update');
+    Route::delete('/inventory/goods/{id}', [ProductController::class, 'destroy'])->name('inventory.goods.delete');
 
     // 3. Bill of Materials
     Route::get('/bom', [BomController::class, 'bom'])->name('bom');

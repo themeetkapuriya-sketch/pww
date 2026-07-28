@@ -251,12 +251,12 @@
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3 pt-2">
-                    <button type="submit" id="invoiceSubmitBtn" class="btn-primary flex-1 py-2.5 px-4 text-sm font-bold">
-                        Generate & Save Invoice
-                    </button>
-                    <button type="button" id="cancelInvoiceBtn" onclick="cancelInvoiceForm()" class="py-2.5 px-5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition border border-slate-300 shadow-xs">
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" id="cancelInvoiceBtn" onclick="cancelInvoiceForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">
                         Cancel
+                    </button>
+                    <button type="submit" id="invoiceSubmitBtn" class="btn-primary py-2.5 px-6 text-sm font-bold shadow-xs">
+                        Generate & Save Invoice
                     </button>
                 </div>
             </form>
@@ -1063,7 +1063,7 @@
         const submitBtn = document.getElementById('invoiceSubmitBtn');
         if (submitBtn) {
             submitBtn.textContent = 'Update Invoice';
-            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs';
         }
 
         const $form = $('#customInvoiceForm');

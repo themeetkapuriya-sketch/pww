@@ -56,6 +56,20 @@ class ProductionController extends Controller
             $recordedBy = $firstUser ? $firstUser->id : 1;
         }
 
+        $duplicateCheck = ProductionLog::where('product_id', $validated['product_id'])
+            ->where('quantity_manufactured', $validated['quantity_manufactured'])
+            ->where('quantity_rejected', $validated['quantity_rejected'])
+            ->whereDate('production_date', $validated['production_date'])
+            ->exists();
+
+        if ($duplicateCheck) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An identical production log already exists for this product, date, and quantity!',
+                'errors' => ['quantity_manufactured' => ['An identical production log already exists for this product, date, and quantity!']]
+            ], 422);
+        }
+
         try {
             $laborData = [];
             if (!empty($validated['labor'])) {

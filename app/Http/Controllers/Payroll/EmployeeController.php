@@ -38,6 +38,15 @@ class EmployeeController extends Controller
             'piece_rate_per_unit' => 'nullable|required_if:wage_type,per-day|numeric|min:0',
         ]);
 
+        $existingStaff = StaffProfile::where('full_name', $validated['full_name'])->first();
+        if ($existingStaff) {
+            return response()->json([
+                'success' => false,
+                'message' => "An employee profile for '{$validated['full_name']}' already exists!",
+                'errors' => ['full_name' => ["An employee profile for '{$validated['full_name']}' already exists!"]]
+            ], 422);
+        }
+
         $staff = StaffProfile::create($validated);
 
         return response()->json([

@@ -492,7 +492,7 @@
 
         if (submitBtn) {
             submitBtn.innerText = 'Update Sales Order';
-            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#4371D7] hover:bg-blue-700 text-white rounded-xl shadow-xs';
+            submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs';
         }
 
         const orderNumDisplay = form.querySelector('[name="order_number_display"]');
