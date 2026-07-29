@@ -647,6 +647,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Helper to format Indian Vehicle Registration Numbers (e.g. GJO5MA4104 -> GJ-05-MA-4104)
+        function formatVehicleNumber(val) {
+            if (!val) return '';
+            let clean = val.trim().toUpperCase().replace(/[\s-]/g, '');
+            
+            // Standard RTO Format: State(2) + District(1-2) + Series(1-3) + Number(1-4)
+            const rtoMatch = clean.match(/^([A-Z]{2})([0-9O]{1,2})([A-Z]{1,3})([0-9O]{1,4})$/);
+            if (rtoMatch) {
+                let state = rtoMatch[1];
+                let dist = rtoMatch[2].replace(/O/g, '0');
+                if (dist.length === 1) dist = '0' + dist;
+                let series = rtoMatch[3];
+                let num = rtoMatch[4].replace(/O/g, '0');
+                return `${state}-${dist}-${series}-${num}`;
+            }
+            
+            // BH Series: Year(2) + BH + Number(1-4) + Series(1-2)
+            const bhMatch = clean.match(/^([0-9O]{2})BH([0-9O]{1,4})([A-Z]{1,2})$/);
+            if (bhMatch) {
+                let yr = bhMatch[1].replace(/O/g, '0');
+                let num = bhMatch[2].replace(/O/g, '0');
+                let series = bhMatch[3];
+                return `${yr}-BH-${num}-${series}`;
+            }
+
+            return val.toUpperCase();
+        }
+
         // Vehicle Registration Number Format Validator (RTO & BH Series)
         const VEHICLE_NUMBER_REGEX = /^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i;
 
@@ -659,11 +687,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Validate format only on blur (after user finishes typing)
+        // Validate & Auto-format vehicle number on blur (after user finishes typing)
         $(document).on('blur', 'input[name="vehicle_number"]', function() {
-            let val = $(this).val().trim().toUpperCase();
+            let val = $(this).val().trim();
             if (val.length > 0) {
-                if (!VEHICLE_NUMBER_REGEX.test(val)) {
+                let formatted = formatVehicleNumber(val);
+                $(this).val(formatted);
+                if (!VEHICLE_NUMBER_REGEX.test(formatted)) {
                     showInlineError($(this), 'Enter valid vehicle number');
                 } else {
                     clearInlineError($(this));

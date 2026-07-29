@@ -204,6 +204,8 @@ class InvoiceController extends Controller
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
                 $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
 
+                $vehicleNumber = self::formatVehicleNumber($validated['vehicle_number'] ?? null);
+
                 $customClientName = ($invMode === 'raw_material') ? ($validated['custom_client_name'] ?? 'Local Buyer') : null;
 
                 if ($invMode === 'raw_material') {
@@ -245,7 +247,7 @@ class InvoiceController extends Controller
                         'custom_gst_rate' => $customGstRate,
                         'custom_buyer_gstin' => $validated['custom_buyer_gstin'] ?? null,
                         'invoice_number' => $finalInvoiceNumber,
-                        'vehicle_number' => $validated['vehicle_number'] ?? null,
+                        'vehicle_number' => $vehicleNumber,
                         'invoice_date' => $invDate,
                         'total_taxable_value' => $taxable,
                         'cgst' => $cgst,
@@ -262,7 +264,7 @@ class InvoiceController extends Controller
                         'custom_gst_rate' => $customGstRate,
                         'custom_buyer_gstin' => $validated['custom_buyer_gstin'] ?? null,
                         'invoice_number' => $finalInvoiceNumber,
-                        'vehicle_number' => $validated['vehicle_number'] ?? null,
+                        'vehicle_number' => $vehicleNumber,
                         'invoice_date' => $invDate,
                         'total_taxable_value' => $taxable,
                         'cgst' => $cgst,
@@ -567,5 +569,36 @@ class InvoiceController extends Controller
                 'message' => 'Failed to send email. ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Format raw vehicle numbers into standard Indian format (e.g., GJO5MA4104 -> GJ-05-MA-4104).
+     */
+    public static function formatVehicleNumber(?string $val): ?string
+    {
+        if (empty($val)) {
+            return null;
+        }
+
+        $clean = preg_replace('/[\s-]/', '', strtoupper(trim($val)));
+
+        // Standard RTO Format: State(2) + District(1-2) + Series(1-3) + Number(1-4)
+        if (preg_match('/^([A-Z]{2})([0-9O]{1,2})([A-Z]{1,3})([0-9O]{1,4})$/', $clean, $m)) {
+            $dist = str_replace('O', '0', $m[2]);
+            if (strlen($dist) === 1) {
+                $dist = '0' . $dist;
+            }
+            $num = str_replace('O', '0', $m[4]);
+            return "{$m[1]}-{$dist}-{$m[3]}-{$num}";
+        }
+
+        // BH Series Format: Year(2) + BH + Number(1-4) + Series(1-2)
+        if (preg_match('/^([0-9O]{2})BH([0-9O]{1,4})([A-Z]{1,2})$/', $clean, $m)) {
+            $yr = str_replace('O', '0', $m[1]);
+            $num = str_replace('O', '0', $m[2]);
+            return "{$yr}-BH-{$num}-{$m[3]}";
+        }
+
+        return strtoupper(trim($val));
     }
 }
