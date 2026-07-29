@@ -166,7 +166,7 @@
         .meta-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
             border: 1px solid #475569;
         }
         .meta-table td {
@@ -180,17 +180,17 @@
         .cell-header {
             background-color: #C8D1DD;
             color: #0f172a;
-            padding: 7px 12px;
-            font-size: 14px;
+            padding: 6px 10px;
+            font-size: 13px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.6px;
             border-bottom: 1px solid #475569;
         }
         .cell-body {
-            padding: 10px 12px;
-            font-size: 14px;
-            line-height: 1.5;
+            padding: 8px 10px;
+            font-size: 13px;
+            line-height: 1.45;
             color: #1e293b;
         }
         .meta-value-bold {
