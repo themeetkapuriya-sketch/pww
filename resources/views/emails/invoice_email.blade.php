@@ -29,10 +29,6 @@
                         <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">{{ $invoice->invoice_number }}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 6px 0; color: #64748b;">Due Date:</td>
-                        <td style="padding: 6px 0; color: #ef4444; font-weight: bold;">{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : \Carbon\Carbon::parse($invoice->created_at)->addDays(30)->format('d M Y') }}</td>
-                    </tr>
-                    <tr>
                         <td style="padding: 6px 0; color: #64748b;">GSTIN:</td>
                         <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-family: monospace;">{{ !empty($plant->gst_number) ? $plant->gst_number : ($client->gst_number ?? 'N/A') }}</td>
                     </tr>

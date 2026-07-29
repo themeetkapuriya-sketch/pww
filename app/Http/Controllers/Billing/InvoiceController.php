@@ -552,7 +552,7 @@ class InvoiceController extends Controller
 
             $pdfContent = $this->pdfService->generateInvoicePdf($invoice);
 
-            Mail::to($request->recipient_email)->queue(
+            Mail::to($request->recipient_email)->send(
                 new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)
             );
 

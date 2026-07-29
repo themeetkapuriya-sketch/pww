@@ -699,7 +699,6 @@
                         <div class="cell-header">Invoice & Transport</div>
                         <div class="cell-body">
                             Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span><br>
-                            Due Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->due_date ?? ($invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->addDays(30) : now()))->format('d M Y') }}</span><br>
                             @if(!empty($invoice->vehicle_number))
                                 Vehicle No: <span class="meta-value-bold" style="font-family: monospace;">{{ $invoice->vehicle_number }}</span><br>
                             @endif
