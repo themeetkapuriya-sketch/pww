@@ -21,7 +21,7 @@
     <!-- 3 Net Revenue Cards (Lifetime Revenue, Annual Revenue, Monthly Revenue) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- 1. Lifetime Revenue -->
-        <div class="bg-gradient-to-br from-emerald-600 to-teal-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-emerald-500/50">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-emerald-500/50" style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%);">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-emerald-100 uppercase">1. Lifetime Revenue</span>
                 <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">💵</span>
@@ -35,7 +35,7 @@
         </div>
 
         <!-- 2. Annual Revenue -->
-        <div class="bg-gradient-to-br from-indigo-700 to-indigo-900 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50" style="background: linear-gradient(135deg, #3730a3 0%, #312e81 100%);">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-indigo-200 uppercase">2. Annual Revenue</span>
                 <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">📅</span>
@@ -49,7 +49,7 @@
         </div>
 
         <!-- 3. Monthly Revenue -->
-        <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50" style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-blue-100 uppercase">3. Monthly Revenue ({{ date('M Y') }})</span>
                 <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">📆</span>
@@ -67,7 +67,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <!-- 1. Annual Billed Sales -->
-        <div class="bg-gradient-to-br from-indigo-700 to-indigo-900 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50" style="background: linear-gradient(135deg, #3730a3 0%, #312e81 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-indigo-200 uppercase">1. {{ $fyStartYear }}-{{ $fyStartYear+1 }} Annual Sales</span>
@@ -90,7 +90,7 @@
         </div>
 
         <!-- 2. Monthly Revenue (Option 1) -->
-        <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50" style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-blue-100 uppercase">2. {{ date('M Y') }} Monthly Sales</span>

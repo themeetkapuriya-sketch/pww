@@ -8,17 +8,19 @@ use App\Models\Invoice;
 use App\Models\Purchase;
 use App\Models\Expense;
 use App\Services\FinancialService;
+use App\Services\InvoicePdfService;
 use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
     protected $financialService;
+    protected $pdfService;
 
-    public function __construct(FinancialService $financialService)
+    public function __construct(FinancialService $financialService, InvoicePdfService $pdfService)
     {
         $this->financialService = $financialService;
+        $this->pdfService = $pdfService;
     }
 
     private function getDateRange(Request $request)
@@ -457,13 +459,17 @@ class ReportController extends Controller
             'by_category' => $expenses->groupBy('expense_category')->map(fn($g) => $g->sum('amount')),
         ];
 
-        $pdf = Pdf::loadView('pdf.report_pdf', compact(
+        $pdfContent = $this->pdfService->renderViewToPdf('pdf.report_pdf', compact(
             'startDate', 'endDate', 'period', 'reportType',
             'invoices', 'purchases', 'expenses', 'financials',
             'invoiceSummary', 'purchaseSummary', 'expenseSummary'
         ));
 
         $filename = "PWW_" . ucfirst($reportType) . "_Report_{$startDate}_to_{$endDate}.pdf";
-        return $pdf->download($filename);
+        return response()->streamDownload(
+            fn () => print($pdfContent),
+            $filename,
+            ['Content-Type' => 'application/pdf']
+        );
     }
 }

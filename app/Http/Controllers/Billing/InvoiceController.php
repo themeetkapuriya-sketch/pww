@@ -15,11 +15,18 @@ use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\InvoiceMail;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\InvoicePdfService;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
+    protected InvoicePdfService $pdfService;
+
+    public function __construct(InvoicePdfService $pdfService)
+    {
+        $this->pdfService = $pdfService;
+    }
     /**
      * 6. Invoices & Billing.
      */
@@ -511,22 +518,19 @@ class InvoiceController extends Controller
      */
     public function downloadInvoicePdf($id)
     {
-        $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
-        $client = $invoice->client;
-        $plant = $invoice->plant;
-        $groupedItems = $invoice->items;
+        try {
+            $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
+            $pdfContent = $this->pdfService->generateInvoicePdf($invoice);
 
-        $isPdf = true;
-        $pdf = Pdf::loadView('pages.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
-            ->setPaper('a4', 'portrait')
-            ->setOptions([
-                'isRemoteEnabled' => true,
-                'isHtml5ParserEnabled' => true,
-                'isFontSubsettingEnabled' => true,
-                'defaultMediaType' => 'print',
-                'dpi' => 96
-            ]);
-        return $pdf->download("Invoice-{$invoice->invoice_number}.pdf");
+            return response()->streamDownload(
+                fn () => print($pdfContent),
+                "Invoice-{$invoice->invoice_number}.pdf",
+                ['Content-Type' => 'application/pdf']
+            );
+        } catch (Exception $e) {
+            Log::error("Failed to download PDF for invoice ID {$id}: " . $e->getMessage());
+            return back()->with('error', 'Unable to generate PDF document. Please try again.');
+        }
     }
 
     /**
@@ -546,17 +550,7 @@ class InvoiceController extends Controller
             $plant = $invoice->plant;
             $groupedItems = $invoice->items;
 
-            $isPdf = true;
-            $pdfContent = Pdf::loadView('pages.invoice_print', compact('invoice', 'client', 'plant', 'groupedItems', 'isPdf'))
-                ->setPaper('a4', 'portrait')
-                ->setOptions([
-                    'isRemoteEnabled' => true,
-                    'isHtml5ParserEnabled' => true,
-                    'isFontSubsettingEnabled' => true,
-                    'defaultMediaType' => 'print',
-                    'dpi' => 96
-                ])
-                ->output();
+            $pdfContent = $this->pdfService->generateInvoicePdf($invoice);
 
             Mail::to($request->recipient_email)->queue(
                 new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)
@@ -567,9 +561,10 @@ class InvoiceController extends Controller
                 'message' => "Invoice #{$invoice->invoice_number} emailed successfully to {$request->recipient_email}!"
             ]);
         } catch (Exception $e) {
+            Log::error("Failed to send invoice email for ID {$id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send email: ' . $e->getMessage()
+                'message' => 'Failed to send email. ' . $e->getMessage()
             ], 500);
         }
     }

@@ -9,42 +9,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;950&display=swap" rel="stylesheet">
     
     <style>
-        /* Load local Outfit fonts for PDF generation and browser view consistency */
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 400;
-            @if(isset($isPdf) && $isPdf)
-                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-Regular.ttf")) }}') format('truetype');
-            @else
-                src: url('{{ asset("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
-            @endif
+            src: url('{{ asset("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
         }
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 600;
-            @if(isset($isPdf) && $isPdf)
-                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-SemiBold.ttf")) }}') format('truetype');
-            @else
-                src: url('{{ asset("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
-            @endif
+            src: url('{{ asset("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
         }
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 700;
-            @if(isset($isPdf) && $isPdf)
-                src: url('{{ str_replace('\\', '/', public_path("fonts/outfit/Outfit-Bold.ttf")) }}') format('truetype');
-            @else
-                src: url('{{ asset("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
-            @endif
+            src: url('{{ asset("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
         }
 
         /* PDF and Print Optimized Stylesheet */
         @page {
             size: A4 portrait;
-            margin: 8mm 10mm !important;
+            margin: 4mm 5mm !important;
         }
         
         * {
@@ -52,12 +39,12 @@
         }
 
         body {
-            font-family: 'Outfit', 'DejaVu Sans', sans-serif;
+            font-family: 'Outfit', sans-serif;
             color: #0f172a;
             background-color: #f1f5f9;
             margin: 0;
             padding: 15px;
-            font-size: 11.5px;
+            font-size: 12.5px;
             line-height: 1.45;
         }
         
@@ -118,14 +105,14 @@
             background-color: #ffffff;
             border: 1.5px solid #334155;
             border-radius: 4px;
-            padding: 16px 20px;
+            padding: 14px 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
             width: 100%;
-            min-height: 268mm;
+            min-height: 285mm;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start !important;
             page-break-inside: avoid;
         }
 
@@ -148,7 +135,7 @@
             margin-right: 14px;
         }
         .business-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 900;
             color: #0f172a;
             text-transform: uppercase;
@@ -156,7 +143,7 @@
             letter-spacing: -0.3px;
         }
         .business-subtitle {
-            font-size: 10px;
+            font-size: 11px;
             color: #475569;
             margin: 2px 0 0 0;
             text-transform: uppercase;
@@ -165,7 +152,7 @@
         }
         .tax-invoice-title {
             color: #0f172a;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -173,7 +160,7 @@
             display: block;
         }
         .invoice-number {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 800;
             color: #0f172a;
             margin: 2px 0 0 0;
@@ -198,16 +185,16 @@
         .cell-header {
             background-color: #C8D1DD;
             color: #0f172a;
-            padding: 6px 10px;
-            font-size: 11.5px;
+            padding: 7px 12px;
+            font-size: 14px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.6px;
             border-bottom: 1px solid #475569;
         }
         .cell-body {
-            padding: 9px;
-            font-size: 11px;
+            padding: 10px 12px;
+            font-size: 14px;
             line-height: 1.5;
             color: #1e293b;
         }
@@ -218,10 +205,10 @@
 
         /* Line Items Table */
         .items-section-wrapper {
-            flex-grow: 1;
+            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            margin-bottom: 16px;
+            margin-bottom: 0;
         }
         .items-table {
             width: 100%;
@@ -257,7 +244,7 @@
             border-bottom: 1px solid #475569;
         }
         .empty-filler-row td {
-            height: 38px;
+            height: 22px;
             border-bottom: none;
             border-right: 1px solid #475569;
             background-color: #ffffff;
@@ -288,7 +275,7 @@
 
         /* Bottom Section: Bank Details, Tax Summary & Words */
         .bottom-section-wrapper {
-            margin-top: auto;
+            margin-top: 0;
         }
         
         .words-bar {
@@ -313,6 +300,7 @@
             border-collapse: collapse;
             margin-bottom: 12px;
             border: 1px solid #475569;
+            page-break-inside: avoid !important;
         }
         .totals-table td {
             vertical-align: top;
@@ -387,6 +375,10 @@
             border-collapse: collapse;
             border: 1px solid #475569;
             background-color: #ffffff;
+            page-break-inside: avoid !important;
+        }
+        .footer-section-wrapper {
+            page-break-inside: avoid !important;
         }
         .footer-table td {
             padding: 0;
@@ -463,15 +455,8 @@
             font-family: 'Outfit', sans-serif;
         }
 
-        .rupee-sym {
-            font-family: 'DejaVu Sans', sans-serif !important;
-        }
-
-        @if(isset($isPdf) && $isPdf)
-            @page {
-                size: A4 portrait;
-                margin: 8mm 10mm !important;
-            }
+        /* Print Media Overrides */
+        @media print {
             .no-print-bar {
                 display: none !important;
             }
@@ -479,18 +464,34 @@
                 background-color: #ffffff !important;
                 padding: 0 !important;
                 margin: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
             }
             .invoice-box {
                 box-shadow: none !important;
                 border: 1.5px solid #0f172a !important;
-                padding: 6px 8px !important;
+                padding: 14px 16px !important;
                 margin: 0 !important;
                 max-width: 100% !important;
-                width: auto !important;
-                min-height: 0 !important;
-                height: auto !important;
-                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                min-height: 285mm !important;
+                height: 285mm !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
                 page-break-inside: avoid !important;
+            }
+        }
+            .header-table {
+                margin-bottom: 8px !important;
+                padding-bottom: 8px !important;
+            }
+            .meta-table {
+                margin-bottom: 10px !important;
+            }
+            .cell-body {
+                padding: 6px !important;
             }
             .items-section-wrapper {
                 display: block !important;
@@ -504,43 +505,25 @@
             .items-table {
                 height: auto !important;
             }
+            .items-table th, .items-table td {
+                padding: 6px 8px !important;
+            }
             .empty-filler-row td {
                 height: 12px !important;
                 padding: 2px 8px !important;
             }
-            .total-row, .grand-total-row {
-                display: table !important;
-                width: 100% !important;
+            .totals-table {
+                margin-bottom: 8px !important;
             }
-            .total-label {
-                display: table-cell !important;
-                text-align: left !important;
+            .totals-cell {
+                padding: 8px 12px !important;
             }
-            .total-value {
-                display: table-cell !important;
-                text-align: right !important;
+            .words-bar {
+                margin-bottom: 8px !important;
+                padding: 5px 10px !important;
             }
-            .footer-table table {
-                height: auto !important;
-            }
-        @endif
-
-        /* Print Media Overrides */
-        @media print {
-            .no-print-bar {
-                display: none !important;
-            }
-            body {
-                background-color: #ffffff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .invoice-box {
-                box-shadow: none !important;
-                border: 1.5px solid #0f172a !important;
-                padding: 14px !important;
-                height: auto !important;
-                min-height: auto !important;
+            .footer-table table, .footer-table tr, .footer-table td {
+                page-break-inside: avoid !important;
             }
         }
     </style>
@@ -548,6 +531,8 @@
 <body>
 
     @php
+        $rupee = '₹';
+
         // Helper function for converting numbers to Indian Rupees Words
         if (!function_exists('numberToWordsIndianTaxInvoice')) {
             function numberToWordsIndianTaxInvoice($number) {
@@ -627,7 +612,7 @@
     <!-- Top Action Control Bar -->
     <div class="no-print-bar">
         <div class="control-left">
-            <a href="{{ route('invoices') }}" onclick="handleBackToERP(event)" class="btn btn-secondary" style="margin-right: 12px; text-decoration: none; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">← Back to System</a>
+            <button onclick="window.close()" class="btn btn-secondary" style="margin-right: 12px; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">❌ Close</button>
             @if($invoice->invoice_mode === 'raw_material')
                 <span style="font-weight: 800; font-size: 13px; color: #b45309;">Raw Material / Scrap Sale Voucher</span>
                 <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $invoice->custom_client_name ?? 'Buyer' }}</span>
@@ -738,9 +723,9 @@
                             <th style="text-align: left; width: 38%;">DESCRIPTION OF GOODS</th>
                             <th style="text-align: center; width: 11%;">HSN/SAC</th>
                             <th style="text-align: right; width: 13%;">QTY</th>
-                            <th style="text-align: right; width: 12%;">RATE (<span class="rupee-sym">&#8377;</span>)</th>
+                            <th style="text-align: right; width: 12%;">RATE ({!! $rupee !!})</th>
                             <th style="text-align: center; width: 7%;">per</th>
-                            <th style="text-align: right; width: 15%;">AMOUNT (<span class="rupee-sym">&#8377;</span>)</th>
+                            <th style="text-align: right; width: 15%;">AMOUNT ({!! $rupee !!})</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -797,16 +782,16 @@
                                         <div style="font-size: 9px; font-weight: 700; color: #475569; margin-top: 2px;">{{ $unitConversionNotice }}</div>
                                     @endif
                                 </td>
-                                <td style="text-align: right; font-weight: 600;"><span class="rupee-sym">&#8377;</span>{{ number_format($item->unit_price, 2) }}</td>
+                                <td style="text-align: right; font-weight: 600;">{!! $rupee !!}{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align: center; font-weight: 700; color: #334155; text-transform: uppercase;">
                                     {{ strtoupper($pUom) }}
                                 </td>
-                                <td style="text-align: right; font-weight: 800; color: #0f172a;"><span class="rupee-sym">&#8377;</span>{{ number_format($pTotal, 2) }}</td>
+                                <td style="text-align: right; font-weight: 800; color: #0f172a;">{!! $rupee !!}{{ number_format($pTotal, 2) }}</td>
                             </tr>
                         @endforeach
                         @php
                             $itemCount = count($groupedItems);
-                            $minRows = 6;
+                            $minRows = ($itemCount <= 3) ? 16 : 10;
                         @endphp
                         @for ($emptyIdx = $itemCount; $emptyIdx < $minRows; $emptyIdx++)
                             <tr class="empty-filler-row">
@@ -829,7 +814,7 @@
                                 Subtotal
                             </td>
                             <td style="text-align: right; font-size: 12px; font-weight: 800; color: #0f172a; border-top: 1px solid #475569; border-bottom: 1px solid #475569; padding: 7px 10px;">
-                                <span class="rupee-sym">&#8377;</span>{{ number_format($subtotalVal, 2) }}
+                                {!! $rupee !!}{{ number_format($subtotalVal, 2) }}
                             </td>
                         </tr>
                     </tbody>
@@ -864,44 +849,49 @@
                         </table>
                     </td>
                     <td class="totals-cell">
-                        <div class="total-row">
-                            <span class="total-label">Taxable Subtotal:</span>
-                            <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->total_taxable_value, 2) }}</span>
-                        </div>
-                        
-                        @php
-                            $taxableBase = (float)$invoice->total_taxable_value;
-                            if ($taxableBase > 0) {
-                                $igstPct = round(($invoice->igst / $taxableBase) * 100, 1);
-                                $cgstPct = round(($invoice->cgst / $taxableBase) * 100, 1);
-                                $sgstPct = round(($invoice->sgst / $taxableBase) * 100, 1);
-                            } else {
-                                $igstPct = 18;
-                                $cgstPct = 9;
-                                $sgstPct = 9;
-                            }
-                        @endphp
+                        <table style="width: 100%; border-collapse: collapse; border: none; height: auto;">
+                            <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">Taxable Subtotal:</td>
+                                <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->total_taxable_value, 2) }}</td>
+                            </tr>
+                            
+                            @php
+                                $taxableBase = (float)$invoice->total_taxable_value;
+                                if ($taxableBase > 0) {
+                                    $igstPct = round(($invoice->igst / $taxableBase) * 100, 1);
+                                    $cgstPct = round(($invoice->cgst / $taxableBase) * 100, 1);
+                                    $sgstPct = round(($invoice->sgst / $taxableBase) * 100, 1);
+                                } else {
+                                    $igstPct = 18;
+                                    $cgstPct = 9;
+                                    $sgstPct = 9;
+                                }
+                            @endphp
 
-                        @if ($invoice->igst > 0)
-                            <div class="total-row">
-                                <span class="total-label">IGST Total ({{ $igstPct }}%):</span>
-                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->igst, 2) }}</span>
-                            </div>
-                        @else
-                            <div class="total-row">
-                                <span class="total-label">CGST Total ({{ $cgstPct }}%):</span>
-                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->cgst, 2) }}</span>
-                            </div>
-                            <div class="total-row">
-                                <span class="total-label">SGST Total ({{ $sgstPct }}%):</span>
-                                <span class="total-value"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->sgst, 2) }}</span>
-                            </div>
-                        @endif
+                            @if ($invoice->igst > 0)
+                                <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">IGST Total ({{ $igstPct }}%):</td>
+                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->igst, 2) }}</td>
+                                </tr>
+                            @else
+                                <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">CGST Total ({{ $cgstPct }}%):</td>
+                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->cgst, 2) }}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">SGST Total ({{ $sgstPct }}%):</td>
+                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->sgst, 2) }}</td>
+                                </tr>
+                            @endif
+                        </table>
 
-                        <div class="grand-total-row">
-                            <span class="total-label" style="font-weight: 800; font-size: 11.5px; color: #0f172a;">Total Amount (Incl. Tax):</span>
-                            <span class="total-value" style="font-size: 15px; color: #0f172a; font-weight: 900;"><span class="rupee-sym">&#8377;</span>{{ number_format($invoice->total_amount, 2) }}</span>
-                        </div>
+                        <!-- Grand Total Table (styled to look like a box/capsule) -->
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 8px; background-color: #C8D1DD; border: 1px solid #475569; border-radius: 4px; height: auto;">
+                            <tr>
+                                <td style="text-align: left; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0f172a; border: none;">Total Amount (Incl. Tax):</td>
+                                <td style="text-align: right; padding: 7px 12px; font-size: 15px; color: #0f172a; font-weight: 900; border: none;">{!! $rupee !!}{{ number_format($invoice->total_amount, 2) }}</td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
             </table>
@@ -912,91 +902,77 @@
                 <span style="font-weight: 700; font-style: italic; color: #0f172a;">{{ $amountInWords }}</span>
             </div>
 
-            <!-- Footer Terms & Signatures -->
-            <table class="footer-table">
-                <tr>
-                    <td style="width: 58%; vertical-align: top; border-right: 1px solid #475569;">
-                        <div class="terms-title">TERMS & CONDITIONS</div>
-                        <div style="padding: 8px 12px;">
-                            @php
-                                $defaultTerms = "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged.";
-                                $rawTerms = \App\Models\Setting::get('terms_and_conditions', $defaultTerms);
-                                $termsLines = array_filter(array_map('trim', explode("\n", $rawTerms)));
-                            @endphp
-                            <ul class="terms-list">
-                                @foreach($termsLines as $line)
-                                    <li>{{ $line }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </td>
-                    <td style="width: 42%; vertical-align: top; padding: 0;">
-                        <table style="width: 100%; border-collapse: collapse; border: none; height: auto;">
-                            <tr>
-                                <td style="border: none; padding: 0;">
-                                    <div class="signature-title" style="text-align: center;">Authorized Signature</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="border: none; padding: 8px 12px; text-align: center; vertical-align: middle; height: 50px;">
-                                    @php
-                                        $sigPath = \App\Models\Setting::get('signature_path');
-                                        $hasSig = false;
-                                        $sigSrc = '';
-                                        if ($sigPath) {
-                                            $fullSigPath = public_path($sigPath);
-                                            if (file_exists($fullSigPath) && is_file($fullSigPath)) {
-                                                $sigData = base64_encode(file_get_contents($fullSigPath));
-                                                $sigSrc = 'data:image/' . pathinfo($fullSigPath, PATHINFO_EXTENSION) . ';base64,' . $sigData;
-                                                $hasSig = true;
-                                            } else {
-                                                $sigSrc = asset($sigPath);
-                                                $hasSig = true;
+            <!-- Footer Terms & Signatures Wrapper to prevent splitting across pages -->
+            <div class="footer-section-wrapper">
+                <!-- Footer Terms & Signatures -->
+                <table class="footer-table">
+                    <tr>
+                        <td style="width: 58%; vertical-align: top; border-right: 1px solid #475569;">
+                            <div class="terms-title">TERMS & CONDITIONS</div>
+                            <div style="padding: 8px 12px;">
+                                @php
+                                    $defaultTerms = "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged.";
+                                    $rawTerms = \App\Models\Setting::get('terms_and_conditions', $defaultTerms);
+                                    $termsLines = array_filter(array_map('trim', explode("\n", $rawTerms)));
+                                @endphp
+                                <ul class="terms-list">
+                                    @foreach($termsLines as $line)
+                                        <li>{{ $line }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </td>
+                        <td style="width: 42%; vertical-align: top; padding: 0;">
+                            <table style="width: 100%; border-collapse: collapse; border: none; height: auto;">
+                                <tr>
+                                    <td style="border: none; padding: 0;">
+                                        <div class="signature-title" style="text-align: center;">Authorized Signature</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 8px 12px; text-align: center; vertical-align: middle; height: 50px;">
+                                        @php
+                                            $sigPath = \App\Models\Setting::get('signature_path');
+                                            $hasSig = false;
+                                            $sigSrc = '';
+                                            if ($sigPath) {
+                                                $fullSigPath = public_path($sigPath);
+                                                if (file_exists($fullSigPath) && is_file($fullSigPath)) {
+                                                    $sigData = base64_encode(file_get_contents($fullSigPath));
+                                                    $sigSrc = 'data:image/' . pathinfo($fullSigPath, PATHINFO_EXTENSION) . ';base64,' . $sigData;
+                                                    $hasSig = true;
+                                                } else {
+                                                    $sigSrc = asset($sigPath);
+                                                    $hasSig = true;
+                                                }
                                             }
-                                        }
-                                    @endphp
-                                    @if($hasSig)
-                                        <img src="{{ $sigSrc }}" alt="Signature Stamp" style="max-height: 48px; max-width: 150px; object-fit: contain; display: inline-block;">
-                                    @else
-                                        <div style="height: 40px;"></div>
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="border: none; border-top: 1px solid #475569; padding: 5px 8px; text-align: center; font-size: 10.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; background-color: #ffffff;">
-                                    FOR {{ strtoupper(\App\Models\Setting::get('business_name', 'PRAFUL WELDING WORKS')) }}
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-
-            <div class="computer-gen-notice">
-                This is a computer-generated tax invoice • Issued under GST Rules, 2017
+                                        @endphp
+                                        @if($hasSig)
+                                            <img src="{{ $sigSrc }}" alt="Signature Stamp" style="max-height: 48px; max-width: 150px; object-fit: contain; display: inline-block;">
+                                        @else
+                                            <div style="height: 40px;"></div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; border-top: 1px solid #475569; padding: 5px 8px; text-align: center; font-size: 10.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; background-color: #ffffff;">
+                                        FOR {{ strtoupper(\App\Models\Setting::get('business_name', 'PRAFUL WELDING WORKS')) }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+    
+                <div class="computer-gen-notice">
+                    This is a computer-generated tax invoice • Issued under GST Rules, 2017
+                </div>
             </div>
         </div>
     </div>
 
+    @if(!isset($isPdf) || !$isPdf)
     <script>
-        function handleBackToERP(e) {
-            if (window.opener && !window.opener.closed) {
-                try {
-                    window.opener.focus();
-                    window.close();
-                    e.preventDefault();
-                    return false;
-                } catch(err) {}
-            }
-            if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
-                e.preventDefault();
-                window.history.back();
-                return false;
-            }
-            // Fallback: Let default link href navigate to route('invoices')
-        }
-
-
         window.addEventListener('load', function() {
             if (!window.location.href.includes('download')) {
                 setTimeout(function() {
@@ -1005,5 +981,6 @@
             }
         });
     </script>
+    @endif
 </body>
 </html>

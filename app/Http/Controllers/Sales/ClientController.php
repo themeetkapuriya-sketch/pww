@@ -7,17 +7,19 @@ use Illuminate\Http\Request;
 use App\Models\Client;
 use App\Models\ClientPlant;
 use App\Services\FinancialService;
+use App\Services\InvoicePdfService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ClientController extends Controller
 {
     protected $financialService;
+    protected $pdfService;
 
-    public function __construct(FinancialService $financialService)
+    public function __construct(FinancialService $financialService, InvoicePdfService $pdfService)
     {
         $this->financialService = $financialService;
+        $this->pdfService = $pdfService;
     }
 
     private function getDateRange(Request $request)
@@ -362,7 +364,7 @@ class ClientController extends Controller
         $end_date = $endDate;
         $plant_id = $plantId;
 
-        $pdf = Pdf::loadView('pdf.client_ledger_pdf', compact(
+        $pdfContent = $this->pdfService->renderViewToPdf('pdf.client_ledger_pdf', compact(
             'client', 'selectedPlant', 'opening_balance', 'total_debit', 
             'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date', 
             'end_date', 'period', 'plant_id'
@@ -372,6 +374,10 @@ class ClientController extends Controller
         $fileName = "Ledger-Statement-{$client->company_name}{$plantSegment}-{$startDate}-to-{$endDate}.pdf";
         $fileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $fileName);
 
-        return $pdf->download($fileName);
+        return response()->streamDownload(
+            fn () => print($pdfContent),
+            $fileName,
+            ['Content-Type' => 'application/pdf']
+        );
     }
 }
