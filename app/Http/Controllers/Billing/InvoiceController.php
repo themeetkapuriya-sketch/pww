@@ -93,7 +93,7 @@ class InvoiceController extends Controller
             'gst_rate' => 'nullable|numeric|min:0|max:100',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
-            'vehicle_number' => ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
+            'vehicle_number' => ['required', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
             'due_date' => 'nullable|date',
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'required',
@@ -103,6 +103,7 @@ class InvoiceController extends Controller
             'unit_prices.*' => 'required|numeric|min:0',
             'billing_uoms' => 'nullable|array',
         ], [
+            'vehicle_number.required' => 'Delivery Vehicle Number is required.',
             'vehicle_number.regex' => 'Enter valid vehicle number',
             'custom_client_name.required' => 'Please enter the Buyer / Client Name',
         ]);

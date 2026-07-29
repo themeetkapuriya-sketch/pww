@@ -226,17 +226,17 @@
             border-right: none;
         }
         .items-table td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #475569;
+            padding: 7px 10px;
+            border-bottom: none;
             border-right: 1px solid #475569;
             font-size: 11.5px;
-            vertical-align: middle;
+            vertical-align: top;
         }
         .items-table td:last-child {
             border-right: none;
         }
         .items-table tbody tr:last-child td {
-            border-bottom: 1px solid #475569;
+            border-bottom: none;
         }
         .empty-filler-row td {
             height: 22px;
@@ -470,14 +470,13 @@
                 max-width: 100% !important;
                 width: 100% !important;
                 box-sizing: border-box !important;
-                min-height: 285mm !important;
-                height: 285mm !important;
+                min-height: 282mm !important;
+                height: 282mm !important;
                 display: flex !important;
                 flex-direction: column !important;
-                justify-content: flex-start !important;
+                justify-content: space-between !important;
                 page-break-inside: avoid !important;
             }
-        }
             .header-table {
                 margin-bottom: 8px !important;
                 padding-bottom: 8px !important;
@@ -489,23 +488,32 @@
                 padding: 6px !important;
             }
             .items-section-wrapper {
-                display: block !important;
-                flex-grow: 0 !important;
-                margin-bottom: 6px !important;
+                flex: 0 0 122mm !important;
+                height: 122mm !important;
+                display: flex !important;
+                flex-direction: column !important;
+                margin-bottom: 0 !important;
+                overflow: hidden !important;
             }
             .bottom-section-wrapper {
-                display: block !important;
-                margin-top: 0 !important;
+                flex: 0 0 auto !important;
+                margin-top: -1px !important;
             }
             .items-table {
-                height: auto !important;
+                height: 100% !important;
             }
-            .items-table th, .items-table td {
+            .items-table th {
                 padding: 6px 8px !important;
+                border-bottom: 1px solid #475569 !important;
+            }
+            .items-table td {
+                padding: 6px 8px !important;
+                border-bottom: none !important;
             }
             .empty-filler-row td {
-                height: 12px !important;
+                height: auto !important;
                 padding: 2px 8px !important;
+                border-bottom: none !important;
             }
             .totals-table {
                 margin-bottom: 8px !important;
@@ -785,7 +793,7 @@
                         @endforeach
                         @php
                             $itemCount = count($groupedItems);
-                            $minRows = ($itemCount <= 3) ? 16 : 10;
+                            $minRows = max(7, $itemCount);
                         @endphp
                         @for ($emptyIdx = $itemCount; $emptyIdx < $minRows; $emptyIdx++)
                             <tr class="empty-filler-row">
@@ -798,12 +806,14 @@
                                 <td>&nbsp;</td>
                             </tr>
                         @endfor
-                        @php
-                            $subtotalVal = (isset($invoice->total_taxable_value) && (float)$invoice->total_taxable_value > 0)
-                                ? (float)$invoice->total_taxable_value
-                                : $calcSubtotal;
-                        @endphp
-                        <tr class="total-row-item-table" style="background-color: #f1f5f9; font-weight: 800;">
+                    </tbody>
+                    @php
+                        $subtotalVal = (isset($invoice->total_taxable_value) && (float)$invoice->total_taxable_value > 0)
+                            ? (float)$invoice->total_taxable_value
+                            : $calcSubtotal;
+                    @endphp
+                    <tfoot>
+                        <tr class="total-row-item-table" style="background-color: #ffffff; font-weight: 800;">
                             <td colspan="6" style="text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; border-top: 1px solid #475569; border-bottom: 1px solid #475569; border-right: 1px solid #475569; padding: 7px 10px;">
                                 Subtotal
                             </td>
@@ -811,7 +821,7 @@
                                 {!! $rupee !!}{{ number_format($subtotalVal, 2) }}
                             </td>
                         </tr>
-                    </tbody>
+                    </tfoot>
                 </table>
             </div>
         </div>

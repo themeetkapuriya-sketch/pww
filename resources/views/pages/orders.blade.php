@@ -393,18 +393,20 @@
         const container = document.getElementById('orderRowsContainer');
         if (!container) return;
         const rows = container.querySelectorAll('.order-row');
-        if (rows.length > 1) {
-            btn.closest('.order-row').remove();
-        } else {
-            const row = rows[0];
-            const select = row.querySelector('select');
-            if (select) select.value = '';
-            row.querySelectorAll('input').forEach(inp => inp.value = '');
+        if (rows.length <= 1) {
+            if (window.showToast) window.showToast('info', 'At least one product row is required.');
+            return;
         }
+        btn.closest('.order-row').remove();
     }
     window.removeOrderRow = removeOrderRow;
 
+    var _addOrderRowPending = false;
     document.getElementById('addOrderRowBtn')?.addEventListener('click', function() {
+        if (_addOrderRowPending) return;
+        _addOrderRowPending = true;
+        setTimeout(function() { _addOrderRowPending = false; }, 300);
+
         const container = document.getElementById('orderRowsContainer');
         const originalRow = container.querySelector('.order-row');
         if (!originalRow) return;

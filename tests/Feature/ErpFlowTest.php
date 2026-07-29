@@ -498,6 +498,7 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->postJson(route('invoice.generate'), [
             'invoice_number' => 'PWW-CUSTOM-999',
             'plant_id' => $plant->id,
+            'vehicle_number' => 'GJ-03-BW-1234',
             'due_date' => Carbon::now()->addDays(30)->toDateString(),
             'product_ids' => [$good->id],
             'quantities' => [10],
@@ -654,6 +655,7 @@ class ErpFlowTest extends TestCase
         $this->actingAs($user)->postJson(route('invoice.generate'), [
             'invoice_number' => 'PWW-DEL-999',
             'plant_id' => $plant->id,
+            'vehicle_number' => 'GJ-03-BW-1234',
             'finished_good_ids' => [$good->id],
             'quantities' => [1],
             'unit_prices' => [500],
@@ -1093,6 +1095,7 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('invoice.generate'), [
             'invoice_number' => 'PWW-TEST-ORD-01',
             'plant_id' => $plant->id,
+            'vehicle_number' => 'GJ-03-BW-1234',
             'sales_order_id' => $order->id,
             'product_ids' => [$product->id],
             'quantities' => [10],

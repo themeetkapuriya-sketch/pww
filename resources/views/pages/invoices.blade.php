@@ -135,8 +135,8 @@
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
                     <div id="vehicleNumberContainer" class="md:col-span-3">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No.</label>
-                        <input type="text" name="vehicle_number" placeholder="e.g. GJ-03-BW-1234"
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No. <span class="text-rose-500">*</span></label>
+                        <input type="text" name="vehicle_number" required placeholder="e.g. GJ-03-BW-1234"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
                     </div>
                 </div>
@@ -519,8 +519,13 @@
     
     if (!billingRowsContainer || !addBillingRowBtn) return;
 
-    // Add Row
-    addBillingRowBtn.addEventListener('click', function() {
+    // Add Row (prevent double-fire with flag)
+    var _addRowPending = false;
+    addBillingRowBtn.addEventListener('click', function(e) {
+        if (_addRowPending) return;
+        _addRowPending = true;
+        setTimeout(function() { _addRowPending = false; }, 300);
+
         const mode = (document.getElementById('invoiceModeInput') ? document.getElementById('invoiceModeInput').value : 'finished_goods');
         const fgTpl = document.getElementById('templateOptionsFinishedGoods');
         const rmTpl = document.getElementById('templateOptionsRawMaterials');
@@ -610,6 +615,8 @@
             if (billingRowsContainer.querySelectorAll('.billing-row').length > 1) {
                 e.target.closest('.billing-row').remove();
                 recalculateCustomInvoice();
+            } else {
+                if (window.showToast) window.showToast('info', 'At least one product row is required.');
             }
         }
     });
