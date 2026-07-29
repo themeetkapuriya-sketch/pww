@@ -3,29 +3,24 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
-    <!-- Outfit Font for browser rendering -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;950&display=swap" rel="stylesheet">
-    
     <style>
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 400;
-            src: url('{{ asset("fonts/outfit/Outfit-Regular.ttf") }}') format('truetype');
+            src: url('data:font/ttf;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/outfit/Outfit-Regular.ttf"))) }}') format('truetype');
         }
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 600;
-            src: url('{{ asset("fonts/outfit/Outfit-SemiBold.ttf") }}') format('truetype');
+            src: url('data:font/ttf;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/outfit/Outfit-SemiBold.ttf"))) }}') format('truetype');
         }
         @font-face {
             font-family: 'Outfit';
             font-style: normal;
             font-weight: 700;
-            src: url('{{ asset("fonts/outfit/Outfit-Bold.ttf") }}') format('truetype');
+            src: url('data:font/ttf;charset=utf-8;base64,{{ base64_encode(file_get_contents(public_path("fonts/outfit/Outfit-Bold.ttf"))) }}') format('truetype');
         }
 
         /* PDF and Print Optimized Stylesheet */

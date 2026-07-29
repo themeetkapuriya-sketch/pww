@@ -83,6 +83,7 @@ class InvoicePdfService
             ->emulateMedia('print')
             ->noSandbox()
             ->dismissDialogs()
+            ->waitUntil('domcontentloaded')
             ->setOption('protocolTimeout', 60000)
             ->setOption('args', [
                 '--no-sandbox',
