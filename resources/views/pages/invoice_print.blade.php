@@ -933,11 +933,10 @@
                                             if ($sigPath) {
                                                 $fullSigPath = public_path($sigPath);
                                                 if (file_exists($fullSigPath) && is_file($fullSigPath)) {
+                                                    $ext = strtolower(pathinfo($fullSigPath, PATHINFO_EXTENSION));
+                                                    $mime = ($ext === 'svg') ? 'image/svg+xml' : ($ext === 'jpg' ? 'image/jpeg' : 'image/' . $ext);
                                                     $sigData = base64_encode(file_get_contents($fullSigPath));
-                                                    $sigSrc = 'data:image/' . pathinfo($fullSigPath, PATHINFO_EXTENSION) . ';base64,' . $sigData;
-                                                    $hasSig = true;
-                                                } else {
-                                                    $sigSrc = asset($sigPath);
+                                                    $sigSrc = 'data:' . $mime . ';base64,' . $sigData;
                                                     $hasSig = true;
                                                 }
                                             }
