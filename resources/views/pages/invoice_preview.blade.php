@@ -32,7 +32,8 @@
                     <img class="h-12 w-12 object-contain rounded-xl border border-slate-100 p-1 bg-white shadow-2xs" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo">
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h2>
-                        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021'))) }} | Email: {{ \App\Models\Setting::get('business_email', 'pww@example.com') }}</p>
+                        @php $bizMobile = \App\Models\Setting::get('business_mobile', ''); @endphp
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{{ \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021'))) }} | Email: {{ \App\Models\Setting::get('business_email', 'pww@example.com') }}@if(!empty($bizMobile)) | Mobile: {{ $bizMobile }}@endif</p>
                         @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
                         <p class="text-xs text-slate-400 font-semibold mt-0.5">
                             GSTIN: <span class="text-slate-700 font-bold">{{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span>
@@ -147,23 +148,6 @@
 
                                 $qtyVal = (float)$item->quantity;
                                 $qtyFormatted = ($qtyVal == (int)$qtyVal) ? number_format($qtyVal) : number_format($qtyVal, 2);
-                                
-                                $unitWeight = ($pGood && ($pGood->unit_weight_kg ?? 0) > 0) ? (float)$pGood->unit_weight_kg : 0;
-                                
-                                $uomLower = strtolower($pUom);
-                                $unitConversionNotice = '';
-                                
-                                if (!$isRaw && $unitWeight > 0) {
-                                    if ($uomLower === 'kg') {
-                                        $pcsCount = $qtyVal / $unitWeight;
-                                        $pcsFormatted = ($pcsCount == (int)$pcsCount) ? number_format($pcsCount) : number_format($pcsCount, 1);
-                                        $unitConversionNotice = "≈ {$pcsFormatted} Pcs (@ {$unitWeight} Kg/pc)";
-                                    } elseif ($uomLower === 'pcs' || $uomLower === 'piece') {
-                                        $totalWt = $qtyVal * $unitWeight;
-                                        $wtFormatted = ($totalWt == (int)$totalWt) ? number_format($totalWt) : number_format($totalWt, 2);
-                                        $unitConversionNotice = "Total Wt: {$wtFormatted} Kg (@ {$unitWeight} Kg/pc)";
-                                    }
-                                }
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ $pName }}</td>
@@ -171,9 +155,6 @@
                                 <td class="py-3.5 px-4 text-right">₹{{ number_format($item->unit_price, 2) }}</td>
                                 <td class="py-3.5 px-4 text-right font-bold text-slate-800">
                                     <div>{{ $qtyFormatted }}</div>
-                                    @if($unitConversionNotice)
-                                        <div class="text-[10px] text-slate-500 font-semibold mt-0.5">{{ $unitConversionNotice }}</div>
-                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 text-center font-bold text-slate-600 uppercase">
                                     {{ $pUom }}

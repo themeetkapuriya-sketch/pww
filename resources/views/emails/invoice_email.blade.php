@@ -50,11 +50,14 @@
                     </thead>
                     <tbody>
                         @foreach ($groupedItems as $item)
+                            @php
+                                $itemName = $item->item_name ?? ($item->product->product_name ?? ($item->rawMaterial->material_name ?? 'Item'));
+                            @endphp
                             <tr style="border-bottom: 1px solid #f1f5f9;">
-                                <td style="padding: 12px 15px; color: #334155; font-weight: bold;">{{ $item->product_name }}</td>
+                                <td style="padding: 12px 15px; color: #334155; font-weight: bold;">{{ $itemName }}</td>
                                 <td style="padding: 12px 15px; text-align: center; color: #475569;">{{ $item->quantity }}</td>
-                                <td style="padding: 12px 15px; text-align: right; color: #475569; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($item->unit_price, 2) }}</td>
-                                <td style="padding: 12px 15px; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($item->total, 2) }}</td>
+                                <td style="padding: 12px 15px; text-align: right; color: #475569; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($item->unit_price ?? 0, 2) }}</td>
+                                <td style="padding: 12px 15px; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($item->total_price ?? $item->total ?? 0, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

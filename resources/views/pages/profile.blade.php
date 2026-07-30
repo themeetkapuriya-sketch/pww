@@ -122,7 +122,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business Address</label>
                     <input type="text" name="address" value="{{ \App\Models\Setting::get('address', trim(\App\Models\Setting::get('address_line_1', 'Plot No. 12, G.I.D.C. Metoda,') . ' ' . \App\Models\Setting::get('address_line_2', 'Rajkot, Gujarat - 360021'))) }}" required
@@ -134,6 +134,13 @@
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business Email</label>
                     <input type="email" name="business_email" value="{{ \App\Models\Setting::get('business_email', 'pww@example.com') }}" required
                            placeholder="e.g. pww@example.com"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Business Mobile</label>
+                    <input type="text" name="business_mobile" value="{{ \App\Models\Setting::get('business_mobile', '') }}"
+                           placeholder="e.g. +91 98980 00000"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
                 </div>
             </div>

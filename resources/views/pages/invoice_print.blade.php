@@ -139,10 +139,8 @@
         }
         .business-subtitle {
             font-size: 11px;
-            color: #475569;
+            color: #334155;
             margin: 2px 0 0 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
             font-weight: 700;
         }
         .tax-invoice-title {
@@ -653,7 +651,8 @@
                                 </td>
                                 <td style="vertical-align: middle;">
                                     <h1 class="business-title">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
-                                    <p class="business-subtitle">{{ \App\Models\Setting::get('business_subtitle', 'Heavy Fabrication & Industrial Racks ERP') }}</p>
+                                    @php $bizMobile = \App\Models\Setting::get('business_mobile', ''); @endphp
+                                    <p class="business-subtitle">Email: {{ $sellerEmail }}@if(!empty($bizMobile)) &nbsp;|&nbsp; Mobile: {{ $bizMobile }}@endif</p>
                                 </td>
                             </tr>
                         </table>
@@ -677,7 +676,6 @@
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
                             {{ $sellerAddress }}<br>
-                            Email: <span class="meta-value-bold">{{ $sellerEmail }}</span><br>
                             <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span><br>
                             @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
                             @if(!empty($msme))
@@ -751,23 +749,6 @@
 
                                 $qtyVal = (float)$item->quantity;
                                 $qtyFormatted = ($qtyVal == (int)$qtyVal) ? number_format($qtyVal) : number_format($qtyVal, 2);
-                                
-                                $unitWeight = ($pGood && ($pGood->unit_weight_kg ?? 0) > 0) ? (float)$pGood->unit_weight_kg : 0;
-                                
-                                $uomLower = strtolower($pUom);
-                                $unitConversionNotice = '';
-                                
-                                if (!$isRaw && $unitWeight > 0) {
-                                    if ($uomLower === 'kg') {
-                                        $pcsCount = $qtyVal / $unitWeight;
-                                        $pcsFormatted = ($pcsCount == (int)$pcsCount) ? number_format($pcsCount) : number_format($pcsCount, 1);
-                                        $unitConversionNotice = "≈ {$pcsFormatted} Pcs (@ {$unitWeight} Kg/pc)";
-                                    } elseif ($uomLower === 'pcs' || $uomLower === 'piece') {
-                                        $totalWt = $qtyVal * $unitWeight;
-                                        $wtFormatted = ($totalWt == (int)$totalWt) ? number_format($totalWt) : number_format($totalWt, 2);
-                                        $unitConversionNotice = "Total Wt: {$wtFormatted} Kg (@ {$unitWeight} Kg/pc)";
-                                    }
-                                }
                             @endphp
                             <tr>
                                 <td style="text-align: center; font-weight: 700; color: #475569;">{{ $index + 1 }}</td>
@@ -779,10 +760,7 @@
                                     <span class="hsn-text">{{ $pHsn }}</span>
                                 </td>
                                 <td style="text-align: right; font-weight: 800; color: #0f172a;">
-                                    <div>{{ $qtyFormatted }} {{ strtoupper($pUom) }}</div>
-                                    @if($unitConversionNotice)
-                                        <div style="font-size: 9px; font-weight: 700; color: #475569; margin-top: 2px;">{{ $unitConversionNotice }}</div>
-                                    @endif
+                                    <div>{{ $qtyFormatted }}</div>
                                 </td>
                                 <td style="text-align: right; font-weight: 600;">{!! $rupee !!}{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align: center; font-weight: 700; color: #334155; text-transform: uppercase;">

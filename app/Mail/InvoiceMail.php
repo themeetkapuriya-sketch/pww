@@ -26,15 +26,15 @@ class InvoiceMail extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(Invoice $invoice, string $customSubject, string $messageBody, string $pdfContent, $client = null, $plant = null, $groupedItems = null)
+    public function __construct(Invoice $invoice, string $customSubject, string $messageBody, ?string $pdfContent = null, $client = null, $plant = null, $groupedItems = null)
     {
         $this->invoice = $invoice;
         $this->customSubject = $customSubject;
         $this->messageBody = $messageBody;
-        $this->pdfContent = base64_encode($pdfContent);
+        $this->pdfContent = $pdfContent ? base64_encode($pdfContent) : null;
         $this->client = $client;
         $this->plant = $plant;
-        $this->groupedItems = $groupedItems ?: collect();
+        $this->groupedItems = $groupedItems ?: null;
     }
 
     /**
@@ -52,6 +52,15 @@ class InvoiceMail extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        $this->invoice->loadMissing(['plant.client', 'items.product', 'items.rawMaterial']);
+
+        $this->client = $this->client ?? $this->invoice->client ?? $this->invoice->plant?->client;
+        $this->plant = $this->plant ?? $this->invoice->plant;
+
+        if (empty($this->groupedItems) || (is_countable($this->groupedItems) && count($this->groupedItems) === 0)) {
+            $this->groupedItems = $this->invoice->items ?? collect();
+        }
+
         return new Content(
             view: 'emails.invoice_email',
             with: [
@@ -69,8 +78,14 @@ class InvoiceMail extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
+        $this->invoice->loadMissing(['plant.client', 'items.product', 'items.rawMaterial']);
+
+        $pdfData = $this->pdfContent
+            ? base64_decode($this->pdfContent)
+            : app(\App\Services\InvoicePdfService::class)->generateInvoicePdf($this->invoice);
+
         return [
-            Attachment::fromData(fn () => base64_decode($this->pdfContent), "Invoice-{$this->invoice->invoice_number}.pdf")
+            Attachment::fromData(fn () => $pdfData, "Invoice-{$this->invoice->invoice_number}.pdf")
                 ->withMime('application/pdf'),
         ];
     }

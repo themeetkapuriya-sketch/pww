@@ -78,6 +78,7 @@ class ProfileController extends Controller
             'business_subtitle' => 'required|string|max:255',
             'address' => 'required|string|max:500',
             'business_email' => 'required|email|max:255',
+            'business_mobile' => 'nullable|string|max:50',
             'gstin' => ['required', 'string', 'size:15', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[1-9A-Za-z]{1}[Zz][0-9A-Za-z]{1}$/'],
             'msme_number' => ['nullable', 'string', 'regex:/^UDYAM-[A-Za-z]{2}-[0-9]{2}-[0-9]{7}$/i'],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -117,6 +118,7 @@ class ProfileController extends Controller
             Setting::set('address_line_1', $validated['address']);
             Setting::set('address_line_2', '');
             Setting::set('business_email', strtolower(trim($validated['business_email'])));
+            Setting::set('business_mobile', trim($request->input('business_mobile', '')));
             Setting::set('gstin', $validated['gstin']);
             Setting::set('msme_number', $request->input('msme_number', ''));
             Setting::set('bank_name', $validated['bank_name']);

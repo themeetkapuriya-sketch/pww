@@ -549,14 +549,9 @@ class InvoiceController extends Controller
             ]);
 
             $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->findOrFail($id);
-            $client = $invoice->client;
-            $plant = $invoice->plant;
-            $groupedItems = $invoice->items;
-
-            $pdfContent = $this->pdfService->generateInvoicePdf($invoice);
 
             Mail::to($request->recipient_email)->send(
-                new InvoiceMail($invoice, $request->subject, $request->message_body, $pdfContent, $client, $plant, $groupedItems)
+                new InvoiceMail($invoice, $request->subject, $request->message_body)
             );
 
             return response()->json([
