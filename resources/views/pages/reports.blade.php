@@ -417,7 +417,7 @@
             </div>
             <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                    <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-bold uppercase">Accounting Item</th>
                             <th class="px-6 py-3 text-left text-xs font-bold uppercase">Description</th>
@@ -521,7 +521,7 @@
             </div>
             <div class="overflow-x-auto w-full max-w-full">
                 <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                    <thead class="bg-[#4371D7] text-white">
+                    <thead class="bg-[#EDF4FA] text-black">
                         <tr>
                             <th class="px-4 py-2.5 text-center font-bold uppercase w-12">#</th>
                             <th class="px-4 py-2.5 text-left font-bold uppercase">Expense Date</th>
@@ -607,7 +607,7 @@
                 </div>
                 <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                     <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                        <thead class="bg-[#4371D7] text-white">
+                        <thead class="bg-[#EDF4FA] text-black">
                             <tr>
                                 <th class="px-3 py-2.5 text-left font-bold uppercase">Invoice No.</th>
                                 <th class="px-3 py-2.5 text-left font-bold uppercase">Client GSTIN</th>
@@ -677,7 +677,7 @@
                 </div>
                 <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                     <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                        <thead class="bg-[#4371D7] text-white">
+                        <thead class="bg-[#EDF4FA] text-black">
                             <tr>
                                 <th class="px-3 py-2.5 text-left font-bold uppercase">Bill Date</th>
                                 <th class="px-3 py-2.5 text-left font-bold uppercase">Bill No.</th>
@@ -806,7 +806,7 @@
                     <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">3.1 Details of Outward Taxable Supplies (Output Tax Liability)</h4>
                     <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                         <table class="min-w-full divide-y divide-slate-200 text-xs">
-                            <thead class="bg-[#4371D7] text-white">
+                            <thead class="bg-[#EDF4FA] text-black">
                                 <tr>
                                     <th class="px-4 py-2.5 text-left font-bold uppercase">Nature of Supplies</th>
                                     <th class="px-4 py-2.5 text-right font-bold uppercase">Total Taxable Value</th>
@@ -833,7 +833,7 @@
                     <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700">4. Eligible Input Tax Credit (ITC Available from Purchases)</h4>
                     <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
                         <table class="min-w-full divide-y divide-slate-200 text-xs">
-                            <thead class="bg-[#4371D7] text-white">
+                            <thead class="bg-[#EDF4FA] text-black">
                                 <tr>
                                     <th class="px-4 py-2.5 text-left font-bold uppercase">Details of ITC Available</th>
                                     <th class="px-4 py-2.5 text-right font-bold uppercase">Total Input Tax Credit (₹)</th>

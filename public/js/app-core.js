@@ -915,19 +915,36 @@ document.addEventListener('DOMContentLoaded', () => {
             
             $msgText.text(message);
             
-            if (type === 'success') {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>');
+            const isDelete = (
+                type === 'delete' || 
+                type === 'danger' || 
+                type === 'error' || 
+                (message && (
+                    message.toLowerCase().includes('delete') || 
+                    message.toLowerCase().includes('deleted') ||
+                    message.toLowerCase().includes('remove')
+                ))
+            );
+
+            const $innerCard = $toast.find('> div');
+
+            if (isDelete) {
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600 shrink-0')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>');
+                $innerCard.attr('class', 'bg-[#F43F5E] text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-rose-500');
+                $msgText.attr('class', 'text-sm font-bold text-white');
             } else {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 shrink-0')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>');
+                $innerCard.attr('class', 'bg-white border border-slate-200 shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm');
+                $msgText.attr('class', 'text-sm font-semibold text-slate-800');
             }
             
             $toast.removeClass('translate-y-[-100px] opacity-0 pointer-events-none').addClass('translate-y-0 opacity-100 pointer-events-auto');
             
             toastTimer = setTimeout(() => {
                 $toast.removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
-            }, 2500);
+            }, 3000);
         };
 
         $(document).on('click', '#globalToast', function() {

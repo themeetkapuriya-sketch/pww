@@ -126,7 +126,10 @@
 
             <!-- Backup & Restore -->
             <a href="{{ route('backup.index') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ Route::is('backup.*') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s-8-1.79-8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4h-4v4m0-4l3 3" />
+                </svg>
                 <span class="sidebar-text">Backup & Restore</span>
             </a>
 

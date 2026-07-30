@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Backup & System Restore')
+
 @section('content')
 <div class="space-y-6">
     <!-- Header Section -->
@@ -23,15 +25,45 @@
 
     <!-- Alert Notifications -->
     @if(session('success'))
-        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3.5 rounded-xl text-sm font-medium flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{{ session('success') }}</span>
+        @php
+            $isRestoreMsg = str_contains(strtolower(session('success')), 'restore') || str_contains(strtolower(session('success')), 'restored');
+            $isDeleteMsg = str_contains(strtolower(session('success')), 'delete') || str_contains(strtolower(session('success')), 'deleted');
+        @endphp
+        @if($isRestoreMsg)
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Database Restored!',
+                            text: @json(session('success')),
+                            icon: 'success',
+                            confirmButtonColor: '#10B981',
+                            confirmButtonText: 'Awesome!',
+                            customClass: {
+                                popup: 'rounded-2xl',
+                                confirmButton: 'rounded-xl font-bold px-6 py-2.5'
+                            }
+                        });
+                    }
+                });
+            </script>
+        @else
+            <div class="{{ $isDeleteMsg ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800' }} px-4 py-3.5 rounded-xl text-sm font-medium flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    @if($isDeleteMsg)
+                        <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    @else
+                        <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    @endif
+                    <span>{{ session('success') }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="{{ $isDeleteMsg ? 'text-rose-500 hover:text-rose-700' : 'text-emerald-500 hover:text-emerald-700' }} font-bold">&times;</button>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
-        </div>
+        @endif
     @endif
 
     @if(session('error'))
@@ -46,22 +78,27 @@
         </div>
     @endif
 
-    <!-- 3 Action Cards Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- 2 Top Cards: Backup & Restore -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- Card 1: 1-Click Full Backup -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition">
             <div>
-                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">1-Click Full System Backup</h2>
+                        <p class="text-slate-500 text-xs mt-0.5">Download 100% complete database SQL dump</p>
+                    </div>
                 </div>
-                <h2 class="text-lg font-bold text-slate-800">1-Click Full System Backup</h2>
-                <p class="text-slate-500 text-xs mt-1.5 leading-relaxed">Download 100% complete database SQL dump including all master entries, clients, products, vouchers, and settings.</p>
+                <p class="text-slate-500 text-xs leading-relaxed">Includes all master entries, clients, products, vouchers, user accounts, and system settings in a single SQL backup snapshot.</p>
             </div>
             <div class="mt-6 pt-4 border-t border-slate-100">
-                <a href="{{ route('backup.full') }}" class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-sm hover:shadow">
+                <a href="{{ route('backup.full') }}" target="downloadFrame" onclick="handleFullBackupDownload(event)" class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-sm hover:shadow">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -70,186 +107,124 @@
             </div>
         </div>
 
-        <!-- Card 2: Period-Filtered Export -->
-        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between lg:col-span-2 hover:shadow-md transition">
-            <div>
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.447.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-800">Period-Filtered Backup Export</h2>
-                        <p class="text-slate-500 text-xs">Filter data export by Month, Financial Year (Apr–Mar), or Custom Date Range</p>
-                    </div>
-                </div>
-
-                <form id="filteredBackupForm" action="{{ route('backup.filtered') }}" method="POST" class="space-y-4">
-                    @csrf
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Select Period Type</label>
-                            <select id="periodTypeSelect" name="period_type" onchange="togglePeriodInputs()" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="current_month">Current Month ({{ \Carbon\Carbon::now()->format('F Y') }})</option>
-                                <option value="specific_month">Select Specific Month</option>
-                                <option value="financial_year">Financial Year (Apr 1 - Mar 31)</option>
-                                <option value="custom">Custom Date Range</option>
-                                <option value="all_time">All Time (Full Database)</option>
-                            </select>
-                        </div>
-
-                        <!-- Specific Month Input -->
-                        <div id="specificMonthContainer" class="hidden">
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Choose Month</label>
-                            <input type="month" name="month" value="{{ \Carbon\Carbon::now()->format('Y-m') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-
-                        <!-- Financial Year Input -->
-                        <div id="financialYearContainer" class="hidden">
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Choose Financial Year</label>
-                            <select name="financial_year" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                @foreach($financialYears as $fy)
-                                    <option value="{{ $fy['key'] }}">{{ $fy['label'] }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Custom Range Inputs -->
-                    <div id="customRangeContainer" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-3">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Start Date</label>
-                            <input type="date" name="start_date" value="{{ \Carbon\Carbon::now()->startOfMonth()->toDateString() }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-medium text-slate-800">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">End Date</label>
-                            <input type="date" name="end_date" value="{{ \Carbon\Carbon::now()->toDateString() }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-medium text-slate-800">
-                        </div>
-                    </div>
-
-                    <div class="pt-2 flex justify-end">
-                        <button type="submit" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition shadow-sm hover:shadow">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <!-- Card 2: Restore System Database -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+            <form action="{{ route('backup.restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmRestore(event)" class="h-full flex flex-col justify-between">
+                @csrf
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Export Filtered Backup (.sql)
-                        </button>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">Restore System Database</h2>
+                            <p class="text-slate-500 text-xs mt-0.5">Upload a `.sql` backup file to restore database</p>
+                        </div>
                     </div>
-                </form>
-            </div>
-        </div>
 
-    </div>
-
-    <!-- Restore Database Section -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </div>
-            <div>
-                <h2 class="text-lg font-bold text-slate-800">Restore System Database</h2>
-                <p class="text-slate-500 text-xs">Upload a previously downloaded `.sql` backup file to restore complete system database</p>
-            </div>
-        </div>
-
-        <form action="{{ route('backup.restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmRestore(event)" class="bg-slate-50 p-5 rounded-xl border border-slate-200/60">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select Backup File (.sql)</label>
-                    <input type="file" name="backup_file" accept=".sql,.txt" required class="w-full bg-white border border-slate-300 rounded-xl py-2 px-3 text-sm text-slate-700 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Select Backup File (.sql)</label>
+                            <input type="file" name="backup_file" accept=".sql,.txt" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-sm text-slate-700 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                        </div>
+                        <p class="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Safety Notice: Automatic pre-restore safety snapshot saved before restore.
+                        </p>
+                    </div>
                 </div>
-                <div class="flex items-end">
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-sm">
+
+                <div class="mt-6 pt-4 border-t border-slate-100">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition shadow-sm hover:shadow">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Restore Database Now
                     </button>
                 </div>
-            </div>
-            <p class="text-[11px] font-semibold text-slate-500 mt-2 flex items-center gap-1">
-                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Safety Notice: An automatic pre-restore safety snapshot will be saved before performing restoration.
-            </p>
-        </form>
+            </form>
+        </div>
+
     </div>
 
     <!-- Backup Archive Table -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
-        <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-base font-bold text-slate-800">Stored Local Backups & Auto Snapshots</h2>
-                <p class="text-slate-500 text-xs">Backups automatically saved on server disk at <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-mono">storage/app/backups/</code></p>
+                <p class="text-slate-500 text-xs mt-0.5">Backups automatically saved on server disk at <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-mono">storage/app/backups/</code></p>
             </div>
-            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">Total Files: {{ count($backups) }}</span>
+            <span id="totalBackupFilesCount" class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200/80 px-3 py-1.5 rounded-xl shadow-2xs">Total Files: {{ count($backups) }}</span>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200/60">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 border-b border-slate-200/60 text-xs font-bold text-slate-600 uppercase">
+        <div class="overflow-x-auto rounded-xl border border-slate-200/80">
+            <table id="backupDatatable" class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
+                <thead class="bg-slate-100/80 border-b border-slate-200 text-slate-700 uppercase font-bold tracking-wider">
                     <tr>
-                        <th class="py-3 px-4">Filename</th>
-                        <th class="py-3 px-4">Type</th>
-                        <th class="py-3 px-4">Size</th>
-                        <th class="py-3 px-4">Created Date</th>
-                        <th class="py-3 px-4 text-right">Actions</th>
+                        <th class="px-4 py-3 text-left">Filename</th>
+                        <th class="px-4 py-3 text-left">Type</th>
+                        <th class="px-4 py-3 text-left">Size</th>
+                        <th class="px-4 py-3 text-left">Created Date</th>
+                        <th class="px-4 py-3 text-center w-28">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody id="backupTableBody" class="divide-y divide-slate-100 bg-white">
                     @forelse($backups as $b)
-                        <tr class="hover:bg-slate-50/50 transition">
-                            <td class="py-3.5 px-4 font-mono text-xs font-semibold text-slate-800 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                {{ $b['filename'] }}
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="px-4 py-3 align-middle font-mono text-xs font-semibold text-slate-800">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>{{ $b['filename'] }}</span>
+                                </div>
                             </td>
-                            <td class="py-3.5 px-4">
+                            <td class="px-4 py-3 align-middle">
                                 @if($b['type'] === 'Automated Monthly')
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         Automated Monthly
                                     </span>
                                 @elseif($b['type'] === 'Safety Snapshot')
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                         Safety Snapshot
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                         {{ $b['type'] }}
                                     </span>
                                 @endif
                             </td>
-                            <td class="py-3.5 px-4 text-xs font-semibold text-slate-600">{{ $b['size'] }}</td>
-                            <td class="py-3.5 px-4 text-xs text-slate-500 font-medium">{{ $b['created_at'] }}</td>
-                            <td class="py-3.5 px-4 text-right space-x-2">
-                                <a href="{{ route('backup.downloadFile', $b['filename']) }}" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download
-                                </a>
-                                <form action="{{ route('backup.deleteFile', $b['filename']) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete backup file {{ $b['filename'] }}?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <td class="px-4 py-3 align-middle text-xs font-semibold text-slate-600 whitespace-nowrap">{{ $b['size'] }}</td>
+                            <td class="px-4 py-3 align-middle text-xs text-slate-500 font-medium whitespace-nowrap">{{ $b['created_at'] }}</td>
+                            <td class="px-4 py-3 align-middle text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <!-- Download Solid Action Button -->
+                                    <a href="{{ route('backup.downloadFile', $b['filename']) }}" target="downloadFrame" onclick="showDownloadToast('Backup file downloaded successfully!')" class="w-8 h-8 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition duration-150 transform hover:scale-105" title="Download Backup File">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        Delete
-                                    </button>
-                                </form>
+                                    </a>
+
+                                    <!-- Delete Solid Action Button with SweetAlert2 Confirmation -->
+                                    <form action="{{ route('backup.deleteFile', $b['filename']) }}" method="POST" class="inline" onsubmit="return confirmDeleteBackup(event, this, '{{ $b['filename'] }}')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="w-8 h-8 inline-flex items-center justify-center rounded-xl bg-[#F43F5E] hover:bg-[#E11D48] text-white shadow-xs transition duration-150 transform hover:scale-105" title="Delete Backup File">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
+                            <td colspan="5" class="px-4 py-8 text-center text-slate-400 text-xs font-medium">
                                 No stored local backup files found. Click "Download Full Backup" to generate one.
                             </td>
                         </tr>
@@ -260,28 +235,207 @@
     </div>
 </div>
 
+<!-- Hidden iframe for seamless background downloads without navigating away -->
+<iframe name="downloadFrame" id="downloadFrame" style="display:none;"></iframe>
+
 <script>
-function togglePeriodInputs() {
-    const val = document.getElementById('periodTypeSelect').value;
-    const monthContainer = document.getElementById('specificMonthContainer');
-    const fyContainer = document.getElementById('financialYearContainer');
-    const customContainer = document.getElementById('customRangeContainer');
-
-    monthContainer.classList.add('hidden');
-    fyContainer.classList.add('hidden');
-    customContainer.classList.add('hidden');
-
-    if (val === 'specific_month') {
-        monthContainer.classList.remove('hidden');
-    } else if (val === 'financial_year') {
-        fyContainer.classList.remove('hidden');
-    } else if (val === 'custom') {
-        customContainer.classList.remove('hidden');
+function showDownloadToast(msg, type = 'success') {
+    let container = document.getElementById('toastNotificationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastNotificationContainer';
+        document.body.appendChild(container);
     }
+
+    const isDanger = (type === 'danger' || type === 'delete' || type === 'error');
+    const bgClass = isDanger ? 'bg-[#F43F5E] border-rose-500' : 'bg-emerald-600 border-emerald-500';
+    const iconSvg = isDanger 
+        ? `<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`
+        : `<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+    container.className = `fixed top-5 right-5 z-50 ${bgClass} text-white font-bold px-5 py-3.5 rounded-xl shadow-xl border flex items-center gap-3 transition-all duration-300 transform translate-y-0 opacity-100`;
+
+    container.innerHTML = `
+        ${iconSvg}
+        <span class="text-xs">${msg}</span>
+    `;
+
+    setTimeout(() => {
+        container.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => container.remove(), 300);
+    }, 4000);
+}
+
+function refreshBackupTable() {
+    $.getJSON("{{ route('backup.listJson') }}", function(data) {
+        if (!data.success) return;
+
+        $('#totalBackupFilesCount').text('Total Files: ' + data.count);
+
+        if ($.fn.DataTable && $.fn.DataTable.isDataTable('#backupDatatable')) {
+            $('#backupDatatable').DataTable().destroy();
+        }
+
+        let tbody = $('#backupTableBody');
+        tbody.empty();
+
+        if (data.backups.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-400 text-xs font-medium">
+                        No stored local backup files found. Click "Download Full Backup" to generate one.
+                    </td>
+                </tr>
+            `);
+        } else {
+            data.backups.forEach(function(b) {
+                let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                if (b.type === 'Automated Monthly') badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (b.type === 'Safety Snapshot') badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                let downloadUrl = "{{ route('backup.downloadFile', ':file') }}".replace(':file', encodeURIComponent(b.filename));
+                let deleteUrl = "{{ route('backup.deleteFile', ':file') }}".replace(':file', encodeURIComponent(b.filename));
+                let csrfToken = "{{ csrf_token() }}";
+
+                let tr = `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-4 py-3 align-middle font-mono text-xs font-semibold text-slate-800">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>${b.filename}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${badgeClass} border">
+                                ${b.type}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 align-middle text-xs font-semibold text-slate-600 whitespace-nowrap">${b.size}</td>
+                        <td class="px-4 py-3 align-middle text-xs text-slate-500 font-medium whitespace-nowrap">${b.created_at}</td>
+                        <td class="px-4 py-3 align-middle text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center space-x-2">
+                                <a href="${downloadUrl}" target="downloadFrame" onclick="showDownloadToast('Backup file downloaded successfully!')" class="w-8 h-8 inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition duration-150 transform hover:scale-105" title="Download Backup File">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </a>
+
+                                <form action="${deleteUrl}" method="POST" class="inline" onsubmit="return confirmDeleteBackup(event, this, '${b.filename}')">
+                                    <input type="hidden" name="_token" value="${csrfToken}">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit" class="w-8 h-8 inline-flex items-center justify-center rounded-xl bg-[#F43F5E] hover:bg-[#E11D48] text-white shadow-xs transition duration-150 transform hover:scale-105" title="Delete Backup File">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(tr);
+            });
+        }
+
+        if (window.initErpDataTables) {
+            window.initErpDataTables();
+        }
+    });
+}
+
+function handleFullBackupDownload(e) {
+    showDownloadToast('Full database backup (.sql) generated & downloading!');
+    setTimeout(() => {
+        refreshBackupTable();
+    }, 1200);
+}
+
+function confirmDeleteBackup(e, form, filename) {
+    e.preventDefault();
+    const actionUrl = $(form).attr('action');
+
+    const performDelete = function() {
+        $.ajax({
+            url: actionUrl,
+            type: 'DELETE',
+            data: {
+                _token: "{{ csrf_token() }}"
+            },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            success: function(res) {
+                showDownloadToast(res.message || `Backup file '${filename}' deleted successfully.`, 'danger');
+                refreshBackupTable();
+            },
+            error: function(xhr) {
+                let err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to delete backup file.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', err, 'error');
+                } else {
+                    alert(err);
+                }
+            }
+        });
+    };
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Delete Backup File?',
+            text: `Are you sure you want to delete backup file "${filename}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#F43F5E',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-xl font-bold px-4 py-2.5',
+                cancelButton: 'rounded-xl font-bold px-4 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDelete();
+            }
+        });
+    } else {
+        if (confirm(`Are you sure you want to delete "${filename}"?`)) {
+            performDelete();
+        }
+    }
+    return false;
 }
 
 function confirmRestore(e) {
-    if (!confirm('WARNING: Restoring will overwrite current database records with the uploaded backup state.\n\nAn emergency safety snapshot of your current database will be saved first.\n\nDo you wish to proceed?')) {
+    if (typeof Swal !== 'undefined') {
+        e.preventDefault();
+        const form = e.target;
+        Swal.fire({
+            title: 'Restore Database?',
+            text: 'WARNING: Restoring will overwrite current database records with the uploaded backup state.\n\nAn automatic pre-restore safety snapshot will be saved first.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#D97706',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: 'Yes, Restore Now',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-xl font-bold px-4 py-2.5',
+                cancelButton: 'rounded-xl font-bold px-4 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+        return false;
+    }
+    if (!confirm('WARNING: Restoring will overwrite current database records with the uploaded backup state.\n\nAn automatic pre-restore safety snapshot will be saved first.\n\nDo you wish to proceed?')) {
         e.preventDefault();
         return false;
     }

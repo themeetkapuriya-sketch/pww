@@ -48,6 +48,19 @@ class BackupController extends Controller
     }
 
     /**
+     * Get JSON list of stored local backups for AJAX table updates.
+     */
+    public function listJson()
+    {
+        $backups = $this->backupService->listLocalBackups();
+        return response()->json([
+            'success' => true,
+            'count' => count($backups),
+            'backups' => $backups
+        ]);
+    }
+
+    /**
      * Download Full Database SQL Backup.
      */
     public function downloadFull()
@@ -60,11 +73,9 @@ class BackupController extends Controller
             $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . $filename;
             File::put($filePath, $sqlContent);
 
-            return response()->streamDownload(function () use ($sqlContent) {
-                echo $sqlContent;
-            }, $filename, [
-                'Content-Type' => 'application/sql',
-                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            return response()->download($filePath, $filename, [
+                'Content-Type' => 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (Throwable $e) {
             Log::error("Full Backup Download Failed: " . $e->getMessage());
@@ -101,11 +112,9 @@ class BackupController extends Controller
             $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . $filename;
             File::put($filePath, $sqlContent);
 
-            return response()->streamDownload(function () use ($sqlContent) {
-                echo $sqlContent;
-            }, $filename, [
-                'Content-Type' => 'application/sql',
-                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            return response()->download($filePath, $filename, [
+                'Content-Type' => 'application/octet-stream',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (Throwable $e) {
             Log::error("Filtered Backup Download Failed: " . $e->getMessage());
@@ -152,13 +161,28 @@ class BackupController extends Controller
     /**
      * Delete stored backup file from server disk.
      */
-    public function deleteFile(string $filename)
+    public function deleteFile(Request $request, string $filename)
     {
         $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . basename($filename);
 
         if (File::exists($filePath)) {
             File::delete($filePath);
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Backup file '{$filename}' deleted successfully."
+                ]);
+            }
+
             return back()->with('success', "Backup file '{$filename}' deleted successfully.");
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Backup file not found.'
+            ], 404);
         }
 
         return back()->with('error', 'Backup file not found.');

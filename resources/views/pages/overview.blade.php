@@ -154,7 +154,7 @@
             <div class="mt-3">
                 <div class="text-2xl font-black tracking-tight {{ $currentMonthGstPaid ? 'text-emerald-700' : 'text-rose-700' }}">₹{{ format_indian($currentMonthNetGst, 2) }}</div>
                 <div class="text-[11px] font-semibold text-slate-600 mt-1 truncate">
-                    Sales GST: <span class="font-bold text-slate-800">₹{{ format_indian($salesGstCollected, 2) }}</span> | ITC: <span class="font-bold text-emerald-600">₹{{ format_indian($purchasesItc, 2) }}</span>
+                    Sales GST: <span class="font-bold text-emerald-600">₹{{ format_indian($salesGstCollected, 2) }}</span> | ITC: <span class="font-bold text-rose-600">₹{{ format_indian($purchasesItc, 2) }}</span>
                 </div>
             </div>
             <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] flex items-center justify-between font-medium">

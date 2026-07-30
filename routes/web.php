@@ -121,6 +121,7 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
 
     // 12. Backup & Restore System
     Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+    Route::get('/backup/list-json', [BackupController::class, 'listJson'])->name('backup.listJson');
     Route::get('/backup/full', [BackupController::class, 'downloadFull'])->name('backup.full');
     Route::post('/backup/filtered', [BackupController::class, 'downloadFiltered'])->name('backup.filtered');
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');

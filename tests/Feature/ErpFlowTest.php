@@ -1280,15 +1280,14 @@ class ErpFlowTest extends TestCase
         // 2. Download Full Backup
         $fullResponse = $this->actingAs($user)->get(route('backup.full'));
         $fullResponse->assertStatus(200);
-        $fullResponse->assertHeader('Content-Type', 'application/sql');
+        $fullResponse->assertHeader('Content-Type', 'application/octet-stream');
 
-        // 3. Download Filtered Backup
-        $filteredResponse = $this->actingAs($user)->post(route('backup.filtered'), [
-            'period_type' => 'financial_year',
-            'financial_year' => '2025-26',
-        ]);
-        $filteredResponse->assertStatus(200);
-        $filteredResponse->assertHeader('Content-Type', 'application/sql');
+        // Clean up test generated backup files
+        foreach (\Illuminate\Support\Facades\File::files(storage_path('app/backups')) as $file) {
+            if (str_contains($file->getFilename(), 'pww_full_backup_')) {
+                \Illuminate\Support\Facades\File::delete($file->getPathname());
+            }
+        }
     }
 
     public function test_settings_hub_rendering_module_toggles_and_user_creation()

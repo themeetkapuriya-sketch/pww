@@ -271,14 +271,17 @@ class BackupService
         $safetyFilename = "pre_restore_safety_" . Carbon::now()->format('Ymd_His') . ".sql";
         File::put($this->backupDirectory . DIRECTORY_SEPARATOR . $safetyFilename, $this->generateFullSqlDump());
 
-        DB::beginTransaction();
+        $driver = DB::connection()->getDriverName();
         try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            DB::unprepared($sql);
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            DB::commit();
+            if ($driver !== 'sqlite') {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                DB::unprepared($sql);
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            } else {
+                DB::unprepared($sql);
+            }
+            Log::info("Database restored successfully from file: {$filePath}");
         } catch (Throwable $e) {
-            DB::rollBack();
             Log::error("Database Restoration Failed: " . $e->getMessage());
             throw $e;
         }

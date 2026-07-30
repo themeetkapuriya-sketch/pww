@@ -287,7 +287,7 @@
         <!-- Table 1: Finished Goods Invoices Datatable -->
         <div id="ledgerTabFinishedGoods" class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                <thead class="bg-[#4371D7] text-white divide-x divide-white/25">
+                <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase w-8">#</th>
                         <th class="px-2.5 py-2.5 text-left text-[11px] font-bold uppercase">Invoice No</th>

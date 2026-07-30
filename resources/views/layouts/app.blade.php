@@ -136,7 +136,7 @@
             text-transform: uppercase;
         }
         .dataTables_wrapper .dataTables_length select {
-            background-color: #f8fafc;
+            background-color: #F7F9FB;
             border: 1px solid #cbd5e1;
             border-radius: 0.5rem;
             padding: 0.35rem 0.75rem;
@@ -208,7 +208,12 @@
         .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
             opacity: 0.4 !important;
             cursor: not-allowed !important;
-            background: #f8fafc !important;
+            background: #F7F9FB !important;
+        }
+
+        /* Page Background Styling */
+        body {
+            background-color: #F7F9FB !important;
         }
 
         /* DataTables Table Header Theme Styling */
@@ -216,8 +221,8 @@
         table.erp-datatable thead tr,
         table.erp-datatable thead th,
         table.dataTable thead th {
-            background-color: #4371D7 !important;
-            color: #ffffff !important;
+            background-color: #EDF4FA !important;
+            color: #000000 !important;
         }
 
         /* Vertical & Outer Border Lines for all tables (Start to End) */
@@ -252,16 +257,16 @@
 
         table.erp-datatable thead th,
         table.dataTable thead th {
-            border-right: 1px solid rgba(255, 255, 255, 0.25) !important;
-            border-bottom: none !important;
+            border-right: 1px solid #cbd5e1 !important;
+            border-bottom: 1px solid #cbd5e1 !important;
         }
         table.erp-datatable thead th:first-child,
         table.dataTable thead th:first-child {
-            border-left: 1px solid #4371D7 !important;
+            border-left: 1px solid #cbd5e1 !important;
         }
         table.erp-datatable thead th:last-child,
         table.dataTable thead th:last-child {
-            border-right: 1px solid #4371D7 !important;
+            border-right: 1px solid #cbd5e1 !important;
         }
         
         /* DataTables Empty State Container Styling */
@@ -471,7 +476,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen md:flex bg-slate-50">
+<body class="min-h-screen md:flex bg-[#F7F9FB]">
 
     <!-- Sidebar Navigation -->
     @include('layouts.sidebar')
@@ -498,7 +503,7 @@
             </div>
         </div>
 
-        <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
+        <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6 flex flex-col">
             @yield('content')
         </div>
 
