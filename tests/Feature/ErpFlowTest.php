@@ -1290,4 +1290,33 @@ class ErpFlowTest extends TestCase
         $filteredResponse->assertStatus(200);
         $filteredResponse->assertHeader('Content-Type', 'application/sql');
     }
+
+    public function test_settings_hub_rendering_module_toggles_and_user_creation()
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        // 1. Render Settings Hub View
+        $response = $this->actingAs($admin)->get(route('settings.index'));
+        $response->assertStatus(200);
+        $response->assertViewIs('pages.settings');
+
+        // 2. Toggle Modules
+        $toggleResponse = $this->actingAs($admin)->post(route('settings.modules'), [
+            'module_invoices' => 'true',
+            'module_orders' => 'true',
+            'module_purchases' => 'true',
+        ]);
+        $toggleResponse->assertRedirect();
+        $this->assertEquals('true', \App\Models\Setting::get('module_invoices'));
+
+        // 3. Create User Account
+        $userResponse = $this->actingAs($admin)->post(route('settings.users.store'), [
+            'name' => 'Accountant Staff',
+            'email' => 'accountant@test.com',
+            'password' => 'password123',
+            'role' => 'accountant',
+        ]);
+        $userResponse->assertRedirect();
+        $this->assertDatabaseHas('users', ['email' => 'accountant@test.com', 'role' => 'accountant']);
+    }
 }

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Setting;
+use App\Services\RolePermissionService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -37,14 +38,26 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'logo.jpg']);
         Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/signature_1785313553.png']);
 
+        // Default Active Module Toggles (Invoices, Orders, Purchases, Clients ON; Production/BOM/Payroll togglable)
+        Setting::updateOrCreate(['key' => 'module_invoices'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_orders'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_purchases'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_clients'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_expenses'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_production'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_bom'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_inventory'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_payroll'], ['value' => 'true']);
+
         // 2. Admin Account Initialization
         User::firstOrCreate(
             ['email' => 'pww@example.com'],
             [
                 'name' => 'hardik vekariya',
                 'password' => Hash::make('password'),
-                'role' => 'admin',
+                'role' => 'super_admin',
                 'status' => 'active',
+                'permissions' => RolePermissionService::getDefaultPermissionsForRole('super_admin'),
             ]
         );
     }

@@ -32,6 +32,13 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        // Register Gate checks for all system permissions
+        foreach (array_keys(\App\Services\RolePermissionService::getPermissionsList()) as $permKey) {
+            \Illuminate\Support\Facades\Gate::define($permKey, function ($user) use ($permKey) {
+                return \App\Services\RolePermissionService::userHasPermission($user, $permKey);
+            });
+        }
+
         // Define rate limiter for login (5 failed attempts per minute per email + IP)
         RateLimiter::for('login', function (Request $request) {
             $email = strtolower((string) $request->input('email'));

@@ -15,6 +15,7 @@ use App\Http\Controllers\Expenses\ExpenseController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\SettingsController;
 
 // Include authentication routes
 require __DIR__ . '/auth.php';
@@ -125,4 +126,13 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
     Route::get('/backup/download/{filename}', [BackupController::class, 'downloadFile'])->name('backup.downloadFile');
     Route::delete('/backup/delete/{filename}', [BackupController::class, 'deleteFile'])->name('backup.deleteFile');
+
+    // 13. Unified System Settings & User Access Hub
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/modules', [SettingsController::class, 'updateModuleToggles'])->name('settings.modules');
+    Route::post('/settings/users', [SettingsController::class, 'storeUser'])->name('settings.users.store');
+    Route::put('/settings/users/{id}', [SettingsController::class, 'updateUser'])->name('settings.users.update');
+    Route::delete('/settings/users/{id}', [SettingsController::class, 'deleteUser'])->name('settings.users.delete');
+    Route::post('/settings/business', [SettingsController::class, 'updateBusinessProfile'])->name('settings.business');
+    Route::post('/settings/bank', [SettingsController::class, 'updateBankDefaults'])->name('settings.bank');
 });

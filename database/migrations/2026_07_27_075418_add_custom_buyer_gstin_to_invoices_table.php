@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('invoices', function (Blueprint $table) {
             if (!Schema::hasColumn('invoices', 'custom_buyer_gstin')) {
-                $table->string('custom_buyer_gstin')->nullable()->after('custom_gst_rate');
+                $table->string('custom_buyer_gstin')->nullable();
             }
         });
     }
