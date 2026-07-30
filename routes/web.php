@@ -14,12 +14,13 @@ use App\Http\Controllers\Payroll\EmployeeController;
 use App\Http\Controllers\Expenses\ExpenseController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\BackupController;
 
 // Include authentication routes
 require __DIR__ . '/auth.php';
 
 // Gated ERP routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class])->group(function () {
     Route::get('/', function () {
         return redirect()->route('overview');
     });
@@ -111,12 +112,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/export', [ReportController::class, 'exportCsv'])->name('reports.export');
     Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
 
-    // Reset demonstration utility
-    Route::post('/reset-data', [ProfileController::class, 'resetData'])->name('reset-data');
-
     // 11. Profile Management
     Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::post('/profile/business', [ProfileController::class, 'updateBusinessSettings'])->name('profile.business');
+
+    // 12. Backup & Restore System
+    Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+    Route::get('/backup/full', [BackupController::class, 'downloadFull'])->name('backup.full');
+    Route::post('/backup/filtered', [BackupController::class, 'downloadFiltered'])->name('backup.filtered');
+    Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
+    Route::get('/backup/download/{filename}', [BackupController::class, 'downloadFile'])->name('backup.downloadFile');
+    Route::delete('/backup/delete/{filename}', [BackupController::class, 'deleteFile'])->name('backup.deleteFile');
 });

@@ -1267,4 +1267,27 @@ class ErpFlowTest extends TestCase
         // Check raw material auto-deducted: 500 - (10*2 + 5*3) = 500 - (20 + 15) = 465
         $this->assertEquals(465.0, RawMaterial::find($rawMaterial1->id)->current_stock);
     }
+
+    public function test_backup_dashboard_rendering_and_backup_generation()
+    {
+        $user = User::factory()->create();
+
+        // 1. Dashboard View
+        $response = $this->actingAs($user)->get(route('backup.index'));
+        $response->assertStatus(200);
+        $response->assertViewIs('pages.backup');
+
+        // 2. Download Full Backup
+        $fullResponse = $this->actingAs($user)->get(route('backup.full'));
+        $fullResponse->assertStatus(200);
+        $fullResponse->assertHeader('Content-Type', 'application/sql');
+
+        // 3. Download Filtered Backup
+        $filteredResponse = $this->actingAs($user)->post(route('backup.filtered'), [
+            'period_type' => 'financial_year',
+            'financial_year' => '2025-26',
+        ]);
+        $filteredResponse->assertStatus(200);
+        $filteredResponse->assertHeader('Content-Type', 'application/sql');
+    }
 }
