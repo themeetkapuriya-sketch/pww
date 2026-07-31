@@ -527,6 +527,9 @@ class ErpFlowTest extends TestCase
             'name' => 'Patel Admin',
             'email' => 'v_test_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
+            'status' => 'approved',
+            'is_active' => true,
+            'role' => 'super_admin',
         ]);
 
         $client = Client::create([
@@ -586,6 +589,9 @@ class ErpFlowTest extends TestCase
             'name' => 'Patel Admin',
             'email' => 'gst_test_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
+            'status' => 'approved',
+            'is_active' => true,
+            'role' => 'super_admin',
         ]);
 
         $client = Client::create([
@@ -628,6 +634,9 @@ class ErpFlowTest extends TestCase
             'name' => 'Patel Admin',
             'email' => 'del_inv_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
+            'status' => 'approved',
+            'is_active' => true,
+            'role' => 'super_admin',
         ]);
 
         $client = Client::create([
@@ -681,6 +690,9 @@ class ErpFlowTest extends TestCase
             'name' => 'Patel Admin',
             'email' => 'rep_test_' . uniqid() . '@example.com',
             'password' => bcrypt('password'),
+            'status' => 'approved',
+            'is_active' => true,
+            'role' => 'super_admin',
         ]);
 
         // 1. Test page load with default parameters

@@ -67,10 +67,12 @@ class AuthController extends Controller
             // Clear rate limiter counter on successful login
             RateLimiter::clear($throttleKey);
 
+            $redirectUrl = route('overview');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful! Redirecting...',
-                'redirect' => route('overview')
+                'redirect' => $redirectUrl
             ]);
         }
 
@@ -81,6 +83,43 @@ class AuthController extends Controller
             'success' => false,
             'errors' => ['These credentials do not match our records.']
         ], 401);
+    }
+
+    /**
+     * Handle user self-registration (defaults to pending status).
+     */
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()->all()
+            ], 422);
+        }
+
+        $user = \App\Models\User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'role' => 'staff',
+            'status' => 'active',
+            'is_active' => true,
+            'permissions' => \App\Services\RolePermissionService::getDefaultPermissionsForRole('staff'),
+        ]);
+
+        Auth::login($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registration successful! Welcome to PWW ERP.',
+            'redirect' => route('overview')
+        ]);
     }
 
     /**

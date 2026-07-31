@@ -14,6 +14,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\ProductionLog;
+use App\Models\StaffProfile;
+use App\Models\AttendanceRecord;
 
 class OverviewController extends Controller
 {
@@ -23,6 +25,11 @@ class OverviewController extends Controller
     public function overview(Request $request)
     {
         $now = Carbon::now();
+
+        // Today's Attendance Quick Data
+        $todayDate = $now->toDateString();
+        $allStaff = StaffProfile::all();
+        $todayAttendance = AttendanceRecord::where('date', $todayDate)->get()->keyBy('staff_profile_id');
 
         // 1. Financial Year Range (April 1 to March 31)
         $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
@@ -76,7 +83,7 @@ class OverviewController extends Controller
 
         if ($currentMonthNetGst <= 0) {
             $currentMonthGstPaid = true;
-            $currentMonthGstStatus = 'settled';
+            $currentMonthGstStatus = 'no_due';
         } else if ($currentMonthGstExpenseTotal >= $currentMonthNetGst || $currentMonthGstExpense !== null) {
             $currentMonthGstPaid = true;
             $currentMonthGstStatus = 'paid';
@@ -181,7 +188,8 @@ class OverviewController extends Controller
             'fyPurchasesTotal', 'fyExpensesTotal', 'annualRevenue',
             'monthlyPurchasesTotalOnly', 'monthlyExpensesTotalOnly', 'monthlyNetRevenue',
             'chartMonths', 'chartSalesData', 'chartExpenseData',
-            'topClientsData', 'recentInvoices', 'recentOrders', 'recentProductionLogs', 'latestPurchases', 'latestExpenses', 'lowStockMaterials'
+            'topClientsData', 'recentInvoices', 'recentOrders', 'recentProductionLogs', 'latestPurchases', 'latestExpenses', 'lowStockMaterials',
+            'allStaff', 'todayAttendance', 'todayDate'
         ));
     }
 }

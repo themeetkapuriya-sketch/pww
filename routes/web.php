@@ -20,7 +20,7 @@ use App\Http\Controllers\SettingsController;
 // Include authentication routes
 require __DIR__ . '/auth.php';
 
-// Gated ERP routes
+// Gated ERP routes (Requires Auth & AutoBackup Check)
 Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class])->group(function () {
     Route::get('/', function () {
         return redirect()->route('overview');
@@ -95,11 +95,15 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::delete('/purchases/{id}', [PurchaseController::class, 'deletePurchase'])->name('purchases.delete');
     Route::post('/purchases/{id}/record-payment', [PurchaseController::class, 'recordPurchasePayment'])->name('purchases.record-payment');
 
-    // 8. Employees Directory
+    // 8. Employees Directory & Attendance / Payroll
     Route::get('/employees', [EmployeeController::class, 'employees'])->name('employees');
     Route::post('/employees', [EmployeeController::class, 'storeEmployee'])->name('employees.store');
     Route::put('/employees/{id}', [EmployeeController::class, 'updateEmployee'])->name('employees.update');
     Route::delete('/employees/{id}', [EmployeeController::class, 'deleteEmployee'])->name('employees.delete');
+    Route::post('/employees/attendance', [EmployeeController::class, 'storeAttendance'])->name('employees.attendance.store');
+    Route::get('/employees/attendance/summary', [EmployeeController::class, 'getMonthlySummary'])->name('employees.attendance.summary');
+    Route::post('/employees/salary/disburse', [EmployeeController::class, 'disburseSalary'])->name('employees.salary.disburse');
+    Route::delete('/employees/salary/disburse/{id}', [EmployeeController::class, 'deleteDisbursal'])->name('employees.salary.delete');
     Route::post('/employees/payroll/pay', [EmployeeController::class, 'payPayroll'])->name('payroll.pay');
 
     // 9. Operational Expenses
@@ -133,7 +137,25 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::post('/settings/modules', [SettingsController::class, 'updateModuleToggles'])->name('settings.modules');
     Route::post('/settings/users', [SettingsController::class, 'storeUser'])->name('settings.users.store');
     Route::put('/settings/users/{id}', [SettingsController::class, 'updateUser'])->name('settings.users.update');
+    Route::post('/settings/users/{id}/approve', [SettingsController::class, 'approveUser'])->name('settings.users.approve');
+    Route::post('/settings/users/{id}/toggle-status', [SettingsController::class, 'toggleUserStatus'])->name('settings.users.toggle-status');
     Route::delete('/settings/users/{id}', [SettingsController::class, 'deleteUser'])->name('settings.users.delete');
+
+    Route::post('/settings/roles', [SettingsController::class, 'storeRole'])->name('settings.roles.store');
+    Route::post('/settings/roles/toggle-permission', [SettingsController::class, 'toggleRolePermission'])->name('settings.roles.toggle-permission');
+    Route::post('/settings/roles/{slug}/toggle-status', [SettingsController::class, 'toggleRoleStatus'])->name('settings.roles.toggle-status');
+    Route::delete('/settings/roles/{id}', [SettingsController::class, 'deleteRole'])->name('settings.roles.delete');
+    Route::post('/settings/roles/permissions-matrix', [SettingsController::class, 'saveRolePermissionsMatrix'])->name('settings.roles.matrix');
+    Route::post('/settings/navigation-modules', [SettingsController::class, 'storeModule'])->name('settings.navigation-modules.store');
+
     Route::post('/settings/business', [SettingsController::class, 'updateBusinessProfile'])->name('settings.business');
     Route::post('/settings/bank', [SettingsController::class, 'updateBankDefaults'])->name('settings.bank');
+    Route::post('/settings/serials', [SettingsController::class, 'updateSerialSettings'])->name('settings.serials');
+    Route::post('/settings/financial', [SettingsController::class, 'updateFinancialSettings'])->name('settings.financial');
+    Route::post('/settings/email', [SettingsController::class, 'updateEmailSettings'])->name('settings.email');
+    Route::post('/settings/email/test', [SettingsController::class, 'sendTestEmail'])->name('settings.email.test');
+    Route::post('/settings/security', [SettingsController::class, 'updateSecuritySettings'])->name('settings.security');
+    Route::post('/settings/backups/create', [SettingsController::class, 'triggerManualBackup'])->name('settings.backups.create');
+    Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup'])->name('settings.backups.download');
+    Route::post('/settings/backups/restore', [SettingsController::class, 'restoreBackup'])->name('settings.backups.restore');
 });

@@ -149,11 +149,11 @@ class ReportController extends Controller
 
         if ($gstSummary['net_gst_payable'] <= 0) {
             $gstSummary['is_paid'] = true;
-            $gstSummary['status'] = 'settled';
-            $gstSummary['status_label'] = 'No Tax Liability Due';
+            $gstSummary['status'] = 'no_due';
+            $gstSummary['status_label'] = 'ITC CREDIT (₹0 TAX DUE)';
             $gstSummary['expense_entry'] = null;
             $gstSummary['total_paid'] = 0.00;
-        } else if ($gstTotalPaid >= $gstSummary['net_gst_payable'] || $matchingGstExpenses->isNotEmpty()) {
+        } else if ($gstTotalPaid >= $gstSummary['net_gst_payable']) {
             $gstSummary['is_paid'] = true;
             $gstSummary['status'] = 'paid';
             $gstSummary['status_label'] = 'PAID via Expense Ledger';

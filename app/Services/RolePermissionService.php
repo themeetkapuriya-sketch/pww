@@ -2,37 +2,57 @@
 
 namespace App\Services;
 
+use App\Models\Role;
+use App\Models\RolePermission;
 use App\Models\User;
 
 class RolePermissionService
 {
     /**
-     * Get list of standard system roles with descriptions.
+     * Get list of all active system & custom roles.
      */
     public static function getRoles(): array
     {
-        return [
+        $defaultRoles = [
             'super_admin' => [
                 'name' => 'Super Admin (Owner)',
-                'description' => 'Full 100% access to all ERP modules, user management, backups, and system settings.',
+                'description' => 'Full 100% control over all modules, user accounts, system settings & backups.',
+            ],
+            'admin' => [
+                'name' => 'Admin',
+                'description' => 'Full administrative access to manage users, role permissions, and settings.',
             ],
             'accountant' => [
                 'name' => 'Accountant / Billing Staff',
-                'description' => 'Can manage Invoices, Sales Orders, Purchases, Expenses, and Client Ledgers. Cannot delete records or access system settings.',
+                'description' => 'Access to Invoices, Sales Orders, Purchases, Expenses & Financial Reports.',
             ],
             'production_manager' => [
                 'name' => 'Production Manager',
-                'description' => 'Can manage Production Runs, Raw Materials, Products, and BOM. Cannot view billing amounts or profit reports.',
+                'description' => 'Access to Production Runs, Raw Materials, Products & BOM.',
             ],
             'view_only' => [
                 'name' => 'View Only / Auditor',
-                'description' => 'Read-only access to allowed modules and reports. Cannot insert, edit, or delete any records.',
+                'description' => 'Read-only access to view allowed pages and reports.',
             ],
-            'custom' => [
-                'name' => 'Custom Permissions',
-                'description' => 'Tailored permission checkboxes selected by the Admin.',
+            'staff' => [
+                'name' => 'Staff / Operations',
+                'description' => 'Standard operational access to create orders and update inventory.',
             ],
         ];
+
+        try {
+            $dbRoles = Role::where('is_active', true)->get();
+            foreach ($dbRoles as $role) {
+                if (!isset($defaultRoles[$role->slug])) {
+                    $defaultRoles[$role->slug] = [
+                        'name' => $role->name,
+                        'description' => $role->description ?? 'Custom defined system role.',
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return $defaultRoles;
     }
 
     /**
@@ -41,64 +61,65 @@ class RolePermissionService
     public static function getPermissionsList(): array
     {
         return [
-            'billing_manage' => 'Create & Edit Invoices & Sales Orders',
-            'billing_delete' => 'Delete Invoices & Sales Orders',
-            'purchases_manage' => 'Create & Edit Purchases',
-            'purchases_delete' => 'Delete Purchases',
-            'clients_manage' => 'Create & Edit Clients & Plants',
-            'clients_delete' => 'Delete Clients & Plants',
-            'inventory_manage' => 'Create & Edit Raw Materials & Products',
-            'inventory_delete' => 'Delete Materials & Products',
-            'production_manage' => 'Log & Edit Production Runs & BOM',
-            'production_delete' => 'Delete Production Logs',
-            'payroll_manage' => 'Manage Employees & Payroll Payouts',
-            'expenses_manage' => 'Log & Edit Operational Expenses',
-            'financials_view' => 'View Financial Profit Reports & GST Ledgers',
-            'backups_settings_manage' => 'Access System Settings, User Accounts & Backups',
+            // Page Module Access Toggles
+            'page_overview' => 'Overview Dashboard',
+            'page_orders' => 'Sales Orders',
+            'page_invoices' => 'Invoice Ledger',
+            'page_purchases' => 'Purchase Ledger',
+            'page_expenses' => 'Expenses Ledger',
+            'page_rawmaterial' => 'Raw Materials',
+            'page_product' => 'Products',
+            'page_bom' => 'Bill of Materials (BOM)',
+            'page_production' => 'Production Logs',
+            'page_clients' => 'Clients & Plants',
+            'page_employees' => 'Employees & Payroll',
+            'page_reports' => 'Financial Reports',
+
+            // Action Authorization Toggles
+            'action_insert' => 'Insert / Create Records',
+            'action_update' => 'Update / Edit Records',
+            'action_delete' => 'Delete Records',
+
+            // Settings Access (Restricted to Admin & Super Admin)
+            'backups_settings_manage' => 'Access System Settings, Users & Backups',
         ];
     }
 
     /**
-     * Get default permissions array for a given role key.
+     * Get permissions array for a given role key.
      */
     public static function getDefaultPermissionsForRole(string $roleKey): array
     {
         $allPermissions = array_keys(self::getPermissionsList());
 
-        switch ($roleKey) {
-            case 'super_admin':
-            case 'admin':
-                return $allPermissions;
+        // Super Admin & Admin always have 100% permissions
+        if (in_array($roleKey, ['super_admin', 'admin'])) {
+            return $allPermissions;
+        }
 
+        try {
+            $dbPerms = RolePermission::where('role_slug', $roleKey)->pluck('permission_key')->toArray();
+            if (!empty($dbPerms)) {
+                return $dbPerms;
+            }
+        } catch (\Throwable $e) {}
+
+        switch ($roleKey) {
             case 'accountant':
-                return [
-                    'billing_manage',
-                    'purchases_manage',
-                    'clients_manage',
-                    'expenses_manage',
-                    'financials_view',
-                ];
+                return ['page_overview', 'page_invoices', 'page_orders', 'page_purchases', 'page_clients', 'page_expenses', 'page_reports', 'action_insert', 'action_update'];
 
             case 'production_manager':
-                return [
-                    'inventory_manage',
-                    'production_manage',
-                ];
+                return ['page_overview', 'page_rawmaterial', 'page_product', 'page_bom', 'page_production', 'action_insert', 'action_update'];
 
             case 'view_only':
-                return [
-                    'financials_view',
-                ];
+                return ['page_overview', 'page_reports', 'page_invoices', 'page_orders'];
+
+            case 'pending':
+                return [];
 
             case 'staff':
             default:
-                return [
-                    'billing_manage',
-                    'purchases_manage',
-                    'clients_manage',
-                    'inventory_manage',
-                    'production_manage',
-                ];
+                return ['page_overview', 'page_invoices', 'page_orders', 'page_purchases', 'page_rawmaterial', 'page_product', 'page_bom', 'page_production', 'action_insert'];
         }
     }
 
@@ -111,8 +132,18 @@ class RolePermissionService
             return false;
         }
 
+        // If user is pending or inactive, block all permissions
+        if ($user->isPending()) {
+            return false;
+        }
+
+        // System Settings page & backups are strictly restricted to Super Admin & Admin
+        if ($permissionKey === 'backups_settings_manage') {
+            return in_array($user->role, ['super_admin', 'admin']);
+        }
+
         // Super admins and admin role always have 100% permissions
-        if ($user->role === 'super_admin' || $user->role === 'admin') {
+        if (in_array($user->role, ['super_admin', 'admin'])) {
             return true;
         }
 
@@ -122,7 +153,7 @@ class RolePermissionService
             return in_array($permissionKey, $userPermissions);
         }
 
-        // Fallback to role defaults
+        // Fallback to role permissions matrix
         $defaultPermissions = self::getDefaultPermissionsForRole($user->role ?? 'staff');
         return in_array($permissionKey, $defaultPermissions);
     }

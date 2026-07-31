@@ -5,17 +5,25 @@
 @section('content')
 <div class="space-y-6">
     <!-- Top Header -->
-    <div class="pb-4 border-b border-slate-200">
-        <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Overview Dashboard</h1>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Live System Status
-            </span>
+    <div class="pb-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">Overview Dashboard</h1>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live System Status
+                </span>
+            </div>
+            <p class="text-xs font-medium text-slate-500 mt-1">
+                Real-time operational summary & financial performance for {{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}.
+            </p>
         </div>
-        <p class="text-xs font-medium text-slate-500 mt-1">
-            Real-time operational summary & financial performance for {{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}.
-        </p>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openQuickAttendanceModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.02]">
+                <span>📅</span> Today's Attendance Sheet
+            </button>
+        </div>
     </div>
 
     <!-- 3 Net Revenue Cards (Lifetime Revenue, Annual Revenue, Monthly Revenue) -->
@@ -79,17 +87,17 @@
             </div>
             <div class="mt-3">
                 <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($yearlyRevenue, 2) }}</div>
-                <div class="text-[11px] font-semibold text-indigo-300/90 mt-1 flex items-center gap-1">
+                <div class="text-[11px] font-semibold text-indigo-200/90 mt-1 flex items-center gap-1">
                     <span>Taxable Base:</span>
                     <span class="font-bold text-white">₹{{ format_indian($yearlyTaxable, 2) }}</span>
                 </div>
             </div>
-            <div class="mt-3 pt-2 border-t border-indigo-800/40 text-[10px] text-indigo-300/70 font-medium">
+            <div class="mt-3 pt-2 border-t border-indigo-800/40 text-[10px] text-indigo-200/70 font-medium">
                 Annual Billed Sales Total (Incl. GST)
             </div>
         </div>
 
-        <!-- 2. Monthly Revenue (Option 1) -->
+        <!-- 2. Monthly Revenue -->
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50" style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
@@ -114,55 +122,67 @@
         </div>
 
         <!-- 3. Outstanding Receivables -->
-        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 relative group hover:border-amber-300 transition">
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-amber-500/50" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold tracking-wider text-slate-500 uppercase">3. Outstanding Receivables</span>
-                <span class="p-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+                <span class="text-xs font-bold tracking-wider text-amber-100 uppercase">3. Outstanding Receivables</span>
+                <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </span>
             </div>
             <div class="mt-3">
-                <div class="text-2xl font-black tracking-tight text-slate-900">₹{{ format_indian($totalReceivables, 2) }}</div>
-                <div class="text-[11px] font-bold text-amber-600 mt-1 flex items-center gap-1">
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($totalReceivables, 2) }}</div>
+                <div class="text-[11px] font-bold text-amber-100/90 mt-1 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-200 animate-ping"></span>
                     <span>Pending Client Collections</span>
                 </div>
             </div>
-            <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-medium">
+            <div class="mt-3 pt-2 border-t border-amber-500/40 text-[10px] text-amber-100/70 font-medium">
                 Unpaid Client Invoice Balance Total
             </div>
         </div>
 
-        <!-- 4. Net GST Payable -->
-        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 relative group hover:border-emerald-300 transition">
+        <!-- 4. Net GST Liability -->
+        @php
+            $gstStatus = $currentMonthGstStatus ?? ($currentMonthGstPaid ? 'paid' : 'unpaid');
+        @endphp
+        <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border {{ $gstStatus === 'unpaid' ? 'border-rose-500/50' : 'border-emerald-500/50' }}" style="background: {{ $gstStatus === 'unpaid' ? 'linear-gradient(135deg, #be123c 0%, #9f1239 100%)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)' }};">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold tracking-wider text-slate-500 uppercase">4. {{ date('M Y') }} Net GST Liability</span>
-                @if($currentMonthGstPaid)
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 whitespace-nowrap">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span class="text-xs font-bold tracking-wider text-white/90 uppercase">4. {{ date('M Y') }} Net GST Liability</span>
+                @if($gstStatus === 'no_due')
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 text-white backdrop-blur-xs border border-white/30 whitespace-nowrap" title="Excess Input Tax Credit available - ₹0 Tax Payable to Govt">
+                        <span class="w-2 h-2 rounded-full bg-emerald-300 shrink-0"></span>
+                        <span>ITC CREDIT (₹0 DUE)</span>
+                    </span>
+                @elseif($gstStatus === 'paid')
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 text-white backdrop-blur-xs border border-white/30 whitespace-nowrap">
+                        <span class="w-2 h-2 rounded-full bg-emerald-300 shrink-0"></span>
                         <span>PAID</span>
                     </span>
                 @else
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100/90 text-rose-800 border border-rose-300 whitespace-nowrap">
-                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 text-white backdrop-blur-xs border border-white/30 whitespace-nowrap">
+                        <span class="w-2 h-2 rounded-full bg-rose-300 animate-pulse shrink-0"></span>
                         <span>UNPAID</span>
                     </span>
                 @endif
             </div>
             <div class="mt-3">
-                <div class="text-2xl font-black tracking-tight {{ $currentMonthGstPaid ? 'text-emerald-700' : 'text-rose-700' }}">₹{{ format_indian($currentMonthNetGst, 2) }}</div>
-                <div class="text-[11px] font-semibold text-slate-600 mt-1 truncate">
-                    Sales GST: <span class="font-bold text-emerald-600">₹{{ format_indian($salesGstCollected, 2) }}</span> | ITC: <span class="font-bold text-rose-600">₹{{ format_indian($purchasesItc, 2) }}</span>
+                <div class="text-2xl font-black tracking-tight text-white">₹{{ format_indian($currentMonthNetGst, 2) }}</div>
+                <div class="text-[11px] font-semibold text-white/90 mt-1 truncate">
+                    Sales GST: <span class="font-bold text-white">₹{{ format_indian($salesGstCollected, 2) }}</span> | ITC: <span class="font-bold text-white/80">₹{{ format_indian($purchasesItc, 2) }}</span>
                 </div>
             </div>
-            <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] flex items-center justify-between font-medium">
-                <span class="text-slate-400">Net Tax Payable (Outward − ITC)</span>
-                @if($currentMonthGstPaid && isset($currentMonthGstExpense) && $currentMonthGstExpense)
-                    <span class="text-emerald-700 font-bold">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
-                @elseif(!$currentMonthGstPaid)
-                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-rose-600 font-bold hover:underline">Log GST Expense →</a>
+            <div class="mt-3 pt-2 border-t border-white/20 text-[10px] flex items-center justify-between font-medium">
+                <span class="text-white/70">Net Tax Payable (Outward − ITC)</span>
+                @if($gstStatus === 'no_due')
+                    <span class="text-emerald-100 font-bold">Excess Credit (Carry Forward)</span>
+                @elseif($gstStatus === 'paid' && isset($currentMonthGstExpense) && $currentMonthGstExpense)
+                    <span class="text-white font-bold">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
+                @elseif($gstStatus === 'unpaid')
+                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-white font-black underline hover:text-rose-100">Log GST Expense →</a>
                 @endif
             </div>
         </div>
@@ -171,80 +191,80 @@
     <!-- Secondary Operational Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 1. Active Sales Orders -->
-        <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div class="bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl p-4 shadow-2xs border border-blue-200/80 flex flex-col justify-between hover:shadow-md hover:border-blue-300 transition-all duration-200">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 flex-shrink-0">
+                <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
                 </div>
                 <div>
-                    <div class="text-xs font-bold text-slate-500">Active Sales Orders</div>
+                    <div class="text-xs font-bold text-blue-900/70">Active Sales Orders</div>
                     <div class="text-base font-black text-slate-800">{{ $activeOrdersCount }} Orders in Fabrication</div>
                 </div>
             </div>
             <div class="flex items-center justify-end mt-3">
-                <a href="{{ route('orders') }}" class="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl transition-all duration-150 flex items-center gap-1">
+                <a href="{{ route('orders') }}" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-all duration-150 flex items-center gap-1">
                     View <span class="text-xs">→</span>
                 </a>
             </div>
         </div>
 
         <!-- 2. Monthly Factory Expense -->
-        <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div class="bg-gradient-to-br from-purple-50/80 to-fuchsia-50/50 rounded-2xl p-4 shadow-2xs border border-purple-200/80 flex flex-col justify-between hover:shadow-md hover:border-purple-300 transition-all duration-200">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-purple-50 text-purple-600 rounded-xl border border-purple-100 flex-shrink-0">
+                <div class="p-2.5 bg-purple-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                 </div>
                 <div>
-                    <div class="text-xs font-bold text-slate-500">Monthly Factory Expense</div>
+                    <div class="text-xs font-bold text-purple-900/70">Monthly Factory Expense</div>
                     <div class="text-base font-black text-slate-800">₹{{ format_indian($monthlyExpensesTotalOnly, 2) }}</div>
                 </div>
             </div>
             <div class="flex items-center justify-end mt-3">
-                <a href="{{ route('expenses') }}" class="px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 text-xs font-bold rounded-xl transition-all duration-150 flex items-center gap-1">
+                <a href="{{ route('expenses') }}" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-all duration-150 flex items-center gap-1">
                     Details <span class="text-xs">→</span>
                 </a>
             </div>
         </div>
 
         <!-- 3. Monthly Factory Purchase -->
-        <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div class="bg-gradient-to-br from-amber-50/80 to-orange-50/50 rounded-2xl p-4 shadow-2xs border border-amber-200/80 flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all duration-200">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100 flex-shrink-0">
+                <div class="p-2.5 bg-amber-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
                     </svg>
                 </div>
                 <div>
-                    <div class="text-xs font-bold text-slate-500">Monthly Factory Purchase</div>
+                    <div class="text-xs font-bold text-amber-900/70">Monthly Factory Purchase</div>
                     <div class="text-base font-black text-slate-800">₹{{ format_indian($monthlyPurchasesTotalOnly, 2) }}</div>
                 </div>
             </div>
             <div class="flex items-center justify-end mt-3">
-                <a href="{{ route('purchases') }}" class="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 text-xs font-bold rounded-xl transition-all duration-150 flex items-center gap-1">
+                <a href="{{ route('purchases') }}" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-all duration-150 flex items-center gap-1">
                     Purchases <span class="text-xs">→</span>
                 </a>
             </div>
         </div>
 
         <!-- 4. Low Stock Reorder Alerts -->
-        <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div class="bg-gradient-to-br from-rose-50/80 to-red-50/50 rounded-2xl p-4 shadow-2xs border border-rose-200/80 flex flex-col justify-between hover:shadow-md hover:border-rose-300 transition-all duration-200">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex-shrink-0">
+                <div class="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
                 </div>
                 <div>
-                    <div class="text-xs font-bold text-slate-500">Low Stock Reorder Alerts</div>
+                    <div class="text-xs font-bold text-rose-900/70">Low Stock Reorder Alerts</div>
                     <div class="text-base font-black text-slate-800">{{ $lowStockCount }} Raw Materials Low</div>
                 </div>
             </div>
             <div class="flex items-center justify-end mt-3">
-                <a href="{{ route('purchases', ['open' => 1]) }}" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-all duration-150 flex items-center gap-1">
+                <a href="{{ route('purchases', ['open' => 1]) }}" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-all duration-150 flex items-center gap-1">
                     Restock <span class="text-xs">→</span>
                 </a>
             </div>
@@ -275,6 +295,102 @@
             </div>
             <div class="relative h-64 w-full flex items-center justify-center">
                 <canvas id="topClientsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Attendance Sheet Modal -->
+    <div id="quickAttendanceModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-4xl w-full shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+                <div>
+                    <h3 class="text-base font-black text-slate-800 flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 text-sm">📅</span>
+                        Today's Quick Attendance Sheet
+                    </h3>
+                    <p class="text-xs text-slate-500 font-medium pl-10">Mark daily attendance for factory employees for <span class="font-bold text-slate-700">{{ \Carbon\Carbon::parse($todayDate)->format('d M, Y (l)') }}</span></p>
+                </div>
+                <button type="button" onclick="closeQuickAttendanceModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                    <span class="text-xs font-bold text-slate-700">Attendance Summary:</span>
+                    @php
+                        $pCount = $todayAttendance->where('status', 'present')->count();
+                        $hdCount = $todayAttendance->where('status', 'half_day')->count();
+                        $aCount = $todayAttendance->where('status', 'absent')->count();
+                    @endphp
+                    <div class="flex items-center gap-1.5 text-[11px] font-extrabold">
+                        <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">{{ $pCount }} Present</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">{{ $hdCount }} Half Day</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">{{ $aCount }} Absent</span>
+                    </div>
+                </div>
+
+                @if(isset($allStaff) && $allStaff->count() > 0)
+                    <form id="quickAttendanceForm" onsubmit="submitQuickAttendance(event)" class="space-y-4">
+                        @csrf
+                        <input type="hidden" name="date" value="{{ $todayDate }}">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            @foreach($allStaff as $staff)
+                                @php
+                                    $currentAtt = $todayAttendance[$staff->id]->status ?? 'present';
+                                @endphp
+                                <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between hover:bg-slate-100/60 transition group">
+                                    <div class="space-y-0.5">
+                                        <div class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                                            <span class="group-hover:text-indigo-600 transition">{{ $staff->full_name }}</span>
+                                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-700">
+                                                {{ $staff->wage_type === 'per-day' ? '₹' . format_indian($staff->piece_rate_per_unit, 0) . '/day' : 'Fixed ₹' . format_indian($staff->monthly_salary, 0) }}
+                                            </span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 font-medium">Role: {{ $staff->designation ?? 'Staff Member' }}</div>
+                                    </div>
+
+                                    <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="present" {{ $currentAtt === 'present' ? 'checked' : '' }} class="peer sr-only">
+                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-emerald-600 peer-checked:text-white transition inline-block shadow-2xs" title="Present (Full Day 1.0)">P</span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="half_day" {{ $currentAtt === 'half_day' ? 'checked' : '' }} class="peer sr-only">
+                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-amber-500 peer-checked:text-white transition inline-block shadow-2xs" title="Half Day (0.5)">HD</span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="absent" {{ $currentAtt === 'absent' ? 'checked' : '' }} class="peer sr-only">
+                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-rose-500 peer-checked:text-white transition inline-block shadow-2xs" title="Absent (0.0)">A</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                            <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> P = Present (1.0)
+                                <span class="w-2 h-2 rounded-full bg-amber-500"></span> HD = Half Day (0.5)
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> A = Absent (0.0)
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="closeQuickAttendanceModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                                <button type="submit" id="saveQuickAttBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-xs transition flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Save Attendance Sheet
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                @else
+                    <div class="p-5 bg-slate-50 rounded-2xl text-center border border-slate-100 text-xs text-slate-500 font-medium space-y-2">
+                        <p>No active staff members registered in payroll directory.</p>
+                        <a href="{{ route('employees') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-indigo-700 transition">
+                            + Add Employee Profile
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -527,156 +643,176 @@
     </div>
 </div>
 
-<!-- Load Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // 1. Smooth Gradient Dual Line & Area Chart (6-Month Financial Performance)
-    const trendCtx = document.getElementById('financialTrendChart').getContext('2d');
-    
-    // Create Emerald Sales Gradient
-    const salesGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
-    salesGrad.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
-    salesGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+(function initOverviewCharts() {
+    function renderCharts() {
+        const trendElem = document.getElementById('financialTrendChart');
+        const clientElem = document.getElementById('topClientsChart');
 
-    // Create Indigo Outflows Gradient
-    const expGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
-    expGrad.addColorStop(0, 'rgba(99, 102, 241, 0.20)');
-    expGrad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+        if (!trendElem || !clientElem || typeof Chart === 'undefined') return;
 
-    new Chart(trendCtx, {
-        type: 'line',
-        data: {
-            labels: @json($chartMonths),
-            datasets: [
-                {
-                    label: 'Total Billed Sales (₹)',
-                    data: @json($chartSalesData),
-                    borderColor: '#10b981',
-                    backgroundColor: salesGrad,
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#10b981',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 7,
-                },
-                {
-                    label: 'Factory Outflows (₹)',
-                    data: @json($chartExpenseData),
-                    borderColor: '#6366f1',
-                    backgroundColor: expGrad,
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#6366f1',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 7,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        font: { family: 'Outfit, sans-serif', size: 11, weight: 'bold' }
+        if (window.financialTrendChartInstance) {
+            window.financialTrendChartInstance.destroy();
+            window.financialTrendChartInstance = null;
+        }
+        if (window.topClientsChartInstance) {
+            window.topClientsChartInstance.destroy();
+            window.topClientsChartInstance = null;
+        }
+
+        // 1. Smooth Gradient Dual Line & Area Chart (6-Month Financial Performance)
+        const trendCtx = trendElem.getContext('2d');
+        
+        // Create Emerald Sales Gradient
+        const salesGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
+        salesGrad.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+        salesGrad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        // Create Indigo Outflows Gradient
+        const expGrad = trendCtx.createLinearGradient(0, 0, 0, 260);
+        expGrad.addColorStop(0, 'rgba(99, 102, 241, 0.20)');
+        expGrad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        window.financialTrendChartInstance = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: @json($chartMonths),
+                datasets: [
+                    {
+                        label: 'Total Billed Sales (₹)',
+                        data: @json($chartSalesData),
+                        borderColor: '#10b981',
+                        backgroundColor: salesGrad,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                    },
+                    {
+                        label: 'Factory Outflows (₹)',
+                        data: @json($chartExpenseData),
+                        borderColor: '#6366f1',
+                        backgroundColor: expGrad,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
                     }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
                 },
-                tooltip: {
-                    backgroundColor: '#0f172a',
-                    titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                    bodyFont: { family: 'Outfit, sans-serif', size: 11 },
-                    padding: 10,
-                    cornerRadius: 10,
-                    callbacks: {
-                        label: function(ctx) {
-                            let label = ctx.dataset.label || '';
-                            if (label) label += ': ';
-                            label += '₹' + window.formatIndianCurrency(ctx.parsed.y, 2);
-                            return label;
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { family: 'Outfit, sans-serif', size: 11, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
+                        bodyFont: { family: 'Outfit, sans-serif', size: 11 },
+                        padding: 10,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: function(ctx) {
+                                let label = ctx.dataset.label || '';
+                                if (label) label += ': ';
+                                label += '₹' + window.formatIndianCurrency(ctx.parsed.y, 2);
+                                return label;
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false }
                 },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f1f5f9' },
-                    ticks: {
-                        font: { family: 'Outfit, sans-serif', size: 10, weight: '600' },
-                        callback: function(value) { return '₹' + window.formatIndianCurrency(value, 0); }
-                    }
-                }
-            }
-        }
-    });
-
-    // 2. Vibrant Multi-Color Client Revenue Share Donut Chart
-    const topClientsData = @json($topClientsData);
-    const clientNames = topClientsData.map(c => c.name);
-    const clientSales = topClientsData.map(c => c.sales);
-    const totalSalesSum = clientSales.reduce((a, b) => a + b, 0);
-
-    const clientCtx = document.getElementById('topClientsChart').getContext('2d');
-    new Chart(clientCtx, {
-        type: 'doughnut',
-        data: {
-            labels: clientNames.length ? clientNames : ['General Clients'],
-            datasets: [{
-                data: clientSales.length ? clientSales : [1],
-                backgroundColor: ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'],
-                hoverBackgroundColor: ['#059669', '#2563eb', '#7c3aed', '#d97706', '#db2777'],
-                borderWidth: 3,
-                borderColor: '#ffffff',
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '72%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: '#0f172a',
-                    titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                    bodyFont: { family: 'Outfit, sans-serif', size: 11 },
-                    padding: 10,
-                    cornerRadius: 10,
-                    callbacks: {
-                        label: function(ctx) {
-                            const val = ctx.parsed;
-                            const pct = totalSalesSum > 0 ? ((val / totalSalesSum) * 100).toFixed(1) : 0;
-                            return ` ${ctx.label}: ₹${window.formatIndianCurrency(val, 2)} (${pct}%)`;
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            font: { family: 'Outfit, sans-serif', size: 10, weight: '600' },
+                            callback: function(value) { return '₹' + window.formatIndianCurrency(value, 0); }
                         }
                     }
                 }
             }
-        }
-    });
-});
+        });
+
+        // 2. Vibrant Multi-Color Client Revenue Share Donut Chart
+        const topClientsData = @json($topClientsData);
+        const clientNames = topClientsData.map(c => c.name);
+        const clientSales = topClientsData.map(c => c.sales);
+        const totalSalesSum = clientSales.reduce((a, b) => a + b, 0);
+
+        const clientCtx = clientElem.getContext('2d');
+        window.topClientsChartInstance = new Chart(clientCtx, {
+            type: 'doughnut',
+            data: {
+                labels: clientNames.length ? clientNames : ['General Clients'],
+                datasets: [{
+                    data: clientSales.length ? clientSales : [1],
+                    backgroundColor: ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'],
+                    hoverBackgroundColor: ['#059669', '#2563eb', '#7c3aed', '#d97706', '#db2777'],
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
+                        bodyFont: { family: 'Outfit, sans-serif', size: 11 },
+                        padding: 10,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: function(ctx) {
+                                const val = ctx.parsed;
+                                const pct = totalSalesSum > 0 ? ((val / totalSalesSum) * 100).toFixed(1) : 0;
+                                return ` ${ctx.label}: ₹${window.formatIndianCurrency(val, 2)} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderCharts);
+    } else {
+        renderCharts();
+    }
+})();
 
 function updateDashboardOrderStatus(id, selectEl) {
     const status = (typeof selectEl === 'object' && selectEl !== null) ? selectEl.value : selectEl;
@@ -835,6 +971,74 @@ function submitDashboardPayForm(e) {
             },
             error: function(xhr) {
                 const msg = xhr.responseJSON?.message || 'Failed to update order status.';
+                if (window.showToast) {
+                    window.showToast('error', msg);
+                } else {
+                    alert(msg);
+                }
+            }
+        });
+    }
+
+    function openQuickAttendanceModal() {
+        const modal = document.getElementById('quickAttendanceModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeQuickAttendanceModal() {
+        const modal = document.getElementById('quickAttendanceModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function submitQuickAttendance(e) {
+        e.preventDefault();
+        const btn = document.getElementById('saveQuickAttBtn');
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin w-4 h-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Saving...`;
+
+        const form = document.getElementById('quickAttendanceForm');
+        const formData = new FormData(form);
+        const token = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+        
+        const attendanceObj = {};
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('attendance[')) {
+                const staffId = key.match(/\[(.*?)\]/)[1];
+                attendanceObj[staffId] = value;
+            }
+        }
+
+        $.ajax({
+            url: '{{ route("employees.attendance.store") }}',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': token
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({
+                date: '{{ $todayDate }}',
+                attendance: attendanceObj
+            }),
+            success: function(res) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                closeQuickAttendanceModal();
+                if (window.showToast) {
+                    window.showToast('success', res.message || "Today's attendance saved successfully!");
+                } else {
+                    alert(res.message || "Attendance saved!");
+                }
+            },
+            error: function(xhr) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                const msg = xhr.responseJSON?.message || 'Failed to save attendance.';
                 if (window.showToast) {
                     window.showToast('error', msg);
                 } else {

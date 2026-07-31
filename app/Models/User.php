@@ -24,8 +24,47 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'is_active',
+        'phone',
+        'salary',
+        'avatar_path',
         'permissions',
     ];
+
+    /**
+     * Check if user account is active & approved by admin.
+     */
+    public function isApproved(): bool
+    {
+        if (in_array($this->role, ['super_admin', 'admin'])) {
+            return true;
+        }
+        return (bool) $this->is_active && ($this->status === 'active' || $this->status === 'approved');
+    }
+
+    /**
+     * Check if user account is pending approval.
+     */
+    public function isPending(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Scope query to active users.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true)->where('status', 'active');
+    }
+
+    /**
+     * Check if user has explicit permission key.
+     */
+    public function hasPermission(string $permissionKey): bool
+    {
+        return \App\Services\RolePermissionService::userHasPermission($this, $permissionKey);
+    }
 
     /**
      * Get the staff profile associated with the user.
@@ -63,6 +102,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
             'permissions' => 'array',
         ];
     }

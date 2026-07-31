@@ -40,8 +40,3 @@ if (!function_exists('format_indian')) {
     }
 }
 
-if (!function_exists('inr_format')) {
-    function inr_format($amount, $decimals = 2) {
-        return format_indian($amount, $decimals);
-    }
-}

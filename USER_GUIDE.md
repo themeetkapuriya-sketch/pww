@@ -1,6 +1,6 @@
 # Praful Welding Works (PWW) ERP - Easy User Guide & Operational Manual
 
-Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed for factory managers, billing staff, accountants, and administrators to easily operate every module of the ERP portal.
+Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed for factory managers, billing staff, accountants, and administrators to easily operate every module of the ERP portal both online and 100% offline.
 
 ---
 
@@ -20,67 +20,76 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 | **10** | **Clients & Plants** | Client & Factory Delivery Locations | Add clients, GSTIN numbers, and shipping plant sites |
 | **11** | **Employees** | Staff Profiles & Wages | Add welders/helpers & configure piece-rates |
 | **12** | **Reports** | Audits, GSTR Tax Returns & P&L | Track GSTR-1, GSTR-3B tax & download CSV/PDF |
+| **13** | **Settings Hub** | User Matrix & Module Visibility | Control system user access & toggle active modules |
+| **14** | **Backup & Restore** | Database Safety Snapshots | Create manual SQL backups or restore snapshots |
 
 ---
 
 ## 🛠️ Step-by-Step Operating Instructions
 
-### 1. Setting Up Products & Raw Materials (Initial Setup)
+### 1. Initial Login & User Credentials
+1. Open your browser and navigate to `http://127.0.0.1:8000/login`.
+2. Login with your Super Admin credentials:
+   - **Email**: `pww@gmail.com`
+   - **Password**: `password`
 
-#### Step 1.1: Add Raw Materials (Page: `Raw Materials`)
+---
+
+### 2. Setting Up Products & Raw Materials (Initial Setup)
+
+#### Step 2.1: Add Raw Materials (Page: `Raw Materials`)
 1. Click **Raw Materials** in the sidebar.
 2. Click **+ Add Raw Material**.
 3. Fill in:
-   - **Material Name**: e.g., *Iron Wire Coils (5mm)*
-   - **Unit**: Select `kg`, `liter`, `meter`, or `packet`.
-   - **Initial Stock**: Quantity currently in stock (e.g., `1500 kg`).
-   - **Safety Threshold Alert Limit**: Minimum limit before warning (e.g., `200 kg`).
-   - **Purchase Price**: Average price per unit (e.g., `₹85.00`).
+   - **Material Name**: e.g., *MS Angle 50x50x5mm*
+   - **Unit**: Select `KG`, `NOS`, `MTR`, or `LTR`.
+   - **Initial Stock**: Quantity currently in stock (e.g., `2500 KG`).
+   - **Safety Threshold Alert Limit**: Minimum limit before warning (e.g., `500 KG`).
+   - **Purchase Price**: Average price per unit (e.g., `₹58.50`).
 4. Click **Create Raw Material**.
 
-#### Step 1.2: Add Finished Products (Page: `Products`)
+#### Step 2.2: Add Finished Products (Page: `Products`)
 1. Click **Products** in the sidebar.
 2. Click **+ Add Product**.
 3. Fill in:
-   - **Product Model Name**: e.g., *Balaji Wire Rack 3-Tier*
-   - **SKU Code**: Unique identifier (e.g., `WR-3T-BALAJI`).
-   - **HSN Code**: GST HSN classification (e.g., `73089090`).
-   - **Selling Price / Piece**: Price per rack (e.g., `₹1850.00`).
+   - **Product Model Name**: e.g., *Heavy Duty Industrial Storage Rack (2000x1000x500mm)*
+   - **HSN Code**: GST HSN classification (e.g., `7308`).
+   - **Selling Price / Piece**: Price per rack (e.g., `₹4500.00`).
    - **GST Rate**: Select `18%`, `12%`, `5%`, `28%`, or `0%`.
 4. Click **Save Product**.
 
-#### Step 1.3: Define Product BOM Formula (Page: `Bill of Materials (BOM)`)
+#### Step 2.3: Define Product BOM Formula (Page: `Bill of Materials (BOM)`)
 *This links finished products to raw materials so stock auto-deducts when production is logged.*
 1. Click **Bill of Materials (BOM)** in the sidebar.
 2. Click **+ Configure New Product Composition**.
-3. Select the **Finished Product** (e.g., *Balaji Wire Rack 3-Tier*).
-4. Select the **Raw Material Needed** (e.g., *Iron Wire Coils*).
-5. Enter **Quantity Required Per 1 Piece** (e.g., `14.5 kg`).
+3. Select the **Finished Product** (e.g., *Heavy Duty Industrial Storage Rack*).
+4. Select the **Raw Material Needed** (e.g., *MS Angle 50x50x5mm*).
+5. Enter **Quantity Required Per 1 Piece** (e.g., `12.5 KG`) and **Waste Allowance %**.
 6. Click **Save Composition Link**.
 
 ---
 
-### 2. Daily Factory Production Logging
+### 3. Daily Factory Production Logging
 
 #### How to Log Finished Rack Output (Page: `Production Logs`)
 1. Click **Production Logs** in the sidebar.
 2. Click **+ Log New Production Shift**.
 3. Select **Production Date** and the **Product Model** produced.
-4. Enter **Quantity Produced** (e.g., `50 pieces`).
-5. *(Optional)* Assign **Employees / Welders** and enter pieces welded by each worker to calculate their wage payout.
+4. Enter **Quantity Produced** (e.g., `20 pieces`).
+5. *(Optional)* Assign **Employees / Welders** and enter pieces completed by each worker to calculate their wage payout.
 6. Click **Save Production Output**.
-   > 💡 **Automated Stock Deduction**: The system automatically subtracts raw materials (e.g. `50 * 14.5 kg = 725 kg` wire) from stock and adds `50 pieces` to your finished product inventory!
+   > 💡 **Automated Stock Deduction**: The system automatically subtracts raw materials from stock and adds `20 pieces` to your finished product inventory!
 
 ---
 
-### 3. Sales Orders & GST Invoicing
+### 4. Sales Orders & GST Invoicing
 
-#### Step 3.1: Add Client & Delivery Plant (Page: `Clients & Plants`)
+#### Step 4.1: Add Client & Delivery Plant (Page: `Clients & Plants`)
 1. Click **Clients & Plants** in the sidebar.
-2. Click **+ Add New Client** to enter the client company name, GSTIN (e.g., `24AAACB1234C1Z1`), and state code.
+2. Click **+ Add New Client** to enter the client company name, GSTIN (e.g., `24AAACT2727Q1ZW`), and state code.
 3. Click **+ Add Plant Location** under that client to specify the delivery factory address.
 
-#### Step 3.2: Generate a GST Tax Invoice (Page: `Invoice Ledger`)
+#### Step 4.2: Generate a GST Tax Invoice (Page: `Invoice Ledger`)
 1. Click **Invoice Ledger** in the sidebar.
 2. Click **+ Direct Invoice Itemizer**.
 3. Select **Client** and **Shipping Plant Site**.
@@ -91,26 +100,9 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
    - **Inter-State (Outside Gujarat)**: 18% IGST.
 7. Click **Generate & Save Invoice**.
 
-#### Step 3.3: Collect Payment & Print Invoice
+#### Step 4.3: Collect Payment & Print Invoice
 - Click **Record Payment** (green button) on any unpaid invoice row to enter payment mode (`NEFT/RTGS`, `UPI`, `Cheque`, `Cash`) and received amount.
 - Click **Print / PDF** (blue button) to view, download, or print the formatted GST Tax Invoice.
-
----
-
-### 4. Raw Material Purchases & Expenses Logging
-
-#### Logging Vendor Raw Material Procurement (Page: `Purchase Ledger`)
-1. Click **Purchase Ledger** in the sidebar.
-2. Click **+ Log Material Purchase**.
-3. Select Raw Material, enter Vendor Name, Vendor Invoice Number, Quantity Purchased, and Total Purchase Cost.
-4. Click **Log Purchase Record**.
-   > 💡 **Auto-Restock**: Purchased quantities automatically add back into your raw material stock!
-
-#### Logging Operational Overheads & Vendor GST Expenses (Page: `Expenses Ledger`)
-1. Click **Expenses Ledger** in the sidebar.
-2. Click **+ Record Expense Ledger**.
-3. Enter Expense Category (`GST Liability Payment`, `Electricity`, `Transport`, `Rent`, etc.), amount, and payment mode.
-4. If it's a vendor bill with GST credit, check **"This is a GST Expense with Eligible Input Tax Credit (ITC)"** and enter vendor GSTIN.
 
 ---
 
@@ -126,7 +118,7 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 ---
 
-### 🛡️ Built-in Duplicate Protection & Safety Rules
-- **Submit Button Lock**: Once you click any Save / Submit button, it instantly disables to prevent accidental double-clicks or duplicate entries.
-- **Low Stock Alerts**: Whenever raw material stock drops below its safety threshold, an instant warning badge appears on your Dashboard and Raw Materials page.
-- **Exact Details Protection**: The system blocks creating exact duplicate client, employee, or expense records to keep your data 100% clean.
+### 🌐 100% Offline Capability Guide
+- **Zero Internet Requirement**: All styling (Tailwind CSS), popups (SweetAlert2), DataTables, and JavaScript run from local files stored on your hard drive (`public/vendor/`).
+- **Local Data Safety**: Your business data stays 100% private on your local computer.
+- **Offline Backups**: Automated backups save `.sql` files directly to `storage/app/backups/`.

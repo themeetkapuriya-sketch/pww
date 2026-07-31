@@ -1,16 +1,41 @@
-# Praful Welding Works ERP - System Architecture & Business Logic
+# Praful Welding Works ERP - System Architecture & Design Document
 
-This document details the internal architecture, computational engines, business rules, tax algorithms, and frontend/backend integrations in **Praful Welding Works ERP**.
+This document details the software architecture, design patterns, computational engines, tax algorithms, and offline execution capabilities powering **Praful Welding Works ERP**.
 
 ---
 
-## ⚙️ Core Business Engines
+## 🏗️ High-Level Architectural Design
+
+The application follows clean architectural principles combining **Thin Controllers**, **Form Request Validation**, **Domain Service Layers**, and an **AJAX-powered Single Page Application (SPA)** experience.
+
+```mermaid
+graph TD
+    User[Client Browser / SPA] -->|HTTP / AJAX| Routes[Laravel Web Routes]
+    Routes -->|Form Request Validation| Requests[Http/Requests Layer]
+    Requests -->|Delegates to| Controllers[Thin Controllers Layer]
+    Controllers -->|Executes Business Logic| Services[Domain Services Layer]
+    Services -->|Reads / Writes| Models[Eloquent Models Layer]
+    Models -->|Queries| DB[(MySQL Database)]
+    Services -->|Generates PDFs / Logs| Assets[Local Storage & Vendor Assets]
+```
+
+### Key Service Abstractions (`app/Services/`):
+- `InvoiceService.php`: Custom invoice calculations, GST item tax breakdown, sequential document numbering, payment processing.
+- `ProductionService.php`: Batch production output logging, BOM raw material inventory auto-deduction, labor cost calculation.
+- `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary disbursals.
+- `ReportService.php`: Financial P&L calculations, GST GSTR-1 & GSTR-3B tax aggregations, CSV/PDF compilations with caching (`Cache::remember`).
+- `BackupService.php`: Database SQL dumps, database restores, local snapshot management, safety file rotations.
+- `RolePermissionService.php`: Role-based access control (RBAC), permission matrix resolution.
+
+---
+
+## ⚙️ Core Computational Engines
 
 ### 1. Bill of Materials (BOM) Auto-Deduction Engine
-When factory output is logged on the **Production Logs** page, the system calculates and auto-deducts the required raw materials from live inventory stock using `ProductionService.php`.
+When factory output is logged on the **Production Logs** page, the system calculates and auto-deducts raw materials from inventory stock via `ProductionService.php`.
 
 #### Mathematical Formulation:
-$$\text{Raw Material Deducted} = \text{Quantity Produced} \times \text{BOM Quantity Required Per Piece}$$
+$$\text{Raw Material Consumed} = \text{Quantity Produced} \times \text{BOM Required Qty} \times \left(1 + \frac{\text{Waste } \%}{100}\right)$$
 
 ```mermaid
 flowchart TD
@@ -18,11 +43,11 @@ flowchart TD
     B --> C{BOM Configured?}
     C -- No --> D[Log Production Output Only]
     C -- Yes --> E[Loop Through Each Raw Material Requirement]
-    E --> F[Calculate: Quantity Produced * Required Qty]
-    F --> G[Deduct Stock: current_stock - Required]
+    E --> F[Calculate: Qty Produced * Required Qty * Waste Multiplier]
+    F --> G[Deduct Stock: current_stock - Consumed Qty]
     G --> H[Check: current_stock < safety_threshold]
     H -- Low Stock --> I[Trigger Low Stock Alert Badge]
-    H -- Stock OK --> J[Save Log Record]
+    H -- Stock OK --> J[Save Log Record & Auto-Promote Eligible Orders]
 ```
 
 ---
@@ -40,8 +65,8 @@ The system dynamically computes **Intra-State GST** vs **Inter-State IGST** tax 
   $$\text{SGST Amount} = 0.00$$
   $$\text{IGST Amount} = \text{Subtotal} \times \text{GST Rate} \times \frac{1}{100}$$
 
-#### GST Tax Credit (ITC) Reconciliation:
-In the **Reports** audit module:
+#### GST Input Tax Credit (ITC) Reconciliation:
+In `ReportService.php`:
 $$\text{Output GST Liability} = \sum \text{CGST Collected} + \sum \text{SGST Collected} + \sum \text{IGST Collected}$$
 $$\text{Eligible Input Tax Credit (ITC)} = \sum \text{GST Paid on Procurement & Expenses}$$
 $$\text{Net Tax Payable to Govt} = \max(0, \text{Output GST Liability} - \text{Eligible ITC Credit})$$
@@ -49,24 +74,24 @@ $$\text{Net Tax Payable to Govt} = \max(0, \text{Output GST Liability} - \text{E
 ---
 
 ### 3. Financial Profit Engine
-`FinancialService.php` aggregates factory financial performance:
+`FinancialService.php` aggregates overall factory financial health:
 
 $$\text{Gross Sales Revenue} = \sum \text{Paid Invoice Amounts}$$
-$$\text{Cost of Goods Sold (COGS)} = \sum \text{Raw Material Purchases} + \sum \text{Worker Labor Payouts}$$
+$$\text{Cost of Goods Sold (COGS)} = \sum \text{Raw Material Procurement} + \sum \text{Worker Labor Payouts}$$
 $$\text{Operating Expenses} = \sum \text{Expenses Ledger Costs}$$
 $$\text{Net Profit Margin} = \text{Gross Sales Revenue} - (\text{COGS} + \text{Operating Expenses})$$
 
 ---
 
-### 4. Project-Wide Duplicate Record Prevention
-To maintain data integrity and prevent double-billing or double-logging:
+### 4. 100% Offline Capability Architecture
+The system is built to operate **100% offline without internet** on local client devices:
 
-1. **Frontend Disabling**:
-   Upon form submission, `app-core.js` instantly disables the primary action button (`disabled`, `opacity-50`, `pointer-events-none`) and renders a loading spinner.
-2. **Backend 422 Validation**:
-   Controllers (`ExpenseController`, `PurchaseController`, `ProductionController`, `ClientController`, `EmployeeController`, `ProductController`) execute strict duplicate checking before database insertion. If exact matching parameters are detected, HTTP Status `422 Unprocessable Content` is returned.
-3. **URL Parameter Sanitization**:
-   Forms opened via URL parameters (e.g. `?open=1`) immediately execute `window.history.replaceState` to strip query strings, preventing re-triggering upon page reloads.
+1. **Local Vendor Assets (`public/vendor/`)**:
+   - `jQuery`, `SweetAlert2`, `DataTables`, `TomSelect`, and `Chart.js` are vendor-bundled locally in `public/vendor/`.
+2. **Local Compiled CSS/JS (`public/build/`)**:
+   - Tailwind CSS stylesheet is compiled into a standalone 77 KB local CSS bundle (`public/build/assets/app-*.css`).
+3. **Local Database & Backups**:
+   - Runs on local MySQL (`127.0.0.1:3306`). Automated backups save directly to local disk (`storage/app/backups/`).
 
 ---
 

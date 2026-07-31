@@ -36,10 +36,10 @@ class OrderController extends Controller
 
         $stats = [
             'total' => SalesOrder::count(),
-            'pending' => SalesOrder::where('status', 'pending')->count(),
-            'in_production' => SalesOrder::where('status', 'in_production')->count(),
-            'ready' => SalesOrder::where('status', 'ready_for_dispatch')->count(),
-            'completed' => SalesOrder::whereIn('status', ['dispatched', 'completed'])->count(),
+            'pending' => SalesOrder::pending()->count(),
+            'in_production' => SalesOrder::inProduction()->count(),
+            'ready' => SalesOrder::ready()->count(),
+            'completed' => SalesOrder::completed()->count(),
         ];
 
         return view('pages.orders', compact('orders', 'clients', 'finishedGoods', 'stats', 'status'));

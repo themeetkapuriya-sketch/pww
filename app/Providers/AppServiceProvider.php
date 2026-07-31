@@ -32,6 +32,42 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        // Dynamically override Mail configuration from DB Settings if present
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $mailHost = \App\Models\Setting::get('mail_host');
+                if (!empty($mailHost)) {
+                    $fromAddress = \App\Models\Setting::get('mail_from_address', 'vekariyah@gmail.com');
+                    $mailUsername = \App\Models\Setting::get('mail_username');
+                    if (empty($mailUsername)) {
+                        $mailUsername = $fromAddress;
+                    }
+
+                    config([
+                        'mail.default' => 'smtp',
+                        'mail.mailers.smtp.host' => $mailHost,
+                        'mail.mailers.smtp.port' => (int) \App\Models\Setting::get('mail_port', 587),
+                        'mail.mailers.smtp.username' => $mailUsername,
+                        'mail.mailers.smtp.password' => \App\Models\Setting::get('mail_password'),
+                        'mail.mailers.smtp.encryption' => \App\Models\Setting::get('mail_encryption', 'tls'),
+                        'mail.from.address' => $fromAddress,
+                        'mail.from.name' => \App\Models\Setting::get('mail_from_name', 'Praful Welding Works'),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Ignore during early DB migrations/setup
+        }
+
+        // Register Blade directives for permission and role checking
+        \Illuminate\Support\Facades\Blade::if('hasPermission', function ($permissionKey) {
+            return auth()->check() && \App\Services\RolePermissionService::userHasPermission(auth()->user(), $permissionKey);
+        });
+
+        \Illuminate\Support\Facades\Blade::if('hasRole', function ($role) {
+            return auth()->check() && auth()->user()->role === $role;
+        });
+
         // Register Gate checks for all system permissions
         foreach (array_keys(\App\Services\RolePermissionService::getPermissionsList()) as $permKey) {
             \Illuminate\Support\Facades\Gate::define($permKey, function ($user) use ($permKey) {

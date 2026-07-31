@@ -40,6 +40,30 @@ class Invoice extends Model
     ];
 
     /**
+     * Scope query to paid invoices.
+     */
+    public function scopePaid($query)
+    {
+        return $query->where('payment_status', 'paid');
+    }
+
+    /**
+     * Scope query to unpaid invoices.
+     */
+    public function scopeUnpaid($query)
+    {
+        return $query->where('payment_status', 'unpaid');
+    }
+
+    /**
+     * Scope query to partially paid invoices.
+     */
+    public function scopePartial($query)
+    {
+        return $query->where('payment_status', 'partial');
+    }
+
+    /**
      * Get the client plant for this invoice.
      */
     public function plant()
@@ -95,15 +119,17 @@ class Invoice extends Model
         }
 
         $prefix = Setting::get('invoice_prefix', 'PWW-');
+        $customNextSeq = (int) Setting::get('invoice_next_sequence', 1);
+
         $count = self::where(function($q) {
             $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
         })->whereBetween('created_at', [$fyStart, $fyEnd])->count();
 
-        $nextSequence = $count + 1;
-        $candidate = $prefix . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        $nextSequence = max($count + 1, $customNextSeq);
+        $candidate = Setting::formatDocumentNumber($prefix, $nextSequence);
         while (self::where('invoice_number', $candidate)->exists()) {
             $nextSequence++;
-            $candidate = $prefix . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+            $candidate = Setting::formatDocumentNumber($prefix, $nextSequence);
         }
         return $candidate;
     }
@@ -124,10 +150,10 @@ class Invoice extends Model
 
         $count = self::where('invoice_mode', 'raw_material')->whereBetween('created_at', [$fyStart, $fyEnd])->count();
         $nextSequence = $count + 1;
-        $candidate = 'RMS-' . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+        $candidate = Setting::formatDocumentNumber('RMS-', $nextSequence);
         while (self::where('invoice_number', $candidate)->exists()) {
             $nextSequence++;
-            $candidate = 'RMS-' . date('Ymd') . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+            $candidate = Setting::formatDocumentNumber('RMS-', $nextSequence);
         }
         return $candidate;
     }

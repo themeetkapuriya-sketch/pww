@@ -42,22 +42,41 @@ class SalesOrder extends Model
         return $this->hasMany(SalesOrderItem::class, 'sales_order_id');
     }
 
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeInProduction($query)
+    {
+        return $query->where('status', 'in_production');
+    }
+
+    public function scopeReady($query)
+    {
+        return $query->where('status', 'ready_for_dispatch');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
     public static function generateNextOrderNumber(): string
     {
         $prefix = Setting::get('order_prefix', 'PWW-ORD-');
-        $dateStr = date('Ymd');
-        $latest = self::where('order_number', 'like', "{$prefix}{$dateStr}-%")
-            ->orderBy('id', 'desc')
-            ->first();
+        $customNextSeq = (int) Setting::get('order_next_sequence', 1);
 
-        if ($latest) {
-            $parts = explode('-', $latest->order_number);
-            $seq = intval(end($parts)) + 1;
-        } else {
-            $seq = 1;
+        $count = self::count();
+        $nextSequence = max($count + 1, $customNextSeq);
+        $candidate = Setting::formatDocumentNumber($prefix, $nextSequence);
+
+        while (self::where('order_number', $candidate)->exists()) {
+            $nextSequence++;
+            $candidate = Setting::formatDocumentNumber($prefix, $nextSequence);
         }
 
-        return sprintf("%s%s-%04d", $prefix, $dateStr, $seq);
+        return $candidate;
     }
 
     public function getFormattedStatusAttribute(): string

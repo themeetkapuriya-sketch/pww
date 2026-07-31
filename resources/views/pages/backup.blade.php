@@ -109,7 +109,7 @@
 
         <!-- Card 2: Restore System Database -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition">
-            <form action="{{ route('backup.restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmRestore(event)" class="h-full flex flex-col justify-between">
+            <form id="restoreDbForm" action="{{ route('backup.restore') }}" method="POST" enctype="multipart/form-data" onsubmit="return confirmRestore(event);" novalidate class="h-full flex flex-col justify-between">
                 @csrf
                 <div>
                     <div class="flex items-center gap-3 mb-4">
@@ -127,7 +127,8 @@
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Select Backup File (.sql)</label>
-                            <input type="file" name="backup_file" accept=".sql,.txt" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-sm text-slate-700 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                            <input type="file" id="restoreFileInput" name="backup_file" accept=".sql,.txt" onchange="validateRestoreFileSelection(this)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-sm text-slate-700 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 transition-all">
+                            <div id="fileValidationHelper" class="mt-1.5 text-xs font-bold hidden"></div>
                         </div>
                         <p class="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
                             <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -410,13 +411,157 @@ function confirmDeleteBackup(e, form, filename) {
     return false;
 }
 
+function validateRestoreFileSelection(input) {
+    const $input = $(input);
+    const $helper = $('#fileValidationHelper');
+    if (!input.files || input.files.length === 0) {
+        $input.removeClass('ring-2 ring-rose-500 border-rose-500 ring-emerald-500 border-emerald-500');
+        $helper.addClass('hidden');
+        return;
+    }
+    const file = input.files[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'sql' && ext !== 'txt') {
+        $input.removeClass('ring-2 ring-emerald-500 border-emerald-500').addClass('ring-2 ring-rose-500 border-rose-500');
+        $helper.removeClass('hidden text-emerald-600').addClass('text-rose-600').html(`❌ Invalid extension ".${ext}". Please select a .sql backup file.`);
+    } else if (file.size === 0) {
+        $input.removeClass('ring-2 ring-emerald-500 border-emerald-500').addClass('ring-2 ring-rose-500 border-rose-500');
+        $helper.removeClass('hidden text-emerald-600').addClass('text-rose-600').html(`❌ File "${file.name}" is empty (0 bytes).`);
+    } else {
+        const sizeMb = (file.size / 1024 / 1024).toFixed(2);
+        $input.removeClass('ring-2 ring-rose-500 border-rose-500').addClass('ring-2 ring-emerald-500 border-emerald-500');
+        $helper.removeClass('hidden text-rose-600').addClass('text-emerald-600').html(`✓ Ready to restore: <strong>${file.name}</strong> (${sizeMb} MB)`);
+    }
+}
+
 function confirmRestore(e) {
-    if (typeof Swal !== 'undefined') {
+    if (e) {
         e.preventDefault();
-        const form = e.target;
+        e.stopPropagation();
+    }
+    const form = document.getElementById('restoreDbForm') || (e ? e.target : null);
+    const fileInput = document.getElementById('restoreFileInput') || (form ? form.querySelector('input[type="file"]') : null);
+    const $helper = $('#fileValidationHelper');
+
+    // Validation 1: File selection check
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        $(fileInput).removeClass('ring-2 ring-emerald-500 border-emerald-500').addClass('ring-2 ring-rose-500 border-rose-500').focus();
+        if ($helper.length) {
+            $helper.removeClass('hidden text-emerald-600').addClass('text-rose-600').html('⚠️ Please choose a .sql backup file to restore.');
+        }
+        return false;
+    }
+
+    const selectedFile = fileInput.files[0];
+    const fileName = selectedFile.name;
+    const fileSize = selectedFile.size;
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    // Validation 2: File extension check (.sql or .txt)
+    if (ext !== 'sql' && ext !== 'txt') {
+        $(fileInput).addClass('ring-2 ring-rose-500 border-rose-500');
+        if ($helper.length) {
+            $helper.removeClass('hidden text-emerald-600').addClass('text-rose-600').html(`❌ Invalid file type "${ext}". Only .sql database backup files are allowed.`);
+        }
         Swal.fire({
-            title: 'Restore Database?',
-            text: 'WARNING: Restoring will overwrite current database records with the uploaded backup state.\n\nAn automatic pre-restore safety snapshot will be saved first.',
+            icon: 'error',
+            title: 'Invalid File Format!',
+            html: `File <strong>"${fileName}"</strong> is not a valid SQL backup file.<br><br>Please select a <strong>.sql</strong> database file.`,
+            confirmButtonColor: '#EF4444',
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100',
+                confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
+            }
+        });
+        return false;
+    }
+
+    // Validation 3: File size check (> 0 Bytes)
+    if (fileSize === 0) {
+        $(fileInput).addClass('ring-2 ring-rose-500 border-rose-500');
+        if ($helper.length) {
+            $helper.removeClass('hidden text-emerald-600').addClass('text-rose-600').html(`❌ File "${fileName}" is empty (0 bytes).`);
+        }
+        Swal.fire({
+            icon: 'error',
+            title: 'Empty File Error!',
+            text: `The selected file "${fileName}" is empty (0 bytes). Please upload a valid backup.`,
+            confirmButtonColor: '#EF4444',
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100',
+                confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-sm bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
+            }
+        });
+        return false;
+    }
+
+    // Clear validation error styling
+    $(fileInput).removeClass('ring-2 ring-rose-500 border-rose-500');
+    if ($helper.length) {
+        const readableSize = (fileSize / 1024 / 1024).toFixed(2);
+        $helper.removeClass('hidden text-rose-600').addClass('text-emerald-600').html(`✓ Valid Backup: <strong>${fileName}</strong> (${readableSize} MB)`);
+    }
+
+    const performRestoreAjax = function() {
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        let origHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Restoring Database...</span>';
+        }
+
+        $.ajax({
+            url: form.action,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '',
+                'Accept': 'application/json'
+            },
+            success: function(res) {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origHtml;
+                }
+                form.reset();
+                if ($helper.length) $helper.addClass('hidden');
+                Swal.fire({
+                    title: 'Database Restored!',
+                    text: res.message || 'System database restored successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100' }
+                }).then(() => {
+                    refreshBackupTable();
+                });
+            },
+            error: function(xhr) {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origHtml;
+                }
+                let err = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to restore database.';
+                Swal.fire({
+                    title: 'Restore Failed',
+                    text: err,
+                    icon: 'error',
+                    confirmButtonColor: '#EF4444',
+                    customClass: { popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100' }
+                });
+            }
+        });
+    };
+
+    if (typeof Swal !== 'undefined') {
+        const formattedSize = (fileSize / 1024 / 1024).toFixed(2);
+        Swal.fire({
+            title: 'Restore System Database?',
+            html: `WARNING: Restoring <strong>"${fileName}"</strong> (${formattedSize} MB) will overwrite current database records with the backup state.<br><br>An automatic pre-restore safety snapshot will be saved first.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#D97706',
@@ -424,22 +569,20 @@ function confirmRestore(e) {
             confirmButtonText: 'Yes, Restore Now',
             cancelButtonText: 'Cancel',
             customClass: {
-                popup: 'rounded-2xl',
-                confirmButton: 'rounded-xl font-bold px-4 py-2.5',
-                cancelButton: 'rounded-xl font-bold px-4 py-2.5'
+                popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100',
+                confirmButton: 'rounded-xl font-bold px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer',
+                cancelButton: 'rounded-xl font-bold px-4 py-2.5 bg-slate-500 hover:bg-slate-600 text-white cursor-pointer'
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                form.submit();
+                performRestoreAjax();
             }
         });
         return false;
     }
-    if (!confirm('WARNING: Restoring will overwrite current database records with the uploaded backup state.\n\nAn automatic pre-restore safety snapshot will be saved first.\n\nDo you wish to proceed?')) {
-        e.preventDefault();
-        return false;
-    }
-    return true;
+
+    performRestoreAjax();
+    return false;
 }
 </script>
 @endsection

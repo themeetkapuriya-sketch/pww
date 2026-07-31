@@ -743,10 +743,15 @@
                     <div>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
-                                <span class="w-2.5 h-2.5 {{ $gstSummary['is_paid'] ? 'bg-emerald-500' : 'bg-rose-500' }} rounded-full"></span>
+                                <span class="w-2.5 h-2.5 {{ $gstSummary['status'] === 'unpaid' ? 'bg-rose-500' : ($gstSummary['status'] === 'no_due' ? 'bg-blue-500' : 'bg-emerald-500') }} rounded-full"></span>
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">6.1 Net Tax Payable ({{ $taxPeriodLabel }})</span>
                             </div>
-                            @if($gstSummary['is_paid'])
+                            @if($gstSummary['status'] === 'no_due')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-100/90 text-blue-800 border border-blue-300 whitespace-nowrap" title="Excess Input Tax Credit available - ₹0 Tax Payable to Govt">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                                    <span>ITC CREDIT (₹0 DUE)</span>
+                                </span>
+                            @elseif($gstSummary['status'] === 'paid')
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 whitespace-nowrap">
                                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
                                     <span>PAID</span>
@@ -758,12 +763,16 @@
                                 </span>
                             @endif
                         </div>
-                        <span class="text-xl font-black {{ $gstSummary['is_paid'] ? 'text-emerald-700' : 'text-rose-600' }} block mt-2">
+                        <span class="text-xl font-black {{ $gstSummary['status'] === 'unpaid' ? 'text-rose-600' : ($gstSummary['status'] === 'no_due' ? 'text-blue-700' : 'text-emerald-700') }} block mt-2">
                             ₹{{ format_indian(abs($gstSummary['net_gst_payable']), 2) }}
                         </span>
                     </div>
                     <div class="mt-2 pt-2 border-t border-slate-100 text-[10px]">
-                        @if($gstSummary['is_paid'])
+                        @if($gstSummary['status'] === 'no_due')
+                            <span class="text-blue-700 font-bold flex items-center justify-between">
+                                <span>✓ Excess Input Tax Credit Available (Carry Forward)</span>
+                            </span>
+                        @elseif($gstSummary['status'] === 'paid')
                             <span class="text-emerald-700 font-bold flex items-center justify-between">
                                 <span>✓ Settled for {{ $taxPeriodLabel }} via Expense Ledger</span>
                                 @if(!empty($gstSummary['expense_entry']))

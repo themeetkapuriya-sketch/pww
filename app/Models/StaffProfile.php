@@ -37,4 +37,20 @@ class StaffProfile extends Model
     {
         return $this->hasMany(LaborLog::class, 'staff_profile_id');
     }
+
+    /**
+     * Get the daily attendance records for the staff member.
+     */
+    public function attendanceRecords()
+    {
+        return $this->hasMany(AttendanceRecord::class, 'staff_profile_id');
+    }
+
+    /**
+     * Get the monthly salary disbursals for the staff member.
+     */
+    public function salaryDisbursals()
+    {
+        return $this->hasMany(SalaryDisbursal::class, 'staff_profile_id');
+    }
 }

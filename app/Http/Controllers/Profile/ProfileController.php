@@ -163,7 +163,7 @@ class ProfileController extends Controller
         try {
             Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
             
-            $seedUser = User::where('email', 'pww@example.com')->first();
+            $seedUser = User::where('email', 'pww@gmail.com')->first();
             if ($seedUser) {
                 auth()->login($seedUser);
             }

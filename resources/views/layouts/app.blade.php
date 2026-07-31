@@ -16,7 +16,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
+    <!-- Local Compiled Vite Tailwind CSS (Offline Fallback) -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -29,10 +31,11 @@
             }
         }
     </script>
-    <!-- Chart.js & SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- DataTables CSS & TomSelect CSS -->
+    <!-- Local Vendor CSS Files (100% Offline Support) -->
+    <link rel="stylesheet" href="{{ asset('vendor/sweetalert2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/jquery.dataTables.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/tom-select.bootstrap5.min.css') }}">
+    <!-- DataTables CDN Fallbacks -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <style>
@@ -377,18 +380,22 @@
                 display: none;
             }
             #sidebar.sidebar-collapsed .sidebar-header-text {
-                display: none;
+                display: none !important;
+                opacity: 0 !important;
+                max-width: 0 !important;
+                overflow: hidden !important;
+                white-space: nowrap !important;
             }
             #sidebar.sidebar-collapsed .sidebar-category-header {
-                visibility: hidden;
-                opacity: 0;
-                height: 0px;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                height: 0px !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden;
+                overflow: hidden !important;
             }
             #sidebar.sidebar-collapsed .sidebar-profile-detail {
-                display: none;
+                display: none !important;
             }
             #sidebar.sidebar-collapsed .nav-link-item {
                 justify-content: center;
@@ -405,15 +412,18 @@
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
             }
             #sidebar.sidebar-collapsed:hover .sidebar-text {
-                opacity: 1;
-                width: auto;
-                overflow: visible;
-                pointer-events: auto;
+                opacity: 1 !important;
+                width: auto !important;
+                overflow: visible !important;
+                pointer-events: auto !important;
                 margin-left: 0.75rem !important;
-                display: inline;
+                display: inline !important;
             }
             #sidebar.sidebar-collapsed:hover .sidebar-header-text {
-                display: flex;
+                display: flex !important;
+                opacity: 1 !important;
+                max-width: 200px !important;
+                overflow: visible !important;
             }
             #sidebar.sidebar-collapsed:hover .sidebar-category-header {
                 visibility: visible;
@@ -476,7 +486,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen md:flex bg-[#F7F9FB]">
+<body class="min-h-screen md:flex bg-[#F7F9FB] overflow-x-hidden">
 
     <!-- Sidebar Navigation -->
     @include('layouts.sidebar')
@@ -489,7 +499,7 @@
     </button>
 
     <!-- Main Content Pane Wrapper -->
-    <div id="main-content" class="flex-grow pl-0 md:pl-64 flex flex-col min-h-screen transition-all duration-300">
+    <div id="main-content" class="flex-grow pl-0 md:pl-64 flex flex-col min-h-screen transition-all duration-300 overflow-x-hidden w-full max-w-full">
         <!-- Header displaying Page Name and Today's Date -->
         @include('layouts.header')
 
@@ -511,11 +521,12 @@
         @include('layouts.footer')
     </div>
 
-    <!-- Core Application SPA & Sidebar Scripts -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <!-- Core Application Vendor Scripts (100% Offline Support) -->
+    <script src="{{ asset('vendor/jquery.min.js') }}"></script>
+    <script src="{{ asset('vendor/sweetalert2.min.js') }}"></script>
+    <script src="{{ asset('vendor/chart.min.js') }}"></script>
+    <script src="{{ asset('vendor/tom-select.complete.min.js') }}"></script>
+    <script src="{{ asset('vendor/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('js/app-core.js') }}"></script>
     @stack('modals')
 
