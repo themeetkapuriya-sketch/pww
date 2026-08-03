@@ -45,7 +45,7 @@
         <!-- 2. Annual Revenue -->
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50" style="background: linear-gradient(135deg, #3730a3 0%, #312e81 100%);">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold tracking-wider text-indigo-200 uppercase">2. Annual Revenue</span>
+                <span class="text-xs font-bold tracking-wider text-indigo-200 uppercase">2. Annual Revenue <span class="normal-case opacity-80">(FY {{ $fyStartYear }}-{{ ($fyStartYear + 1) % 100 }})</span></span>
                 <span class="w-9 h-9 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10 text-xl flex items-center justify-center shrink-0">📅</span>
             </div>
             <div class="mt-3">
