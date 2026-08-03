@@ -83,14 +83,20 @@ $$\text{Net Profit Margin} = \text{Gross Sales Revenue} - (\text{COGS} + \text{O
 
 ---
 
-### 4. 100% Offline Capability Architecture
+### 4. 100% Offline Capability & RBAC Security Architecture
 The system is built to operate **100% offline without internet** on local client devices:
 
-1. **Local Vendor Assets (`public/vendor/`)**:
-   - `jQuery`, `SweetAlert2`, `DataTables`, `TomSelect`, and `Chart.js` are vendor-bundled locally in `public/vendor/`.
+1. **Local Vendor Assets (`public/vendor/` & `public/fonts/`)**:
+   - `jQuery v3.7.1`, `DataTables v1.13.11`, `SweetAlert2 v11.17.2`, `TomSelect v2.4.1`, and `Chart.js v4.4.7` are vendor-bundled locally in `public/vendor/`.
+   - Outfit typography files are loaded locally from `public/fonts/outfit/`.
 2. **Local Compiled CSS/JS (`public/build/`)**:
-   - Tailwind CSS stylesheet is compiled into a standalone 77 KB local CSS bundle (`public/build/assets/app-*.css`).
-3. **Local Database & Backups**:
+   - Tailwind CSS stylesheet and JS engine run completely offline without CDN requests.
+   - Custom DataTables CSS rules enforce Royal Blue Pill Pagination (`‹`, `1`, `2`, `›`) and styled searchbars.
+3. **Account Deactivation & Super Admin Security**:
+   - Public registration is completely disabled. User creation is strictly controlled via `SettingsController`.
+   - Super Admin (`pww@gmail.com`) account status is enforced at the Model & Service layer to prevent accidental deactivation (`is_super_admin = 1`).
+   - Any deactivated user is caught by middleware and safely routed to the unified glassmorphic `/account-deactivated` screen.
+4. **Local Database & Backups**:
    - Runs on local MySQL (`127.0.0.1:3306`). Automated backups save directly to local disk (`storage/app/backups/`).
 
 ---

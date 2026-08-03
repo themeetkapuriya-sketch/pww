@@ -62,9 +62,59 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            // Super Admin (Owner) is ALWAYS 100% active & exempt from all deactivation checks
+            if ($user->role !== 'super_admin') {
+                // 1. Check if user account itself is active
+                if (!$user->is_active || !in_array($user->status, ['active', 'approved'])) {
+                    Auth::logout();
+                    $msg = 'Your user account has been deactivated or is pending administrator approval.';
+                    
+                    $request->session()->put([
+                        'deactivated_reason' => $msg,
+                        'deactivated_email' => $user->email,
+                        'deactivated_name' => $user->name,
+                        'deactivated_role' => ucfirst(str_replace('_', ' ', (string) $user->role)),
+                    ]);
+
+                    if ($request->expectsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'redirect' => route('account.deactivated'),
+                            'message' => $msg
+                        ], 403);
+                    }
+                    return redirect()->route('account.deactivated');
+                }
+
+                // 2. Check if assigned user role is active
+                $roleRecord = \App\Models\Role::where('slug', $user->role)->first();
+                if ($roleRecord && !$roleRecord->is_active) {
+                    Auth::logout();
+                    $roleName = $roleRecord->name ?? ucfirst(str_replace('_', ' ', (string) $user->role));
+                    $msg = "The '{$roleName}' role has been temporarily deactivated by administrator.";
+                    
+                    $request->session()->put([
+                        'deactivated_reason' => $msg,
+                        'deactivated_email' => $user->email,
+                        'deactivated_name' => $user->name,
+                        'deactivated_role' => $roleName,
+                    ]);
+
+                    if ($request->expectsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'redirect' => route('account.deactivated'),
+                            'message' => $msg
+                        ], 403);
+                    }
+                    return redirect()->route('account.deactivated');
+                }
+            }
+
             $request->session()->regenerate();
-            
-            // Clear rate limiter counter on successful login
             RateLimiter::clear($throttleKey);
 
             $redirectUrl = route('overview');
@@ -86,43 +136,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle user self-registration (defaults to pending status).
-     */
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()->all()
-            ], 422);
-        }
-
-        $user = \App\Models\User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
-            'role' => 'staff',
-            'status' => 'active',
-            'is_active' => true,
-            'permissions' => \App\Services\RolePermissionService::getDefaultPermissionsForRole('staff'),
-        ]);
-
-        Auth::login($user);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Registration successful! Welcome to PWW ERP.',
-            'redirect' => route('overview')
-        ]);
-    }
-
-    /**
      * Handle logout.
      */
     public function logout(Request $request)
@@ -131,10 +144,27 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'redirect' => route('login')]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Logged out successfully.',
+                'redirect' => route('login')
+            ]);
         }
 
         return redirect()->route('login');
+    }
+
+    /**
+     * Display Account / Role Deactivated notice screen.
+     */
+    public function accountDeactivated()
+    {
+        $reason = session('deactivated_reason', 'Your user account or assigned role is currently inactive.');
+        $userEmail = session('deactivated_email', '');
+        $userName = session('deactivated_name', '');
+        $roleName = session('deactivated_role', '');
+
+        return view('auth.account_deactivated', compact('reason', 'userEmail', 'userName', 'roleName'));
     }
 }

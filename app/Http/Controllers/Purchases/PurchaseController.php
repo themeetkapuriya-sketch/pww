@@ -27,6 +27,8 @@ class PurchaseController extends Controller
      */
     public function storePurchase(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
@@ -135,6 +137,8 @@ class PurchaseController extends Controller
      */
     public function updatePurchase(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
@@ -224,6 +228,8 @@ class PurchaseController extends Controller
      */
     public function deletePurchase($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         try {
             $purchase = Purchase::findOrFail($id);
             $item = $purchase->item_name ?? 'Purchase Bill';
@@ -246,6 +252,12 @@ class PurchaseController extends Controller
      */
     public function recordPurchasePayment(Request $request, $id)
     {
+        if ($request->has('amount')) {
+            $request->merge([
+                'amount' => str_replace(',', '', (string)$request->input('amount'))
+            ]);
+        }
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',

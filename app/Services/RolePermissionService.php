@@ -132,9 +132,19 @@ class RolePermissionService
             return false;
         }
 
-        // If user is pending or inactive, block all permissions
-        if ($user->isPending()) {
+        // If user account is inactive or pending, block all permissions
+        if (!$user->is_active || in_array($user->status, ['inactive', 'pending'])) {
             return false;
+        }
+
+        // Check if assigned role is deactivated by administrator (Super Admin exempt)
+        if ($user->role !== 'super_admin') {
+            try {
+                $roleRecord = Role::where('slug', $user->role)->first();
+                if ($roleRecord && !$roleRecord->is_active) {
+                    return false;
+                }
+            } catch (\Throwable $e) {}
         }
 
         // System Settings page & backups are strictly restricted to Super Admin & Admin
@@ -147,14 +157,41 @@ class RolePermissionService
             return true;
         }
 
-        // Check custom JSON permissions column if present
-        $userPermissions = $user->permissions ?? null;
-        if (is_array($userPermissions) && count($userPermissions) > 0) {
-            return in_array($permissionKey, $userPermissions);
+        // If user role is 'custom' and has explicit custom JSON permissions, check user permissions
+        if ($user->role === 'custom' && is_array($user->permissions) && count($user->permissions) > 0) {
+            return in_array($permissionKey, $user->permissions);
         }
 
-        // Fallback to role permissions matrix
-        $defaultPermissions = self::getDefaultPermissionsForRole($user->role ?? 'staff');
-        return in_array($permissionKey, $defaultPermissions);
+        // Live Role Permissions Matrix check (from DB role_permissions table or defaults)
+        $rolePermissions = self::getDefaultPermissionsForRole($user->role ?? 'staff');
+        return in_array($permissionKey, $rolePermissions);
+    }
+
+    /**
+     * Enforce action permission check and return 403 JSON / redirect response if unauthorized.
+     */
+    public static function authorizeAction(\Illuminate\Http\Request $request, string $actionType): ?\Symfony\Component\HttpFoundation\Response
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!self::userHasPermission($user, $actionType)) {
+            $actionLabels = [
+                'action_insert' => 'create/add',
+                'action_update' => 'update/edit',
+                'action_delete' => 'delete',
+            ];
+            $actStr = $actionLabels[$actionType] ?? 'perform this action';
+            $message = "Access Denied: You do not have permission to {$actStr} records. Contact your Administrator.";
+
+            if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 403);
+            }
+
+            return redirect()->back()->with('error', $message);
+        }
+
+        return null;
     }
 }

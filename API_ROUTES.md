@@ -18,6 +18,7 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/` | `GET` | Redirect -> `/overview` | - | `auth` | Root Redirection |
 | `/overview` | `GET` | `OverviewController@overview` | `overview` | `auth` | KPI Dashboard Overview |
+| `/account-deactivated` | `GET` | `AuthController@accountDeactivated` | `account.deactivated` | - | Deactivated Account Screen |
 | `/production` | `GET` | `ProductionController@production` | `production` | `auth` | Production Output Logs |
 | `/orders` | `GET` | `OrderController@orders` | `orders` | `auth` | Sales Orders Directory |
 | `/invoices` | `GET` | `InvoiceController@invoices` | `invoices` | `auth` | Tax Invoices Ledger |
@@ -32,6 +33,8 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/profile` | `GET` | `ProfileController@profile` | `profile` | `auth` | User Profile Settings |
 | `/settings` | `GET` | `SettingsController@index` | `settings.index` | `auth` | Settings Hub & User Access Matrix |
 | `/backup` | `GET` | `BackupController@index` | `backup.index` | `auth` | Automated System Backup & Restore Hub |
+
+> ℹ️ **Note on Registration Routes**: Public registration (`/register`) is completely removed from the system. User account creation is handled strictly by the Super Admin in the Settings Hub.
 
 ---
 

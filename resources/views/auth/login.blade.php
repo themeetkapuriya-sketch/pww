@@ -5,14 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PWW ERP - Secure Authentication</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- jQuery CDN -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Local Fonts, Compiled CSS & jQuery -->
+    <link rel="stylesheet" href="{{ asset('fonts/outfit/outfit.css') }}">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="{{ asset('vendor/jquery.min.js') }}"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -41,7 +37,7 @@
         <div id="alertContainer" class="hidden text-sm p-4 rounded-xl border transition-all duration-200"></div>
 
         <!-- Login Form -->
-        <form id="loginForm" class="space-y-4" novalidate>
+        <form id="loginForm" action="{{ route('login') }}" method="POST" class="space-y-4" novalidate>
             @csrf
             <div>
                 <label for="email" class="block text-xs font-bold text-slate-600 uppercase mb-1">EMAIL ADDRESS</label>
@@ -116,7 +112,7 @@
 
             // Email Validation logic
             function validateEmail() {
-                const val = $.trim($email.val());
+                const val = ($email.val() || '').toString().trim();
                 if (!val) {
                     setFieldError($email, $emailError, 'Email address is required.');
                     return false;
@@ -218,7 +214,7 @@
                         'X-CSRF-TOKEN': $('input[name="_token"]').val()
                     },
                     data: JSON.stringify({
-                        email: $.trim($email.val()),
+                        email: ($email.val() || '').toString().trim(),
                         password: $password.val(),
                         remember: $('input[name="remember"]').is(':checked')
                     }),
@@ -241,6 +237,11 @@
                     },
                     error: function (xhr) {
                         resetSubmitBtn();
+                        if (xhr.status === 403 && xhr.responseJSON && xhr.responseJSON.redirect) {
+                            window.location.href = xhr.responseJSON.redirect;
+                            return;
+                        }
+                        
                         let errors = [];
 
                         if (xhr.status === 422 && xhr.responseJSON) {

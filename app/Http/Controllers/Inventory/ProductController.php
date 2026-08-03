@@ -22,6 +22,8 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
             'sku' => 'required|string|unique:products,sku|max:100',
@@ -63,6 +65,8 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $good = Product::findOrFail($id);
 
         $validated = $request->validate([
@@ -102,6 +106,8 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $good = Product::findOrFail($id);
         $name = $good->product_name;
         $good->delete();

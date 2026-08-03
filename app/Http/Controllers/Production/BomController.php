@@ -25,6 +25,8 @@ class BomController extends Controller
      */
     public function storeBom(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $productId = $request->input('product_id', $request->input('finished_good_id'));
         $request->merge(['product_id' => $productId]);
 
@@ -97,6 +99,8 @@ class BomController extends Controller
      */
     public function updateBom(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $bom = BillOfMaterial::findOrFail($id);
 
         $validated = $request->validate([
@@ -121,6 +125,8 @@ class BomController extends Controller
      */
     public function deleteBom($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $bom = BillOfMaterial::findOrFail($id);
         $bom->delete();
 

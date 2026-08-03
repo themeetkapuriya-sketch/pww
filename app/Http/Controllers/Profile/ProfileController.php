@@ -125,8 +125,8 @@ class ProfileController extends Controller
             Setting::set('bank_account_name', $validated['bank_account_name']);
             Setting::set('bank_account_no', $validated['bank_account_no']);
             Setting::set('bank_ifsc', $validated['bank_ifsc']);
-            Setting::set('invoice_prefix', strtoupper(trim($request->input('invoice_prefix', 'PWW-'))));
-            Setting::set('order_prefix', strtoupper(trim($request->input('order_prefix', 'PWW-ORD-'))));
+            Setting::set('invoice_prefix', strtoupper(trim($request->input('invoice_prefix') ?? '')));
+            Setting::set('order_prefix', strtoupper(trim($request->input('order_prefix') ?? '')));
             Setting::set('terms_and_conditions', $request->input('terms_and_conditions', "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged."));
 
             if ($request->hasFile('logo')) {

@@ -22,6 +22,8 @@ class ExpenseController extends Controller
      */
     public function logExpense(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'expense_category' => 'required|string',
             'amount' => 'required|numeric|min:0.01',
@@ -63,6 +65,8 @@ class ExpenseController extends Controller
      */
     public function updateExpense(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $validated = $request->validate([
             'expense_category' => 'required|string',
             'amount' => 'required|numeric|min:0.01',
@@ -92,6 +96,8 @@ class ExpenseController extends Controller
      */
     public function deleteExpense($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         try {
             $expense = Expense::findOrFail($id);
             $cat = str_replace('_', ' ', $expense->expense_category);

@@ -213,7 +213,8 @@ $indianStates = [
         @if ($clients->isEmpty())
             <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
                 <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2.5M9 21h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                <p class="text-sm font-semibold">No client profiles registered yet.</p>
+                <p class="text-sm font-bold text-slate-600">No Records Found</p>
+                <p class="text-xs text-slate-400 mt-1">There are no client profiles registered yet.</p>
                 <button type="button" onclick="toggleCreateClientForm()" class="btn-primary mt-4 py-2 px-4 text-xs font-bold">
                     Create First Client
                 </button>
@@ -623,7 +624,8 @@ window.deleteClient = function(id, name) {
                     }
                 },
                 error: function(err) {
-                    if (window.showToast) window.showToast('error', 'Failed to delete client profile.');
+                    const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete client profile.';
+                    if (window.showToast) window.showToast('danger', msg);
                 }
             });
         }
@@ -649,7 +651,8 @@ window.deletePlant = function(id, name) {
                     }
                 },
                 error: function(err) {
-                    if (window.showToast) window.showToast('error', 'Failed to delete plant.');
+                    const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete plant.';
+                    if (window.showToast) window.showToast('danger', msg);
                 }
             });
         }

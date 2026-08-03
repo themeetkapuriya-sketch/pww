@@ -38,6 +38,8 @@ class ProductionController extends Controller
      */
     public function logProduction(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $recordedBy = $request->input('recorded_by', auth()->id());
         if (!$recordedBy) {
             $firstUser = User::first();
@@ -194,6 +196,8 @@ class ProductionController extends Controller
      */
     public function updateProductionLog(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $log = ProductionLog::findOrFail($id);
 
         $validated = $request->validate([
@@ -229,6 +233,8 @@ class ProductionController extends Controller
      */
     public function deleteProductionLog($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $log = ProductionLog::findOrFail($id);
         $batchId = $log->id;
 

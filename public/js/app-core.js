@@ -127,6 +127,34 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // In-memory page response cache for instant 0ms page switching
+        const pageCache = new Map();
+
+        // Clear page cache when any data form is submitted or mutated
+        window.clearPageCache = function() {
+            pageCache.clear();
+        };
+
+        // Remove any legacy progress bar if present
+        if ($('#spaTopProgressBar').length) {
+            $('#spaTopProgressBar').remove();
+        }
+
+        // Hover prefetch for sidebar and internal navigation links
+        $(document).on('mouseenter', 'a.nav-link-item, #sidebar a, .page-nav-link', function() {
+            const href = $(this).attr('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.includes('/logout') || pageCache.has(href)) return;
+            try {
+                const url = new URL(href, window.location.href);
+                if (url.origin === window.location.origin && !url.pathname.includes('/print') && !url.pathname.includes('/download') && !url.pathname.includes('/export')) {
+                    fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(r => r.ok ? r.text() : null)
+                        .then(html => { if (html) pageCache.set(url.href, html); })
+                        .catch(() => {});
+                }
+            } catch (e) {}
+        });
+
         // Expose loadPage to window so it can be called elsewhere
         window.loadPage = async function(url) {
             if (!$mainContent.length) {
@@ -135,13 +163,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             try {
-                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!response.ok) {
-                    window.location.href = url;
-                    return;
+                let htmlText;
+                if (pageCache.has(url)) {
+                    htmlText = pageCache.get(url);
+                } else {
+                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!response.ok) {
+                        window.location.href = url;
+                        return;
+                    }
+                    htmlText = await response.text();
                 }
-                
-                const htmlText = await response.text();
+
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
                 const newContent = doc.getElementById('page-content');
                 
@@ -175,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.location.href !== url) {
                     history.pushState(null, '', url);
                 }
-                
+
+                window.scrollTo({ top: 0, behavior: 'instant' });
                 initializeForms();
                 updateActiveSidebarLinks(url);
                 applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
@@ -390,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 success: async function(response) {
                     if ($submitBtn.length) {
-                        $submitBtn.prop('disabled', false);
+                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none');
                     }
                     window.showToast('success', response.message || 'Operation completed successfully!');
                     if (!$form.hasClass('no-reset')) {
@@ -401,11 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.history.replaceState({}, document.title, window.location.pathname);
                         }
                     }
+                    window.clearPageCache();
                     await window.loadPage(window.location.href);
                 },
                 error: function(xhr) {
                     if ($submitBtn.length) {
-                        $submitBtn.prop('disabled', false).removeClass('opacity-75').html(originalBtnHtml);
+                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
                     }
                     
                     if (xhr.status === 422) {
@@ -914,24 +949,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             $msgText.text(message);
+
+            const typeLower = (type || '').toLowerCase();
+            const msgLower = (message || '').toLowerCase();
             
-            const isDelete = (
-                type === 'delete' || 
-                type === 'danger' || 
-                type === 'error' || 
-                (message && (
-                    message.toLowerCase().includes('delete') || 
-                    message.toLowerCase().includes('deleted') ||
-                    message.toLowerCase().includes('remove')
-                ))
+            const isError = (
+                typeLower === 'error' || 
+                typeLower === 'danger' || 
+                typeLower === 'delete' ||
+                msgLower.includes('delete') || 
+                msgLower.includes('deleted') ||
+                msgLower.includes('failed') ||
+                msgLower.includes('error')
+            );
+
+            const isWarning = (
+                typeLower === 'warning' ||
+                typeLower === 'info' ||
+                msgLower.includes('required') ||
+                msgLower.includes('at least')
             );
 
             const $innerCard = $toast.find('> div');
 
-            if (isDelete) {
+            if (isError) {
                 $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600 shrink-0')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>');
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
                 $innerCard.attr('class', 'bg-[#F43F5E] text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-rose-500');
+                $msgText.attr('class', 'text-sm font-bold text-white');
+            } else if (isWarning) {
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 shrink-0')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>');
+                $innerCard.attr('class', 'bg-amber-500 text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-amber-600');
                 $msgText.attr('class', 'text-sm font-bold text-white');
             } else {
                 $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 shrink-0')
@@ -993,30 +1042,30 @@ document.addEventListener('DOMContentLoaded', () => {
             $.fn.dataTable.ext.errMode = 'none';
 
             $('table.erp-datatable').each(function() {
-                if ($.fn.DataTable.isDataTable(this)) {
-                    $(this).DataTable().destroy();
+                const $table = $(this);
+
+                // Clean out server-side empty placeholder row if present before DataTables init
+                $table.find('tbody tr.empty-row, tbody tr.empty-placeholder-row').remove();
+                if ($table.find('tbody tr').length === 1 && $table.find('tbody tr td[colspan]').length > 0) {
+                    $table.find('tbody tr').remove();
                 }
 
-                $(this).DataTable({
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $table.DataTable().destroy();
+                }
+
+                $table.DataTable({
                     dom: '<"flex flex-wrap items-center justify-between gap-4 mb-4"lf><"erp-datatable-scroll-container overflow-x-auto w-full my-2"t><"flex flex-wrap items-center justify-between gap-4 mt-4"ip>',
                     pageLength: 10,
                     lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "All"]],
-                    columnDefs: [
-                        {
-                            searchable: true,
-                            orderable: true,
-                            targets: 0,
-                            render: function (data, type, row, meta) {
-                                if (meta.settings.fnRecordsTotal() === 0 || meta.settings.aiDisplay.length === 0) {
-                                    return data;
-                                }
-                                if (type === 'display') {
-                                    return meta.row + meta.settings._iDisplayStart + 1;
-                                }
-                                return data || (meta.row + 1);
-                            }
-                        }
-                    ],
+                    paging: true,
+                    pagingType: "simple_numbers",
+                    searching: true,
+                    ordering: true,
+                    info: true,
+                    responsive: true,
+                    autoWidth: false,
+                    order: [], // Preserve original server row order
                     language: {
                         search: "_INPUT_",
                         searchPlaceholder: "Search records...",
@@ -1027,27 +1076,27 @@ document.addEventListener('DOMContentLoaded', () => {
                             <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                             </svg>
-                            <p class="text-sm font-bold text-slate-600">No Records Available</p>
+                            <p class="text-sm font-bold text-slate-600">No Records Found</p>
                             <p class="text-xs text-slate-400 mt-1">There are no records matching your request or search filter criteria.</p>
                         </div>`,
                         emptyTable: `<div class="py-8 text-center text-slate-500 font-medium">
                             <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                             </svg>
-                            <p class="text-sm font-bold text-slate-600">No Records Available</p>
+                            <p class="text-sm font-bold text-slate-600">No Records Found</p>
                             <p class="text-xs text-slate-400 mt-1">There are no entries recorded in this ledger yet.</p>
                         </div>`,
                         infoFiltered: "(filtered from _MAX_ total records)",
                         paginate: {
-                            first: "«",
                             previous: "‹",
-                            next: "›",
-                            last: "»"
+                            next: "›"
                         }
                     },
-                    responsive: true,
-                    order: [], // Preserve original server row order
-                    autoWidth: false
+                    drawCallback: function(settings) {
+                        const api = this.api();
+                        const $paginate = $(api.table().container()).find('.dataTables_paginate');
+                        $paginate.addClass('inline-flex items-center gap-2');
+                    }
                 });
             });
         };

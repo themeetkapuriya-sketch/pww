@@ -50,6 +50,8 @@ class OrderController extends Controller
      */
     public function storeOrder(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'plant_id' => 'required|exists:client_plants,id',
@@ -111,6 +113,8 @@ class OrderController extends Controller
      */
     public function updateOrder(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $order = SalesOrder::findOrFail($id);
 
         if (in_array($order->status, ['dispatched', 'completed'])) {
@@ -182,6 +186,8 @@ class OrderController extends Controller
      */
     public function updateOrderStatus(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $order = SalesOrder::findOrFail($id);
 
         if (in_array($order->status, ['dispatched', 'completed'])) {
@@ -244,6 +250,8 @@ class OrderController extends Controller
      */
     public function deleteOrder($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $order = SalesOrder::findOrFail($id);
         $orderNum = $order->order_number;
 

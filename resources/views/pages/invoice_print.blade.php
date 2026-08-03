@@ -671,7 +671,7 @@
             <!-- 3-Column Party Metadata Block -->
             <table class="meta-table">
                 <tr>
-                    <td style="width: 34%;">
+                    <td style="width: 37%;">
                         <div class="cell-header">Seller (Issued By)</div>
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
@@ -684,7 +684,7 @@
                             State: <span class="meta-value-bold">Gujarat (24)</span>
                         </div>
                     </td>
-                    <td style="width: 36%;">
+                    <td style="width: 37%;">
                         <div class="cell-header">Billed To (Buyer)</div>
                         <div class="cell-body">
                             <span class="meta-value-bold" style="font-size: 12px;">{{ $client->company_name ?? ($invoice->custom_client_name ?? 'N/A') }}</span>
@@ -701,7 +701,7 @@
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
                     </td>
-                    <td style="width: 30%;">
+                    <td style="width: 26%;">
                         <div class="cell-header">Invoice & Transport</div>
                         <div class="cell-body">
                             Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span><br>

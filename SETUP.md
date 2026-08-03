@@ -171,11 +171,16 @@ If the client wants to open the app via `http://pww.local` without running `php 
 
 ---
 
-## 🛡️ 6. Offline Operation & Database Backups
+## 🛡️ 6. Offline Operation & Security
 
 ### 100% Offline Capability:
-- All core CSS styles (Tailwind), DataTables, SweetAlert2 popups, and JavaScript libraries are pre-bundled in `public/vendor/`.
+- All core CSS styles (Tailwind), DataTables (v1.13.11 with Royal Blue Pill Pagination), SweetAlert2 (v11.17.2), TomSelect (v2.4.1), Chart.js (v4.4.7), and jQuery (v3.7.1) are pre-bundled in `public/vendor/`.
 - **Zero internet connection is required** for daily operations (Invoices, Orders, Production Logs, Reports, Printing).
+
+### Super Admin & Access Security:
+- **Public registration is completely disabled**. All system users are created and managed by the Super Admin in **Settings -> User Access Matrix**.
+- The primary Super Admin account (`pww@gmail.com`) is **permanently protected** and cannot be deactivated or deleted.
+- Deactivated user accounts are automatically redirected to a unified `/account-deactivated` page with Super Admin contact information.
 
 ### Automated Local Backups:
 - Database backup `.sql` snapshots are created automatically upon login according to your backup schedule (`monthly`/`weekly`).

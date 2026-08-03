@@ -22,6 +22,8 @@ class RawMaterialController extends Controller
      */
     public function store(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'material_name' => 'required|string|max:255',
             'unit' => 'required|string|max:50',
@@ -63,6 +65,8 @@ class RawMaterialController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $material = RawMaterial::findOrFail($id);
 
         $validated = $request->validate([
@@ -86,6 +90,8 @@ class RawMaterialController extends Controller
      */
     public function destroy($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $material = RawMaterial::findOrFail($id);
         $name = $material->material_name;
         $material->delete();

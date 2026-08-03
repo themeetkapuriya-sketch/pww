@@ -24,7 +24,8 @@
 - 👥 **Staff & Piece-Rate Payroll**: Employee directory, daily/piece-rate wage calculation matrix, and labor payout logs.
 - 🏢 **Clients & Multi-Plant Destinations**: Client master directory with regional GSTIN verification and multiple factory plant delivery addresses.
 - 📈 **Audit & GST Tax Returns**: GSTR-1, GSTR-3B tax liability calculators, net tax payable insights, and CSV/PDF exportable reports.
-- 🌐 **100% Offline Capability**: Bundled local vendor assets (`public/vendor/`) and compiled local Tailwind CSS stylesheet allowing zero-internet execution on local client machines.
+- 🔐 **Super Admin Security & Role Management**: Public registration disabled. User accounts are created strictly by Super Admin. Super Admin (`pww@gmail.com`) is permanently protected from deactivation. Deactivated users redirect to a unified `/account-deactivated` page.
+- 🌐 **100% Offline Capability**: All vendor assets (jQuery v3.7.1, DataTables v1.13.11, SweetAlert2 v11.17.2, TomSelect v2.4.1, Chart.js v4.4.7, Tailwind JS engine, and local Outfit fonts) are stored locally in `public/vendor/` and `public/fonts/`.
 
 ---
 
@@ -33,7 +34,7 @@
 - **Backend Framework**: Laravel 12.x (PHP 8.2+)
 - **Architecture**: Thin Controllers, Form Request Validation Layer, Service Layer Abstractions (`app/Services/`)
 - **Database Engine**: MySQL 8.x / SQLite
-- **Frontend Architecture**: Blade Templates, Tailwind CSS v4, jQuery SPA Navigation, SweetAlert2, DataTables, TomSelect
+- **Frontend Architecture**: Blade Templates, Tailwind CSS v4, jQuery SPA Navigation, SweetAlert2, DataTables (with Royal Blue Pill Pagination), TomSelect
 - **Offline Assets**: Pre-bundled local vendor libraries (`public/vendor/`) and Vite compiled CSS bundle
 - **PDF Engine**: Dompdf / Custom HTML Canvas PDF rendering
 - **Testing Suite**: Automated Test Suite (28 Test Suites, 202 Assertions 100% Green)

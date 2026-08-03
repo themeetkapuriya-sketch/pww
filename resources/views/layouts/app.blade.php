@@ -12,14 +12,12 @@
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Local Compiled Vite Tailwind CSS (Offline Fallback) -->
+    <!-- Local Fonts & Styles -->
+    <link rel="stylesheet" href="{{ asset('fonts/outfit/outfit.css') }}">
+    <!-- Local Compiled Vite Tailwind CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Local Tailwind Engine -->
+    <script src="{{ asset('vendor/tailwindcss.js') }}"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -34,10 +32,7 @@
     <!-- Local Vendor CSS Files (100% Offline Support) -->
     <link rel="stylesheet" href="{{ asset('vendor/sweetalert2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/jquery.dataTables.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('vendor/tom-select.bootstrap5.min.css') }}">
-    <!-- DataTables CDN Fallbacks -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/tom-select.min.css') }}">
     <style>
         /* TomSelect Dropdown Styling: Solid White Background & Floating Layer */
         .ts-dropdown, 
@@ -131,87 +126,161 @@
             -webkit-overflow-scrolling: touch !important;
             border-radius: 0.75rem;
         }
-        .dataTables_wrapper .dataTables_length {
+        /* DataTables Custom Controls (Searchbar & Show Entries Dropdown) */
+        .dataTables_wrapper .dataTables_length,
+        div.dataTables_wrapper div.dataTables_length {
             margin-bottom: 0;
             font-size: 0.75rem;
             font-weight: 700;
             color: #64748b;
             text-transform: uppercase;
         }
-        .dataTables_wrapper .dataTables_length select {
-            background-color: #F7F9FB;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.5rem;
-            padding: 0.35rem 0.75rem;
-            font-size: 0.875rem;
-            color: #334155;
-            outline: none;
-            margin: 0 0.5rem;
+        .dataTables_wrapper .dataTables_length label,
+        div.dataTables_wrapper div.dataTables_length label {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
         }
-        .dataTables_wrapper .dataTables_filter {
-            margin-bottom: 0;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-        }
-        .dataTables_wrapper .dataTables_filter input {
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.75rem;
-            padding: 0.4rem 0.85rem;
-            font-size: 0.875rem;
-            color: #1e293b;
-            outline: none;
-            margin-left: 0.5rem;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            transition: all 0.15s ease;
-        }
-        .dataTables_wrapper .dataTables_filter input:focus {
-            border-color: #4371D7;
-            box-shadow: 0 0 0 3px rgba(67, 113, 215, 0.25);
-        }
-        .dataTables_wrapper .dataTables_info {
-            padding-top: 1rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #64748b;
-        }
-        .dataTables_wrapper .dataTables_paginate {
-            padding-top: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
+        .dataTables_wrapper .dataTables_length select,
+        div.dataTables_wrapper div.dataTables_length select {
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
             border-radius: 0.5rem !important;
-            border: 1px solid #e2e8f0 !important;
-            background: #ffffff !important;
-            color: #475569 !important;
-            font-size: 0.75rem !important;
-            font-weight: 700 !important;
             padding: 0.35rem 0.75rem !important;
-            margin: 0 2px !important;
-            transition: all 0.15s ease !important;
+            font-size: 0.875rem !important;
+            font-weight: 600 !important;
+            color: #334155 !important;
+            outline: none !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
             cursor: pointer !important;
         }
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: #f1f5f9 !important;
-            color: #0f172a !important;
-            border-color: #cbd5e1 !important;
+        .dataTables_wrapper .dataTables_filter,
+        div.dataTables_wrapper div.dataTables_filter {
+            margin-bottom: 0;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
         }
+        .dataTables_wrapper .dataTables_filter label,
+        div.dataTables_wrapper div.dataTables_filter label {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+        }
+        .dataTables_wrapper .dataTables_filter input,
+        div.dataTables_wrapper div.dataTables_filter input {
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.45rem 1rem !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            color: #1e293b !important;
+            outline: none !important;
+            margin-left: 0.25rem !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.15s ease-in-out !important;
+            min-width: 14rem !important;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus,
+        div.dataTables_wrapper div.dataTables_filter input:focus {
+            border-color: #4371D7 !important;
+            box-shadow: 0 0 0 3px rgba(67, 113, 215, 0.25) !important;
+        }
+
+        .dataTables_wrapper .dataTables_info,
+        div.dataTables_wrapper div.dataTables_info {
+            padding-top: 0.5rem;
+            font-size: 0.8125rem !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
+        }
+
+        /* DataTables Custom Pagination (Rounded Pill Buttons matching mockup) */
+        .dataTables_wrapper .dataTables_paginate,
+        div.dataTables_wrapper div.dataTables_paginate,
+        div.dataTables_wrapper .dataTables_paginate {
+            padding-top: 0.5rem;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            float: right !important;
+        }
+        .dataTables_wrapper .dataTables_paginate span,
+        div.dataTables_wrapper div.dataTables_paginate span {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            margin: 0 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.first,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.last {
+            display: none !important;
+        }
+        
+        /* Base Styling for ALL Pagination Buttons (‹, 1, 2, ›) */
+        .dataTables_wrapper .dataTables_paginate .paginate_button,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button,
+        .dataTables_wrapper .dataTables_paginate span .paginate_button,
+        div.dataTables_wrapper div.dataTables_paginate span .paginate_button {
+            border-radius: 0.6rem !important;
+            border: 1px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #334155 !important;
+            font-size: 0.875rem !important;
+            font-weight: 700 !important;
+            width: 2.25rem !important;
+            height: 2.25rem !important;
+            min-width: 2.25rem !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            transition: all 0.15s ease-in-out !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            text-decoration: none !important;
+        }
+        
+        /* Hover state for inactive buttons */
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button:hover {
+            background-color: #f8fafc !important;
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        /* Active Current Page Button (Solid Royal Blue `#4371D7` with White Text) */
         .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button.current,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button.current:hover,
+        .dataTables_wrapper .dataTables_paginate span .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate span .paginate_button.current:hover {
+            background-color: #4371D7 !important;
             background: #4371D7 !important;
             color: #ffffff !important;
             border-color: #4371D7 !important;
-            box-shadow: 0 2px 4px -1px rgba(67, 113, 215, 0.3) !important;
+            font-weight: 800 !important;
+            box-shadow: 0 4px 6px -1px rgba(67, 113, 215, 0.35) !important;
         }
+
+        /* Disabled Navigation Arrows (‹ or › when disabled) */
         .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-            opacity: 0.4 !important;
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled,
+        div.dataTables_wrapper div.dataTables_paginate .paginate_button.disabled:hover {
+            opacity: 0.45 !important;
             cursor: not-allowed !important;
-            background: #F7F9FB !important;
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            box-shadow: none !important;
         }
 
         /* Page Background Styling */
@@ -612,8 +681,9 @@
             if (!modal) return;
             document.getElementById('globalModalInvoiceId').value = id;
             document.getElementById('globalModalInvoiceNum').innerText = invoiceNumber;
-            const rem = (remainingBalance !== undefined && remainingBalance !== null) ? parseFloat(remainingBalance) : 0;
-            document.getElementById('globalModalRemainingText').innerText = rem.toFixed(2);
+            const cleanRemStr = (remainingBalance !== undefined && remainingBalance !== null) ? remainingBalance.toString().replace(/,/g, '').trim() : '0';
+            const rem = parseFloat(cleanRemStr) || 0;
+            document.getElementById('globalModalRemainingText').innerText = rem.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('globalModalPayAmount').value = rem > 0 ? rem.toFixed(2) : '';
             document.getElementById('globalModalPayDate').value = new Date().toISOString().split('T')[0];
             
@@ -637,6 +707,12 @@
             e.preventDefault();
             const invId = document.getElementById('globalModalInvoiceId').value;
             const formData = new FormData(e.target);
+            
+            // Clean comma-formatted amount string before sending to backend
+            let rawAmount = formData.get('amount') || '';
+            rawAmount = rawAmount.toString().replace(/,/g, '').trim();
+            formData.set('amount', rawAmount);
+
             const token = $('meta[name="csrf-token"]').attr('content') || '';
 
             $.ajax({
@@ -661,8 +737,21 @@
                     }
                 },
                 error: function(xhr) {
-                    const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to record payment.';
-                    alert(msg);
+                    let msg = 'Failed to record payment.';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.errors && typeof xhr.responseJSON.errors === 'object') {
+                            const firstKey = Object.keys(xhr.responseJSON.errors)[0];
+                            const firstErr = xhr.responseJSON.errors[firstKey];
+                            msg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
+                        } else if (xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                    }
+                    if (window.showToast) {
+                        window.showToast('error', msg);
+                    } else {
+                        alert(msg);
+                    }
                 }
             });
         };

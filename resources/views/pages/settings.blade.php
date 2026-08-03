@@ -187,14 +187,6 @@
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">IFSC Code</label>
                         <input type="text" name="bank_ifsc" value="{{ \App\Models\Setting::get('bank_ifsc', 'IBKL0JIVAN3') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 font-mono">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Prefix</label>
-                        <input type="text" name="invoice_prefix" value="{{ \App\Models\Setting::get('invoice_prefix', 'PWW-') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sales Order Prefix</label>
-                        <input type="text" name="order_prefix" value="{{ \App\Models\Setting::get('order_prefix', 'PWW-ORD-') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
-                    </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Invoice Terms & Conditions</label>
                         <textarea name="terms_and_conditions" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-800">{{ \App\Models\Setting::get('terms_and_conditions', '') }}</textarea>
@@ -556,6 +548,69 @@
     <!-- TAB 3: User Access & Role Permissions -->
     <div id="settingsTab-users" class="tab-content hidden space-y-6">
 
+        <!-- INLINE FORM: Add / Edit System User (Collapsible Card placed ABOVE Table) -->
+        <div id="createUserFormCard" class="hidden bg-white rounded-2xl shadow-md border-2 border-blue-500/30 p-6 transition-all duration-300 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="userFormCardTitleHeader" class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <svg id="userFormHeaderSvg" class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="userFormCardTitle">Add New System User Account</span>
+                </h3>
+                <button type="button" onclick="toggleCreateUserForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+            </div>
+
+            <form id="userCardForm" action="{{ route('settings.users.store') }}" method="POST" class="ajax-form space-y-4">
+                @csrf
+                <input type="hidden" name="_method" id="userFormMethodInput" value="POST">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
+                        <input type="text" id="cardUserNameInput" name="name" required placeholder="e.g. Ramesh Patel" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Login Email</label>
+                        <input type="email" id="cardUserEmailInput" name="email" required placeholder="e.g. ramesh@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
+                            Password <span id="passwordRequiredHint" class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="cardUserPasswordInput" name="password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                            <button type="button" onclick="togglePasswordVisibility('cardUserPasswordInput', 'cardUserPasswordIconEye', 'cardUserPasswordIconEyeOff')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600" title="Toggle password visibility">
+                                <svg id="cardUserPasswordIconEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <svg id="cardUserPasswordIconEyeOff" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Assign System Role</label>
+                        <select id="cardUserRoleSelect" name="role" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            @foreach($roles as $key => $r)
+                                @if($key !== 'super_admin')
+                                    <option value="{{ $key }}">{{ $r['name'] }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="toggleCreateUserForm()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+                    <button type="submit" id="userFormSubmitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-xl text-xs shadow-sm transition">Create Account</button>
+                </div>
+            </form>
+        </div>
+
         <!-- 1. All System User Accounts Table Card -->
         <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -668,69 +723,6 @@
             </div>
         </div>
 
-        <!-- INLINE FORM: Add / Edit System User (Collapsible Card) -->
-        <div id="createUserFormCard" class="hidden bg-white rounded-2xl shadow-md border-2 border-blue-500/30 p-6 transition-all duration-300 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 id="userFormCardTitleHeader" class="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <svg id="userFormHeaderSvg" class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span id="userFormCardTitle">Add New System User Account</span>
-                </h3>
-                <button type="button" onclick="toggleCreateUserForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
-            </div>
-
-            <form id="userCardForm" action="{{ route('settings.users.store') }}" method="POST" class="ajax-form space-y-4">
-                @csrf
-                <input type="hidden" name="_method" id="userFormMethodInput" value="POST">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
-                        <input type="text" id="cardUserNameInput" name="name" required placeholder="e.g. Ramesh Patel" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Login Email</label>
-                        <input type="email" id="cardUserEmailInput" name="email" required placeholder="e.g. ramesh@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
-                            Password <span id="passwordRequiredHint" class="text-rose-500">*</span>
-                        </label>
-                        <div class="relative">
-                            <input type="password" id="cardUserPasswordInput" name="password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                            <button type="button" onclick="togglePasswordVisibility('cardUserPasswordInput', 'cardUserPasswordIconEye', 'cardUserPasswordIconEyeOff')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600" title="Toggle password visibility">
-                                <svg id="cardUserPasswordIconEye" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                <svg id="cardUserPasswordIconEyeOff" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Assign System Role</label>
-                        <select id="cardUserRoleSelect" name="role" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            @foreach($roles as $key => $r)
-                                @if($key !== 'super_admin')
-                                    <option value="{{ $key }}">{{ $r['name'] }}</option>
-                                @endif
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                    <button type="button" onclick="toggleCreateUserForm()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Cancel</button>
-                    <button type="submit" id="userFormSubmitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-xl text-xs shadow-sm transition">Create Account</button>
-                </div>
-            </form>
-        </div>
-
         <!-- 1. Role Actions & Pages Matrix Header & Table Card -->
         <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -793,121 +785,121 @@
 
                                 <!-- 1. Overview Dashboard Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_overview', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_overview', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_overview', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_overview', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 2. Sales Orders Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_orders', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_orders', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_orders', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_orders', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 3. Invoices Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_invoices', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_invoices', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_invoices', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_invoices', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 4. Purchases Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_purchases', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_purchases', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_purchases', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_purchases', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 5. Expenses Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_expenses', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_expenses', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_expenses', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_expenses', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 6. Raw Materials Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_rawmaterial', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_rawmaterial', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_rawmaterial', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_rawmaterial', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 7. Products Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_product', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_product', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_product', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_product', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 8. BOM Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_bom', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_bom', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_bom', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_bom', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 9. Production Logs Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_production', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_production', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_production', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_production', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 10. Clients & Plants Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_clients', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_clients', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_clients', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_clients', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 11. Employees Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_employees', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_employees', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_employees', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_employees', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- 12. Reports Toggle -->
                                 <td class="p-2.5 text-center">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_reports', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_reports', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('page_reports', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'page_reports', this.checked)" class="matrix-toggle-input">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- Action Insert Toggle (Green) -->
                                 <td class="p-2.5 text-center bg-emerald-50/30">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_insert', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_insert', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_insert', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_insert', this.checked)" class="matrix-toggle-input matrix-toggle-input-green">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- Action Update Toggle (Yellow) -->
                                 <td class="p-2.5 text-center bg-amber-50/30">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_update', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_update', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_update', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_update', this.checked)" class="matrix-toggle-input matrix-toggle-input-amber">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
                                 <!-- Action Delete Toggle (Red) -->
                                 <td class="p-2.5 text-center bg-rose-50/30">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_delete', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_delete', this.checked)" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500 shadow-inner"></div>
+                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                        <input type="checkbox" {{ $isSuperAdmin || in_array('action_delete', $rolePerms) ? 'checked' : '' }} {{ $isSuperAdmin ? 'disabled' : '' }} onchange="toggleRolePerm('{{ $roleKey }}', 'action_delete', this.checked)" class="matrix-toggle-input matrix-toggle-input-rose">
+                                        <span class="matrix-toggle-slider"></span>
                                     </label>
                                 </td>
 
@@ -969,6 +961,84 @@
     <!-- TAB 4: Active ERP Modules -->
     <div id="settingsTab-modules" class="tab-content hidden space-y-6">
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
+            <style>
+                .erp-toggle-input {
+                    display: none !important;
+                }
+                .erp-toggle-slider {
+                    position: relative;
+                    display: inline-block;
+                    width: 46px;
+                    height: 24px;
+                    background-color: #cbd5e1;
+                    border-radius: 9999px;
+                    transition: background-color 0.2s ease-in-out;
+                    cursor: pointer;
+                    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+                }
+                .erp-toggle-slider::after {
+                    content: "" !important;
+                    position: absolute;
+                    top: 2px;
+                    left: 2px;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #ffffff !important;
+                    border-radius: 50% !important;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+                    transition: transform 0.2s ease-in-out;
+                }
+                .erp-toggle-input:checked + .erp-toggle-slider {
+                    background-color: #2563eb !important;
+                }
+                .erp-toggle-input:checked + .erp-toggle-slider::after {
+                    transform: translateX(22px) !important;
+                }
+
+                /* Matrix Table Custom Toggle Switches */
+                .matrix-toggle-input {
+                    display: none !important;
+                }
+                .matrix-toggle-slider {
+                    position: relative;
+                    display: inline-block;
+                    width: 38px;
+                    height: 20px;
+                    background-color: #cbd5e1;
+                    border-radius: 9999px;
+                    transition: background-color 0.2s ease-in-out;
+                    cursor: pointer;
+                    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+                }
+                .matrix-toggle-slider::after {
+                    content: "" !important;
+                    position: absolute;
+                    top: 2px;
+                    left: 2px;
+                    width: 16px;
+                    height: 16px;
+                    background-color: #ffffff !important;
+                    border-radius: 50% !important;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+                    transition: transform 0.2s ease-in-out;
+                }
+                .matrix-toggle-input:checked + .matrix-toggle-slider {
+                    background-color: #2563eb !important;
+                }
+                .matrix-toggle-input:checked + .matrix-toggle-slider::after {
+                    transform: translateX(18px) !important;
+                }
+                .matrix-toggle-input-green:checked + .matrix-toggle-slider {
+                    background-color: #10b981 !important;
+                }
+                .matrix-toggle-input-amber:checked + .matrix-toggle-slider {
+                    background-color: #f59e0b !important;
+                }
+                .matrix-toggle-input-rose:checked + .matrix-toggle-slider {
+                    background-color: #f43f5e !important;
+                }
+            </style>
+
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">Module Visibility Controls</h2>
@@ -986,9 +1056,9 @@
                             <span class="block text-sm font-bold text-slate-800">Invoices & Billing</span>
                             <span class="text-[11px] text-slate-500 font-medium">Generate GST Tax Invoices</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_invoices" value="true" {{ $modules['module_invoices'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_invoices" value="true" {{ $modules['module_invoices'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -998,9 +1068,9 @@
                             <span class="block text-sm font-bold text-slate-800">Sales Orders</span>
                             <span class="text-[11px] text-slate-500 font-medium">Manage B2B POs & Challans</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_orders" value="true" {{ $modules['module_orders'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_orders" value="true" {{ $modules['module_orders'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1010,9 +1080,9 @@
                             <span class="block text-sm font-bold text-slate-800">Purchase Ledger</span>
                             <span class="text-[11px] text-slate-500 font-medium">Raw Material Purchases & Suppliers</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_purchases" value="true" {{ $modules['module_purchases'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_purchases" value="true" {{ $modules['module_purchases'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1022,9 +1092,9 @@
                             <span class="block text-sm font-bold text-slate-800">Clients & Plants</span>
                             <span class="text-[11px] text-slate-500 font-medium">Client Directory & Multi-plant Shipping</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_clients" value="true" {{ $modules['module_clients'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_clients" value="true" {{ $modules['module_clients'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1034,9 +1104,9 @@
                             <span class="block text-sm font-bold text-slate-800">Expense Ledger</span>
                             <span class="text-[11px] text-slate-500 font-medium">Operational Factory Expenses</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_expenses" value="true" {{ $modules['module_expenses'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_expenses" value="true" {{ $modules['module_expenses'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1046,9 +1116,9 @@
                             <span class="block text-sm font-bold text-slate-800">Production Logs</span>
                             <span class="text-[11px] text-slate-500 font-medium">Batch Manufacturing & Yield</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_production" value="true" {{ $modules['module_production'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_production" value="true" {{ $modules['module_production'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1058,9 +1128,9 @@
                             <span class="block text-sm font-bold text-slate-800">Bill of Materials (BOM)</span>
                             <span class="text-[11px] text-slate-500 font-medium">Product Material Recipes</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_bom" value="true" {{ $modules['module_bom'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_bom" value="true" {{ $modules['module_bom'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1070,9 +1140,9 @@
                             <span class="block text-sm font-bold text-slate-800">Raw Materials Inventory</span>
                             <span class="text-[11px] text-slate-500 font-medium">Raw Stock Thresholds & Items</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_inventory" value="true" {{ $modules['module_inventory'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_inventory" value="true" {{ $modules['module_inventory'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
@@ -1082,18 +1152,40 @@
                             <span class="block text-sm font-bold text-slate-800">Employee Payroll</span>
                             <span class="text-[11px] text-slate-500 font-medium">Worker Wage Payouts</span>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="module_payroll" value="true" {{ $modules['module_payroll'] ? 'checked' : '' }} class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_payroll" value="true" {{ $modules['module_payroll'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
 
-                </div>
+                    <!-- Automatic Stock Deductions -->
+                    <div class="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 flex items-center justify-between col-span-1 md:col-span-3">
+                        <div>
+                            <span class="block text-sm font-bold text-blue-900 flex items-center gap-1.5">
+                                📦 Automatic Inventory Stock Deductions
+                            </span>
+                            <span class="text-[11px] text-slate-600 font-medium">Auto-deduct item stock on Invoices. Turn OFF if client only does Billing and does not track Stock/BOM.</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="track_stock" value="true" {{ ($modules['track_stock'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
 
-                <div class="pt-4 border-t border-slate-100 flex justify-end">
-                    <button type="submit" id="saveModuleVisibilityBtn" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition shadow-sm cursor-pointer">
-                        Save Module Visibility
-                    </button>
+                    <!-- Invoice Payment Status & Receivable Tracking -->
+                    <div class="p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/40 flex items-center justify-between col-span-1 md:col-span-3">
+                        <div>
+                            <span class="block text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                                💳 Invoice Payment Status & Receivable Tracking
+                            </span>
+                            <span class="text-[11px] text-slate-600 font-medium">Track Unpaid / Partial / Paid statuses and Mark Paid actions. Turn OFF to auto-mark all new Invoices as PAID instantly upon creation.</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="track_payments" value="true" {{ ($modules['track_payments'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
+
                 </div>
             </form>
         </div>
@@ -1343,6 +1435,7 @@ function switchSubTab(subTabName) {
 }
 
 async function toggleRolePerm(roleSlug, permKey, isChecked) {
+    const toastType = isChecked ? 'success' : 'danger';
     try {
         const response = await fetch('{{ route("settings.roles.toggle-permission") }}', {
             method: 'POST',
@@ -1362,13 +1455,13 @@ async function toggleRolePerm(roleSlug, permKey, isChecked) {
         const res = await response.json();
         if (response.ok && res.success) {
             if (window.showToast) {
-                window.showToast('success', res.message || 'Role permissions updated.');
+                window.showToast(toastType, res.message || 'Role permissions updated.');
             }
         } else {
-            if (window.showToast) window.showToast('error', res.message || 'Failed to update permission.');
+            if (window.showToast) window.showToast('danger', res.message || 'Failed to update permission.');
         }
     } catch (err) {
-        if (window.showToast) window.showToast('error', 'Network error updating role permission.');
+        if (window.showToast) window.showToast('danger', 'Network error updating role permission.');
     }
 }
 
@@ -1698,6 +1791,9 @@ function resetUserFormCard() {
         form.action = "{{ route('settings.users.store') }}";
         form.reset();
     }
+    if (window.resetFormAndErrors) {
+        window.resetFormAndErrors('#userCardForm');
+    }
     if (methodInput) methodInput.value = 'POST';
     if (card) {
         card.className = "hidden bg-white rounded-2xl shadow-md border-2 border-blue-500/30 p-6 transition-all duration-300 space-y-4";
@@ -1845,104 +1941,94 @@ function updateSerialPreview() {
 }
 
 // Global AJAX Form Submitter & Tab Persistence for Settings Hub
-document.addEventListener('DOMContentLoaded', function() {
+function initSettingsPage() {
     updateSerialPreview();
-    // Restore active tab on page refresh from URL hash or LocalStorage
+    // Restore active tab on page refresh or SPA navigation
+    let urlParams = new URLSearchParams(window.location.search);
+    let tabParam = urlParams.get('tab');
     let hashTab = window.location.hash.replace('#', '');
     let savedTab = localStorage.getItem('pww_active_settings_tab');
-    let initialTab = hashTab || savedTab || 'profile';
+    let initialTab = tabParam || hashTab || savedTab || 'profile';
 
     switchSettingsTab(initialTab);
-    document.querySelectorAll('.tab-content form, .sub-tab-content form, #addUserModal form, #editUserModal form, #createUserFormCard form, form.ajax-form').forEach(form => {
-        form.addEventListener('submit', async function(e) {
-            if (form.id === 'modulesVisibilityForm') return;
-            e.preventDefault();
-            const submitBtn = form.querySelector('button[type="submit"]');
-            let originalText = '';
-            if (submitBtn) {
-                originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4 text-white shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...</span>';
-            }
+}
 
-            try {
-                const formData = new FormData(form);
-                const response = await fetch(form.action, {
-                    method: form.method || 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                    }
-                });
+initSettingsPage();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSettingsPage);
+}
 
-                const res = await response.json();
-                if (response.ok && res.success) {
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: res.message || 'User account saved successfully.',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            customClass: {
-                                popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100',
-                                title: 'text-xl font-black text-slate-800 tracking-tight',
-                                htmlContainer: 'text-sm font-semibold text-slate-600'
-                            }
-                        });
-                    } else if (window.showToast) {
-                        window.showToast('success', res.message || 'User account saved successfully!');
-                    }
+window.saveModuleToggleAjax = async function(checkbox) {
+    const modulesForm = document.getElementById('modulesVisibilityForm');
+    if (!modulesForm || !checkbox) return;
 
-                    if (form.id === 'userCardForm' || form.closest('#createUserFormCard')) {
-                        closeAddUserModal();
-                        localStorage.setItem('pww_active_settings_tab', 'users');
-                        if (window.loadPage) {
-                            await window.loadPage('/settings?tab=users');
-                            if (typeof switchSettingsTab === 'function') {
-                                switchSettingsTab('users');
-                            }
-                        } else {
-                            window.location.href = '/settings?tab=users';
-                        }
-                    } else {
-                        if (form.closest('#addUserModal')) closeAddUserModal();
-                        if (form.closest('#editUserModal')) closeEditUserModal();
-                    }
-                } else {
-                    const errMsg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : 'Failed to save settings.');
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Save Failed',
-                            text: errMsg,
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#2563eb',
-                            customClass: {
-                                popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100',
-                                title: 'text-xl font-black text-slate-800 tracking-tight',
-                                htmlContainer: 'text-sm font-semibold text-slate-600'
-                            }
-                        });
-                    } else if (window.showToast) {
-                        window.showToast('error', errMsg);
-                    }
-                }
-            } catch (err) {
-                if (window.showToast) {
-                    window.showToast('error', 'An error occurred while saving.');
-                }
-            } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
+    const cardLabel = checkbox.closest('div.p-4')?.querySelector('.font-bold')?.innerText?.trim() || 'Module';
+    const cleanName = cardLabel.replace(/^[📦💳\s]+/, '').trim();
+    const toastType = checkbox.checked ? 'success' : 'danger';
+    const stateStr = checkbox.checked ? 'enabled' : 'disabled';
+    const dynamicToastMsg = `'${cleanName}' ${stateStr}!`;
+
+    try {
+        const formData = new FormData(modulesForm);
+        const response = await fetch(modulesForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
             }
         });
-    });
-});
+
+        const res = await response.json();
+        if (response.ok && res.success) {
+            if (window.showToast) {
+                window.showToast(toastType, dynamicToastMsg);
+            }
+            
+            // Live update Sidebar Navigation links instantly
+            const isProd = modulesForm.querySelector('input[name="module_production"]')?.checked;
+            const isOrders = modulesForm.querySelector('input[name="module_orders"]')?.checked;
+            const isInvoices = modulesForm.querySelector('input[name="module_invoices"]')?.checked;
+            const isPurchases = modulesForm.querySelector('input[name="module_purchases"]')?.checked;
+            const isExpenses = modulesForm.querySelector('input[name="module_expenses"]')?.checked;
+            const isInventory = modulesForm.querySelector('input[name="module_inventory"]')?.checked;
+            const isBom = modulesForm.querySelector('input[name="module_bom"]')?.checked;
+            const isClients = modulesForm.querySelector('input[name="module_clients"]')?.checked;
+            const isPayroll = modulesForm.querySelector('input[name="module_payroll"]')?.checked;
+
+            const toggleNav = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !show);
+            };
+
+            toggleNav('sidebar-module-production', isProd);
+            toggleNav('sidebar-module-orders', isOrders);
+            toggleNav('sidebar-module-invoices', isInvoices);
+            toggleNav('sidebar-module-purchases', isPurchases);
+            toggleNav('sidebar-module-expenses', isExpenses);
+            toggleNav('sidebar-module-rawmaterial', isInventory);
+            toggleNav('sidebar-module-product', isInventory);
+            toggleNav('sidebar-module-bom', isBom);
+            toggleNav('sidebar-module-clients', isClients);
+            toggleNav('sidebar-module-payroll', isPayroll);
+
+            const sectionInvBom = document.getElementById('sidebar-section-inventory-bom');
+            if (sectionInvBom) {
+                sectionInvBom.classList.toggle('hidden', !isInventory && !isBom);
+            }
+        } else {
+            if (window.showToast) {
+                window.showToast('error', res.message || 'Failed to update module visibility');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to auto-save module visibility:', err);
+        if (window.showToast) {
+            window.showToast('error', 'Failed to update module visibility.');
+        }
+    }
+};
 
 async function saveModuleVisibilityAjax(e) {
     if (e) e.preventDefault();

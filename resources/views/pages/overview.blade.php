@@ -645,11 +645,20 @@
 
 <script>
 (function initOverviewCharts() {
+    let retries = 0;
     function renderCharts() {
         const trendElem = document.getElementById('financialTrendChart');
         const clientElem = document.getElementById('topClientsChart');
 
-        if (!trendElem || !clientElem || typeof Chart === 'undefined') return;
+        if (!trendElem || !clientElem) return;
+
+        if (typeof window.Chart === 'undefined') {
+            if (retries < 20) {
+                retries++;
+                setTimeout(renderCharts, 100);
+            }
+            return;
+        }
 
         if (window.financialTrendChartInstance) {
             window.financialTrendChartInstance.destroy();
@@ -808,9 +817,10 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', renderCharts);
+        document.addEventListener('DOMContentLoaded', () => setTimeout(renderCharts, 50));
     } else {
         renderCharts();
+        setTimeout(renderCharts, 50);
     }
 })();
 

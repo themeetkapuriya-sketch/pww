@@ -98,6 +98,8 @@ class ClientController extends Controller
      */
     public function storeClient(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
             'client_email' => 'required|email|max:255',
@@ -174,6 +176,8 @@ class ClientController extends Controller
      */
     public function updateClient(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $client = Client::findOrFail($id);
 
         $validated = $request->validate([
@@ -197,6 +201,8 @@ class ClientController extends Controller
      */
     public function deleteClient($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $client = Client::findOrFail($id);
         $clientName = $client->company_name;
 
@@ -259,6 +265,8 @@ class ClientController extends Controller
      */
     public function updatePlant(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $plant = ClientPlant::findOrFail($id);
 
         $validated = $request->validate([
@@ -303,6 +311,8 @@ class ClientController extends Controller
      */
     public function deletePlant($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $plant = ClientPlant::findOrFail($id);
         $plantName = $plant->plant_name;
         $plant->delete();

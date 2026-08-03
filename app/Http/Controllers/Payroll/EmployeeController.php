@@ -66,6 +66,8 @@ class EmployeeController extends Controller
      */
     public function storeEmployee(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'wage_type' => 'required|in:fixed,per-day',
@@ -96,6 +98,8 @@ class EmployeeController extends Controller
      */
     public function updateEmployee(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $staff = StaffProfile::findOrFail($id);
 
         $validated = $request->validate([
@@ -125,6 +129,8 @@ class EmployeeController extends Controller
      */
     public function deleteEmployee($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         $staff = StaffProfile::findOrFail($id);
         $name = $staff->full_name;
         $staff->delete();
@@ -140,6 +146,8 @@ class EmployeeController extends Controller
      */
     public function storeAttendance(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'date' => 'required|date',
             'attendance' => 'required|array',

@@ -271,7 +271,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
-                    @foreach ($purchases as $pur)
+                    @forelse ($purchases as $pur)
                         <tr id="row-pur-{{ $pur->id }}" class="hover:bg-slate-50 transition">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $pur->purchase_date->format('d M Y') }}</td>
@@ -343,7 +343,19 @@
                                 </div>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr class="empty-row">
+                            <td colspan="10" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center space-y-2">
+                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    </svg>
+                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
+                                    <p class="text-xs text-slate-400">There are no purchase bills recorded yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -610,7 +622,8 @@ window.closeVendorPaymentModal = function() {
                         }
                     },
                     error: function(err) {
-                        if (window.showToast) window.showToast('error', 'Failed to delete purchase record.');
+                        const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete purchase record.';
+                        if (window.showToast) window.showToast('danger', msg);
                     }
                 });
             }

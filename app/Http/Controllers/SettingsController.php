@@ -26,7 +26,9 @@ class SettingsController extends Controller
             return redirect()->route('overview')->with('error', 'Access Denied: Apart from Admin and Super Admin, no one has access to System Settings.');
         }
 
-        $users = User::orderBy('name')->get();
+        $users = User::orderByRaw("CASE WHEN role = 'super_admin' THEN 0 ELSE 1 END")
+            ->orderBy('name', 'asc')
+            ->get();
         $roles = RolePermissionService::getRoles();
         $permissionsList = RolePermissionService::getPermissionsList();
 
@@ -44,6 +46,8 @@ class SettingsController extends Controller
             'module_inventory' => Setting::get('module_inventory', 'true') === 'true',
             'module_payroll' => Setting::get('module_payroll', 'true') === 'true',
             'module_expenses' => Setting::get('module_expenses', 'true') === 'true',
+            'track_stock' => Setting::get('track_stock', 'true') === 'true',
+            'track_payments' => Setting::get('track_payments', 'true') === 'true',
         ];
 
         // Fetch database backup files list
@@ -88,6 +92,8 @@ class SettingsController extends Controller
                 'module_inventory',
                 'module_payroll',
                 'module_expenses',
+                'track_stock',
+                'track_payments',
             ];
 
             foreach ($moduleKeys as $key) {
@@ -179,6 +185,10 @@ class SettingsController extends Controller
 
         $user = User::findOrFail($id);
 
+        if ($user->role === 'super_admin') {
+            return $this->respond($request, false, 'Super Admin (Owner) accounts are protected and can never be deactivated!');
+        }
+
         try {
             $newStatus = ($user->status === 'active' && $user->is_active) ? 'inactive' : 'active';
             $user->status = $newStatus;
@@ -216,7 +226,11 @@ class SettingsController extends Controller
             $user->name = $validated['name'];
             $user->email = $validated['email'];
             $user->role = $validated['role'];
-            if (!empty($validated['status'])) {
+
+            if ($user->role === 'super_admin') {
+                $user->status = 'active';
+                $user->is_active = true;
+            } else if (!empty($validated['status'])) {
                 $user->status = $validated['status'];
                 $user->is_active = ($validated['status'] === 'active');
             }
@@ -290,9 +304,32 @@ class SettingsController extends Controller
                     ->delete();
             }
 
+            $permLabels = [
+                'page_overview' => 'Overview',
+                'page_orders' => 'Sales Orders',
+                'page_invoices' => 'Invoices & Billing',
+                'page_purchases' => 'Purchase Ledger',
+                'page_expenses' => 'Expense Ledger',
+                'page_rawmaterial' => 'Raw Materials',
+                'page_product' => 'Finished Goods',
+                'page_bom' => 'Bill of Materials',
+                'page_production' => 'Production Logs',
+                'page_clients' => 'Clients & Plants',
+                'page_employees' => 'Employee Payroll',
+                'page_reports' => 'Reports',
+                'action_insert' => 'Create Data',
+                'action_update' => 'Edit Data',
+                'action_delete' => 'Delete Data',
+            ];
+
+            $roleName = ucwords(str_replace('_', ' ', $roleSlug));
+            $permName = $permLabels[$permKey] ?? ucwords(str_replace(['page_', 'action_', '_'], ['', '', ' '], $permKey));
+            $statusText = $enabled ? 'enabled' : 'disabled';
+
             return response()->json([
                 'success' => true,
-                'message' => "Permission updated for " . ucfirst(str_replace('_', ' ', $roleSlug)) . "!",
+                'enabled' => $enabled,
+                'message' => "'{$permName}' permission {$statusText} for {$roleName}!",
             ]);
         } catch (Throwable $e) {
             Log::error("Failed to toggle permission: " . $e->getMessage());
@@ -501,8 +538,6 @@ class SettingsController extends Controller
             'bank_account_name' => 'nullable|string|max:255',
             'bank_account_no' => 'nullable|string|max:255',
             'bank_ifsc' => 'nullable|string|max:255',
-            'invoice_prefix' => 'nullable|string|max:20',
-            'order_prefix' => 'nullable|string|max:20',
             'terms_and_conditions' => 'nullable|string',
         ]);
 
@@ -511,8 +546,6 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'bank_account_name'], ['value' => $request->bank_account_name ?? '']);
             Setting::updateOrCreate(['key' => 'bank_account_no'], ['value' => $request->bank_account_no ?? '']);
             Setting::updateOrCreate(['key' => 'bank_ifsc'], ['value' => strtoupper($request->bank_ifsc ?? '')]);
-            Setting::updateOrCreate(['key' => 'invoice_prefix'], ['value' => $request->invoice_prefix ?? 'PWW-']);
-            Setting::updateOrCreate(['key' => 'order_prefix'], ['value' => $request->order_prefix ?? 'PWW-ORD-']);
             Setting::updateOrCreate(['key' => 'terms_and_conditions'], ['value' => $request->terms_and_conditions ?? '']);
 
             return $this->respond($request, true, 'Bank details & billing defaults updated successfully!');
@@ -538,8 +571,8 @@ class SettingsController extends Controller
         ]);
 
         try {
-            Setting::set('invoice_prefix', strtoupper(trim($request->invoice_prefix ?? '')));
-            Setting::set('order_prefix', strtoupper(trim($request->order_prefix ?? '')));
+            Setting::set('invoice_prefix', strtoupper(trim($request->input('invoice_prefix') ?? '')));
+            Setting::set('order_prefix', strtoupper(trim($request->input('order_prefix') ?? '')));
             Setting::set('invoice_next_sequence', (string) $request->invoice_next_sequence);
             Setting::set('order_next_sequence', (string) $request->order_next_sequence);
             Setting::set('serial_date_format', $request->serial_date_format);

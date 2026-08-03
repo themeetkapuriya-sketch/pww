@@ -1,7 +1,11 @@
 @echo off
+:: Ensure working directory is set to the folder where this batch file is located
+cd /d "%~dp0"
+
 title Praful Welding Works ERP - First Time Initial Setup
+color 0B
 echo ============================================================
-echo   Praful Welding Works ERP - First Time Automatic Setup
+echo   PRAFUL WELDING WORKS ERP - INITIAL SYSTEM SETUP
 echo ============================================================
 echo.
 
@@ -15,7 +19,7 @@ if not exist ".env" (
 
 :: 2. Install PHP Composer Dependencies
 echo [2/6] Installing PHP Backend Dependencies (composer install)...
-call composer install --no-interaction --prefer-dist
+call composer install --no-dev --optimize-autoloader --no-interaction
 
 :: 3. Install NPM Frontend Dependencies
 echo [3/6] Installing Frontend Packages & Asset Dependencies (npm install)...
@@ -32,17 +36,16 @@ call php artisan migrate:fresh --seed --force
 :: 6. Build Local Frontend Assets & Clear Caches
 echo [6/6] Building Production Assets & Optimizing System Caches...
 call npm run build
-call php artisan config:clear
-call php artisan view:clear
+call php artisan optimize:clear
 
 echo.
 echo ============================================================
 echo   INITIAL SETUP COMPLETED SUCCESSFULLY!
 echo   
-echo   Default Admin Email: pww@gmail.com
-echo   Default Password:    password
+echo   Super Admin Email: pww@gmail.com
+echo   Super Admin Pass:  password
 echo
-echo   You can now double-click START_ERP.bat to launch ERP!
+echo   Double-click START_ERP.bat to launch the application!
 echo ============================================================
 echo.
 pause

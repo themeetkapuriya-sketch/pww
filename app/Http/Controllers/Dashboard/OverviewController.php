@@ -41,34 +41,36 @@ class OverviewController extends Controller
         $monthEnd = $now->copy()->endOfMonth();
 
         // Yearly Revenue & Taxable Base
-        $yearlyInvoices = Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
+        $yearlyStats = Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
             $q->whereBetween('invoice_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])
               ->orWhere(function($sub) use ($fyStartDate, $fyEndDate) {
                   $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
               });
-        })->get();
-        $yearlyRevenue = (float)$yearlyInvoices->sum('total_amount');
-        $yearlyTaxable = (float)$yearlyInvoices->sum('total_taxable_value');
+        })->selectRaw('SUM(total_amount) as total_rev, SUM(total_taxable_value) as total_tax')->first();
+
+        $yearlyRevenue = (float)($yearlyStats->total_rev ?? 0);
+        $yearlyTaxable = (float)($yearlyStats->total_tax ?? 0);
 
         // Monthly Revenue & Taxable Base
-        $monthlyInvoices = Invoice::where(function($q) use ($monthStart, $monthEnd) {
+        $monthlyStats = Invoice::where(function($q) use ($monthStart, $monthEnd) {
             $q->whereBetween('invoice_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
               ->orWhere(function($sub) use ($monthStart, $monthEnd) {
                   $sub->whereNull('invoice_date')->whereBetween('created_at', [$monthStart, $monthEnd]);
               });
-        })->get();
-        $monthlyRevenue = (float)$monthlyInvoices->sum('total_amount');
-        $monthlyTaxable = (float)$monthlyInvoices->sum('total_taxable_value');
-        $monthlyInvoiceCount = $monthlyInvoices->count();
+        })->selectRaw('SUM(total_amount) as total_rev, SUM(total_taxable_value) as total_tax, COUNT(*) as cnt, SUM(cgst) as cgst_sum, SUM(sgst) as sgst_sum, SUM(igst) as igst_sum')->first();
+
+        $monthlyRevenue = (float)($monthlyStats->total_rev ?? 0);
+        $monthlyTaxable = (float)($monthlyStats->total_tax ?? 0);
+        $monthlyInvoiceCount = (int)($monthlyStats->cnt ?? 0);
 
         // Outstanding Receivables
-        $allInvoices = Invoice::all();
-        $totalReceivables = (float)$allInvoices->sum(fn($inv) => $inv->remaining_balance);
+        $totalReceivables = (float) DB::table('invoices')
+            ->selectRaw('SUM(GREATEST(0, total_amount - paid_amount)) as due')
+            ->value('due') ?? 0;
 
         // Net GST Payable (Current Month)
-        $salesGstCollected = $monthlyInvoices->sum('cgst') + $monthlyInvoices->sum('sgst') + $monthlyInvoices->sum('igst');
-        $monthlyPurchases = Purchase::whereBetween('purchase_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->get();
-        $purchasesItc = $monthlyPurchases->sum('gst_amount');
+        $salesGstCollected = (float)(($monthlyStats->cgst_sum ?? 0) + ($monthlyStats->sgst_sum ?? 0) + ($monthlyStats->igst_sum ?? 0));
+        $purchasesItc = (float) Purchase::whereBetween('purchase_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('gst_amount');
         $currentMonthNetGst = round($salesGstCollected - $purchasesItc, 2);
 
         // Check Expense Ledger for GST Payment entry in Current Month
@@ -95,8 +97,8 @@ class OverviewController extends Controller
         // Operational Metrics
         $activeOrdersCount = SalesOrder::whereIn('status', ['pending', 'confirmed', 'in_production', 'ready_for_dispatch'])->count();
         $monthlyExpensesTotal = Expense::whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('amount');
-        $monthlyPurchasesTotal = $monthlyPurchases->sum('total_amount');
-        $monthlyExpenses = round($monthlyExpensesTotal + $monthlyPurchasesTotal, 2);
+        $monthlyPurchasesTotalOnly = (float) Purchase::whereBetween('purchase_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('total_amount');
+        $monthlyExpenses = round($monthlyExpensesTotal + $monthlyPurchasesTotalOnly, 2);
         $lowStockCount = RawMaterial::whereColumn('current_stock', '<=', 'safety_threshold')->count();
 
         // 3 Net Revenue Cards Metrics (Revenue = Total Sales - Purchases - Expenses)
@@ -109,29 +111,45 @@ class OverviewController extends Controller
         $fyExpensesTotal = (float) Expense::whereBetween('expense_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('amount');
         $annualRevenue = round($yearlyRevenue - $fyPurchasesTotal - $fyExpensesTotal, 2);
 
-        $monthlyPurchasesTotalOnly = (float) $monthlyPurchases->sum('total_amount');
-        $monthlyExpensesTotalOnly = (float) Expense::whereBetween('expense_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('amount');
+        $monthlyExpensesTotalOnly = (float) $monthlyExpensesTotal;
         $monthlyNetRevenue = round($monthlyRevenue - $monthlyPurchasesTotalOnly - $monthlyExpensesTotalOnly, 2);
 
-        // 6-Month Chart Data (Sales vs Expenses)
+        // 6-Month Chart Data (Sales vs Expenses) - Batch Aggregated
         $chartMonths = [];
         $chartSalesData = [];
         $chartExpenseData = [];
 
+        $sixMonthsAgo = $now->copy()->subMonths(5)->startOfMonth();
+        $invoiceChartData = DB::table('invoices')
+            ->selectRaw('DATE_FORMAT(COALESCE(invoice_date, created_at), "%Y-%m") as m_key, SUM(total_amount) as total_sales')
+            ->where(function($q) use ($sixMonthsAgo, $monthEnd) {
+                $q->whereBetween('invoice_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
+                  ->orWhere(function($sub) use ($sixMonthsAgo, $monthEnd) {
+                      $sub->whereNull('invoice_date')->whereBetween('created_at', [$sixMonthsAgo, $monthEnd]);
+                  });
+            })
+            ->groupBy('m_key')
+            ->pluck('total_sales', 'm_key');
+
+        $expenseChartData = DB::table('expenses')
+            ->selectRaw('DATE_FORMAT(expense_date, "%Y-%m") as m_key, SUM(amount) as total_exp')
+            ->whereBetween('expense_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
+            ->groupBy('m_key')
+            ->pluck('total_exp', 'm_key');
+
+        $purchaseChartData = DB::table('purchases')
+            ->selectRaw('DATE_FORMAT(purchase_date, "%Y-%m") as m_key, SUM(total_amount) as total_pur')
+            ->whereBetween('purchase_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
+            ->groupBy('m_key')
+            ->pluck('total_pur', 'm_key');
+
         for ($i = 5; $i >= 0; $i--) {
             $mStart = $now->copy()->subMonths($i)->startOfMonth();
-            $mEnd = $now->copy()->subMonths($i)->endOfMonth();
+            $mKey = $mStart->format('Y-m');
             $chartMonths[] = $mStart->format('M Y');
 
-            $salesVal = Invoice::where(function($q) use ($mStart, $mEnd) {
-                $q->whereBetween('invoice_date', [$mStart->toDateString(), $mEnd->toDateString()])
-                  ->orWhere(function($sub) use ($mStart, $mEnd) {
-                      $sub->whereNull('invoice_date')->whereBetween('created_at', [$mStart, $mEnd]);
-                  });
-            })->sum('total_amount');
-
-            $expVal = Expense::whereBetween('expense_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('amount') +
-                      Purchase::whereBetween('purchase_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('total_amount');
+            $salesVal = (float)($invoiceChartData[$mKey] ?? 0);
+            $expVal = (float)($expenseChartData[$mKey] ?? 0) + (float)($purchaseChartData[$mKey] ?? 0);
 
             $chartSalesData[] = round($salesVal, 2);
             $chartExpenseData[] = round($expVal, 2);

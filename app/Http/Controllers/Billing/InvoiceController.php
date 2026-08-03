@@ -77,6 +77,9 @@ class InvoiceController extends Controller
      */
     public function generateCustomInvoice(Request $request)
     {
+        $action = $request->filled('invoice_id') ? 'action_update' : 'action_insert';
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, $action)) return $res;
+
         $pIds = $request->input('product_ids', $request->input('finished_good_ids', $request->input('item_keys')));
         $request->merge(['product_ids' => $pIds]);
 
@@ -222,20 +225,24 @@ class InvoiceController extends Controller
                     $finalInvoiceNumber = $validated['invoice_number'];
                 }
 
+                $trackStock = (\App\Models\Setting::get('track_stock', 'true') === 'true') && (\App\Models\Setting::get('module_inventory', 'true') === 'true');
+
                 if ($invoiceId) {
                     $invoice = Invoice::findOrFail($invoiceId);
                     
-                    // Restore stock before updating
-                    foreach ($invoice->items as $oldItem) {
-                        if ($oldItem->item_type === 'raw_material' && $oldItem->raw_material_id) {
-                            $rm = RawMaterial::find($oldItem->raw_material_id);
-                            if ($rm) {
-                                $rm->increment('current_stock', (float)$oldItem->quantity);
-                            }
-                        } else if ($oldItem->product_id) {
-                            $product = Product::find($oldItem->product_id);
-                            if ($product) {
-                                $product->increment('current_stock', (float)$oldItem->quantity);
+                    // Restore stock before updating if stock tracking is enabled
+                    if ($trackStock) {
+                        foreach ($invoice->items as $oldItem) {
+                            if ($oldItem->item_type === 'raw_material' && $oldItem->raw_material_id) {
+                                $rm = RawMaterial::find($oldItem->raw_material_id);
+                                if ($rm) {
+                                    $rm->increment('current_stock', (float)$oldItem->quantity);
+                                }
+                            } else if ($oldItem->product_id) {
+                                $product = Product::find($oldItem->product_id);
+                                if ($product) {
+                                    $product->increment('current_stock', (float)$oldItem->quantity);
+                                }
                             }
                         }
                     }
@@ -258,6 +265,10 @@ class InvoiceController extends Controller
                         'due_date' => $dueDate,
                     ]);
                 } else {
+                    $trackPayments = (\App\Models\Setting::get('track_payments', 'true') === 'true');
+                    $initialPaymentStatus = $trackPayments ? 'unpaid' : 'paid';
+                    $initialPaidAmount = $trackPayments ? 0.00 : $total;
+
                     $invoice = Invoice::create([
                         'plant_id' => $plantId,
                         'invoice_mode' => $invMode,
@@ -272,8 +283,8 @@ class InvoiceController extends Controller
                         'sgst' => $sgst,
                         'igst' => $igst,
                         'total_amount' => $total,
-                        'payment_status' => 'unpaid',
-                        'paid_amount' => 0.00,
+                        'payment_status' => $initialPaymentStatus,
+                        'paid_amount' => $initialPaidAmount,
                         'due_date' => $dueDate,
                         'created_at' => $invDate . ' ' . now()->format('H:i:s'),
                     ]);
@@ -294,16 +305,18 @@ class InvoiceController extends Controller
                         'total_price' => round($qty * $validated['unit_prices'][$idx], 2),
                     ]);
 
-                    // Automatically deduct inventory stock upon sale
-                    if ($itemData['type'] === 'raw_material' && $itemData['raw_material_id']) {
-                        $rm = RawMaterial::find($itemData['raw_material_id']);
-                        if ($rm) {
-                            $rm->decrement('current_stock', $qty);
-                        }
-                    } else if ($itemData['product_id']) {
-                        $product = Product::find($itemData['product_id']);
-                        if ($product) {
-                            $product->decrement('current_stock', $qty);
+                    // Automatically deduct inventory stock upon sale if stock tracking is enabled
+                    if ($trackStock) {
+                        if ($itemData['type'] === 'raw_material' && $itemData['raw_material_id']) {
+                            $rm = RawMaterial::find($itemData['raw_material_id']);
+                            if ($rm) {
+                                $rm->decrement('current_stock', $qty);
+                            }
+                        } else if ($itemData['product_id']) {
+                            $product = Product::find($itemData['product_id']);
+                            if ($product) {
+                                $product->decrement('current_stock', $qty);
+                            }
                         }
                     }
                 }
@@ -333,6 +346,12 @@ class InvoiceController extends Controller
      */
     public function recordInvoicePayment(Request $request, $id)
     {
+        if ($request->has('amount')) {
+            $request->merge([
+                'amount' => str_replace(',', '', (string)$request->input('amount'))
+            ]);
+        }
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -404,6 +423,8 @@ class InvoiceController extends Controller
      */
     public function payInvoice($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_update')) return $res;
+
         try {
             $invoice = Invoice::with('plant.client')->findOrFail($id);
             $remaining = (float) $invoice->remaining_balance;
@@ -455,6 +476,8 @@ class InvoiceController extends Controller
      */
     public function deleteInvoice($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         try {
             $invoice = Invoice::with('items')->findOrFail($id);
             $invNum = $invoice->invoice_number;

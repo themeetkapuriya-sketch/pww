@@ -391,9 +391,15 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="11" class="px-4 py-8 text-center text-slate-500 font-medium">
-                                No finished goods invoices recorded yet.
+                        <tr class="empty-row">
+                            <td colspan="11" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center space-y-2">
+                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    </svg>
+                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
+                                    <p class="text-xs text-slate-400">There are no finished goods invoices recorded yet.</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -494,9 +500,15 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
-                            <td colspan="10" class="px-4 py-8 text-center text-slate-500 font-medium">
-                                No raw material or scrap sales recorded yet.
+                        <tr class="empty-row">
+                            <td colspan="10" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center space-y-2">
+                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    </svg>
+                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
+                                    <p class="text-xs text-slate-400">There are no raw material or scrap sales recorded yet.</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -616,7 +628,7 @@
                 e.target.closest('.billing-row').remove();
                 recalculateCustomInvoice();
             } else {
-                if (window.showToast) window.showToast('info', 'At least one product row is required.');
+                if (window.showToast) window.showToast('warning', 'At least one product row is required.');
             }
         }
     });
@@ -954,6 +966,7 @@
         
         const isHidden = container.classList.contains('hidden');
         if (isHidden) {
+            resetInvoiceForm();
             container.classList.remove('hidden');
             setToggleButtonState(true);
         } else {
@@ -992,9 +1005,13 @@
         if ($form.length) {
             $form[0].reset();
             $form.find('input[name="invoice_id"]').val('');
+            $form.find('input[name="sales_order_id"]').val('');
             $form.find('input[name="invoice_number"]').val('{{ \App\Models\Invoice::generateNextInvoiceNumber() }}');
             $form.find('input[name="invoice_date"]').val('{{ date("Y-m-d") }}');
-            $form.find('input[name="sales_order_id"]').val('');
+            $form.find('input[name="vehicle_number"]').val('');
+            $form.find('input[name="custom_client_name"]').val('');
+            $form.find('input[name="custom_buyer_gstin"]').val('');
+
             if (window.invoiceClientTomSelect) {
                 window.invoiceClientTomSelect.clear();
             } else {
@@ -1010,26 +1027,45 @@
                 window.invoiceClientTomSelect.control.style.borderColor = '#e2e8f0';
             }
         }
-        
-        // Reset billing rows to single empty row from HTML template
-        window.defaultInvoiceRowHtml = window.defaultInvoiceRowHtml || (document.querySelector('#billingRowsContainer .billing-row') ? document.querySelector('#billingRowsContainer .billing-row').outerHTML : '');
-        const container = document.getElementById('billingRowsContainer');
-        if (container && window.defaultInvoiceRowHtml) {
-            container.innerHTML = window.defaultInvoiceRowHtml;
-            const row = container.querySelector('.billing-row');
-            if (row) {
-                row.className = 'billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
-                row.querySelectorAll('select').forEach(s => s.value = '');
-                row.querySelectorAll('input').forEach(i => i.value = '');
-            }
+
+        // Reset Mode to finished_goods
+        const modeInput = document.getElementById('invoiceModeInput');
+        if (modeInput && modeInput.value !== 'finished_goods') {
+            switchInvoiceMode('finished_goods');
         }
+
+        // Reset billing rows to single clean empty row from template
+        const fgTpl = document.getElementById('templateOptionsFinishedGoods');
+        const fgOptionsHtml = fgTpl ? fgTpl.innerHTML : '<option value="">Select finished good product...</option>';
+
+        const container = document.getElementById('billingRowsContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                        ${fgOptionsHtml}
+                    </select>
+                    <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Pcs">Pcs</option>
+                        <option value="Kg">Kg</option>
+                    </select>
+                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                </div>
+            `;
+            const firstSelect = container.querySelector('select[name="product_ids[]"]');
+            if (firstSelect) firstSelect.value = '';
+        }
+
         // Reset submit button text
         const submitBtn = document.getElementById('invoiceSubmitBtn');
         if (submitBtn) {
             submitBtn.textContent = 'Generate & Save Invoice';
             submitBtn.className = 'btn-primary py-2.5 px-6 text-sm font-bold shadow-xs';
         }
-        // Recalculate (will show ₹0.00)
+
+        // Recalculate live totals (will show ₹0.00)
         if (typeof window.recalculateCustomInvoice === 'function') {
             window.recalculateCustomInvoice();
         }
@@ -1037,6 +1073,12 @@
 
     // Global edit function
     window.editInvoiceRecord = function(id) {
+        // Clean URL query parameters so refreshing page doesn't re-trigger edit mode
+        if (window.history && window.history.replaceState && (window.location.search.includes('edit=') || window.location.search.includes('edit_id='))) {
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
         const invoice = window.erpInvoicesMap[id];
         if (!invoice) {
             console.error('Invoice record not found for id:', id);
@@ -1200,6 +1242,10 @@
         if (editId && typeof window.editInvoiceRecord === 'function') {
             setTimeout(function() {
                 window.editInvoiceRecord(editId);
+                if (window.history && window.history.replaceState) {
+                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+                }
             }, 100);
         } else {
             setTimeout(function() {
