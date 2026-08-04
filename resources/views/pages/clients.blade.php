@@ -98,7 +98,7 @@ $indianStates = [
                 📍 <strong>Single Location Mode:</strong> Registers client profile and primary delivery location together in 1-Click.
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Company Name</label>
                     <input type="text" name="company_name" placeholder="e.g. Balaji Wafers Pvt. Ltd." required
@@ -108,6 +108,11 @@ $indianStates = [
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email Address</label>
                     <input type="email" name="client_email" placeholder="e.g. billing@balajiwafers.com" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Opening Balance (₹)</label>
+                    <input type="number" name="opening_balance" step="0.01" min="0" value="0.00" placeholder="0.00"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-bold">
                 </div>
                 <!-- State Selection (Visible in Single Location Mode) -->
                 <div id="singleStateFieldWrapper">
@@ -176,16 +181,21 @@ $indianStates = [
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">State Plant GSTIN (Optional, 15 Digits)</label>
-                    <input type="text" name="gst_number" placeholder="e.g. 27AAAAB1111A1Z5 (Leave blank if same as Main GSTIN)" minlength="15" maxlength="15"
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">State Plant GSTIN (Optional)</label>
+                    <input type="text" name="gst_number" placeholder="e.g. 27AAAAB1111A1Z5" minlength="15" maxlength="15"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plant Email Address (Optional)</label>
                     <input type="email" name="email" placeholder="e.g. factory@client.com"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Opening Balance (₹)</label>
+                    <input type="number" name="opening_balance" step="0.01" min="0" value="0.00" placeholder="0.00"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-bold">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Shipping Warehouse Address</label>
@@ -287,7 +297,7 @@ $indianStates = [
                         <form action="{{ route('clients.update', $c->id) }}" method="POST" class="ajax-form space-y-3">
                             @csrf
                             @method('PUT')
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Company Name</label>
                                     <input type="text" name="company_name" id="edit_company_name_{{ $c->id }}" value="{{ $c->company_name }}" required
@@ -302,6 +312,11 @@ $indianStates = [
                                     <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Main GSTIN</label>
                                     <input type="text" name="gst_number" id="edit_gst_number_{{ $c->id }}" value="{{ $c->gst_number }}" required
                                            class="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Opening Balance (₹)</label>
+                                    <input type="number" name="opening_balance" id="edit_opening_balance_{{ $c->id }}" step="0.01" min="0" value="{{ $c->opening_balance }}" placeholder="0.00"
+                                           class="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold">
                                 </div>
                             </div>
                             <div>
@@ -401,7 +416,7 @@ $indianStates = [
                                                 <div class="flex items-center space-x-1.5">
                                                     <button type="button" 
                                                             title="Edit Plant Details"
-                                                            onclick="openEditPlantForm({{ $p->id }}, '{{ addslashes($p->plant_name) }}', '{{ addslashes($p->state) }}', '{{ addslashes($p->gst_number ?? '') }}', '{{ addslashes($p->shipping_address) }}', '{{ addslashes($p->email ?? '') }}')"
+                                                            onclick="openEditPlantForm({{ $p->id }}, '{{ addslashes($p->plant_name) }}', '{{ addslashes($p->state) }}', '{{ addslashes($p->gst_number ?? '') }}', '{{ addslashes($p->shipping_address) }}', '{{ addslashes($p->email ?? '') }}', '{{ $p->opening_balance ?? 0 }}')"
                                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     </button>
@@ -444,6 +459,11 @@ $indianStates = [
                                                                placeholder="{{ $isDiffState ? 'e.g. ' . $pStateCode . 'AAAAB1111A1Z5 (Required for ' . $p->state . ')' : 'Leave blank if same as Main GSTIN' }}" 
                                                                minlength="15" maxlength="15" {{ $isDiffState && empty($p->gst_number) ? 'required' : '' }}
                                                                class="w-full bg-white border border-slate-200 rounded py-1 px-2 text-xs font-mono text-slate-700 uppercase">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Opening Balance (₹)</label>
+                                                        <input type="number" name="opening_balance" id="edit_plant_opening_balance_{{ $p->id }}" step="0.01" min="0" value="{{ $p->opening_balance }}" placeholder="0.00"
+                                                               class="w-full bg-white border border-slate-200 rounded py-1 px-2 text-xs text-slate-700 font-bold">
                                                     </div>
                                                     <div>
                                                         <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Plant Contact Email (Optional)</label>
@@ -580,7 +600,7 @@ function closeEditClientForm(id) {
     if (formCard) formCard.classList.add('hidden');
 }
 
-function openEditPlantForm(id, name, state, gst, address, email) {
+function openEditPlantForm(id, name, state, gst, address, email, openingBalance) {
     var formCard = document.getElementById('inlineEditPlantForm-' + id);
     if (formCard) {
         if (formCard.classList.contains('hidden')) {
@@ -596,6 +616,8 @@ function openEditPlantForm(id, name, state, gst, address, email) {
             if (emailEl) emailEl.value = email || '';
             var addrEl = document.getElementById('edit_plant_shipping_address_' + id);
             if (addrEl) addrEl.value = address;
+            var obEl = document.getElementById('edit_plant_opening_balance_' + id);
+            if (obEl) obEl.value = openingBalance || '0.00';
             formCard.classList.remove('hidden');
         } else {
             if (window.resetFormAndErrors) window.resetFormAndErrors('#inlineEditPlantForm-' + id + ' form');

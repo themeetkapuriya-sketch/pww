@@ -115,6 +115,7 @@ return new class extends Migration
         // 9. invoices
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('sales_order_id')->nullable()->constrained('sales_orders')->nullOnDelete();
             $table->foreignId('plant_id')->nullable()->constrained('client_plants')->nullOnDelete();
             $table->string('invoice_number')->unique();
             $table->string('vehicle_number')->nullable();

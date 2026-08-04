@@ -53,6 +53,8 @@ class ExpenseController extends Controller
 
         $expense = Expense::create($validated);
 
+        \App\Services\AuditLogService::log('Expenses', 'created', "Logged expense in category '{$expense->expense_category}' (Amount: ₹" . number_format($expense->amount, 2) . ")");
+
         return response()->json([
             'success' => true,
             'message' => "Expense logged successfully in category '" . str_replace('_', ' ', $expense->expense_category) . "'!",
@@ -78,6 +80,8 @@ class ExpenseController extends Controller
             $expense = Expense::findOrFail($id);
             $expense->update($validated);
 
+            \App\Services\AuditLogService::log('Expenses', 'updated', "Updated expense entry in category '{$expense->expense_category}' to ₹" . number_format($expense->amount, 2));
+
             return response()->json([
                 'success' => true,
                 'message' => "Expense entry updated successfully!",
@@ -101,7 +105,10 @@ class ExpenseController extends Controller
         try {
             $expense = Expense::findOrFail($id);
             $cat = str_replace('_', ' ', $expense->expense_category);
+            $amt = $expense->amount;
             $expense->delete();
+
+            \App\Services\AuditLogService::log('Expenses', 'deleted', "Deleted expense record '{$cat}' (Amount: ₹" . number_format($amt, 2) . ")");
 
             return response()->json([
                 'success' => true,

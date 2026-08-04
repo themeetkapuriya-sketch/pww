@@ -8,13 +8,27 @@
     'required' => false,
     'allowCustom' => false,
     'containerClass' => 'relative',
-    'inputClass' => 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 font-medium transition shadow-xs placeholder:text-slate-400',
+    'inputClass' => 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 font-bold transition shadow-xs placeholder:font-normal placeholder:text-slate-400',
     'dropdownClass' => 'hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100 text-xs transition-all'
 ])
 
 @php
     $elementId = $id ?? 'cb_' . str_replace(['[', ']', '.'], '_', $name) . '_' . uniqid();
     $selectedValue = old($name, $value);
+    $selectedLabel = '';
+    if ($selectedValue !== null && $selectedValue !== '') {
+        foreach ($options as $opt) {
+            $optValue = is_array($opt) ? ($opt['value'] ?? '') : $opt;
+            $optLabel = is_array($opt) ? ($opt['label'] ?? '') : $opt;
+            if ((string)$optValue === (string)$selectedValue) {
+                $selectedLabel = $optLabel;
+                break;
+            }
+        }
+        if (!$selectedLabel && $allowCustom) {
+            $selectedLabel = $selectedValue;
+        }
+    }
 @endphp
 
 <div id="{{ $elementId }}_wrapper" class="combobox-wrapper {{ $containerClass }}" data-combobox-id="{{ $elementId }}" data-allow-custom="{{ $allowCustom ? 'true' : 'false' }}">
@@ -31,11 +45,12 @@
                id="{{ $elementId }}_search"
                autocomplete="off"
                placeholder="{{ $placeholder }}"
+               value="{{ $selectedLabel }}"
                class="combobox-search-input {{ $inputClass }}">
         
         <button type="button" 
                 id="{{ $elementId }}_clear" 
-                class="combobox-clear-btn hidden absolute right-2.5 top-2 text-slate-400 hover:text-red-500 transition text-xs font-bold p-0.5 rounded" 
+                class="combobox-clear-btn {{ $selectedLabel ? '' : 'hidden' }} absolute right-2.5 top-2 text-slate-400 hover:text-red-500 transition text-xs font-bold p-0.5 rounded" 
                 title="Clear selection">
             ✕
         </button>

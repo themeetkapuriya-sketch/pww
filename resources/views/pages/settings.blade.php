@@ -86,6 +86,13 @@
                     <span>Email (SMTP)</span>
                 </button>
 
+                <button type="button" onclick="selectOtherSettingsSub('categories')" id="otherOpt-categories" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition rounded-xl">
+                    <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span>Purchase & Expense Categories</span>
+                </button>
+
                 <button type="button" onclick="selectOtherSettingsSub('security')" id="otherOpt-security" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition rounded-xl">
                     <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -480,15 +487,140 @@
             </div>
         </div>
 
+        <!-- Sub Content 3.5: Purchase & Expense Categories -->
+        @php
+            $purchaseCategoriesList = \App\Services\CategoryService::getPurchaseCategories();
+            $expenseCategoriesList = \App\Services\CategoryService::getExpenseCategories();
+        @endphp
+        <div id="subTab-categories" class="sub-tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 1. Purchase Categories Manager -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                Purchase Categories
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Manage categories available in the Purchase Ledger.</p>
+                        </div>
+                        <button type="button" onclick="openAddCategoryModal('purchase')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold py-1.5 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+                            <span>+ Add Category</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach ($purchaseCategoriesList as $pCat)
+                            <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-slate-800">{{ $pCat['label'] }}</span>
+                                    @if ($pCat['key'] === 'raw_material' || (!empty($pCat['protected']) && $pCat['protected']))
+                                        <span class="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold text-[10px]" title="Mandatory system category required for automatic inventory restock. Cannot be deleted.">
+                                            🔒 Mandatory System Category
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <button type="button" onclick="openEditCategoryModal('purchase', '{{ $pCat['key'] }}', '{{ addslashes($pCat['label']) }}')" class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 012-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                    @if ($pCat['key'] !== 'raw_material' && empty($pCat['protected']))
+                                        <button type="button" onclick="deleteCategorySetting('purchase', '{{ $pCat['key'] }}', '{{ addslashes($pCat['label']) }}')" class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-2xs transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- 2. Expense Categories Manager -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                Expense Categories
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Manage categories available in the Expenses Ledger.</p>
+                        </div>
+                        <button type="button" onclick="openAddCategoryModal('expense')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold py-1.5 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+                            <span>+ Add Category</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach ($expenseCategoriesList as $eCat)
+                            <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-slate-800">{{ $eCat['label'] }}</span>
+                                    @if (in_array($eCat['key'], ['salary', 'gst_payment']) || (!empty($eCat['protected']) && $eCat['protected']))
+                                        <span class="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-200 rounded font-bold text-[10px]" title="Mandatory system category required for payroll and tax ledgers. Cannot be deleted.">
+                                            🔒 Mandatory System Category
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <button type="button" onclick="openEditCategoryModal('expense', '{{ $eCat['key'] }}', '{{ addslashes($eCat['label']) }}')" class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                    @if (!in_array($eCat['key'], ['salary', 'gst_payment']) && empty($eCat['protected']))
+                                        <button type="button" onclick="deleteCategorySetting('expense', '{{ $eCat['key'] }}', '{{ addslashes($eCat['label']) }}')" class="w-7 h-7 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-2xs transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Sub Content 4: Security & System Backups -->
+        @php
+            $settingBackupService = app(\App\Services\BackupService::class);
+            $settingLocalBackups = $settingBackupService->listLocalBackups();
+            $latestSettingBackup = $settingLocalBackups[0] ?? null;
+            $savedTime = \App\Models\Setting::get('auto_backup_time', '00:00');
+            $savedDay = \App\Models\Setting::get('auto_backup_day', 'Sunday');
+            $savedFreq = \App\Models\Setting::get('auto_backup_frequency', 'monthly');
+        @endphp
         <div id="subTab-security" class="sub-tab-content hidden space-y-6">
             <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">Security & Automated System Backups</h2>
-                    <p class="text-slate-500 text-xs mt-1">Configure session timeout policies, automated backup schedules, and manage database recovery restore files.</p>
+                    <p class="text-slate-500 text-xs mt-1">Configure session timeout policies, automated backup schedules, execution times, and manage database recovery restore files.</p>
                 </div>
 
-                <form action="{{ route('settings.security') }}" method="POST" class="space-y-6">
+                <!-- Automatic Backup Live Status Card -->
+                <div class="bg-slate-50/80 border border-slate-200/80 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
+                            ✓
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-medium block">Latest Generated Local Backup</span>
+                            @if ($latestSettingBackup)
+                                <span class="font-bold text-slate-800 text-sm">{{ $latestSettingBackup['created_at'] }}</span>
+                                <span class="text-slate-500 font-mono ml-2">({{ $latestSettingBackup['filename'] }} - {{ $latestSettingBackup['size'] }})</span>
+                            @else
+                                <span class="font-bold text-slate-500">No backup files generated yet</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="text-right border-t md:border-t-0 md:border-l border-slate-200 pt-2 md:pt-0 md:pl-4">
+                        <span class="text-slate-500 font-medium block">Schedule Rule</span>
+                        <span class="font-bold text-blue-700 uppercase">{{ $savedFreq }}</span>
+                        <span class="text-slate-600 font-medium">at {{ date('h:i A', strtotime("2026-01-01 $savedTime")) }}</span>
+                        @if ($savedFreq === 'weekly')
+                            <span class="text-slate-600 font-medium">({{ $savedDay }})</span>
+                        @endif
+                    </div>
+                </div>
+
+                <form action="{{ route('settings.security') }}" method="POST" class="ajax-form space-y-6">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -500,10 +632,36 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Automated Local Backup Schedule</label>
                             <select name="auto_backup_frequency" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
-                                <option value="monthly" {{ \App\Models\Setting::get('auto_backup_frequency', 'monthly') === 'monthly' ? 'selected' : '' }}>Automatic Monthly Data Backup (Recommended)</option>
-                                <option value="weekly" {{ \App\Models\Setting::get('auto_backup_frequency') === 'weekly' ? 'selected' : '' }}>Automatic Weekly Data Backup</option>
-                                <option value="daily" {{ \App\Models\Setting::get('auto_backup_frequency') === 'daily' ? 'selected' : '' }}>Automatic Daily Data Backup</option>
+                                <option value="monthly" {{ $savedFreq === 'monthly' ? 'selected' : '' }}>Automatic Monthly Data Backup (Recommended)</option>
+                                <option value="weekly" {{ $savedFreq === 'weekly' ? 'selected' : '' }}>Automatic Weekly Data Backup</option>
+                                <option value="daily" {{ $savedFreq === 'daily' ? 'selected' : '' }}>Automatic Daily Data Backup</option>
                             </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Preferred Execution Time</label>
+                            <select name="auto_backup_time" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
+                                @for ($h = 0; $h < 24; $h++)
+                                    @php
+                                        $val = sprintf('%02d:00', $h);
+                                        $formattedTime = date('h:i A', strtotime("2026-01-01 $val"));
+                                    @endphp
+                                    <option value="{{ $val }}" {{ $savedTime === $val ? 'selected' : '' }}>
+                                        {{ $val }} ({{ $formattedTime }})
+                                    </option>
+                                @endfor
+                            </select>
+                            <span class="text-[11px] text-slate-400">Target hour of the day to generate automatic backups</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Weekly Backup Day (For Weekly Schedule)</label>
+                            <select name="auto_backup_day" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
+                                @foreach (['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as $day)
+                                    <option value="{{ $day }}" {{ $savedDay === $day ? 'selected' : '' }}>{{ $day }}</option>
+                                @endforeach
+                            </select>
+                            <span class="text-[11px] text-slate-400">Selected day of week when weekly backups run</span>
                         </div>
 
                         <div class="md:col-span-2">
@@ -1154,6 +1312,42 @@
                         </div>
                         <label class="inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" name="module_payroll" value="true" {{ $modules['module_payroll'] ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Reports & Tax Returns -->
+                    <div class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
+                        <div>
+                            <span class="block text-sm font-bold text-slate-800">Reports & Tax Returns</span>
+                            <span class="text-[11px] text-slate-500 font-medium">GSTR-1, GSTR-3B & P&L Audits</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_reports" value="true" {{ ($modules['module_reports'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Backup & Restore Hub -->
+                    <div class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
+                        <div>
+                            <span class="block text-sm font-bold text-slate-800">Backup & Restore Hub</span>
+                            <span class="text-[11px] text-slate-500 font-medium">SQL Database Snapshots</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_backups" value="true" {{ ($modules['module_backups'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Activity Audit Logs -->
+                    <div class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
+                        <div>
+                            <span class="block text-sm font-bold text-slate-800">Activity Audit Logs</span>
+                            <span class="text-[11px] text-slate-500 font-medium">Real-Time Audit Trail (Super Admin)</span>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="module_activity_logs" value="true" {{ ($modules['module_activity_logs'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
                             <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
@@ -1996,6 +2190,9 @@ window.saveModuleToggleAjax = async function(checkbox) {
             const isBom = modulesForm.querySelector('input[name="module_bom"]')?.checked;
             const isClients = modulesForm.querySelector('input[name="module_clients"]')?.checked;
             const isPayroll = modulesForm.querySelector('input[name="module_payroll"]')?.checked;
+            const isReports = modulesForm.querySelector('input[name="module_reports"]')?.checked;
+            const isBackups = modulesForm.querySelector('input[name="module_backups"]')?.checked;
+            const isActivityLogs = modulesForm.querySelector('input[name="module_activity_logs"]')?.checked;
 
             const toggleNav = (id, show) => {
                 const el = document.getElementById(id);
@@ -2012,6 +2209,9 @@ window.saveModuleToggleAjax = async function(checkbox) {
             toggleNav('sidebar-module-bom', isBom);
             toggleNav('sidebar-module-clients', isClients);
             toggleNav('sidebar-module-payroll', isPayroll);
+            toggleNav('sidebar-module-reports', isReports);
+            toggleNav('sidebar-module-backups', isBackups);
+            toggleNav('sidebar-module-activity-logs', isActivityLogs);
 
             const sectionInvBom = document.getElementById('sidebar-section-inventory-bom');
             if (sectionInvBom) {
@@ -2156,6 +2356,117 @@ async function saveModuleVisibilityAjax(e) {
             btn.innerHTML = origHtml;
         }
     }
+}
+</script>
+
+<!-- Add / Edit Category Modal Dialog -->
+<div id="categoryModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full transition-all duration-300">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 id="categoryModalTitle" class="text-base font-bold text-slate-800">Add New Category</h3>
+            <button type="button" onclick="closeCategoryModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+        </div>
+
+        <form id="categoryForm" action="" method="POST" class="ajax-form space-y-4">
+            @csrf
+            <input type="hidden" name="type" id="category_form_type" value="purchase">
+            <input type="hidden" name="key" id="category_form_key" value="">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Category Label / Name</label>
+                <input type="text" name="label" id="category_form_label" placeholder="e.g. Machine Maintenance & Spares" required
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium">
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeCategoryModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" id="categorySubmitBtn" class="btn-primary py-2.5 px-6 text-xs font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs cursor-pointer">
+                    Save Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddCategoryModal(type) {
+    const modal = document.getElementById('categoryModal');
+    const form = document.getElementById('categoryForm');
+    const title = document.getElementById('categoryModalTitle');
+    const typeInput = document.getElementById('category_form_type');
+    const keyInput = document.getElementById('category_form_key');
+    const labelInput = document.getElementById('category_form_label');
+
+    if (modal && form) {
+        form.action = "{{ route('settings.categories.store') }}";
+        if (typeInput) typeInput.value = type;
+        if (keyInput) keyInput.value = '';
+        if (labelInput) labelInput.value = '';
+        if (title) title.innerText = type === 'purchase' ? 'Add Purchase Category' : 'Add Expense Category';
+        modal.classList.remove('hidden');
+    }
+}
+
+function openEditCategoryModal(type, key, currentLabel) {
+    const modal = document.getElementById('categoryModal');
+    const form = document.getElementById('categoryForm');
+    const title = document.getElementById('categoryModalTitle');
+    const typeInput = document.getElementById('category_form_type');
+    const keyInput = document.getElementById('category_form_key');
+    const labelInput = document.getElementById('category_form_label');
+
+    if (modal && form) {
+        form.action = "{{ route('settings.categories.update') }}";
+        if (typeInput) typeInput.value = type;
+        if (keyInput) keyInput.value = key;
+        if (labelInput) labelInput.value = currentLabel;
+        if (title) title.innerText = type === 'purchase' ? 'Edit Purchase Category' : 'Edit Expense Category';
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeCategoryModal() {
+    const modal = document.getElementById('categoryModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function deleteCategorySetting(type, key, label) {
+    if (type === 'purchase' && key === 'raw_material') {
+        if (window.showToast) window.showToast('danger', "Cannot delete 'Raw Material Purchase' category! It is required for automatic inventory restock.");
+        return;
+    }
+    if (type === 'expense' && (key === 'salary' || key === 'gst_payment')) {
+        if (window.showToast) window.showToast('danger', "Cannot delete 'Salary' or 'GST Payment' categories! They are required for payroll & tax ledgers.");
+        return;
+    }
+
+    window.confirmDelete(
+        "Delete Category Option?",
+        "Are you sure you want to delete '" + label + "' from " + (type === 'purchase' ? 'Purchase' : 'Expense') + " categories?",
+        function() {
+            $.ajax({
+                url: "{{ route('settings.categories.delete') }}",
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    type: type,
+                    key: key
+                },
+                success: function(res) {
+                    if (res.success) {
+                        if (window.showToast) window.showToast('success', res.message);
+                        setTimeout(() => window.location.reload(), 600);
+                    } else {
+                        if (window.showToast) window.showToast('danger', res.message);
+                    }
+                },
+                error: function(err) {
+                    const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete category.';
+                    if (window.showToast) window.showToast('danger', msg);
+                }
+            });
+        }
+    );
 }
 </script>
 

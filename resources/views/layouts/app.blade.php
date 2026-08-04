@@ -34,6 +34,17 @@
     <link rel="stylesheet" href="{{ asset('vendor/jquery.dataTables.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/tom-select.min.css') }}">
     <style>
+        /* Global Bold Text for all Form Input Boxes across all pages */
+        input,
+        select,
+        textarea,
+        .combobox-search-input,
+        .ts-control,
+        .ts-control input,
+        .ts-control .item {
+            font-weight: 700 !important;
+        }
+
         /* TomSelect Dropdown Styling: Solid White Background & Floating Layer */
         .ts-dropdown, 
         .ts-dropdown .ts-dropdown-content,

@@ -155,7 +155,14 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::post('/settings/email', [SettingsController::class, 'updateEmailSettings'])->name('settings.email');
     Route::post('/settings/email/test', [SettingsController::class, 'sendTestEmail'])->name('settings.email.test');
     Route::post('/settings/security', [SettingsController::class, 'updateSecuritySettings'])->name('settings.security');
+    Route::post('/settings/categories/store', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
+    Route::post('/settings/categories/update', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
+    Route::post('/settings/categories/delete', [SettingsController::class, 'deleteCategory'])->name('settings.categories.delete');
     Route::post('/settings/backups/create', [SettingsController::class, 'triggerManualBackup'])->name('settings.backups.create');
     Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup'])->name('settings.backups.download');
     Route::post('/settings/backups/restore', [SettingsController::class, 'restoreBackup'])->name('settings.backups.restore');
+
+    // 14. Super-Admin User Activity Audit Logs
+    Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('activity-logs');
+    Route::get('/activity-logs/export', [\App\Http\Controllers\ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
 });

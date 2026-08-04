@@ -125,6 +125,8 @@ class PurchaseController extends Controller
             return $pur;
         });
 
+        \App\Services\AuditLogService::log('Purchases', 'created', "Logged purchase from '{$purchase->vendor_name}' for '{$purchase->item_name}' (Amount: ₹" . number_format($purchase->total_amount, 2) . ")");
+
         return response()->json([
             'success' => true,
             'message' => "Purchase record '{$purchase->item_name}' logged successfully! Stock & accounting updated.",

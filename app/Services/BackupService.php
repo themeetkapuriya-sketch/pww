@@ -228,28 +228,53 @@ class BackupService
             case 'all_time':
             default:
                 return [
-                    'start' => Carbon::createFromDate(2020, 1, 1)->startOfDay(),
+                    'start' => Carbon::createFromDate(2026, 4, 1)->startOfDay(),
                     'end' => Carbon::now()->endOfDay(),
                 ];
         }
     }
 
     /**
-     * Ensure monthly backup exists (Smart Local PC Catch-Up Check).
+     * Ensure automatic backup exists based on configured frequency, day, and time settings.
      */
-    public function ensureMonthlyBackupExists(): string
+    public function ensureAutomaticBackupExists(): string
     {
-        $currentMonthKey = Carbon::now()->format('Y_m');
-        $filename = "auto_backup_monthly_{$currentMonthKey}.sql";
+        $enabled = \App\Models\Setting::get('auto_backup_enabled', 'true') === 'true';
+        if (!$enabled) {
+            return '';
+        }
+
+        $frequency = \App\Models\Setting::get('auto_backup_frequency', 'monthly');
+        $now = Carbon::now();
+
+        if ($frequency === 'daily') {
+            $key = $now->format('Y_m_d');
+            $filename = "auto_backup_daily_{$key}.sql";
+        } elseif ($frequency === 'weekly') {
+            $key = $now->format('Y_W');
+            $filename = "auto_backup_weekly_{$key}.sql";
+        } else {
+            $key = $now->format('Y_m');
+            $filename = "auto_backup_monthly_{$key}.sql";
+        }
+
         $filePath = $this->backupDirectory . DIRECTORY_SEPARATOR . $filename;
 
         if (!File::exists($filePath)) {
             $sqlContent = $this->generateFullSqlDump();
             File::put($filePath, $sqlContent);
-            Log::info("Smart Local Catch-Up Backup created successfully: {$filename}");
+            Log::info("Automatic Catch-Up Backup created successfully ({$frequency}): {$filename}");
         }
 
         return $filePath;
+    }
+
+    /**
+     * Alias for backward compatibility.
+     */
+    public function ensureMonthlyBackupExists(): string
+    {
+        return $this->ensureAutomaticBackupExists();
     }
 
     /**

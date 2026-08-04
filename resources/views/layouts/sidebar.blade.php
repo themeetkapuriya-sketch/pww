@@ -120,7 +120,7 @@
 
             @hasPermission('page_reports')
                 <!-- Reports -->
-                <a href="{{ route('reports') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ Route::is('reports') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                <a id="sidebar-module-reports" href="{{ route('reports') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ \App\Models\Setting::get('module_reports', 'true') === 'true' ? '' : 'hidden' }} {{ Route::is('reports') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
                     <span class="sidebar-text">Reports</span>
                 </a>
@@ -128,7 +128,7 @@
 
             @hasPermission('backups_settings_manage')
                 <!-- Backup & Restore -->
-                <a href="{{ route('backup.index') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ Route::is('backup.*') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                <a id="sidebar-module-backups" href="{{ route('backup.index') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ \App\Models\Setting::get('module_backups', 'true') === 'true' ? '' : 'hidden' }} {{ Route::is('backup.*') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     <span class="sidebar-text">Backup & Restore</span>
                 </a>
@@ -139,6 +139,14 @@
                     <span class="sidebar-text">System Settings</span>
                 </a>
             @endhasPermission
+
+            @if(auth()->check() && auth()->user()->role === 'super_admin')
+                <!-- Activity Audit Logs (Super Admin Only) -->
+                <a id="sidebar-module-activity-logs" href="{{ route('activity-logs') }}" class="nav-link-item flex items-center space-x-3 px-4 py-2 rounded-xl text-sm font-semibold transition duration-150 {{ \App\Models\Setting::get('module_activity_logs', 'true') === 'true' ? '' : 'hidden' }} {{ Route::is('activity-logs*') ? 'active-nav' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <span class="sidebar-text">Activity Audit Logs</span>
+                </a>
+            @endif
         </div>
     </nav>
 </aside>

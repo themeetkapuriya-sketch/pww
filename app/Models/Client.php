@@ -14,6 +14,7 @@ class Client extends Model
         'client_email',
         'gst_number',
         'corporate_address',
+        'opening_balance',
     ];
 
     /**

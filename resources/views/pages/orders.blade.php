@@ -22,10 +22,11 @@
         }
     }
 
+    $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
     $productOptions = [];
     foreach ($finishedGoods as $g) {
         $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-        $prodLabel = $g->product_name . (($g->unit_weight_kg ?? 0) > 0 ? ' (' . number_format($g->unit_weight_kg, 3) . ' Kg)' : '') . ' (Stock: ' . number_format($g->current_stock) . ')';
+        $prodLabel = $g->product_name . (($g->unit_weight_kg ?? 0) > 0 ? ' (' . number_format($g->unit_weight_kg, 3) . ' Kg)' : '') . ($trackStockEnabled ? ' (Stock: ' . number_format($g->current_stock) . ')' : '');
         $productOptions[] = [
             'value' => $g->id,
             'label' => $prodLabel,
@@ -568,8 +569,8 @@
                 finishedGoods.forEach(g => {
                     const sel = g.id == it.product_id ? 'selected' : '';
                     const kgPrice = g.price_per_kg || (g.unit_weight_kg > 0 ? (g.selling_price / g.unit_weight_kg).toFixed(2) : 0);
-                    const weightLabel = g.unit_weight_kg > 0 ? ` (${parseFloat(g.unit_weight_kg).toFixed(3)} Kg)` : '';
-                    options += `<option value="${g.id}" data-price="${g.selling_price}" data-price-pcs="${g.selling_price}" data-price-kg="${kgPrice}" data-weight="${g.unit_weight_kg || 0}" data-uom="${g.uom || 'piece'}" ${sel}>${g.product_name}${weightLabel} (Stock: ${g.current_stock})</option>`;
+                    const stockLabel = @json($trackStockEnabled) ? ` (Stock: ${g.current_stock})` : '';
+                    options += `<option value="${g.id}" data-price="${g.selling_price}" data-price-pcs="${g.selling_price}" data-price-kg="${kgPrice}" data-weight="${g.unit_weight_kg || 0}" data-uom="${g.uom || 'piece'}" ${sel}>${g.product_name}${weightLabel}${stockLabel}</option>`;
                 });
 
                 row.innerHTML = `

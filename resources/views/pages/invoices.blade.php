@@ -41,10 +41,11 @@
         ];
     }
 
+    $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
     $invoiceRawMaterialOptions = [];
     if (isset($rawMaterials) && $rawMaterials->isNotEmpty()) {
         foreach ($rawMaterials as $rm) {
-            $rmLabel = $rm->material_name . ' (Stock: ' . number_format($rm->current_stock, 1) . ' ' . $rm->unit . ')';
+            $rmLabel = $rm->material_name . ($trackStockEnabled ? ' (Stock: ' . number_format($rm->current_stock, 1) . ' ' . $rm->unit . ')' : '');
             $invoiceRawMaterialOptions[] = [
                 'value' => 'raw_material_' . $rm->id,
                 'label' => $rmLabel,
@@ -221,7 +222,7 @@
                     @if(isset($rawMaterials) && $rawMaterials->isNotEmpty())
                         @foreach ($rawMaterials as $rm)
                             <option value="raw_material_{{ $rm->id }}" data-type="raw_material" data-price="0.00" data-price-pcs="0.00" data-price-kg="0.00" data-weight="1.000" data-uom="{{ $rm->unit ?? 'kg' }}">
-                                {{ $rm->material_name }} (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})
+                                {{ $rm->material_name }}@if(\App\Models\Setting::get('track_stock', 'true') === 'true') (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})@endif
                             </option>
                         @endforeach
                     @endif

@@ -99,7 +99,7 @@
 
         <!-- 2. Monthly Revenue -->
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50" style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);">
-            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl group-hover:scale-125 transition pointer-events-none"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-blue-100 uppercase">2. {{ date('M Y') }} Monthly Sales</span>
                 <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">
@@ -123,7 +123,7 @@
 
         <!-- 3. Outstanding Receivables -->
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-amber-500/50" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
-            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-400/10 rounded-full blur-xl group-hover:scale-125 transition pointer-events-none"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-amber-100 uppercase">3. Outstanding Receivables</span>
                 <span class="p-2 bg-white/10 text-white rounded-xl backdrop-blur-xs border border-white/10">
@@ -149,7 +149,7 @@
             $gstStatus = $currentMonthGstStatus ?? ($currentMonthGstPaid ? 'paid' : 'unpaid');
         @endphp
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border {{ $gstStatus === 'unpaid' ? 'border-rose-500/50' : 'border-emerald-500/50' }}" style="background: {{ $gstStatus === 'unpaid' ? 'linear-gradient(135deg, #be123c 0%, #9f1239 100%)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)' }};">
-            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition pointer-events-none"></div>
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold tracking-wider text-white/90 uppercase">4. {{ date('M Y') }} Net GST Liability</span>
                 @if($gstStatus === 'no_due')
@@ -182,7 +182,7 @@
                 @elseif($gstStatus === 'paid' && isset($currentMonthGstExpense) && $currentMonthGstExpense)
                     <span class="text-white font-bold">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
                 @elseif($gstStatus === 'unpaid')
-                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-white font-black underline hover:text-rose-100">Log GST Expense →</a>
+                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-white font-black underline hover:text-rose-100 relative z-10 cursor-pointer">Log GST Expense →</a>
                 @endif
             </div>
         </div>

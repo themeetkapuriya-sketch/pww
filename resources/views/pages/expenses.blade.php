@@ -9,17 +9,7 @@
     $prefillDesc = request('prefill_desc');
     $shouldShowForm = !empty($prefillCategory) || !empty($prefillAmount) || request()->has('log_gst');
 
-    $expenseOptions = [
-        ['value' => 'factory_electricity', 'label' => 'Factory Electricity', 'search' => 'factory electricity'],
-        ['value' => 'industrial_gas', 'label' => 'Industrial Gas / Consumables', 'search' => 'industrial gas consumables'],
-        ['value' => 'welding_consumables', 'label' => 'Welding Consumables', 'search' => 'welding consumables'],
-        ['value' => 'freight_transport', 'label' => 'Freight & Transport Charges', 'search' => 'freight transport charges'],
-        ['value' => 'salary', 'label' => 'Salary / Wages', 'search' => 'salary wages'],
-        ['value' => 'gst_payment', 'label' => 'GST Payment / Tax Payment', 'search' => 'gst payment tax payment'],
-        ['value' => 'administrative', 'label' => 'Administrative Expenses', 'search' => 'administrative expenses'],
-        ['value' => 'machinery_depreciation', 'label' => 'Machinery Depreciation Schedule', 'search' => 'machinery depreciation schedule'],
-        ['value' => 'others', 'label' => 'Other Expenses / Miscellaneous', 'search' => 'other expenses miscellaneous'],
-    ];
+    $expenseOptions = \App\Services\CategoryService::getExpenseComboboxOptions();
 @endphp
 <div class="space-y-6">
     <x-page-header title="Expenses Ledger" 
@@ -183,6 +173,26 @@
 </div>
 
 <script>
+    window.clearExpenseForm = function() {
+        const container = document.getElementById('expenseFormContainer');
+        if (!container) return;
+        const form = container.querySelector('form');
+        if (!form) return;
+
+        form.querySelectorAll('input, textarea, select').forEach(input => {
+            if (input.name === '_token') return;
+            if (input.type === 'date') {
+                input.value = new Date().toISOString().split('T')[0];
+            } else {
+                input.value = '';
+            }
+        });
+
+        container.querySelectorAll('.combobox-wrapper').forEach(w => {
+            if (window.ERPComboboxManager) window.ERPComboboxManager.clear(w);
+        });
+    };
+
     window.toggleInlineForm = function(containerId, btn) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -192,6 +202,10 @@
 
         const isHidden = container.classList.contains('hidden');
         if (isHidden) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('prefill_category') && !urlParams.has('prefill_amount')) {
+                window.clearExpenseForm();
+            }
             container.classList.remove('hidden');
             if (btn) {
                 btn.classList.replace('bg-blue-600', 'bg-slate-700');
@@ -206,6 +220,10 @@
                 btn.classList.replace('hover:bg-slate-800', 'hover:bg-blue-700');
                 const icon = btn.querySelector('svg');
                 if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+            window.clearExpenseForm();
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
     };
@@ -232,7 +250,7 @@
                     if (hiddenCat) {
                         hiddenCat.value = cat;
                         const wrapper = hiddenCat.closest('.combobox-wrapper');
-                        if (wrapper && typeof wrapper.syncComboboxDisplay === 'function') wrapper.syncComboboxDisplay();
+                        if (wrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(wrapper);
                     }
                 }
                 if (amt) {
@@ -277,9 +295,7 @@
         if (editCatWrapper) {
             const hidden = editCatWrapper.querySelector('.combobox-hidden-input');
             if (hidden) hidden.value = category;
-            if (typeof editCatWrapper.syncComboboxDisplay === 'function') {
-                editCatWrapper.syncComboboxDisplay();
-            }
+            if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(editCatWrapper);
         }
 
         document.getElementById('edit_amount').value = amount;

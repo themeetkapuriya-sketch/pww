@@ -53,6 +53,8 @@ class ProductController extends Controller
 
         $good = Product::create($validated);
 
+        \App\Services\AuditLogService::log('Inventory', 'created', "Cataloged new product '{$good->product_name}' (SKU: {$good->sku}) at ₹" . number_format($good->selling_price, 2));
+
         return response()->json([
             'success' => true,
             'message' => "Product '{$good->product_name}' (GST {$good->gst_rate}%) cataloged successfully!",
@@ -92,7 +94,15 @@ class ProductController extends Controller
         }
         $validated['price_per_kg'] = $request->filled('price_per_kg') ? $request->input('price_per_kg') : null;
 
+        $oldPrice = $good->selling_price;
         $good->update($validated);
+
+        $desc = "Updated product '{$good->product_name}'";
+        if ((float)$oldPrice !== (float)$good->selling_price) {
+            $desc .= " selling price from ₹" . number_format($oldPrice, 2) . " to ₹" . number_format($good->selling_price, 2);
+        }
+
+        \App\Services\AuditLogService::log('Inventory', 'updated', $desc);
 
         return response()->json([
             'success' => true,
@@ -111,6 +121,8 @@ class ProductController extends Controller
         $good = Product::findOrFail($id);
         $name = $good->product_name;
         $good->delete();
+
+        \App\Services\AuditLogService::log('Inventory', 'deleted', "Deleted product '{$name}' from catalog.");
 
         return response()->json([
             'success' => true,

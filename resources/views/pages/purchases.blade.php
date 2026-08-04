@@ -4,21 +4,14 @@
 
 @section('content')
 @php
-    $purchaseTypeOptions = [
-        ['value' => 'raw_material', 'label' => 'Raw Material Purchase (Auto-Restocks Inventory)', 'search' => 'raw material purchase auto restocks inventory'],
-        ['value' => 'office_assets', 'label' => 'Office Assets & Electronics (Mobiles, Laptops, CCTV)', 'search' => 'office assets electronics mobiles laptops cctv'],
-        ['value' => 'machinery', 'label' => 'Machinery & Capital Equipment', 'search' => 'machinery capital equipment'],
-        ['value' => 'factory_spares', 'label' => 'Machinery Spare Parts', 'search' => 'machinery spare parts'],
-        ['value' => 'supplies', 'label' => 'Factory Consumables & Tools', 'search' => 'factory consumables tools'],
-        ['value' => 'vehicle_transport', 'label' => 'Vehicle & Freight Expenses (Transport/Fuel)', 'search' => 'vehicle freight expenses transport fuel'],
-        ['value' => 'others', 'label' => 'Other Purchases / Miscellaneous', 'search' => 'other purchases miscellaneous'],
-    ];
+    $purchaseTypeOptions = \App\Services\CategoryService::getPurchaseComboboxOptions();
 
+    $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
     $rawMaterialOptions = [];
     foreach ($rawMaterials as $mat) {
         $rawMaterialOptions[] = [
             'value' => (string)$mat->id,
-            'label' => $mat->material_name . ' (Stock: ' . number_format($mat->current_stock, 1) . ' ' . $mat->unit . ')',
+            'label' => $mat->material_name . ($trackStockEnabled ? ' (Stock: ' . number_format($mat->current_stock, 1) . ' ' . $mat->unit . ')' : ''),
             'search' => strtolower($mat->material_name . ' ' . $mat->unit),
             'data' => [
                 'name' => $mat->material_name,
@@ -62,7 +55,7 @@
                             label="Purchase Category"
                             placeholder="Search or type purchase category..."
                             :options="$purchaseTypeOptions"
-                            value="raw_material"
+                            value=""
                             :allowCustom="true"
                             required />
                 <div id="rawMaterialSelectContainer">
@@ -515,69 +508,125 @@ window.closeVendorPaymentModal = function() {
                 const icon = btn.querySelector('svg');
                 if (icon) icon.style.transform = 'rotate(0deg)';
             }
+            const form = container.querySelector('form');
+            if (form) {
+                form.reset();
+                form.querySelectorAll('.combobox-wrapper').forEach(w => {
+                    if (window.ERPComboboxManager) window.ERPComboboxManager.clear(w);
+                });
+                if (typeof window.handlePurchaseTypeChange === 'function') window.handlePurchaseTypeChange();
+            }
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         }
     };
 
     window.handleRawMaterialSelectChange = function() {
-        const hiddenInp = document.getElementById('rawMaterialSelect');
+        const hiddenInp = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
         if (!hiddenInp) return;
         const wrapper = hiddenInp.closest('.combobox-wrapper');
         if (!wrapper) return;
         const val = hiddenInp.value;
         const opt = wrapper.querySelector(`.combobox-option[data-value="${CSS.escape(val)}"]`);
-        if (opt && opt.dataset.name) {
-            $('#itemNameInput').val(opt.dataset.name);
+        const itemNameInput = document.getElementById('itemNameInput');
+        const unitInput = document.getElementById('unitInput');
+        if (opt && opt.dataset.name && itemNameInput) {
+            itemNameInput.value = opt.dataset.name;
         }
-        if (opt && opt.dataset.unit) {
-            $('#unitInput').val(opt.dataset.unit);
+        if (opt && opt.dataset.unit && unitInput) {
+            unitInput.value = opt.dataset.unit;
         }
     };
 
     window.handleEditRawMaterialSelectChange = function() {
-        const hiddenInp = document.getElementById('edit_raw_material_id');
+        const hiddenInp = document.getElementById('edit_raw_material_id_hidden') || document.getElementById('edit_raw_material_id');
         if (!hiddenInp) return;
         const wrapper = hiddenInp.closest('.combobox-wrapper');
         if (!wrapper) return;
         const val = hiddenInp.value;
         const opt = wrapper.querySelector(`.combobox-option[data-value="${CSS.escape(val)}"]`);
-        if (opt && opt.dataset.name) {
-            $('#edit_item_name').val(opt.dataset.name);
+        const editItemName = document.getElementById('edit_item_name');
+        const editUnit = document.getElementById('edit_unit');
+        if (opt && opt.dataset.name && editItemName) {
+            editItemName.value = opt.dataset.name;
         }
-        if (opt && opt.dataset.unit) {
-            $('#edit_unit').val(opt.dataset.unit);
+        if (opt && opt.dataset.unit && editUnit) {
+            editUnit.value = opt.dataset.unit;
         }
     };
 
     window.handlePurchaseTypeChange = function() {
-        const hiddenInp = document.getElementById('purchaseTypeSelect');
-        const type = hiddenInp ? hiddenInp.value : 'raw_material';
-        const rmHiddenInp = document.getElementById('rawMaterialSelect');
-        const $itemNameInput = $('#itemNameInput');
-        const $quantityInput = $('#quantityInput');
-        const $unitInput = $('#unitInput');
+        const hiddenInp = document.getElementById('purchaseTypeSelect_hidden') || document.getElementById('purchaseTypeSelect');
+        const searchInp = document.getElementById('purchaseTypeSelect_search');
+        const val = (hiddenInp ? hiddenInp.value : '') || (searchInp ? searchInp.value : '');
+        const type = val.toLowerCase().trim();
+
+        const isRawMaterial = type !== '' && (type === 'raw_material' || type.includes('raw_material') || type.includes('raw material'));
+
+        const rmHiddenInp = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
+        const rmContainer = document.getElementById('rawMaterialSelectContainer');
+        const qtyUnitContainer = document.getElementById('qtyUnitContainer');
+
+        const itemNameInput = document.getElementById('itemNameInput');
+        const quantityInput = document.getElementById('quantityInput');
+        const unitInput = document.getElementById('unitInput');
 
         const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
 
-        if (type === 'raw_material') {
+        if (isRawMaterial) {
+            if (rmContainer) rmContainer.classList.remove('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
+            if (qtyUnitContainer) qtyUnitContainer.classList.remove('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
             if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) rmHiddenInp.disabled = false;
-            $quantityInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50');
-            $unitInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50');
-            $itemNameInput.prop('disabled', true).removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed').prop('required', false);
+            
+            if (quantityInput) {
+                quantityInput.disabled = false;
+                quantityInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                quantityInput.classList.add('bg-slate-50');
+            }
+            if (unitInput) {
+                unitInput.disabled = false;
+                unitInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                unitInput.classList.add('bg-slate-50');
+            }
+            if (itemNameInput) {
+                itemNameInput.disabled = true;
+                itemNameInput.required = false;
+                itemNameInput.classList.remove('bg-slate-50');
+                itemNameInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
 
             if (rmHiddenInp && rmHiddenInp.value) {
                 window.handleRawMaterialSelectChange();
             }
         } else {
+            if (rmContainer) rmContainer.classList.add('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
+            if (qtyUnitContainer) qtyUnitContainer.classList.add('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
             if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) {
                 rmHiddenInp.disabled = true;
                 rmHiddenInp.value = '';
                 if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
             }
-            $quantityInput.prop('disabled', true).val('').removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
-            $unitInput.prop('disabled', true).val('').removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
-            $itemNameInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50').prop('required', true);
+            if (quantityInput) {
+                quantityInput.disabled = true;
+                quantityInput.value = '';
+                quantityInput.classList.remove('bg-slate-50');
+                quantityInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (unitInput) {
+                unitInput.disabled = true;
+                unitInput.value = '';
+                unitInput.classList.remove('bg-slate-50');
+                unitInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (itemNameInput) {
+                itemNameInput.disabled = false;
+                itemNameInput.required = true;
+                itemNameInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.classList.add('bg-slate-50');
+            }
         }
     };
 
@@ -592,14 +641,14 @@ window.closeVendorPaymentModal = function() {
 
         form.action = "{{ url('/purchases') }}/" + id;
         
-        const ptInp = document.getElementById('edit_purchase_type');
+        const ptInp = document.getElementById('edit_purchase_type_hidden') || document.getElementById('edit_purchase_type');
         if (ptInp) {
             ptInp.value = type;
             const ptWrapper = ptInp.closest('.combobox-wrapper');
             if (ptWrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(ptWrapper);
         }
 
-        const rmInp = document.getElementById('edit_raw_material_id');
+        const rmInp = document.getElementById('edit_raw_material_id_hidden') || document.getElementById('edit_raw_material_id');
         if (rmInp) {
             rmInp.value = rawMaterialId || '';
             const rmWrapper = rmInp.closest('.combobox-wrapper');
@@ -630,21 +679,39 @@ window.closeVendorPaymentModal = function() {
     };
 
     window.handleEditPurchaseTypeChange = function() {
-        const ptInp = document.getElementById('edit_purchase_type');
-        const type = ptInp ? ptInp.value : 'raw_material';
-        const rmHiddenInp = document.getElementById('edit_raw_material_id');
-        const $itemNameInput = $('#edit_item_name');
-        const $quantityInput = $('#edit_quantity');
-        const $unitInput = $('#edit_unit');
+        const ptInp = document.getElementById('edit_purchase_type_hidden') || document.getElementById('edit_purchase_type');
+        const searchInp = document.getElementById('edit_purchase_type_search');
+        const val = (ptInp ? ptInp.value : '') || (searchInp ? searchInp.value : '');
+        const type = val.toLowerCase().trim();
+
+        const isRawMaterial = type !== '' && (type === 'raw_material' || type.includes('raw_material') || type.includes('raw material'));
+
+        const rmHiddenInp = document.getElementById('edit_raw_material_id_hidden') || document.getElementById('edit_raw_material_id');
+        const itemNameInput = document.getElementById('edit_item_name');
+        const quantityInput = document.getElementById('edit_quantity');
+        const unitInput = document.getElementById('edit_unit');
 
         const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
 
-        if (type === 'raw_material') {
+        if (isRawMaterial) {
             if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) rmHiddenInp.disabled = false;
-            $quantityInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white');
-            $unitInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white');
-            $itemNameInput.prop('disabled', true).removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed').prop('required', false);
+            if (quantityInput) {
+                quantityInput.disabled = false;
+                quantityInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                quantityInput.classList.add('bg-white');
+            }
+            if (unitInput) {
+                unitInput.disabled = false;
+                unitInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                unitInput.classList.add('bg-white');
+            }
+            if (itemNameInput) {
+                itemNameInput.disabled = true;
+                itemNameInput.required = false;
+                itemNameInput.classList.remove('bg-white');
+                itemNameInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
         } else {
             if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) {
@@ -652,9 +719,24 @@ window.closeVendorPaymentModal = function() {
                 rmHiddenInp.value = '';
                 if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
             }
-            $quantityInput.prop('disabled', true).val('').removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
-            $unitInput.prop('disabled', true).val('').removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
-            $itemNameInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white').prop('required', true);
+            if (quantityInput) {
+                quantityInput.disabled = true;
+                quantityInput.value = '';
+                quantityInput.classList.remove('bg-white');
+                quantityInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (unitInput) {
+                unitInput.disabled = true;
+                unitInput.value = '';
+                unitInput.classList.remove('bg-white');
+                unitInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (itemNameInput) {
+                itemNameInput.disabled = false;
+                itemNameInput.required = true;
+                itemNameInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.classList.add('bg-white');
+            }
         }
     };
 
@@ -663,29 +745,55 @@ window.closeVendorPaymentModal = function() {
             "Delete Purchase Record?",
             "Are you sure you want to delete purchase bill from '" + name + "'? This action cannot be undone.",
             function() {
-                $.ajax({
-                    url: "{{ url('/purchases') }}/" + id,
-                    type: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        _method: 'DELETE'
-                    },
-                    success: function(res) {
-                        if (res.success) {
-                            $('#row-pur-' + id).fadeOut(300, function() { $(this).remove(); });
-                            if (window.showToast) window.showToast('success', res.message);
+                if (typeof $ !== 'undefined') {
+                    $.ajax({
+                        url: "{{ url('/purchases') }}/" + id,
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            _method: 'DELETE'
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $('#row-pur-' + id).fadeOut(300, function() { $(this).remove(); });
+                                if (window.showToast) window.showToast('success', res.message);
+                            }
+                        },
+                        error: function(err) {
+                            const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete purchase record.';
+                            if (window.showToast) window.showToast('danger', msg);
                         }
-                    },
-                    error: function(err) {
-                        const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete purchase record.';
-                        if (window.showToast) window.showToast('danger', msg);
-                    }
-                });
+                    });
+                }
             }
         );
     };
 
-    $(document).ready(function() {
+    document.addEventListener('change', function(e) {
+        if (e.target && (e.target.id === 'purchaseTypeSelect_hidden' || e.target.id === 'purchaseTypeSelect_search' || e.target.id === 'purchaseTypeSelect')) {
+            window.handlePurchaseTypeChange();
+        }
+        if (e.target && (e.target.id === 'rawMaterialSelect_hidden' || e.target.id === 'rawMaterialSelect_search' || e.target.id === 'rawMaterialSelect')) {
+            window.handleRawMaterialSelectChange();
+        }
+        if (e.target && (e.target.id === 'edit_purchase_type_hidden' || e.target.id === 'edit_purchase_type_search' || e.target.id === 'edit_purchase_type')) {
+            window.handleEditPurchaseTypeChange();
+        }
+        if (e.target && (e.target.id === 'edit_raw_material_id_hidden' || e.target.id === 'edit_raw_material_id_search' || e.target.id === 'edit_raw_material_id')) {
+            window.handleEditRawMaterialSelectChange();
+        }
+    });
+
+    document.addEventListener('input', function(e) {
+        if (e.target && (e.target.id === 'purchaseTypeSelect_search' || e.target.id === 'purchaseTypeSelect')) {
+            window.handlePurchaseTypeChange();
+        }
+        if (e.target && (e.target.id === 'edit_purchase_type_search' || e.target.id === 'edit_purchase_type')) {
+            window.handleEditPurchaseTypeChange();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
         window.handlePurchaseTypeChange();
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -696,42 +804,44 @@ window.closeVendorPaymentModal = function() {
                 formContainer.scrollIntoView({ behavior: 'smooth' });
             }
             if (urlParams.has('material_id')) {
-                const matSelect = document.getElementById('rawMaterialSelect');
+                const matSelect = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
                 if (matSelect) {
                     matSelect.value = urlParams.get('material_id');
-                    $(matSelect).trigger('change');
+                    matSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     });
+
     window.submitVendorPayment = function(e) {
         e.preventDefault();
         const purId = document.getElementById('modalPurchaseId').value;
         const formData = new FormData(e.target);
-        const token = $('meta[name="csrf-token"]').attr('content') || '';
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-        $.ajax({
-            url: `/purchases/${purId}/record-payment`,
+        fetch(`/purchases/${purId}/record-payment`, {
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
+            body: formData,
             headers: {
                 'X-CSRF-TOKEN': token,
                 'Accept': 'application/json'
-            },
-            success: async function(response) {
-                closeVendorPaymentModal();
-                if (window.showToast) {
-                    window.showToast('success', response.message || 'Vendor payment recorded successfully!');
-                }
-                await window.loadPage(window.location.href);
-            },
-            error: function(xhr) {
-                const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to record vendor payment.';
-                alert(msg);
             }
+        })
+        .then(res => res.json())
+        .then(async response => {
+            closeVendorPaymentModal();
+            if (window.showToast) {
+                window.showToast('success', response.message || 'Vendor payment recorded successfully!');
+            }
+            if (window.loadPage) {
+                await window.loadPage(window.location.href);
+            } else {
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            alert('Failed to record vendor payment.');
         });
     };
 </script>

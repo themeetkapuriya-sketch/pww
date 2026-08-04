@@ -218,6 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
                 executeScripts($('#page-content')[0]);
                 window.initErpDataTables();
+                if (window.ERPComboboxManager) {
+                    document.querySelectorAll('.combobox-wrapper').forEach(w => window.ERPComboboxManager.syncDisplay(w));
+                }
             } catch (err) {
                 console.error('SPA load error:', err);
                 window.location.href = url;

@@ -38,7 +38,7 @@ class ClientController extends Controller
 
         switch ($period) {
             case 'all':
-                $startDate = '2020-01-01';
+                $startDate = '2026-04-01';
                 $endDate = Carbon::now()->toDateString();
                 break;
             case 'month':
@@ -105,6 +105,7 @@ class ClientController extends Controller
             'client_email' => 'required|email|max:255',
             'gst_number' => 'required|string|max:50',
             'corporate_address' => 'required|string',
+            'opening_balance' => 'nullable|numeric|min:0',
             'create_primary_plant' => 'nullable|boolean',
             'plant_name' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:100',
@@ -128,6 +129,7 @@ class ClientController extends Controller
             'client_email' => $validated['client_email'],
             'gst_number' => $validated['gst_number'],
             'corporate_address' => $validated['corporate_address'],
+            'opening_balance' => (float) ($validated['opening_balance'] ?? 0),
         ];
 
         $shouldCreatePlant = $request->boolean('create_primary_plant', true);
@@ -160,6 +162,7 @@ class ClientController extends Controller
                     'state' => $state,
                     'gst_number' => $plantGst,
                     'shipping_address' => $shippingAddress,
+                    'opening_balance' => (float) ($validated['opening_balance'] ?? 0),
                 ]);
             }
         });
@@ -185,6 +188,7 @@ class ClientController extends Controller
             'client_email' => 'required|email|max:255',
             'gst_number' => 'required|string|max:50',
             'corporate_address' => 'required|string',
+            'opening_balance' => 'nullable|numeric|min:0',
         ]);
 
         $client->update($validated);
@@ -229,6 +233,7 @@ class ClientController extends Controller
             'gst_number' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'shipping_address' => 'required|string',
+            'opening_balance' => 'nullable|numeric|min:0',
         ]);
 
         $state = $validated['state'];
@@ -275,6 +280,7 @@ class ClientController extends Controller
             'gst_number' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'shipping_address' => 'required|string',
+            'opening_balance' => 'nullable|numeric|min:0',
         ]);
 
         $state = $validated['state'];

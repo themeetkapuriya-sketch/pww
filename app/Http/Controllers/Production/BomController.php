@@ -42,6 +42,13 @@ class BomController extends Controller
                 'waste_percentages.*' => 'required|numeric|min:0',
             ]);
 
+            // If full formula edit mode, remove components that were deleted from the form
+            if ($request->input('replace_mode') == '1' || $request->boolean('replace_mode')) {
+                BillOfMaterial::where('product_id', $validated['product_id'])
+                    ->whereNotIn('raw_material_id', array_filter($validated['raw_material_ids']))
+                    ->delete();
+            }
+
             $savedCount = 0;
             foreach ($validated['raw_material_ids'] as $idx => $matId) {
                 if (empty($matId)) continue;
@@ -64,7 +71,7 @@ class BomController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully assigned {$savedCount} BOM raw material components!",
+                'message' => "Successfully saved {$savedCount} BOM raw material components!",
             ]);
         }
 

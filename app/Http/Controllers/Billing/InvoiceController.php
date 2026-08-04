@@ -251,6 +251,7 @@ class InvoiceController extends Controller
                     $invoice->items()->delete();
 
                     $invoice->update([
+                        'sales_order_id' => $validated['sales_order_id'] ?? null,
                         'plant_id' => $plantId,
                         'invoice_mode' => $invMode,
                         'custom_client_name' => $customClientName,
@@ -272,6 +273,7 @@ class InvoiceController extends Controller
                     $initialPaidAmount = $trackPayments ? 0.00 : $total;
 
                     $invoice = Invoice::create([
+                        'sales_order_id' => $validated['sales_order_id'] ?? null,
                         'plant_id' => $plantId,
                         'invoice_mode' => $invMode,
                         'custom_client_name' => $customClientName,
@@ -323,16 +325,19 @@ class InvoiceController extends Controller
                     }
                 }
 
-                if (!empty($validated['sales_order_id'])) {
-                    SalesOrder::where('id', $validated['sales_order_id'])->update(['status' => 'dispatched']);
+                // Update sales order status if linked
+                if ($invoice->sales_order_id) {
+                    SalesOrder::where('id', $invoice->sales_order_id)->update(['status' => 'dispatched']);
                 }
+
+                \App\Services\AuditLogService::log('Invoices', $invoiceId ? 'updated' : 'created', "Logged Invoice #{$invoice->invoice_number} (Amount: ₹" . number_format($invoice->total_amount, 2) . ")");
 
                 return $invoice;
             });
 
             return response()->json([
                 'success' => true,
-                'message' => "Custom Tax Invoice '{$invoice->invoice_number}' logged successfully!",
+                'message' => $invoiceId ? "Invoice #{$finalInvoiceNumber} updated successfully!" : "Custom Tax Invoice '{$invoice->invoice_number}' logged successfully!",
                 'data' => $invoice
             ]);
         } catch (Exception $e) {
@@ -484,7 +489,7 @@ class InvoiceController extends Controller
             $invoice = Invoice::with('items')->findOrFail($id);
             $invNum = $invoice->invoice_number;
 
-            DB::transaction(function () use ($invoice) {
+            DB::transaction(function () use ($invoice, $invNum) {
                 Payment::where('invoice_id', $invoice->id)->delete();
                 foreach ($invoice->items as $item) {
                     if ($item->item_type === 'raw_material' && $item->raw_material_id) {
@@ -501,6 +506,8 @@ class InvoiceController extends Controller
                 }
                 $invoice->items()->delete();
                 $invoice->delete();
+
+                \App\Services\AuditLogService::log('Invoices', 'deleted', "Deleted Invoice #{$invNum} and restored items stock");
             });
 
             return response()->json([

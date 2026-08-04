@@ -16,6 +16,7 @@ class ClientPlant extends Model
         'state',
         'gst_number',
         'email',
+        'opening_balance',
     ];
 
     /**

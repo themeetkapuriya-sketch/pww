@@ -203,6 +203,7 @@ Tax invoices, line items, and payment collections.
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | BigInt | Primary Key | Invoice ID |
+| `sales_order_id` | BigInt | FK -> `sales_orders.id` (NullOnDelete) | Linked Sales Order |
 | `invoice_number` | Varchar(100) | Unique | Tax Invoice Number (e.g. PWW-0001) |
 | `invoice_mode` | Varchar(50) | Default: 'finished_goods' | Mode (`finished_goods`, `raw_material`) |
 | `plant_id` | BigInt | FK -> `client_plants.id` | Delivery Plant |
@@ -217,3 +218,24 @@ Tax invoices, line items, and payment collections.
 | `payment_status` | Varchar(50) | Default: 'unpaid' | Status (`unpaid`, `partial`, `paid`) |
 
 - **Local Scopes**: `scopePaid()`, `scopeUnpaid()`, `scopePartial()`
+
+---
+
+### 10. `activity_logs` (Model: `App\Models\ActivityLog`)
+Super-admin security audit trail and system action logs.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key, Auto Increment | Unique Log Entry ID |
+| `user_id` | BigInt | FK -> `users.id` (NullOnDelete) | User ID who performed action |
+| `user_name` | Varchar(255) | Default: 'System' | User Name cached for audit durability |
+| `user_role` | Varchar(50) | Default: 'system' | User Role (`super_admin`, `admin`, `staff`, etc.) |
+| `module` | Varchar(100) | Indexed | Target Module (`Invoices`, `Purchases`, `Inventory`, `Expenses`, `Payroll`, `Settings`, `Auth`) |
+| `action` | Varchar(50) | Indexed | Action Type (`created`, `updated`, `deleted`, `login`, `logout`, `security`) |
+| `description` | Text | Not Null | Detailed human-readable action log |
+| `changes` | JSON | Nullable | Optional before/after payload array |
+| `ip_address` | Varchar(45) | Nullable | Client IP Address |
+| `user_agent` | Text | Nullable | Client Browser / Device User Agent |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+

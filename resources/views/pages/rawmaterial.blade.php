@@ -39,14 +39,26 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit</label>
-                    <select id="mat_unit" name="unit" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                        <option value="kg" selected>kg (Kilograms)</option>
-                        <option value="liter">liter (Liters)</option>
-                        <option value="meter">meter (Meters)</option>
-                        <option value="packet">packet (Packets)</option>
-                    </select>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit (UOM)</label>
+                    <input type="text" id="mat_unit" name="unit" list="raw_material_uom_list" placeholder="e.g. kg, meter, piece, roll, sq ft" required
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    <datalist id="raw_material_uom_list">
+                        <option value="kg">Kilograms (kg)</option>
+                        <option value="gram">Grams (g)</option>
+                        <option value="tonne">Metric Tonne (MT)</option>
+                        <option value="liter">Liters (L)</option>
+                        <option value="meter">Meters (m)</option>
+                        <option value="feet">Feet (ft)</option>
+                        <option value="sq ft">Square Feet (sq ft)</option>
+                        <option value="piece">Pieces (pcs)</option>
+                        <option value="nos">Numbers (nos)</option>
+                        <option value="packet">Packets (pkt)</option>
+                        <option value="box">Boxes (box)</option>
+                        <option value="bundle">Bundles (bdl)</option>
+                        <option value="roll">Rolls (roll)</option>
+                        <option value="bag">Bags (bag)</option>
+                        <option value="sheet">Sheets (sht)</option>
+                    </datalist>
                 </div>
             </div>
 
@@ -90,10 +102,14 @@
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
                         <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name</th>
-                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
-                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
+                        @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
+                        @endif
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Purchase Price</th>
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
+                        @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
+                        @endif
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
                     </tr>
                 </thead>
@@ -103,16 +119,20 @@
                         <tr class="hover:bg-slate-50 transition" id="row-mat-{{ $mat->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $mat->material_name }}</td>
-                            <td class="px-6 py-4 text-right font-medium text-slate-700">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
-                            <td class="px-6 py-4 text-right text-slate-500">{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
+                            @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                                <td class="px-6 py-4 text-right font-medium text-slate-700">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
+                                <td class="px-6 py-4 text-right text-slate-500">{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
+                            @endif
                             <td class="px-6 py-4 text-right text-slate-700">₹{{ number_format($mat->average_purchase_price, 2) }}</td>
-                            <td class="px-6 py-4 text-center">
-                                @if ($isLow)
-                                    <span class="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] rounded font-bold uppercase tracking-wider animate-pulse">Low Stock</span>
-                                @else
-                                    <span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">OK</span>
-                                @endif
-                            </td>
+                            @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                                <td class="px-6 py-4 text-center">
+                                    @if ($isLow)
+                                        <span class="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] rounded font-bold uppercase tracking-wider animate-pulse">Low Stock</span>
+                                    @else
+                                        <span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">OK</span>
+                                    @endif
+                                </td>
+                            @endif
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <button type="button" 

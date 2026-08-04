@@ -82,7 +82,7 @@ class FinancialService
         $client = Client::with('plants')->findOrFail($clientId);
         $selectedPlant = $plantId ? ClientPlant::where('client_id', $clientId)->find($plantId) : null;
 
-        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::parse('2020-01-01')->startOfDay();
+        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::parse('2026-04-01')->startOfDay();
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         // 1. Calculate opening balance prior to $start date
@@ -112,7 +112,11 @@ class FinancialService
         }
         $priorPaymentsSum = $priorPaymentsQuery->sum('amount');
 
-        $openingBalance = max(0.00, round($priorInvoicesSum - $priorPaymentsSum, 2));
+        $baseOpening = $selectedPlant 
+            ? (float) ($selectedPlant->opening_balance ?? 0)
+            : (float) ($client->plants->sum('opening_balance') + ($client->opening_balance ?? 0));
+
+        $openingBalance = max(0.00, round($baseOpening + $priorInvoicesSum - $priorPaymentsSum, 2));
 
         // 2. Fetch invoices within date range
         $invoicesQuery = Invoice::with(['items.product', 'plant'])->where(function ($q) use ($clientId, $selectedPlant) {

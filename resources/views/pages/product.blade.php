@@ -53,8 +53,20 @@
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Primary Unit)</label>
-                    <input type="text" id="good_uom" name="uom" placeholder="e.g. piece, kg, box" value="piece" required
+                    <input type="text" id="good_uom" name="uom" list="product_uom_list" placeholder="e.g. piece, set, box, kg" value="piece" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    <datalist id="product_uom_list">
+                        <option value="piece">Pieces (pcs)</option>
+                        <option value="nos">Numbers (nos)</option>
+                        <option value="set">Sets (set)</option>
+                        <option value="box">Boxes (box)</option>
+                        <option value="kg">Kilograms (kg)</option>
+                        <option value="meter">Meters (m)</option>
+                        <option value="bundle">Bundles (bdl)</option>
+                        <option value="pair">Pairs (pr)</option>
+                        <option value="packet">Packets (pkt)</option>
+                        <option value="carton">Cartons (ctn)</option>
+                    </datalist>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Unit Weight (Kg/Pcs)</label>
@@ -111,7 +123,9 @@
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">UOM</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Unit Weight</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">GST Rate</th>
-                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
+                        @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
+                        @endif
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Prices</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
                     </tr>
@@ -126,7 +140,9 @@
                             <td class="px-6 py-4 text-center text-slate-600 capitalize text-xs font-semibold">{{ $good->uom }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ number_format($good->unit_weight_kg, 3) }} kg</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs font-semibold">{{ number_format($good->gst_rate, 0) }}%</td>
-                            <td class="px-6 py-4 text-right font-bold text-blue-700 font-mono text-xs">{{ number_format($good->current_stock) }} {{ $good->uom }}</td>
+                            @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                                <td class="px-6 py-4 text-right font-bold text-blue-700 font-mono text-xs">{{ number_format($good->current_stock) }} {{ $good->uom }}</td>
+                            @endif
                             <td class="px-6 py-4 text-right text-slate-800 font-mono text-xs">
                                 <span class="font-bold">₹{{ number_format($good->selling_price, 2) }}</span>/pcs
                                 @if(!empty($good->price_per_kg))

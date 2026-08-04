@@ -39,7 +39,7 @@ class ReportController extends Controller
 
         switch ($period) {
             case 'all':
-                $startDate = '2020-01-01';
+                $startDate = '2026-04-01';
                 $endDate = Carbon::now()->toDateString();
                 break;
             case 'month':

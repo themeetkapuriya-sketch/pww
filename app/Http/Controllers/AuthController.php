@@ -117,6 +117,8 @@ class AuthController extends Controller
             $request->session()->regenerate();
             RateLimiter::clear($throttleKey);
 
+            \App\Services\AuditLogService::log('Auth', 'login', "User '{$user->name}' logged in successfully.");
+
             $redirectUrl = route('overview');
 
             return response()->json([
@@ -140,6 +142,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        \App\Services\AuditLogService::log('Auth', 'logout', "User logged out.");
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

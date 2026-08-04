@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\BackupService;
+use App\Services\CategoryService;
 use App\Services\RolePermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Throwable;
 
 class SettingsController extends Controller
@@ -46,6 +48,9 @@ class SettingsController extends Controller
             'module_inventory' => Setting::get('module_inventory', 'true') === 'true',
             'module_payroll' => Setting::get('module_payroll', 'true') === 'true',
             'module_expenses' => Setting::get('module_expenses', 'true') === 'true',
+            'module_reports' => Setting::get('module_reports', 'true') === 'true',
+            'module_backups' => Setting::get('module_backups', 'true') === 'true',
+            'module_activity_logs' => Setting::get('module_activity_logs', 'true') === 'true',
             'track_stock' => Setting::get('track_stock', 'true') === 'true',
             'track_payments' => Setting::get('track_payments', 'true') === 'true',
         ];
@@ -92,6 +97,9 @@ class SettingsController extends Controller
                 'module_inventory',
                 'module_payroll',
                 'module_expenses',
+                'module_reports',
+                'module_backups',
+                'module_activity_logs',
                 'track_stock',
                 'track_payments',
             ];
@@ -100,6 +108,8 @@ class SettingsController extends Controller
                 $isSet = $request->has($key) ? 'true' : 'false';
                 Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
             }
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated ERP module visibility & feature toggles matrix");
 
             return $this->respond($request, true, 'Active ERP module visibility updated successfully! Sidebar navigation updated.');
         } catch (Throwable $e) {
@@ -142,6 +152,8 @@ class SettingsController extends Controller
                 'permissions' => $permissions,
             ]);
 
+            \App\Services\AuditLogService::log('Settings', 'created', "Created user account '{$user->name}' ({$user->email}, Role: {$user->role})");
+
             return $this->respond($request, true, "User account for '{$user->name}' created successfully!");
         } catch (Throwable $e) {
             Log::error("Failed to create user account: " . $e->getMessage());
@@ -166,6 +178,8 @@ class SettingsController extends Controller
             $user->is_active = true;
             $user->permissions = RolePermissionService::getDefaultPermissionsForRole($validated['role']);
             $user->save();
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Approved pending user account '{$user->name}' as " . ucfirst(str_replace('_', ' ', $user->role)));
 
             return $this->respond($request, true, "User account '{$user->name}' has been approved successfully as " . ucfirst(str_replace('_', ' ', $user->role)) . "!");
         } catch (Throwable $e) {
@@ -194,6 +208,8 @@ class SettingsController extends Controller
             $user->status = $newStatus;
             $user->is_active = ($newStatus === 'active');
             $user->save();
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Toggled user account '{$user->name}' status to " . strtoupper($newStatus));
 
             return $this->respond($request, true, "User account '{$user->name}' is now " . strtoupper($newStatus) . ".");
         } catch (Throwable $e) {
@@ -717,6 +733,8 @@ class SettingsController extends Controller
             'session_timeout_minutes' => 'required|integer|min:15|max:1440',
             'auto_backup_enabled' => 'nullable|string|in:true,false',
             'auto_backup_frequency' => 'required|string|in:daily,weekly,monthly',
+            'auto_backup_time' => 'required|string',
+            'auto_backup_day' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -727,11 +745,132 @@ class SettingsController extends Controller
             Setting::set('session_timeout_minutes', (string) $request->session_timeout_minutes);
             Setting::set('auto_backup_enabled', $request->has('auto_backup_enabled') ? 'true' : 'false');
             Setting::set('auto_backup_frequency', $request->auto_backup_frequency);
+            Setting::set('auto_backup_time', $request->auto_backup_time);
+            Setting::set('auto_backup_day', $request->auto_backup_day);
 
             return $this->respond($request, true, 'Security & backup schedule preferences saved successfully!');
         } catch (Throwable $e) {
             Log::error("Failed to update security settings: " . $e->getMessage());
             return $this->respond($request, false, 'Failed to update security settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add Purchase / Expense Category.
+     */
+    public function storeCategory(Request $request)
+    {
+        $type = $request->input('type', 'purchase'); // purchase or expense
+        $label = trim($request->input('label'));
+
+        if (empty($label)) {
+            return $this->respond($request, false, 'Category label cannot be empty!');
+        }
+
+        $key = Str::slug($label, '_');
+
+        if ($type === 'purchase') {
+            $categories = CategoryService::getPurchaseCategories();
+            foreach ($categories as $cat) {
+                if (strtolower($cat['label']) === strtolower($label) || $cat['key'] === $key) {
+                    return $this->respond($request, false, "Purchase category '{$label}' already exists!");
+                }
+            }
+            $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
+            CategoryService::savePurchaseCategories($categories);
+            \App\Services\AuditLogService::log('Settings', 'created', "Created new purchase category '{$label}'");
+            return $this->respond($request, true, "Purchase category '{$label}' created successfully!");
+        } else {
+            $categories = CategoryService::getExpenseCategories();
+            foreach ($categories as $cat) {
+                if (strtolower($cat['label']) === strtolower($label) || $cat['key'] === $key) {
+                    return $this->respond($request, false, "Expense category '{$label}' already exists!");
+                }
+            }
+            $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
+            CategoryService::saveExpenseCategories($categories);
+            \App\Services\AuditLogService::log('Settings', 'created', "Created new expense category '{$label}'");
+            return $this->respond($request, true, "Expense category '{$label}' created successfully!");
+        }
+    }
+
+    /**
+     * Update Purchase / Expense Category Label.
+     */
+    public function updateCategory(Request $request)
+    {
+        $type = $request->input('type', 'purchase');
+        $key = $request->input('key');
+        $newLabel = trim($request->input('label'));
+
+        if (empty($newLabel)) {
+            return $this->respond($request, false, 'Category label cannot be empty!');
+        }
+
+        if ($type === 'purchase') {
+            $categories = CategoryService::getPurchaseCategories();
+            $updated = false;
+            foreach ($categories as &$cat) {
+                if ($cat['key'] === $key) {
+                    $cat['label'] = $newLabel;
+                    $updated = true;
+                    break;
+                }
+            }
+            if ($updated) {
+                CategoryService::savePurchaseCategories($categories);
+                \App\Services\AuditLogService::log('Settings', 'updated', "Updated purchase category key '{$key}' label to '{$newLabel}'");
+                return $this->respond($request, true, 'Purchase category updated successfully!');
+            }
+        } else {
+            $categories = CategoryService::getExpenseCategories();
+            $updated = false;
+            foreach ($categories as &$cat) {
+                if ($cat['key'] === $key) {
+                    $cat['label'] = $newLabel;
+                    $updated = true;
+                    break;
+                }
+            }
+            if ($updated) {
+                CategoryService::saveExpenseCategories($categories);
+                \App\Services\AuditLogService::log('Settings', 'updated', "Updated expense category key '{$key}' label to '{$newLabel}'");
+                return $this->respond($request, true, 'Expense category updated successfully!');
+            }
+        }
+
+        return $this->respond($request, false, 'Category not found.');
+    }
+
+    /**
+     * Delete Purchase / Expense Category (Enforces System Protection Rules).
+     */
+    public function deleteCategory(Request $request)
+    {
+        $type = $request->input('type', 'purchase');
+        $key = $request->input('key');
+
+        // MANDATORY SYSTEM CATEGORY PROTECTION RULES
+        if ($type === 'purchase' && $key === 'raw_material') {
+            return $this->respond($request, false, "Cannot delete 'Raw Material Purchase' category! It is a mandatory system category required for automatic inventory restock.");
+        }
+
+        if ($type === 'expense' && ($key === 'salary' || $key === 'gst_payment')) {
+            return $this->respond($request, false, "Cannot delete 'Salary' or 'GST Payment' categories! They are mandatory system categories required for payroll and tax ledgers.");
+        }
+
+        if ($type === 'purchase') {
+            $categories = CategoryService::getPurchaseCategories();
+            $filtered = array_values(array_filter($categories, fn($cat) => $cat['key'] !== $key));
+            CategoryService::savePurchaseCategories($filtered);
+            \App\Services\AuditLogService::log('Settings', 'deleted', "Deleted purchase category key '{$key}'");
+            return $this->respond($request, true, 'Purchase category deleted successfully!');
+        } else {
+            $categories = CategoryService::getExpenseCategories();
+            $filtered = array_values(array_filter($categories, fn($cat) => $cat['key'] !== $key));
+            CategoryService::saveExpenseCategories($filtered);
+            \App\Services\AuditLogService::log('Settings', 'deleted', "Deleted expense category key '{$key}'");
+            return $this->respond($request, true, 'Expense category deleted successfully!');
         }
     }
 

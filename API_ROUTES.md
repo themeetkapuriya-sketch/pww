@@ -103,3 +103,17 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/employees` | `POST` | `EmployeeController@storeEmployee` | Inline | `employees.store` | JSON (200 / 422) |
 | `/employees/{id}` | `PUT` | `EmployeeController@updateEmployee` | Inline | `employees.update` | JSON (200 / 422) |
 | `/employees/{id}` | `DELETE` | `EmployeeController@deleteEmployee` | - | `employees.delete` | JSON (200) |
+
+#### ⚙️ Settings & Categories (`SettingsController`)
+| URI | Method | Handler | Form Request Validator | Route Name | Response |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/settings/categories/store` | `POST` | `SettingsController@storeCategory` | Inline | `settings.categories.store` | JSON (200 / 422) |
+| `/settings/categories/update` | `POST` | `SettingsController@updateCategory` | Inline | `settings.categories.update` | JSON (200 / 422) |
+| `/settings/categories/delete` | `POST` | `SettingsController@deleteCategory` | Inline | `settings.categories.delete` | JSON (200 / 422) |
+
+#### 🛡️ Super-Admin Activity Audit Logs (`ActivityLogController`)
+| URI | Method | Handler | Form Request Validator | Route Name | Response |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/activity-logs` | `GET` | `ActivityLogController@index` | SuperAdminCheck | `activity-logs` | HTML View (Super Admin) |
+| `/activity-logs/export` | `GET` | `ActivityLogController@exportCsv` | SuperAdminCheck | `activity-logs.export` | CSV Stream Download |
+

@@ -20,8 +20,9 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 | **10** | **Clients & Plants** | Client & Factory Delivery Locations | Add clients, GSTIN numbers, and shipping plant sites |
 | **11** | **Employees** | Staff Profiles & Wages | Add welders/helpers & configure piece-rates |
 | **12** | **Reports** | Audits, GSTR Tax Returns & P&L | Track GSTR-1, GSTR-3B tax & download CSV/PDF |
-| **13** | **Settings Hub** | User Matrix & Module Visibility | Control system user access & toggle active modules |
+| **13** | **Settings Hub** | User Matrix & Category Manager | Control user access, category options & backup schedules |
 | **14** | **Backup & Restore** | Database Safety Snapshots | Create manual SQL backups or restore snapshots |
+| **15** | **Activity Audit Logs** | Security Audit Trail (Super Admin) | Monitor all system actions, price edits & export CSV |
 
 ---
 
