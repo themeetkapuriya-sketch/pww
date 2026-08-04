@@ -32,7 +32,7 @@ class PurchaseController extends Controller
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
-            'purchase_type' => 'required|in:raw_material,office_assets,machinery,factory_spares,supplies,vehicle_transport,others',
+            'purchase_type' => 'required|string|max:100',
             'raw_material_id' => 'nullable|exclude_unless:purchase_type,raw_material|required_if:purchase_type,raw_material|exists:raw_materials,id',
             'item_name' => 'nullable|string|max:255',
             'quantity' => 'nullable|numeric|min:0.0001',
@@ -142,7 +142,7 @@ class PurchaseController extends Controller
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
             'vendor_name' => 'required|string|max:255',
-            'purchase_type' => 'required|in:raw_material,office_assets,machinery,factory_spares,supplies,vehicle_transport,others',
+            'purchase_type' => 'required|string|max:100',
             'raw_material_id' => 'nullable|exclude_unless:purchase_type,raw_material|required_if:purchase_type,raw_material|exists:raw_materials,id',
             'item_name' => 'nullable|string|max:255',
             'quantity' => 'nullable|numeric|min:0.0001',

@@ -237,8 +237,12 @@ $indianStates = [
                                     </span>
                                 @endif
                             </div>
-                            <div class="flex flex-wrap items-center gap-x-4 text-xs text-slate-500 font-mono mt-1.5">
-                                <span>Main GSTIN: <span class="font-bold text-slate-700">{{ $c->gst_number }}</span></span>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 font-mono mt-1.5">
+                            <span>Main GSTIN: <span class="font-bold text-slate-700">{{ $c->gst_number }}</span></span>
+                            @if(!empty($c->client_email))
+                                <span class="text-slate-300">|</span>
+                                <span class="font-sans">Email: <a href="mailto:{{ $c->client_email }}" class="font-bold text-blue-600 hover:underline">{{ $c->client_email }}</a></span>
+                            @endif
                             <span class="text-slate-300">|</span>
                             <span>Outstanding Dues: <span class="font-bold font-mono {{ $c->outstanding_balance > 0 ? 'text-amber-600' : 'text-emerald-600' }}">₹{{ number_format($c->outstanding_balance, 2) }}</span></span>
                         </div>

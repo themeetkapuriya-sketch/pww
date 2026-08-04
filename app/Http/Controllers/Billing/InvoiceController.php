@@ -96,7 +96,9 @@ class InvoiceController extends Controller
             'gst_rate' => 'nullable|numeric|min:0|max:100',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
-            'vehicle_number' => ['required', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i'],
+            'vehicle_number' => ($invMode === 'raw_material'
+                ? ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']
+                : ['required', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']),
             'due_date' => 'nullable|date',
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'required',
@@ -225,7 +227,7 @@ class InvoiceController extends Controller
                     $finalInvoiceNumber = $validated['invoice_number'];
                 }
 
-                $trackStock = (\App\Models\Setting::get('track_stock', 'true') === 'true') && (\App\Models\Setting::get('module_inventory', 'true') === 'true');
+                $trackStock = in_array(strtolower((string)\App\Models\Setting::get('track_stock', 'true')), ['true', '1', 'yes', 'on'], true);
 
                 if ($invoiceId) {
                     $invoice = Invoice::findOrFail($invoiceId);
@@ -233,12 +235,12 @@ class InvoiceController extends Controller
                     // Restore stock before updating if stock tracking is enabled
                     if ($trackStock) {
                         foreach ($invoice->items as $oldItem) {
-                            if ($oldItem->item_type === 'raw_material' && $oldItem->raw_material_id) {
+                            if (!empty($oldItem->raw_material_id)) {
                                 $rm = RawMaterial::find($oldItem->raw_material_id);
                                 if ($rm) {
                                     $rm->increment('current_stock', (float)$oldItem->quantity);
                                 }
-                            } else if ($oldItem->product_id) {
+                            } else if (!empty($oldItem->product_id)) {
                                 $product = Product::find($oldItem->product_id);
                                 if ($product) {
                                     $product->increment('current_stock', (float)$oldItem->quantity);
@@ -307,12 +309,12 @@ class InvoiceController extends Controller
 
                     // Automatically deduct inventory stock upon sale if stock tracking is enabled
                     if ($trackStock) {
-                        if ($itemData['type'] === 'raw_material' && $itemData['raw_material_id']) {
+                        if (!empty($itemData['raw_material_id'])) {
                             $rm = RawMaterial::find($itemData['raw_material_id']);
                             if ($rm) {
                                 $rm->decrement('current_stock', $qty);
                             }
-                        } else if ($itemData['product_id']) {
+                        } else if (!empty($itemData['product_id'])) {
                             $product = Product::find($itemData['product_id']);
                             if ($product) {
                                 $product->decrement('current_stock', $qty);

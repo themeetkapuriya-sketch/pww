@@ -125,7 +125,7 @@ class ProductionController extends Controller
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity_manufactured' => 'required|integer|min:1',
-            'quantity_rejected' => 'required|integer|min:0',
+            'quantity_rejected' => 'nullable|integer|min:0',
             'recorded_by' => 'nullable|exists:users,id',
             'production_date' => 'required|date',
             'labor' => 'nullable|array',

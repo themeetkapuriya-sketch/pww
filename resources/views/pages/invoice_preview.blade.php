@@ -291,13 +291,13 @@
                 <!-- From -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
-                    <input type="text" readonly value="{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }} <no-reply@pww.com>" class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 focus:outline-none">
+                    <input type="text" readonly value="{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }} <{{ \App\Models\Setting::get('business_email', config('mail.from.address', 'no-reply@pww.com')) }}>" class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 focus:outline-none">
                 </div>
 
                 <!-- To -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To <span class="text-rose-500">*</span></label>
-                    <input type="email" name="recipient_email" required value="{{ $client->email ?? '' }}" placeholder="client@company.com" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
+                    <input type="email" name="recipient_email" required value="{{ $client->client_email ?? ($client->email ?? '') }}" placeholder="client@company.com" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
                 </div>
 
                 <!-- Subject -->
@@ -309,7 +309,7 @@
                 <!-- Message Body -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Message <span class="text-rose-500">*</span></label>
-                    <textarea name="message_body" rows="6" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">Dear {{ $client->client_name ?? 'Customer' }},
+                    <textarea name="message_body" rows="6" required class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">Dear {{ $client->company_name ?? 'Customer' }},
 
 Thank you for your business!
 

@@ -8,23 +8,25 @@
     $prefillAmount = request('prefill_amount');
     $prefillDesc = request('prefill_desc');
     $shouldShowForm = !empty($prefillCategory) || !empty($prefillAmount) || request()->has('log_gst');
+
+    $expenseOptions = [
+        ['value' => 'factory_electricity', 'label' => 'Factory Electricity', 'search' => 'factory electricity'],
+        ['value' => 'industrial_gas', 'label' => 'Industrial Gas / Consumables', 'search' => 'industrial gas consumables'],
+        ['value' => 'welding_consumables', 'label' => 'Welding Consumables', 'search' => 'welding consumables'],
+        ['value' => 'freight_transport', 'label' => 'Freight & Transport Charges', 'search' => 'freight transport charges'],
+        ['value' => 'salary', 'label' => 'Salary / Wages', 'search' => 'salary wages'],
+        ['value' => 'gst_payment', 'label' => 'GST Payment / Tax Payment', 'search' => 'gst payment tax payment'],
+        ['value' => 'administrative', 'label' => 'Administrative Expenses', 'search' => 'administrative expenses'],
+        ['value' => 'machinery_depreciation', 'label' => 'Machinery Depreciation Schedule', 'search' => 'machinery depreciation schedule'],
+        ['value' => 'others', 'label' => 'Other Expenses / Miscellaneous', 'search' => 'other expenses miscellaneous'],
+    ];
 @endphp
 <div class="space-y-6">
-    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-800">Expenses Ledger</h1>
-            <p class="text-sm text-slate-500">Record factory overheads, transport freight, office administration costs, and machinery depreciation.</p>
-        </div>
-        <button type="button" 
-                id="toggleFormBtn"
-                onclick="toggleInlineForm('expenseFormContainer', this)" 
-                class="{{ $shouldShowForm ? 'bg-slate-700 hover:bg-slate-800' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
-            <svg class="w-4 h-4 transition-transform duration-200" style="{{ $shouldShowForm ? 'transform: rotate(45deg);' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            <span id="toggleFormBtnText">Log New Expense</span>
-        </button>
-    </div>
+    <x-page-header title="Expenses Ledger" 
+                   subtitle="Record factory overheads, transport freight, office administration costs, and machinery depreciation."
+                   action-text="Log New Expense" 
+                   action-id="toggleFormBtn"
+                   action-on-click="toggleInlineForm('expenseFormContainer', this)" />
 
     <!-- 1. INSERT FORM AT THE TOP (Expandable) -->
     <div id="expenseFormContainer" class="{{ $shouldShowForm ? '' : 'hidden' }} transition-all duration-300 ease-in-out">
@@ -39,22 +41,14 @@
             <form action="{{ route('expense.store') }}" method="POST" class="ajax-form space-y-4">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Expense Category</label>
-                        <input type="text" name="expense_category" list="expense_category_list" placeholder="e.g. Factory Electricity, Transport..." value="{{ $prefillCategory ?? (request()->has('log_gst') ? 'gst_payment' : '') }}" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                        <datalist id="expense_category_list">
-                            <option value="factory_electricity">Factory Electricity</option>
-                            <option value="industrial_gas">Industrial Gas / Consumables</option>
-                            <option value="welding_consumables">Welding Consumables</option>
-                            <option value="freight_transport">Freight & Transport Charges</option>
-                            <option value="salary">Salary / Wages</option>
-                            <option value="gst_payment">GST Payment / Tax Payment</option>
-                            <option value="administrative">Administrative Expenses</option>
-                            <option value="machinery_depreciation">Machinery Depreciation Schedule</option>
-                            <option value="others">Other Expenses / Miscellaneous</option>
-                        </datalist>
-                    </div>
+                    <x-combobox name="expense_category"
+                                id="create_expense_cat"
+                                label="Expense Category"
+                                placeholder="Search or type expense category..."
+                                :options="$expenseOptions"
+                                :value="$prefillCategory ?? (request()->has('log_gst') ? 'gst_payment' : '')"
+                                :allowCustom="true"
+                                required />
 
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Amount (₹)</label>
@@ -99,20 +93,14 @@
                 @csrf
                 @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Expense Category</label>
-                        <select name="expense_category" id="edit_expense_category" class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium" required>
-                            <option value="factory_electricity">Factory Electricity</option>
-                            <option value="industrial_gas">Industrial Gas / Consumables</option>
-                            <option value="welding_consumables">Welding Consumables</option>
-                            <option value="freight_transport">Freight & Transport Charges</option>
-                            <option value="salary">Salary / Wages</option>
-                            <option value="gst_payment">GST Payment / Tax Payment</option>
-                            <option value="administrative">Administrative Expenses</option>
-                            <option value="machinery_depreciation">Machinery Depreciation Schedule</option>
-                            <option value="others">Other Expenses / Miscellaneous</option>
-                        </select>
-                    </div>
+                    <x-combobox name="expense_category"
+                                id="edit_expense_cat"
+                                label="Expense Category"
+                                placeholder="Search or type expense category..."
+                                :options="$expenseOptions"
+                                :allowCustom="true"
+                                inputClass="w-full bg-white border border-slate-200 rounded-xl py-2 pl-10 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-medium transition shadow-xs placeholder:text-slate-400"
+                                required />
 
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Amount (₹)</label>
@@ -186,17 +174,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="empty-row">
-                            <td colspan="6" class="px-6 py-12 text-center text-slate-400">
-                                <div class="flex flex-col items-center justify-center space-y-2">
-                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
-                                    <p class="text-xs text-slate-400">There are no operational expenses recorded yet.</p>
-                                </div>
-                            </td>
-                        </tr>
+                        <x-empty-state title="No Expenses Found" subtitle="There are no operational expenses recorded yet." colspan="6" />
                     @endforelse
                 </tbody>
             </table>
@@ -250,8 +228,12 @@
                     if (icon) icon.style.transform = 'rotate(45deg)';
                 }
                 if (cat) {
-                    const selectCat = container.querySelector('select[name="expense_category"]');
-                    if (selectCat) selectCat.value = cat;
+                    const hiddenCat = container.querySelector('.combobox-hidden-input');
+                    if (hiddenCat) {
+                        hiddenCat.value = cat;
+                        const wrapper = hiddenCat.closest('.combobox-wrapper');
+                        if (wrapper && typeof wrapper.syncComboboxDisplay === 'function') wrapper.syncComboboxDisplay();
+                    }
                 }
                 if (amt) {
                     const inputAmt = container.querySelector('input[name="amount"]');
@@ -265,7 +247,6 @@
                     container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 150);
 
-                // Clean the prefill URL parameters from address bar & history so it won't reopen on reload/subsequent submits
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
@@ -291,7 +272,16 @@
         const form = document.getElementById('editExpenseForm');
 
         form.action = "{{ url('/expenses') }}/" + id;
-        document.getElementById('edit_expense_category').value = category;
+        
+        const editCatWrapper = document.getElementById('edit_expense_cat_wrapper');
+        if (editCatWrapper) {
+            const hidden = editCatWrapper.querySelector('.combobox-hidden-input');
+            if (hidden) hidden.value = category;
+            if (typeof editCatWrapper.syncComboboxDisplay === 'function') {
+                editCatWrapper.syncComboboxDisplay();
+            }
+        }
+
         document.getElementById('edit_amount').value = amount;
         document.getElementById('edit_expense_date').value = date;
         document.getElementById('edit_description').value = description;

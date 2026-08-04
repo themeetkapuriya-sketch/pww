@@ -3,20 +3,39 @@
 @section('title', 'Production Logs')
 
 @section('content')
+@php
+    $productOptions = [];
+    foreach ($finishedGoods as $good) {
+        $productOptions[] = [
+            'value' => $good->id,
+            'label' => $good->product_name . ' (SKU: ' . $good->sku . ')',
+            'search' => strtolower($good->product_name . ' ' . $good->sku)
+        ];
+    }
+
+    $userOptions = [];
+    foreach ($users as $u) {
+        $userOptions[] = [
+            'value' => $u->id,
+            'label' => $u->name,
+            'search' => strtolower($u->name)
+        ];
+    }
+
+    $comboboxTemplate = View::make('components.combobox', [
+        'name' => 'items[__INDEX__][product_id]',
+        'id' => 'prod_product_id___INDEX__',
+        'placeholder' => 'Select Product...',
+        'options' => $productOptions,
+        'required' => true,
+    ])->render();
+@endphp
 <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-800">Production Logs</h1>
-            <p class="text-sm text-slate-500">Record rack manufacturing batches and monitor stock inventory.</p>
-        </div>
-        <div>
-            <button type="button" onclick="toggleProductionForm()" class="btn-primary py-2.5 px-5 text-xs font-bold shadow-xs flex items-center">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                <span id="btnProductionToggleText">Log Production Run</span>
-            </button>
-        </div>
-    </div>
+    <x-page-header title="Production Logs" 
+                   subtitle="Record rack manufacturing batches and monitor stock inventory."
+                   action-text="Log Production Run" 
+                   action-id="btnProductionToggle"
+                   action-on-click="toggleProductionForm()" />
 
     <!-- 1. COLLAPSIBLE PRODUCTION LOG FORM -->
     <div id="productionFormCard" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
@@ -40,12 +59,13 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
                 <div id="recorded_by_wrapper">
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Recorded By</label>
-                    <select id="prod_recorded_by" name="recorded_by" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
-                        @foreach ($users as $u)
-                            <option value="{{ $u->id }}" {{ $u->id == auth()->id() ? 'selected' : '' }}>{{ $u->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-combobox name="recorded_by"
+                                id="prod_recorded_by"
+                                label="Recorded By"
+                                placeholder="Search user..."
+                                :options="$userOptions"
+                                :value="auth()->id()"
+                                required />
                 </div>
             </div>
 
@@ -68,29 +88,26 @@
                 <div id="productionItemsList" class="space-y-3">
                     <!-- Default Row 0 -->
                     <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="0">
-                        <div class="md:col-span-6">
+                        <div class="md:col-span-7">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
-                            <select name="items[0][product_id]" id="prod_product_id_0" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
-                                <option value="">Select Product...</option>
-                                @foreach ($finishedGoods as $good)
-                                    <option value="{{ $good->id }}">{{ $good->product_name }} (SKU: {{ $good->sku }})</option>
-                                @endforeach
-                            </select>
+                            <x-combobox name="items[0][product_id]"
+                                        id="prod_product_id_0"
+                                        placeholder="Select Product..."
+                                        :options="$productOptions"
+                                        required />
                         </div>
-                        <div class="md:col-span-3">
+                        <div class="md:col-span-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
                             <input type="number" name="items[0][quantity_manufactured]" id="prod_qty_mfg_0" min="1" placeholder="Qty Mfg" required
                                    class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
-                            <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" value="0" placeholder="Rejected" required
+                            <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" placeholder="Qty Rejected"
                                    class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                         </div>
                         <div class="md:col-span-1 text-right flex items-center justify-end">
-                            <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                            <button type="button" onclick="removeProductRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-base" title="Remove Product Row">✕</button>
                         </div>
                     </div>
                 </div>
@@ -155,17 +172,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="empty-row">
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-400">
-                                <div class="flex flex-col items-center justify-center space-y-2">
-                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
-                                    <p class="text-xs text-slate-400">There are no production logs recorded yet.</p>
-                                </div>
-                            </td>
-                        </tr>
+                        <x-empty-state title="No Production Logs Found" subtitle="There are no manufacturing batches recorded yet." colspan="7" />
                     @endforelse
                 </tbody>
             </table>
@@ -185,33 +192,32 @@ function getProductsOptionsHtml() {
     `;
 }
 
+const rawComboboxTpl = @json($comboboxTemplate);
+
 function addProductRow() {
     const list = document.getElementById('productionItemsList');
     if (!list) return;
     
     const idx = productRowCounter++;
+    const comboboxHtml = rawComboboxTpl.replace(/__INDEX__/g, idx);
     const rowHtml = `
         <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="${idx}">
-            <div class="md:col-span-6">
+            <div class="md:col-span-7">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
-                <select name="items[${idx}][product_id]" id="prod_product_id_${idx}" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
-                    ${getProductsOptionsHtml()}
-                </select>
+                ${comboboxHtml}
             </div>
-            <div class="md:col-span-3">
+            <div class="md:col-span-2">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
                 <input type="number" name="items[${idx}][quantity_manufactured]" id="prod_qty_mfg_${idx}" min="1" placeholder="Qty Mfg" required
                        class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
-                <input type="number" name="items[${idx}][quantity_rejected]" id="prod_qty_rej_${idx}" min="0" value="0" placeholder="Rejected" required
+                <input type="number" name="items[${idx}][quantity_rejected]" id="prod_qty_rej_${idx}" min="0" placeholder="Qty Rejected"
                        class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
             </div>
             <div class="md:col-span-1 text-right flex items-center justify-end">
-                <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
+                <button type="button" onclick="removeProductRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-base" title="Remove Product Row">✕</button>
             </div>
         </div>
     `;
@@ -253,29 +259,26 @@ function resetProductionForm() {
     document.getElementById('single_qty_rej').disabled = true;
 
     // Reset items list to 1 row
+    const resetComboboxHtml = rawComboboxTpl.replace(/__INDEX__/g, 0);
     const list = document.getElementById('productionItemsList');
     list.innerHTML = `
         <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-50/70 p-3 rounded-xl border border-slate-200" data-row-index="0">
-            <div class="md:col-span-6">
+            <div class="md:col-span-7">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Product</label>
-                <select name="items[0][product_id]" id="prod_product_id_0" class="prod-select-input w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium" required>
-                    ${getProductsOptionsHtml()}
-                </select>
+                ${resetComboboxHtml}
             </div>
-            <div class="md:col-span-3">
+            <div class="md:col-span-2">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Manufactured</label>
                 <input type="number" name="items[0][quantity_manufactured]" id="prod_qty_mfg_0" min="1" placeholder="Qty Mfg" required
                        class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 md:hidden">Qty Rejected</label>
-                <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" value="0" placeholder="Rejected" required
+                <input type="number" name="items[0][quantity_rejected]" id="prod_qty_rej_0" min="0" placeholder="Qty Rejected"
                        class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
             </div>
             <div class="md:col-span-1 text-right flex items-center justify-end">
-                <button type="button" onclick="removeProductRow(this)" class="btn-remove-row p-2 text-rose-500 hover:text-rose-700 transition" title="Remove Product Row">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
+                <button type="button" onclick="removeProductRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-base" title="Remove Product Row">✕</button>
             </div>
         </div>
     `;
@@ -329,14 +332,13 @@ function openEditProductionModal(id, productId, manufactured, rejected, date) {
     document.getElementById('single_qty_rej').value = rejected;
 
     // Single item edit row view
+    const editComboboxHtml = rawComboboxTpl.replace(/__INDEX__/g, 0);
     const list = document.getElementById('productionItemsList');
     list.innerHTML = `
         <div class="production-item-row grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-white p-3 rounded-xl border border-amber-200" data-row-index="0">
             <div class="md:col-span-6">
                 <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1 md:hidden">Product</label>
-                <select onchange="document.getElementById('single_product_id').value = this.value" class="w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium" required>
-                    ${getProductsOptionsHtml()}
-                </select>
+                ${editComboboxHtml}
             </div>
             <div class="md:col-span-3">
                 <label class="block text-[10px] font-bold text-amber-800 uppercase mb-1 md:hidden">Qty Manufactured</label>
@@ -351,8 +353,18 @@ function openEditProductionModal(id, productId, manufactured, rejected, date) {
         </div>
     `;
 
-    const selectEl = list.querySelector('select');
-    if (selectEl) selectEl.value = productId;
+    const editWrapper = list.querySelector('.combobox-wrapper');
+    if (editWrapper) {
+        const hiddenInp = editWrapper.querySelector('.combobox-hidden-input');
+        if (hiddenInp) {
+            hiddenInp.name = '';
+            hiddenInp.value = productId;
+            hiddenInp.addEventListener('change', () => {
+                document.getElementById('single_product_id').value = hiddenInp.value;
+            });
+        }
+        if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(editWrapper);
+    }
 
     document.getElementById('prod_date').value = date;
     if (document.getElementById('recorded_by_wrapper')) document.getElementById('recorded_by_wrapper').style.display = 'none';

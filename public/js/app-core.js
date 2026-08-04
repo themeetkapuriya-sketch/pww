@@ -156,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Expose loadPage to window so it can be called elsewhere
-        window.loadPage = async function(url) {
+        window.loadPage = async function(url, skipCache = false) {
+            if (skipCache) {
+                pageCache.clear();
+            }
             if (!$mainContent.length) {
                 window.location.href = url;
                 return;
@@ -164,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             try {
                 let htmlText;
-                if (pageCache.has(url)) {
+                if (!skipCache && pageCache.has(url)) {
                     htmlText = pageCache.get(url);
                 } else {
                     const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -435,8 +438,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.history.replaceState({}, document.title, window.location.pathname);
                         }
                     }
+                    let targetUrl = window.location.href;
+                    if ($form.attr('id') === 'customInvoiceForm') {
+                        const invMode = $form.find('#invoiceModeInput').val();
+                        if (invMode === 'raw_material') {
+                            targetUrl = window.location.pathname + '?mode=raw_material';
+                        }
+                    }
                     window.clearPageCache();
-                    await window.loadPage(window.location.href);
+                    await window.loadPage(targetUrl, true);
                 },
                 error: function(xhr) {
                     if ($submitBtn.length) {

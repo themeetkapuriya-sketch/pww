@@ -285,7 +285,7 @@
 
         /* Page Background Styling */
         body {
-            background-color: #F7F9FB !important;
+            background-color: #F3F4F4 !important;
         }
 
         /* DataTables Table Header Theme Styling */
@@ -555,7 +555,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen md:flex bg-[#F7F9FB] overflow-x-hidden">
+<body class="min-h-screen md:flex bg-[#F3F4F4] overflow-x-hidden">
 
     <!-- Sidebar Navigation -->
     @include('layouts.sidebar')
@@ -791,6 +791,204 @@
                 }
             );
         };
+
+        // Global ERP Combobox Manager (Event-Delegated Engine)
+        window.ERPComboboxManager = {
+            init: function() {
+                if (window._ERPComboboxDelegated) return;
+                window._ERPComboboxDelegated = true;
+
+                const getWrapper = (target) => target ? target.closest('.combobox-wrapper') : null;
+
+                document.addEventListener('focusin', function(e) {
+                    const wrapper = getWrapper(e.target);
+                    if (wrapper && e.target.classList.contains('combobox-search-input')) {
+                        window.ERPComboboxManager.show(wrapper);
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    const wrapper = getWrapper(e.target);
+                    
+                    // Close all other open comboboxes
+                    document.querySelectorAll('.combobox-wrapper').forEach(w => {
+                        if (w !== wrapper) {
+                            window.ERPComboboxManager.hide(w);
+                        }
+                    });
+
+                    if (!wrapper) return;
+
+                    if (e.target.classList.contains('combobox-search-input')) {
+                        window.ERPComboboxManager.show(wrapper);
+                    } else if (e.target.classList.contains('combobox-clear-btn')) {
+                        e.stopPropagation();
+                        window.ERPComboboxManager.clear(wrapper);
+                    } else {
+                        const opt = e.target.closest('.combobox-option');
+                        if (opt) {
+                            window.ERPComboboxManager.select(wrapper, opt);
+                        }
+                    }
+                });
+
+                document.addEventListener('input', function(e) {
+                    const wrapper = getWrapper(e.target);
+                    if (wrapper && e.target.classList.contains('combobox-search-input')) {
+                        window.ERPComboboxManager.filter(wrapper);
+                    }
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    const wrapper = getWrapper(e.target);
+                    if (!wrapper || !e.target.classList.contains('combobox-search-input')) return;
+
+                    const dropdown = wrapper.querySelector('.combobox-dropdown');
+                    const options = Array.from(wrapper.querySelectorAll('.combobox-option:not(.hidden)'));
+                    let activeOpt = wrapper.querySelector('.combobox-option.bg-blue-100');
+                    let activeIndex = activeOpt ? options.indexOf(activeOpt) : -1;
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (dropdown && dropdown.classList.contains('hidden')) window.ERPComboboxManager.show(wrapper);
+                        if (options.length > 0) {
+                            activeIndex = (activeIndex + 1) % options.length;
+                            window.ERPComboboxManager.highlight(options, activeIndex);
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (options.length > 0) {
+                            activeIndex = (activeIndex - 1 + options.length) % options.length;
+                            window.ERPComboboxManager.highlight(options, activeIndex);
+                        }
+                    } else if (e.key === 'Enter') {
+                        if (activeIndex >= 0 && options[activeIndex]) {
+                            e.preventDefault();
+                            window.ERPComboboxManager.select(wrapper, options[activeIndex]);
+                        } else {
+                            window.ERPComboboxManager.hide(wrapper);
+                        }
+                    } else if (e.key === 'Escape') {
+                        window.ERPComboboxManager.hide(wrapper);
+                    }
+                });
+
+                // Initial sync for any prefilled values
+                document.querySelectorAll('.combobox-wrapper').forEach(w => {
+                    window.ERPComboboxManager.syncDisplay(w);
+                });
+            },
+
+            show: function(wrapper) {
+                const dropdown = wrapper.querySelector('.combobox-dropdown');
+                if (dropdown) dropdown.classList.remove('hidden');
+                this.filter(wrapper);
+            },
+
+            hide: function(wrapper) {
+                const dropdown = wrapper.querySelector('.combobox-dropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
+            filter: function(wrapper) {
+                const searchInput = wrapper.querySelector('.combobox-search-input');
+                const hiddenInput = wrapper.querySelector('.combobox-hidden-input');
+                const dropdown = wrapper.querySelector('.combobox-dropdown');
+                const noMatch = wrapper.querySelector('.combobox-no-match');
+                const options = Array.from(wrapper.querySelectorAll('.combobox-option'));
+                const allowCustom = wrapper.dataset.allowCustom === 'true';
+
+                const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                if (allowCustom && hiddenInput && searchInput) {
+                    hiddenInput.value = searchInput.value;
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                let visibleCount = 0;
+                options.forEach(opt => {
+                    const searchStr = opt.dataset.search || '';
+                    if (!q || searchStr.includes(q)) {
+                        opt.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        opt.classList.add('hidden');
+                    }
+                });
+
+                if (noMatch) noMatch.classList.toggle('hidden', visibleCount > 0);
+                if (dropdown && dropdown.classList.contains('hidden') && visibleCount > 0) dropdown.classList.remove('hidden');
+            },
+
+            highlight: function(options, activeIndex) {
+                options.forEach((opt, idx) => {
+                    opt.classList.toggle('bg-blue-100', idx === activeIndex);
+                    opt.classList.toggle('font-bold', idx === activeIndex);
+                    if (idx === activeIndex) opt.scrollIntoView({ block: 'nearest' });
+                });
+            },
+
+            select: function(wrapper, opt) {
+                const hiddenInput = wrapper.querySelector('.combobox-hidden-input');
+                const searchInput = wrapper.querySelector('.combobox-search-input');
+                const clearBtn = wrapper.querySelector('.combobox-clear-btn');
+
+                if (hiddenInput) {
+                    hiddenInput.value = opt.dataset.value;
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (searchInput) searchInput.value = opt.dataset.label;
+                if (clearBtn) clearBtn.classList.remove('hidden');
+
+                if (typeof wrapper.onComboboxSelect === 'function') {
+                    wrapper.onComboboxSelect(opt);
+                }
+                this.hide(wrapper);
+            },
+
+            clear: function(wrapper) {
+                const hiddenInput = wrapper.querySelector('.combobox-hidden-input');
+                const searchInput = wrapper.querySelector('.combobox-search-input');
+                const clearBtn = wrapper.querySelector('.combobox-clear-btn');
+
+                if (hiddenInput) {
+                    hiddenInput.value = '';
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+                if (clearBtn) clearBtn.classList.add('hidden');
+                this.show(wrapper);
+            },
+
+            syncDisplay: function(wrapper) {
+                if (!wrapper) return;
+                const hiddenInput = wrapper.querySelector('.combobox-hidden-input');
+                const searchInput = wrapper.querySelector('.combobox-search-input');
+                const clearBtn = wrapper.querySelector('.combobox-clear-btn');
+                const options = Array.from(wrapper.querySelectorAll('.combobox-option'));
+                const allowCustom = wrapper.dataset.allowCustom === 'true';
+
+                if (!hiddenInput || !searchInput) return;
+                const val = hiddenInput.value;
+                const matchedOpt = options.find(o => o.dataset.value === val);
+                if (matchedOpt) {
+                    searchInput.value = matchedOpt.dataset.label;
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                } else if (allowCustom && val) {
+                    searchInput.value = val;
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                } else {
+                    searchInput.value = '';
+                    if (clearBtn) clearBtn.classList.add('hidden');
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.ERPComboboxManager.init();
+        });
     </script>
 </body>
 </html>

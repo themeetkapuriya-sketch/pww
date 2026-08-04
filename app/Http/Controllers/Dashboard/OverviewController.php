@@ -65,7 +65,7 @@ class OverviewController extends Controller
 
         // Outstanding Receivables
         $totalReceivables = (float) DB::table('invoices')
-            ->selectRaw('SUM(GREATEST(0, total_amount - paid_amount)) as due')
+            ->selectRaw('SUM(CASE WHEN total_amount > paid_amount THEN total_amount - paid_amount ELSE 0 END) as due')
             ->value('due') ?? 0;
 
         // Net GST Payable (Current Month)
@@ -120,8 +120,14 @@ class OverviewController extends Controller
         $chartExpenseData = [];
 
         $sixMonthsAgo = $now->copy()->subMonths(5)->startOfMonth();
+        $isSqlite = DB::getDriverName() === 'sqlite';
+
+        $invDateSql = $isSqlite ? 'strftime("%Y-%m", COALESCE(invoice_date, created_at))' : 'DATE_FORMAT(COALESCE(invoice_date, created_at), "%Y-%m")';
+        $expDateSql = $isSqlite ? 'strftime("%Y-%m", expense_date)' : 'DATE_FORMAT(expense_date, "%Y-%m")';
+        $purDateSql = $isSqlite ? 'strftime("%Y-%m", purchase_date)' : 'DATE_FORMAT(purchase_date, "%Y-%m")';
+
         $invoiceChartData = DB::table('invoices')
-            ->selectRaw('DATE_FORMAT(COALESCE(invoice_date, created_at), "%Y-%m") as m_key, SUM(total_amount) as total_sales')
+            ->selectRaw("{$invDateSql} as m_key, SUM(total_amount) as total_sales")
             ->where(function($q) use ($sixMonthsAgo, $monthEnd) {
                 $q->whereBetween('invoice_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
                   ->orWhere(function($sub) use ($sixMonthsAgo, $monthEnd) {
@@ -132,13 +138,13 @@ class OverviewController extends Controller
             ->pluck('total_sales', 'm_key');
 
         $expenseChartData = DB::table('expenses')
-            ->selectRaw('DATE_FORMAT(expense_date, "%Y-%m") as m_key, SUM(amount) as total_exp')
+            ->selectRaw("{$expDateSql} as m_key, SUM(amount) as total_exp")
             ->whereBetween('expense_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
             ->groupBy('m_key')
             ->pluck('total_exp', 'm_key');
 
         $purchaseChartData = DB::table('purchases')
-            ->selectRaw('DATE_FORMAT(purchase_date, "%Y-%m") as m_key, SUM(total_amount) as total_pur')
+            ->selectRaw("{$purDateSql} as m_key, SUM(total_amount) as total_pur")
             ->whereBetween('purchase_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
             ->groupBy('m_key')
             ->pluck('total_pur', 'm_key');

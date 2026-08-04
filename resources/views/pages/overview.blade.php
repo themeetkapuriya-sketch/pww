@@ -191,7 +191,7 @@
     <!-- Secondary Operational Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 1. Active Sales Orders -->
-        <div class="bg-gradient-to-br from-blue-50/80 to-indigo-50/50 rounded-2xl p-4 shadow-2xs border border-blue-200/80 flex flex-col justify-between hover:shadow-md hover:border-blue-300 transition-all duration-200">
+        <div class="bg-blue-100/90 rounded-2xl p-4 shadow-sm border border-blue-300 flex flex-col justify-between hover:shadow-md hover:border-blue-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +211,7 @@
         </div>
 
         <!-- 2. Monthly Factory Expense -->
-        <div class="bg-gradient-to-br from-purple-50/80 to-fuchsia-50/50 rounded-2xl p-4 shadow-2xs border border-purple-200/80 flex flex-col justify-between hover:shadow-md hover:border-purple-300 transition-all duration-200">
+        <div class="bg-purple-100/90 rounded-2xl p-4 shadow-sm border border-purple-300 flex flex-col justify-between hover:shadow-md hover:border-purple-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-purple-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,7 +231,7 @@
         </div>
 
         <!-- 3. Monthly Factory Purchase -->
-        <div class="bg-gradient-to-br from-amber-50/80 to-orange-50/50 rounded-2xl p-4 shadow-2xs border border-amber-200/80 flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all duration-200">
+        <div class="bg-amber-100/90 rounded-2xl p-4 shadow-sm border border-amber-300 flex flex-col justify-between hover:shadow-md hover:border-amber-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-amber-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@
         </div>
 
         <!-- 4. Low Stock Reorder Alerts -->
-        <div class="bg-gradient-to-br from-rose-50/80 to-red-50/50 rounded-2xl p-4 shadow-2xs border border-rose-200/80 flex flex-col justify-between hover:shadow-md hover:border-rose-300 transition-all duration-200">
+        <div class="bg-rose-100/90 rounded-2xl p-4 shadow-sm border border-rose-300 flex flex-col justify-between hover:shadow-md hover:border-rose-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs flex-shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

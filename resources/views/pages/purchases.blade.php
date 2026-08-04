@@ -3,6 +3,30 @@
 @section('title', 'Purchase Ledger')
 
 @section('content')
+@php
+    $purchaseTypeOptions = [
+        ['value' => 'raw_material', 'label' => 'Raw Material Purchase (Auto-Restocks Inventory)', 'search' => 'raw material purchase auto restocks inventory'],
+        ['value' => 'office_assets', 'label' => 'Office Assets & Electronics (Mobiles, Laptops, CCTV)', 'search' => 'office assets electronics mobiles laptops cctv'],
+        ['value' => 'machinery', 'label' => 'Machinery & Capital Equipment', 'search' => 'machinery capital equipment'],
+        ['value' => 'factory_spares', 'label' => 'Machinery Spare Parts', 'search' => 'machinery spare parts'],
+        ['value' => 'supplies', 'label' => 'Factory Consumables & Tools', 'search' => 'factory consumables tools'],
+        ['value' => 'vehicle_transport', 'label' => 'Vehicle & Freight Expenses (Transport/Fuel)', 'search' => 'vehicle freight expenses transport fuel'],
+        ['value' => 'others', 'label' => 'Other Purchases / Miscellaneous', 'search' => 'other purchases miscellaneous'],
+    ];
+
+    $rawMaterialOptions = [];
+    foreach ($rawMaterials as $mat) {
+        $rawMaterialOptions[] = [
+            'value' => (string)$mat->id,
+            'label' => $mat->material_name . ' (Stock: ' . number_format($mat->current_stock, 1) . ' ' . $mat->unit . ')',
+            'search' => strtolower($mat->material_name . ' ' . $mat->unit),
+            'data' => [
+                'name' => $mat->material_name,
+                'unit' => $mat->unit,
+            ]
+        ];
+    }
+@endphp
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -33,28 +57,20 @@
         <form action="{{ route('purchases.store') }}" method="POST" class="ajax-form space-y-4">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Purchase Category</label>
-                    <select name="purchase_type" id="purchaseTypeSelect" onchange="window.handlePurchaseTypeChange()" required
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-bold">
-                        <option value="raw_material" selected>Raw Material Purchase (Auto-Restocks Inventory)</option>
-                        <option value="office_assets">Office Assets & Electronics (Mobiles, Laptops, CCTV)</option>
-                        <option value="machinery">Machinery & Capital Equipment</option>
-                        <option value="factory_spares">Welding Gas & Machinery Spare Parts</option>
-                        <option value="supplies">Factory Consumables & Tools</option>
-                        <option value="vehicle_transport">Vehicle & Freight Expenses (Transport/Fuel)</option>
-                        <option value="others">Other Purchases / Miscellaneous</option>
-                    </select>
-                </div>
+                <x-combobox name="purchase_type"
+                            id="purchaseTypeSelect"
+                            label="Purchase Category"
+                            placeholder="Search or type purchase category..."
+                            :options="$purchaseTypeOptions"
+                            value="raw_material"
+                            :allowCustom="true"
+                            required />
                 <div id="rawMaterialSelectContainer">
-                    <label class="block text-xs font-bold text-blue-600 uppercase mb-1">Raw Material Sub-Category (Select to Restock)</label>
-                    <select name="raw_material_id" id="rawMaterialSelect" onchange="window.handleRawMaterialSelectChange()"
-                            class="w-full bg-blue-50/50 border border-blue-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-bold">
-                        <option value="">Select Existing Raw Material...</option>
-                        @foreach ($rawMaterials as $mat)
-                            <option value="{{ $mat->id }}" data-name="{{ $mat->material_name }}" data-unit="{{ $mat->unit }}">{{ $mat->material_name }} (Stock: {{ number_format($mat->current_stock, 1) }} {{ $mat->unit }})</option>
-                        @endforeach
-                    </select>
+                    <x-combobox name="raw_material_id"
+                                id="rawMaterialSelect"
+                                label="Raw Material Sub-Category (Select to Restock)"
+                                placeholder="Select Existing Raw Material..."
+                                :options="$rawMaterialOptions" />
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Vendor / Supplier Name</label>
@@ -148,28 +164,19 @@
                 @csrf
                 @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Purchase Category</label>
-                        <select name="purchase_type" id="edit_purchase_type" onchange="window.handleEditPurchaseTypeChange()" required
-                                class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold">
-                            <option value="raw_material">Raw Material Purchase (Auto-Restocks Inventory)</option>
-                            <option value="office_assets">Office Assets & Electronics (Mobiles, Laptops, CCTV)</option>
-                            <option value="machinery">Machinery & Capital Equipment</option>
-                            <option value="factory_spares">Welding Gas & Machinery Spare Parts</option>
-                            <option value="supplies">Factory Consumables & Tools</option>
-                            <option value="vehicle_transport">Vehicle & Freight Expenses (Transport/Fuel)</option>
-                            <option value="others">Other Purchases / Miscellaneous</option>
-                        </select>
-                    </div>
+                    <x-combobox name="purchase_type"
+                                id="edit_purchase_type"
+                                label="Purchase Category"
+                                placeholder="Search or type purchase category..."
+                                :options="$purchaseTypeOptions"
+                                :allowCustom="true"
+                                required />
                     <div id="edit_rawMaterialSelectContainer">
-                        <label class="block text-xs font-bold text-blue-600 uppercase mb-1">Raw Material Sub-Category</label>
-                        <select name="raw_material_id" id="edit_raw_material_id"
-                                class="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
-                            <option value="">Select Existing Raw Material...</option>
-                            @foreach ($rawMaterials as $mat)
-                                <option value="{{ $mat->id }}" data-name="{{ $mat->material_name }}" data-unit="{{ $mat->unit }}">{{ $mat->material_name }}</option>
-                            @endforeach
-                        </select>
+                        <x-combobox name="raw_material_id"
+                                    id="edit_raw_material_id"
+                                    label="Raw Material Sub-Category"
+                                    placeholder="Select Existing Raw Material..."
+                                    :options="$rawMaterialOptions" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Vendor / Supplier Name</label>
@@ -295,7 +302,7 @@
                                 @elseif($pur->purchase_type === 'vehicle_transport')
                                     <span class="px-2.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 text-[10px] rounded font-bold uppercase">Vehicle & Freight</span>
                                 @else
-                                    <span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] rounded font-bold uppercase">Other Purchases</span>
+                                    <span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] rounded font-bold uppercase">{{ ucwords(str_replace('_', ' ', $pur->purchase_type)) }}</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $pur->item_name }}</td>
@@ -511,40 +518,66 @@ window.closeVendorPaymentModal = function() {
         }
     };
 
+    window.handleRawMaterialSelectChange = function() {
+        const hiddenInp = document.getElementById('rawMaterialSelect');
+        if (!hiddenInp) return;
+        const wrapper = hiddenInp.closest('.combobox-wrapper');
+        if (!wrapper) return;
+        const val = hiddenInp.value;
+        const opt = wrapper.querySelector(`.combobox-option[data-value="${CSS.escape(val)}"]`);
+        if (opt && opt.dataset.name) {
+            $('#itemNameInput').val(opt.dataset.name);
+        }
+        if (opt && opt.dataset.unit) {
+            $('#unitInput').val(opt.dataset.unit);
+        }
+    };
+
+    window.handleEditRawMaterialSelectChange = function() {
+        const hiddenInp = document.getElementById('edit_raw_material_id');
+        if (!hiddenInp) return;
+        const wrapper = hiddenInp.closest('.combobox-wrapper');
+        if (!wrapper) return;
+        const val = hiddenInp.value;
+        const opt = wrapper.querySelector(`.combobox-option[data-value="${CSS.escape(val)}"]`);
+        if (opt && opt.dataset.name) {
+            $('#edit_item_name').val(opt.dataset.name);
+        }
+        if (opt && opt.dataset.unit) {
+            $('#edit_unit').val(opt.dataset.unit);
+        }
+    };
+
     window.handlePurchaseTypeChange = function() {
-        const type = $('#purchaseTypeSelect').val();
-        const $rawMatSelect = $('#rawMaterialSelect');
+        const hiddenInp = document.getElementById('purchaseTypeSelect');
+        const type = hiddenInp ? hiddenInp.value : 'raw_material';
+        const rmHiddenInp = document.getElementById('rawMaterialSelect');
         const $itemNameInput = $('#itemNameInput');
         const $quantityInput = $('#quantityInput');
         const $unitInput = $('#unitInput');
 
+        const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
+
         if (type === 'raw_material') {
-            // Enable Raw Material dropdown, Qty & Unit
-            $rawMatSelect.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-blue-50/50');
+            if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
+            if (rmHiddenInp) rmHiddenInp.disabled = false;
             $quantityInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50');
             $unitInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50');
-
-            // Disable Item Description / Name input (name derived from raw material)
             $itemNameInput.prop('disabled', true).removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed').prop('required', false);
 
-            const selectedOpt = $rawMatSelect.find('option:selected');
-            if (selectedOpt.length && selectedOpt.data('unit')) {
-                $unitInput.val(selectedOpt.data('unit'));
-            }
-            if (selectedOpt.length && selectedOpt.data('name')) {
-                $itemNameInput.val(selectedOpt.data('name'));
+            if (rmHiddenInp && rmHiddenInp.value) {
+                window.handleRawMaterialSelectChange();
             }
         } else {
-            // Disable Raw Material dropdown, Qty & Unit for all other categories (visible but disabled)
-            $rawMatSelect.prop('disabled', true).val('').removeClass('bg-blue-50/50').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
+            if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
+            if (rmHiddenInp) {
+                rmHiddenInp.disabled = true;
+                rmHiddenInp.value = '';
+                if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
+            }
             $quantityInput.prop('disabled', true).val('').removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
             $unitInput.prop('disabled', true).val('').removeClass('bg-slate-50').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
-
-            // Enable Item Description / Name input for non-raw material categories
             $itemNameInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-slate-50').prop('required', true);
-            if ($itemNameInput.val() === $('#rawMaterialSelect option:selected').data('name')) {
-                $itemNameInput.val('');
-            }
         }
     };
 
@@ -558,8 +591,21 @@ window.closeVendorPaymentModal = function() {
         const form = document.getElementById('editPurchaseForm');
 
         form.action = "{{ url('/purchases') }}/" + id;
-        document.getElementById('edit_purchase_type').value = type;
-        document.getElementById('edit_raw_material_id').value = rawMaterialId || '';
+        
+        const ptInp = document.getElementById('edit_purchase_type');
+        if (ptInp) {
+            ptInp.value = type;
+            const ptWrapper = ptInp.closest('.combobox-wrapper');
+            if (ptWrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(ptWrapper);
+        }
+
+        const rmInp = document.getElementById('edit_raw_material_id');
+        if (rmInp) {
+            rmInp.value = rawMaterialId || '';
+            const rmWrapper = rmInp.closest('.combobox-wrapper');
+            if (rmWrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
+        }
+
         document.getElementById('edit_vendor_name').value = vendorName;
         document.getElementById('edit_bill_number').value = billNumber || '';
         document.getElementById('edit_item_name').value = itemName;
@@ -584,19 +630,28 @@ window.closeVendorPaymentModal = function() {
     };
 
     window.handleEditPurchaseTypeChange = function() {
-        const type = $('#edit_purchase_type').val();
-        const $rawMatSelect = $('#edit_raw_material_id');
+        const ptInp = document.getElementById('edit_purchase_type');
+        const type = ptInp ? ptInp.value : 'raw_material';
+        const rmHiddenInp = document.getElementById('edit_raw_material_id');
         const $itemNameInput = $('#edit_item_name');
         const $quantityInput = $('#edit_quantity');
         const $unitInput = $('#edit_unit');
 
+        const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
+
         if (type === 'raw_material') {
-            $rawMatSelect.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white');
+            if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
+            if (rmHiddenInp) rmHiddenInp.disabled = false;
             $quantityInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white');
             $unitInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white');
             $itemNameInput.prop('disabled', true).removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed').prop('required', false);
         } else {
-            $rawMatSelect.prop('disabled', true).val('').removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
+            if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
+            if (rmHiddenInp) {
+                rmHiddenInp.disabled = true;
+                rmHiddenInp.value = '';
+                if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
+            }
             $quantityInput.prop('disabled', true).val('').removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
             $unitInput.prop('disabled', true).val('').removeClass('bg-white').addClass('bg-slate-100 opacity-50 cursor-not-allowed');
             $itemNameInput.prop('disabled', false).removeClass('bg-slate-100 opacity-50 cursor-not-allowed').addClass('bg-white').prop('required', true);

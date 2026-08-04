@@ -3,23 +3,49 @@
 @section('title', 'Sales Orders')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header & Action Button -->
-    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Sales Orders</h1>
-            <p class="text-xs text-slate-500 font-medium">Book customer purchase orders, manage production pipelines, and convert to Delivery Challans.</p>
-        </div>
+@php
+    $clientPlantOptions = [];
+    foreach ($clients as $client) {
+        if ($client->plants->isNotEmpty()) {
+            foreach ($client->plants as $plant) {
+                $fullText = $client->company_name . ' — ' . $plant->plant_name . ' (' . $plant->state . ')';
+                $clientPlantOptions[] = [
+                    'value' => $plant->id,
+                    'label' => $fullText,
+                    'badge' => $plant->state,
+                    'search' => strtolower($fullText . ' ' . ($plant->gst_number ?? '') . ' ' . ($plant->shipping_address ?? '')),
+                    'data' => [
+                        'client-id' => $client->id
+                    ]
+                ];
+            }
+        }
+    }
 
-        <button type="button" 
-                onclick="toggleInlineForm('orderFormContainer', this)" 
-                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition duration-150 flex items-center space-x-2">
-            <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            <span>Book New Sales Order</span>
-        </button>
-    </div>
+    $productOptions = [];
+    foreach ($finishedGoods as $g) {
+        $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+        $prodLabel = $g->product_name . (($g->unit_weight_kg ?? 0) > 0 ? ' (' . number_format($g->unit_weight_kg, 3) . ' Kg)' : '') . ' (Stock: ' . number_format($g->current_stock) . ')';
+        $productOptions[] = [
+            'value' => $g->id,
+            'label' => $prodLabel,
+            'search' => strtolower($g->product_name . ' ' . ($g->item_code ?? '')),
+            'data' => [
+                'price' => $g->selling_price,
+                'price-pcs' => $g->selling_price,
+                'price-kg' => $kgPrice,
+                'weight' => $g->unit_weight_kg ?? 0.000,
+                'uom' => $g->uom ?? 'piece'
+            ]
+        ];
+    }
+@endphp
+<div class="space-y-6">
+    <x-page-header title="Sales Orders" 
+                   subtitle="Book customer purchase orders, manage production pipelines, and convert to Delivery Challans."
+                   action-text="Book New Sales Order" 
+                   action-id="toggleFormBtn"
+                   action-on-click="toggleInlineForm('orderFormContainer', this)" />
 
     <!-- Smooth Expandable Order Booking Form -->
     <div id="orderFormContainer" class="hidden transition-all duration-300 ease-in-out">
@@ -29,46 +55,36 @@
                     <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     Sales Order Booking Form
                 </h3>
-                <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.querySelector('button[onclick*=\'orderFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+                <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.getElementById('toggleFormBtn'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
 
             <form id="salesOrderForm" action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4">
                 @csrf
                 <input type="hidden" name="_method" id="salesOrderFormMethod" value="POST">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-3">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Order Number</label>
                         <input type="text" name="order_number_display" value="{{ \App\Models\SalesOrder::generateNextOrderNumber() }}" disabled
                                class="w-full bg-slate-100 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none text-slate-500 font-mono">
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Client</label>
-                        <select id="orderClientSelect" name="client_id" required onchange="handleOrderClientChange()"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                            <option value="">Choose client...</option>
-                            @foreach ($clients as $client)
-                                <option value="{{ $client->id }}" data-plants='@json($client->plants->map(fn($p) => ["id" => $p->id, "name" => $p->plant_name]))'>
-                                    {{ $client->company_name }} ({{ $client->plants->count() === 1 ? '1 Location' : $client->plants->count() . ' Plants' }})
-                                </option>
-                            @endforeach
-                        </select>
+                    <div id="directOrderClientContainer" class="md:col-span-5 relative">
+                        <input type="hidden" name="client_id" id="orderClientSelect">
+                        <x-combobox name="plant_id"
+                                    id="orderPlantSelect"
+                                    label="Select Client & Plant"
+                                    placeholder="Search company, plant, or state..."
+                                    :options="$clientPlantOptions"
+                                    required />
                     </div>
 
-                    <div id="orderPlantWrapper" class="hidden">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Target Plant Location</label>
-                        <select id="orderPlantSelect" name="plant_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                            <option value="">Select plant...</option>
-                        </select>
-                    </div>
-
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Order Date</label>
                         <input type="date" name="order_date" value="{{ date('Y-m-d') }}" required
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                     </div>
 
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Target Delivery Date</label>
                         <input type="date" name="delivery_date" value="{{ date('Y-m-d', strtotime('+7 days')) }}"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
@@ -86,23 +102,18 @@
 
                     <div id="orderRowsContainer" class="space-y-2">
                         <div class="order-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                            <select name="product_ids[]" required class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" onchange="updateRowUnitPrice(this)">
-                                <option value="">Select product...</option>
-                                @foreach ($finishedGoods as $g)
-                                    @php
-                                        $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                                    @endphp
-                                    <option value="{{ $g->id }}" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                        {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif (Stock: {{ number_format($g->current_stock) }})
-                                    </option>
-                                @endforeach
-                            </select>
+                            <div class="flex-grow">
+                                <x-combobox name="product_ids[]"
+                                            placeholder="Select product..."
+                                            :options="$productOptions"
+                                            required />
+                            </div>
                             <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="updateRowUnitPrice(this)">
                                 <option value="Pcs">Pcs</option>
                                 <option value="Kg">Kg</option>
                             </select>
-                            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
-                            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
+                            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
                             <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                         </div>
                     </div>
@@ -307,17 +318,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="empty-row">
-                            <td colspan="8" class="px-6 py-12 text-center text-slate-400">
-                                <div class="flex flex-col items-center justify-center space-y-2">
-                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
-                                    <p class="text-xs text-slate-400">There are no sales orders matching this status filter.</p>
-                                </div>
-                            </td>
-                        </tr>
+                        <x-empty-state title="No Sales Orders Found" subtitle="There are no sales orders matching this status filter." colspan="8" />
                     @endforelse
                 </tbody>
             </table>
@@ -351,47 +352,56 @@
         }
     };
 
-    function handleOrderClientChange() {
-        const select = document.getElementById('orderClientSelect');
-        const opt = select.options[select.selectedIndex];
-        const wrapper = document.getElementById('orderPlantWrapper');
-        const plantSelect = document.getElementById('orderPlantSelect');
+    // Direct Type-Ahead Live Search Engine for Sales Orders
+    let directOrderClientActiveIndex = -1;
 
-        plantSelect.innerHTML = '<option value="">Select plant...</option>';
-        wrapper.classList.add('hidden');
-
-        if (opt && opt.dataset.plants) {
-            try {
-                const plants = JSON.parse(opt.dataset.plants);
-                if (plants.length > 0) {
-                    wrapper.classList.remove('hidden');
-                    plants.forEach(p => {
-                        const newOpt = document.createElement('option');
-                        newOpt.value = p.id;
-                        newOpt.innerText = p.name;
-                        plantSelect.appendChild(newOpt);
-                    });
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'plant_id') {
+            const wrapper = e.target.closest('.combobox-wrapper');
+            if (wrapper) {
+                const selectedOpt = wrapper.querySelector(`.combobox-option[data-value="${e.target.value}"]`);
+                if (selectedOpt && selectedOpt.dataset.clientId) {
+                    const clientInput = document.getElementById('orderClientSelect');
+                    if (clientInput) clientInput.value = selectedOpt.dataset.clientId;
                 }
-            } catch(e) {}
+            }
         }
-    }
+        if (e.target && e.target.name === 'product_ids[]') {
+            updateRowUnitPrice(e.target);
+        }
+    });
 
     function updateRowUnitPrice(elem) {
         const row = elem.closest('.order-row');
         if (!row) return;
-        const prodSelect = row.querySelector('select[name="product_ids[]"]');
+        const hiddenProd = row.querySelector('.combobox-hidden-input') || row.querySelector('select[name="product_ids[]"]');
         const uomSelect = row.querySelector('.billing-uom-select');
         const priceInput = row.querySelector('input[name="unit_prices[]"]');
 
-        if (!prodSelect || !priceInput) return;
-        const opt = prodSelect.options[prodSelect.selectedIndex];
-        if (!opt || !opt.value) return;
+        if (!hiddenProd || !priceInput) return;
+        let pricePcs = 0, priceKg = 0;
+        if (hiddenProd.tagName === 'SELECT') {
+            const opt = hiddenProd.options[hiddenProd.selectedIndex];
+            if (opt) {
+                pricePcs = parseFloat(opt.dataset.pricePcs || opt.dataset.price || 0);
+                priceKg = parseFloat(opt.dataset.priceKg || 0);
+            }
+        } else {
+            const wrapper = hiddenProd.closest('.combobox-wrapper');
+            const selectedOpt = wrapper ? wrapper.querySelector(`.combobox-option[data-value="${hiddenProd.value}"]`) : null;
+            if (selectedOpt) {
+                pricePcs = parseFloat(selectedOpt.dataset.pricePcs || selectedOpt.dataset.price || 0);
+                priceKg = parseFloat(selectedOpt.dataset.priceKg || 0);
+            }
+        }
 
         const uomVal = uomSelect ? uomSelect.value : 'Pcs';
-        if (uomVal === 'Kg' && opt.dataset.priceKg && parseFloat(opt.dataset.priceKg) > 0) {
-            priceInput.value = parseFloat(opt.dataset.priceKg).toFixed(2);
-        } else if (opt.dataset.pricePcs || opt.dataset.price) {
-            priceInput.value = parseFloat(opt.dataset.pricePcs || opt.dataset.price).toFixed(2);
+        if (uomVal === 'Kg' && priceKg > 0) {
+            priceInput.value = priceKg.toFixed(2);
+        } else if (pricePcs > 0) {
+            priceInput.value = pricePcs.toFixed(2);
+        } else if (!hiddenProd.value) {
+            priceInput.value = '';
         }
     }
 
@@ -418,10 +428,23 @@
         if (!originalRow) return;
 
         const clone = originalRow.cloneNode(true);
-        clone.querySelector('select').value = '';
+        const wrapper = clone.querySelector('.combobox-wrapper');
+        if (wrapper) {
+            delete wrapper.dataset.comboboxInitialized;
+            const hidden = wrapper.querySelector('.combobox-hidden-input');
+            const search = wrapper.querySelector('.combobox-search-input');
+            const clearBtn = wrapper.querySelector('.combobox-clear-btn');
+            if (hidden) hidden.value = '';
+            if (search) search.value = '';
+            if (clearBtn) clearBtn.classList.add('hidden');
+        }
         clone.querySelector('input[name="quantities[]"]').value = '';
         clone.querySelector('input[name="unit_prices[]"]').value = '';
         container.appendChild(clone);
+
+        if (window.ERPComboboxManager) {
+            window.ERPComboboxManager.init(clone);
+        }
     });
 
     // Cache default clean row template for resets
@@ -448,7 +471,7 @@
         const closeBtn = document.getElementById('salesOrderCloseBtn');
         if (closeBtn) closeBtn.className = 'text-xs font-bold text-slate-400 hover:text-slate-600';
 
-        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').forEach(el => {
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]):not(.combobox-search-input), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#orderClientSelect):not(#orderPlantSelect), textarea').forEach(el => {
             if (!el.disabled) {
                 el.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
             }
@@ -467,7 +490,9 @@
         }
 
         form.reset();
-        handleOrderClientChange();
+        if (typeof window.syncDirectOrderClientDisplay === 'function') {
+            window.syncDirectOrderClientDisplay();
+        }
     }
 
     function openEditOrderModal(ord) {
@@ -492,7 +517,7 @@
         }
         if (closeBtn) closeBtn.className = 'text-xs font-bold text-amber-700 hover:text-amber-900';
 
-        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').forEach(el => {
+        form.querySelectorAll('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]):not(.combobox-search-input), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#orderClientSelect):not(#orderPlantSelect), textarea').forEach(el => {
             if (!el.disabled) {
                 el.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
             }
@@ -507,16 +532,13 @@
         if (orderNumDisplay) orderNumDisplay.value = ord.order_number;
 
         const clientSelect = form.querySelector('[name="client_id"]');
-        if (clientSelect) {
-            clientSelect.value = ord.client_id;
-            handleOrderClientChange();
-        }
+        if (clientSelect) clientSelect.value = ord.client_id;
 
-        if (ord.plant_id) {
-            setTimeout(() => {
-                const plantSelect = form.querySelector('[name="plant_id"]');
-                if (plantSelect) plantSelect.value = ord.plant_id;
-            }, 50);
+        const plantSelect = form.querySelector('[name="plant_id"]');
+        if (plantSelect) plantSelect.value = ord.plant_id || '';
+
+        if (typeof window.syncDirectOrderClientDisplay === 'function') {
+            window.syncDirectOrderClientDisplay();
         }
 
         const orderDateInput = form.querySelector('[name="order_date"]');
@@ -558,8 +580,8 @@
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" value="${parseFloat(it.quantity)}" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
-                    <input type="number" name="unit_prices[]" value="${parseFloat(it.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700">
+                    <input type="number" name="quantities[]" value="${parseFloat(it.quantity)}" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
+                    <input type="number" name="unit_prices[]" value="${parseFloat(it.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
                     <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
                 if (row.querySelector('select[name="billing_uoms[]"]')) {

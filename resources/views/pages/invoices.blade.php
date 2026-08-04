@@ -3,6 +3,78 @@
 @section('title', 'Invoice Builder')
 
 @section('content')
+@php
+    $clientPlantOptions = [];
+    foreach ($clients as $client) {
+        if ($client->plants->isNotEmpty()) {
+            foreach ($client->plants as $plant) {
+                $fullText = $client->company_name . ' — ' . $plant->plant_name . ' (' . $plant->state . ')';
+                $clientPlantOptions[] = [
+                    'value' => $plant->id,
+                    'label' => $fullText,
+                    'badge' => $plant->state,
+                    'search' => strtolower($fullText . ' ' . ($plant->gst_number ?? '') . ' ' . ($plant->shipping_address ?? '')),
+                    'data' => [
+                        'state' => $plant->state
+                    ]
+                ];
+            }
+        }
+    }
+
+    $invoiceProductOptions = [];
+    foreach ($finishedGoods as $g) {
+        $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
+        $prodLabel = $g->product_name . (($g->unit_weight_kg ?? 0) > 0 ? ' (' . number_format($g->unit_weight_kg, 3) . ' Kg)' : '');
+        $invoiceProductOptions[] = [
+            'value' => 'product_' . $g->id,
+            'label' => $prodLabel,
+            'search' => strtolower($prodLabel . ' ' . $g->sku),
+            'data' => [
+                'type' => 'product',
+                'price' => $g->selling_price,
+                'price-pcs' => $g->selling_price,
+                'price-kg' => $kgPrice,
+                'weight' => $g->unit_weight_kg ?? 0.000,
+                'uom' => $g->uom ?? 'piece'
+            ]
+        ];
+    }
+
+    $invoiceRawMaterialOptions = [];
+    if (isset($rawMaterials) && $rawMaterials->isNotEmpty()) {
+        foreach ($rawMaterials as $rm) {
+            $rmLabel = $rm->material_name . ' (Stock: ' . number_format($rm->current_stock, 1) . ' ' . $rm->unit . ')';
+            $invoiceRawMaterialOptions[] = [
+                'value' => 'raw_material_' . $rm->id,
+                'label' => $rmLabel,
+                'search' => strtolower($rmLabel . ' ' . $rm->unit),
+                'data' => [
+                    'type' => 'raw_material',
+                    'price' => '0.00',
+                    'price-pcs' => '0.00',
+                    'price-kg' => '0.00',
+                    'weight' => '1.000',
+                    'uom' => $rm->unit ?? 'kg'
+                ]
+            ];
+        }
+    }
+
+    $invoiceComboboxHtml = View::make('components.combobox', [
+        'name' => 'product_ids[]',
+        'placeholder' => 'Select product...',
+        'options' => $invoiceProductOptions,
+        'required' => true,
+    ])->render();
+
+    $rawMaterialComboboxHtml = View::make('components.combobox', [
+        'name' => 'product_ids[]',
+        'placeholder' => 'Select raw material / scrap...',
+        'options' => $invoiceRawMaterialOptions,
+        'required' => true,
+    ])->render();
+@endphp
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -84,24 +156,14 @@
                     </div>
 
                     <!-- Registered Client Select (Finished Goods Mode) -->
-                    <div id="registeredClientContainer" class="md:col-span-4">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Client & Plant</label>
-                        <select id="invoiceClientSelect" name="plant_id" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium" required onchange="recalculateCustomInvoice()">
-                            <option value="">Search & select client plant...</option>
-                            @foreach ($clients as $client)
-                                @if($client->plants->isNotEmpty())
-                                    @foreach($client->plants as $plant)
-                                        <option value="{{ $plant->id }}"
-                                                data-state="{{ $plant->state }}"
-                                                {{ (!empty($prefillOrder) && $prefillOrder->plant_id == $plant->id) ? 'selected' : '' }}>
-                                            {{ $client->company_name }} — {{ $plant->plant_name }} ({{ $plant->state }})
-                                        </option>
-                                    @endforeach
-                                @else
-                                    <option value="" disabled>{{ $client->company_name }} (No Plants Registered)</option>
-                                @endif
-                            @endforeach
-                        </select>
+                    <div id="registeredClientContainer" class="md:col-span-4 relative">
+                        <x-combobox name="plant_id"
+                                    id="invoiceClientSelect"
+                                    label="Select Client & Plant"
+                                    placeholder="Search company, plant, or state..."
+                                    :options="$clientPlantOptions"
+                                    :value="!empty($prefillOrder) ? $prefillOrder->plant_id : ''"
+                                    required />
                     </div>
 
                     <!-- Custom Buyer Name Input (Raw Material Mode) -->
@@ -174,49 +236,40 @@
                         </button>
                     </div>
 
-                    <div id="billingRowsContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    <div id="billingRowsContainer" class="space-y-2">
                         @if(!empty($prefillOrder) && $prefillOrder->items->isNotEmpty())
                             @foreach($prefillOrder->items as $it)
                                 <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                        <option value="">Select product...</option>
-                                        @foreach ($finishedGoods as $g)
-                                            @php
-                                                $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                                            @endphp
-                                            <option value="product_{{ $g->id }}" {{ $g->id == $it->product_id ? 'selected' : '' }} data-type="product" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                                {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <div class="flex-grow">
+                                        <x-combobox name="product_ids[]"
+                                                    placeholder="Select product..."
+                                                    :options="$invoiceProductOptions"
+                                                    :value="'product_' . $it->product_id"
+                                                    required />
+                                    </div>
                                     <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="Pcs">Pcs</option>
                                         <option value="Kg">Kg</option>
                                     </select>
-                                    <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                    <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                                 </div>
                             @endforeach
                         @else
                             <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                    <option value="">Select finished good product...</option>
-                                    @foreach ($finishedGoods as $g)
-                                        @php
-                                            $kgPrice = $g->price_per_kg ?? (($g->unit_weight_kg ?? 0) > 0 ? round($g->selling_price / $g->unit_weight_kg, 2) : 0);
-                                        @endphp
-                                        <option value="product_{{ $g->id }}" data-type="product" data-price="{{ $g->selling_price }}" data-price-pcs="{{ $g->selling_price }}" data-price-kg="{{ $kgPrice }}" data-weight="{{ $g->unit_weight_kg ?? 0.000 }}" data-uom="{{ $g->uom ?? 'piece' }}">
-                                            {{ $g->product_name }} @if(($g->unit_weight_kg ?? 0) > 0)({{ number_format($g->unit_weight_kg, 3) }} Kg)@endif
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="flex-grow">
+                                    <x-combobox name="product_ids[]"
+                                                placeholder="Select product..."
+                                                :options="$invoiceProductOptions"
+                                                required />
+                                </div>
                                 <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="Pcs">Pcs</option>
                                     <option value="Kg">Kg</option>
                                 </select>
-                                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                                 <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                             </div>
                         @endif
@@ -286,7 +339,7 @@
 
         <!-- Table 1: Finished Goods Invoices Datatable -->
         <div id="ledgerTabFinishedGoods" class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
+            <table class="erp-datatable divide-y divide-slate-200 text-xs" style="min-width: 1100px; width: 100%;">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase w-8">#</th>
@@ -391,17 +444,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr class="empty-row">
-                            <td colspan="11" class="px-6 py-12 text-center text-slate-400">
-                                <div class="flex flex-col items-center justify-center space-y-2">
-                                    <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                    <p class="text-sm font-bold text-slate-600">No Records Found</p>
-                                    <p class="text-xs text-slate-400">There are no finished goods invoices recorded yet.</p>
-                                </div>
-                            </td>
-                        </tr>
+                        <x-empty-state title="No Invoices Found" subtitle="There are no finished goods invoices recorded yet." colspan="11" />
                     @endforelse
                 </tbody>
             </table>
@@ -412,7 +455,7 @@
 
         <!-- Table 2: Raw Material & Scrap Sales Datatable -->
         <div id="ledgerTabRawMaterial" class="hidden overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
+            <table class="erp-datatable divide-y divide-slate-200 text-xs" style="min-width: 1000px; width: 100%;">
                 <thead class="bg-amber-600 text-white divide-x divide-white/25">
                     <tr>
                         <th class="px-2 py-2.5 text-center text-[11px] font-bold uppercase w-8">#</th>
@@ -531,6 +574,9 @@
     
     if (!billingRowsContainer || !addBillingRowBtn) return;
 
+    window.rawInvoiceComboboxTpl = @json($invoiceComboboxHtml);
+    window.rawMaterialComboboxTpl = @json($rawMaterialComboboxHtml);
+
     // Add Row (prevent double-fire with flag)
     var _addRowPending = false;
     addBillingRowBtn.addEventListener('click', function(e) {
@@ -538,23 +584,21 @@
         _addRowPending = true;
         setTimeout(function() { _addRowPending = false; }, 300);
 
-        const mode = (document.getElementById('invoiceModeInput') ? document.getElementById('invoiceModeInput').value : 'finished_goods');
-        const fgTpl = document.getElementById('templateOptionsFinishedGoods');
-        const rmTpl = document.getElementById('templateOptionsRawMaterials');
-        const newOptionsHtml = (mode === 'raw_material') ? (rmTpl ? rmTpl.innerHTML : '') : (fgTpl ? fgTpl.innerHTML : '');
+        const modeInp = document.getElementById('invoiceModeInput');
+        const currentTpl = (modeInp && modeInp.value === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
         const row = document.createElement('div');
         row.className = 'billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
         row.innerHTML = `
-            <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                ${newOptionsHtml}
-            </select>
+            <div class="flex-grow">
+                ${currentTpl}
+            </div>
             <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="Pcs">Pcs</option>
                 <option value="Kg">Kg</option>
             </select>
-            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
             <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
         `;
         billingRowsContainer.appendChild(row);
@@ -564,9 +608,9 @@
     function ensureAndSelectUom(uomSelect, rawUom) {
         if (!uomSelect || !rawUom) return;
         let formattedUom = rawUom.trim();
-        if (formattedUom.toLowerCase() === 'kg' || formattedUom.toLowerCase() === 'kilogram') {
+        if (formattedUom.toLowerCase() === 'kilogram' || formattedUom.toLowerCase() === 'kg') {
             formattedUom = 'Kg';
-        } else {
+        } else if (formattedUom.toLowerCase() === 'piece' || formattedUom.toLowerCase() === 'pcs') {
             formattedUom = 'Pcs';
         }
 
@@ -579,7 +623,11 @@
             }
         }
         if (!found) {
-            uomSelect.value = 'Pcs';
+            const opt = document.createElement('option');
+            opt.value = formattedUom;
+            opt.textContent = formattedUom;
+            uomSelect.appendChild(opt);
+            uomSelect.value = formattedUom;
         }
     }
 
@@ -588,13 +636,15 @@
         if (e.target.name === 'product_ids[]' || e.target.name === 'billing_uoms[]' || e.target.classList.contains('billing-uom-select')) {
             const row = e.target.closest('.billing-row');
             if (row) {
-                const prodSelect = row.querySelector('select[name="product_ids[]"]');
+                const prodInput = row.querySelector('[name="product_ids[]"]');
                 const uomSelect = row.querySelector('.billing-uom-select');
                 const priceInput = row.querySelector('input[name="unit_prices[]"]');
+                const wrapper = row.querySelector('.combobox-wrapper');
 
-                if (prodSelect) {
-                    const opt = prodSelect.options[prodSelect.selectedIndex];
-                    if (opt && opt.value) {
+                if (prodInput && wrapper) {
+                    const val = prodInput.value;
+                    const opt = wrapper.querySelector(`.combobox-option[data-value="${val}"]`);
+                    if (opt) {
                         // Auto-fetch measurement unit when product/material changes
                         if (e.target.name === 'product_ids[]' && uomSelect && opt.dataset.uom) {
                             ensureAndSelectUom(uomSelect, opt.dataset.uom);
@@ -602,11 +652,22 @@
 
                         if (priceInput) {
                             const uomVal = uomSelect ? uomSelect.value : 'Pcs';
-                            if (uomVal === 'Kg' && opt.dataset.priceKg && parseFloat(opt.dataset.priceKg) > 0) {
-                                priceInput.value = parseFloat(opt.dataset.priceKg).toFixed(2);
-                            } else if (opt.dataset.pricePcs || opt.dataset.price) {
-                                priceInput.value = parseFloat(opt.dataset.pricePcs || opt.dataset.price).toFixed(2);
+                            const priceKg = parseFloat(opt.dataset.priceKg || '0');
+                            const priceNormal = parseFloat(opt.dataset.pricePcs || opt.dataset.price || '0');
+
+                            if (uomVal === 'Kg' && priceKg > 0) {
+                                priceInput.value = priceKg.toFixed(2);
+                            } else if (priceNormal > 0) {
+                                priceInput.value = priceNormal.toFixed(2);
+                            } else {
+                                priceInput.value = '';
+                                priceInput.placeholder = '0.00';
                             }
+                            priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    } else {
+                        if (priceInput) {
+                            priceInput.value = '';
                             priceInput.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     }
@@ -747,29 +808,14 @@
     // Initialize calculation on page load
     recalculateCustomInvoice();
 
-    // Initialize TomSelect for client plant selector
-    window.invoiceClientTomSelect = null;
-    try {
-        if (typeof TomSelect !== 'undefined') {
-            const clientSel = document.getElementById('invoiceClientSelect');
-            if (clientSel) {
-                if (clientSel.tomselect) {
-                    clientSel.tomselect.destroy();
-                }
-                window.invoiceClientTomSelect = new TomSelect(clientSel, {
-                    create: false,
-                    placeholder: 'Search & select client plant...',
-                    onChange: function() {
-                        if (typeof window.recalculateCustomInvoice === 'function') {
-                            window.recalculateCustomInvoice();
-                        }
-                    }
-                });
+    // Auto recalculate on combobox change
+    document.addEventListener('change', function(e) {
+        if (e.target && (e.target.name === 'plant_id' || e.target.name === 'product_ids[]' || e.target.name === 'quantities[]' || e.target.name === 'unit_prices[]' || e.target.name === 'billing_uoms[]')) {
+            if (typeof window.recalculateCustomInvoice === 'function') {
+                window.recalculateCustomInvoice();
             }
         }
-    } catch (err) {
-        console.warn('TomSelect initialization note:', err);
-    }
+    });
 })();
 </script>
 
@@ -882,6 +928,9 @@
     };
 
     window.switchInvoiceMode = function(mode) {
+        if (!mode) mode = 'finished_goods';
+        try { sessionStorage.setItem('pww_invoice_mode', mode); } catch(e) {}
+        
         const input = document.getElementById('invoiceModeInput');
         const btnFG = document.getElementById('modeBtnFinishedGoods');
         const btnRM = document.getElementById('modeBtnRawMaterial');
@@ -892,18 +941,20 @@
         const clientSelect = document.getElementById('invoiceClientSelect');
         const custInput = document.getElementById('customClientNameInput');
         
-        if (input) input.value = mode;
+        if (input) {
+            input.value = mode;
+            input.setAttribute('value', mode);
+        }
 
-        const fgTpl = document.getElementById('templateOptionsFinishedGoods');
-        const rmTpl = document.getElementById('templateOptionsRawMaterials');
-        const newOptionsHtml = (mode === 'raw_material') ? (rmTpl ? rmTpl.innerHTML : '') : (fgTpl ? fgTpl.innerHTML : '');
+        const targetTpl = (mode === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
         const container = document.getElementById('billingRowsContainer');
         if (container) {
-            container.querySelectorAll('.billing-row select[name="product_ids[]"]').forEach(sel => {
-                const curVal = sel.value;
-                sel.innerHTML = newOptionsHtml;
-                sel.value = curVal;
+            container.querySelectorAll('.billing-row').forEach(row => {
+                const flexGrow = row.querySelector('.flex-grow');
+                if (flexGrow) {
+                    flexGrow.innerHTML = targetTpl;
+                }
             });
         }
         
@@ -1012,50 +1063,36 @@
             $form.find('input[name="custom_client_name"]').val('');
             $form.find('input[name="custom_buyer_gstin"]').val('');
 
-            if (window.invoiceClientTomSelect) {
-                window.invoiceClientTomSelect.clear();
-            } else {
-                $form.find('select#invoiceClientSelect').val('');
-            }
-            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#invoiceClientSelect), textarea').each(function() {
-                if (!this.disabled) {
-                    this.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
-                }
-            });
-            if (window.invoiceClientTomSelect && window.invoiceClientTomSelect.control) {
-                window.invoiceClientTomSelect.control.style.backgroundColor = '#f8fafc';
-                window.invoiceClientTomSelect.control.style.borderColor = '#e2e8f0';
+            $form.find('select#invoiceClientSelect').val('');
+            if (typeof window.syncDirectClientDisplay === 'function') {
+                window.syncDirectClientDisplay();
             }
         }
 
-        // Reset Mode to finished_goods
-        const modeInput = document.getElementById('invoiceModeInput');
-        if (modeInput && modeInput.value !== 'finished_goods') {
-            switchInvoiceMode('finished_goods');
-        }
+        // Preserve active mode on reset
+        let activeMode = 'finished_goods';
+        try { activeMode = sessionStorage.getItem('pww_invoice_mode') || 'finished_goods'; } catch(e) {}
+        switchInvoiceMode(activeMode);
+
+        const currentTpl = (activeMode === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
         // Reset billing rows to single clean empty row from template
-        const fgTpl = document.getElementById('templateOptionsFinishedGoods');
-        const fgOptionsHtml = fgTpl ? fgTpl.innerHTML : '<option value="">Select finished good product...</option>';
-
         const container = document.getElementById('billingRowsContainer');
         if (container) {
             container.innerHTML = `
                 <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <select name="product_ids[]" class="flex-grow bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                        ${fgOptionsHtml}
-                    </select>
+                    <div class="flex-grow">
+                        ${currentTpl}
+                    </div>
                     <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
-                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700" required>
+                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 </div>
             `;
-            const firstSelect = container.querySelector('select[name="product_ids[]"]');
-            if (firstSelect) firstSelect.value = '';
         }
 
         // Reset submit button text
@@ -1131,10 +1168,9 @@
             } else {
                 switchInvoiceMode('finished_goods');
                 if (invoice.plant_id) {
-                    if (window.invoiceClientTomSelect) {
-                        window.invoiceClientTomSelect.setValue(invoice.plant_id);
-                    } else {
-                        $form.find('select#invoiceClientSelect').val(invoice.plant_id);
+                    $form.find('select#invoiceClientSelect').val(invoice.plant_id);
+                    if (typeof window.syncDirectClientDisplay === 'function') {
+                        window.syncDirectClientDisplay();
                     }
                 }
             }
@@ -1156,31 +1192,33 @@
         const container = document.getElementById('billingRowsContainer');
         if (container && invoice.items && invoice.items.length > 0) {
             container.innerHTML = '';
-            const fgTpl = document.getElementById('templateOptionsFinishedGoods');
-            const rmTpl = document.getElementById('templateOptionsRawMaterials');
 
             invoice.items.forEach(item => {
                 const isRm = (item.item_type === 'raw_material') || (invoice.invoice_mode === 'raw_material');
-                const rowOptionsHtml = isRm ? (rmTpl ? rmTpl.innerHTML : '') : (fgTpl ? fgTpl.innerHTML : '');
+                const currentTpl = isRm ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
                 const row = document.createElement('div');
                 row.className = 'billing-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
                 row.innerHTML = `
-                    <select name="product_ids[]" class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
-                        ${rowOptionsHtml}
-                    </select>
+                    <div class="flex-grow">
+                        ${currentTpl}
+                    </div>
                     <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" value="${parseFloat(item.quantity)}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
-                    <input type="number" name="unit_prices[]" value="${parseFloat(item.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" required>
+                    <input type="number" name="quantities[]" value="${parseFloat(item.quantity)}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
+                    <input type="number" name="unit_prices[]" value="${parseFloat(item.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
                 const itemVal = item.key || (item.item_type === 'raw_material' ? ('raw_material_' + item.raw_material_id) : ('product_' + (item.product_id || item.finished_good_id)));
-                row.querySelector('select[name="product_ids[]"]').value = itemVal;
+                const hiddenInp = row.querySelector('.combobox-hidden-input');
+                if (hiddenInp) hiddenInp.value = itemVal;
+                const wrapper = row.querySelector('.combobox-wrapper');
+                if (wrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(wrapper);
                 if (row.querySelector('select[name="billing_uoms[]"]')) {
-                    row.querySelector('select[name="billing_uoms[]"]').value = item.billing_uom || (isRm ? 'Kg' : 'Pcs');
+                    const uomSel = row.querySelector('select[name="billing_uoms[]"]');
+                    ensureAndSelectUom(uomSel, item.billing_uom || (isRm ? 'Kg' : 'Pcs'));
                 }
                 container.appendChild(row);
             });
@@ -1238,6 +1276,20 @@
 <script>
     (function() {
         const urlParams = new URLSearchParams(window.location.search);
+        const modeParam = urlParams.get('mode');
+        if (modeParam === 'raw_material') {
+            if (typeof window.switchInvoiceMode === 'function') {
+                window.switchInvoiceMode('raw_material');
+            }
+            if (window.history && window.history.replaceState) {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+        } else {
+            if (typeof window.switchInvoiceMode === 'function') {
+                window.switchInvoiceMode('finished_goods');
+            }
+        }
         const editId = urlParams.get('edit') || urlParams.get('edit_id');
         if (editId && typeof window.editInvoiceRecord === 'function') {
             setTimeout(function() {
