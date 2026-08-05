@@ -785,21 +785,21 @@
                     </div>
                     <div class="mt-2 pt-2 border-t border-slate-100 text-[10px]">
                         @if($gstSummary['status'] === 'no_due')
-                            <span class="text-blue-700 font-bold flex items-center justify-between">
-                                <span>✓ Excess Input Tax Credit Available (Carry Forward)</span>
+                            <span class="text-blue-700 font-bold flex items-center justify-between gap-2">
+                                <span class="truncate">✓ Excess Input Tax Credit Available (Carry Forward)</span>
                             </span>
                         @elseif($gstSummary['status'] === 'paid')
-                            <span class="text-emerald-700 font-bold flex items-center justify-between">
-                                <span>✓ Settled for {{ $taxPeriodLabel }} via Expense Ledger</span>
+                            <span class="text-emerald-700 font-bold flex items-center justify-between gap-2">
+                                <span class="truncate">✓ Settled for {{ $taxPeriodLabel }} via Expense Ledger</span>
                                 @if(!empty($gstSummary['expense_entry']))
-                                    <span>({{ \Carbon\Carbon::parse($gstSummary['expense_entry']->expense_date)->format('d/m/Y') }})</span>
+                                    <span class="whitespace-nowrap shrink-0">({{ \Carbon\Carbon::parse($gstSummary['expense_entry']->expense_date)->format('d/m/Y') }})</span>
                                 @endif
                             </span>
                         @else
-                            <span class="text-rose-600 font-bold flex items-center justify-between">
-                                <span>Net Tax Liability for <strong>{{ $taxPeriodLabel }}</strong> due for GSTR-3B</span>
-                                <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => abs($gstSummary['net_gst_payable']), 'prefill_desc' => 'GSTR-3B Tax Paid for ' . $taxPeriodLabel . ' via Bank Challan']) }}" class="underline hover:text-rose-800">Log GST Expense →</a>
-                            </span>
+                            <div class="text-rose-600 font-bold flex items-center justify-between gap-2">
+                                <span class="truncate">Net Tax Liability for <strong>{{ $taxPeriodLabel }}</strong></span>
+                                <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => abs($gstSummary['net_gst_payable']), 'prefill_desc' => 'GSTR-3B Tax Paid for ' . $taxPeriodLabel . ' via Bank Challan']) }}" class="underline hover:text-rose-800 whitespace-nowrap shrink-0">Log GST Expense →</a>
+                            </div>
                         @endif
                     </div>
                 </div>

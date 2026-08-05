@@ -175,14 +175,14 @@
                     Sales GST: <span class="font-bold text-white">₹{{ format_indian($salesGstCollected, 2) }}</span> | ITC: <span class="font-bold text-white/80">₹{{ format_indian($purchasesItc, 2) }}</span>
                 </div>
             </div>
-            <div class="mt-3 pt-2 border-t border-white/20 text-[10px] flex items-center justify-between font-medium">
-                <span class="text-white/70">Net Tax Payable (Outward − ITC)</span>
+            <div class="mt-3 pt-2 border-t border-white/20 text-[10px] flex items-center justify-between gap-1.5 font-medium">
+                <span class="text-white/70 truncate">Net Tax Payable</span>
                 @if($gstStatus === 'no_due')
-                    <span class="text-emerald-100 font-bold">Excess Credit (Carry Forward)</span>
+                    <span class="text-emerald-100 font-bold whitespace-nowrap shrink-0">Excess Credit (Carry Forward)</span>
                 @elseif($gstStatus === 'paid' && isset($currentMonthGstExpense) && $currentMonthGstExpense)
-                    <span class="text-white font-bold">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
+                    <span class="text-white font-bold whitespace-nowrap shrink-0">Paid on {{ \Carbon\Carbon::parse($currentMonthGstExpense->expense_date)->format('d/m/Y') }}</span>
                 @elseif($gstStatus === 'unpaid')
-                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-white font-black underline hover:text-rose-100 relative z-10 cursor-pointer">Log GST Expense →</a>
+                    <a href="{{ route('expenses', ['prefill_category' => 'gst_payment', 'prefill_amount' => $currentMonthNetGst, 'prefill_desc' => 'GSTR-3B Tax Paid via Bank Challan']) }}" class="text-white font-black underline hover:text-rose-100 relative z-10 cursor-pointer whitespace-nowrap shrink-0">Log GST Expense →</a>
                 @endif
             </div>
         </div>

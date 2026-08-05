@@ -400,7 +400,7 @@
                             <td class="px-2 py-2 text-center">
                                 @if(($inv->payment_status ?? 'unpaid') === 'paid')
                                     <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                        PAID
+                                        RECEIVED
                                     </span>
                                 @elseif(($inv->payment_status ?? 'unpaid') === 'partially_paid')
                                     <button type="button" 
@@ -414,7 +414,7 @@
                                             onclick="openInvoicePaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
                                             title="Click to record payment for this invoice"
                                             class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer shadow-2xs">
-                                        UNPAID
+                                        DUE
                                     </button>
                                 @endif
                             </td>
@@ -504,7 +504,7 @@
                             <td class="px-2 py-2 text-center">
                                 @if(($rmInv->payment_status ?? 'unpaid') === 'paid')
                                     <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                        PAID
+                                        RECEIVED
                                     </span>
                                 @elseif(($rmInv->payment_status ?? 'unpaid') === 'partially_paid')
                                     <button type="button" 
@@ -518,7 +518,7 @@
                                             onclick="openInvoicePaymentModal({{ $rmInv->id }}, '{{ $rmInv->invoice_number }}', {{ $rmInv->remaining_balance }})"
                                             title="Click to record payment for this raw material sale"
                                             class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200 transition cursor-pointer shadow-2xs">
-                                        UNPAID
+                                        DUE
                                     </button>
                                 @endif
                             </td>
