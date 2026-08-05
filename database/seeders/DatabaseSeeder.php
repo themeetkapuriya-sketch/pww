@@ -50,6 +50,7 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'session_timeout_minutes'], ['value' => '120']);
         Setting::updateOrCreate(['key' => 'auto_backup_enabled'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'auto_backup_frequency'], ['value' => 'monthly']);
+        Setting::updateOrCreate(['key' => 'auto_backup_retention'], ['value' => '3_months']);
 
         Setting::updateOrCreate(
             ['key' => 'terms_and_conditions'],

@@ -664,6 +664,21 @@
                             <span class="text-[11px] text-slate-400">Selected day of week when weekly backups run</span>
                         </div>
 
+                        <div>
+                            @php
+                                $savedRetention = \App\Models\Setting::get('auto_backup_retention', '3_months');
+                            @endphp
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Auto-Delete Old Backups</label>
+                            <select name="auto_backup_retention" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
+                                <option value="3_months" {{ $savedRetention === '3_months' ? 'selected' : '' }}>After 3 Months (Default - Keeps Latest 1)</option>
+                                <option value="1_month" {{ $savedRetention === '1_month' ? 'selected' : '' }}>After 1 Month (Keeps Latest 1)</option>
+                                <option value="6_months" {{ $savedRetention === '6_months' ? 'selected' : '' }}>After 6 Months (Keeps Latest 1)</option>
+                                <option value="1_year" {{ $savedRetention === '1_year' ? 'selected' : '' }}>After 1 Year (Keeps Latest 1)</option>
+                                <option value="never" {{ $savedRetention === 'never' ? 'selected' : '' }}>Never (Keep All Backups)</option>
+                            </select>
+                            <span class="text-[11px] text-slate-400">Backups older than this period will be deleted automatically, keeping the latest backup file safe.</span>
+                        </div>
+
                         <div class="md:col-span-2">
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" name="auto_backup_enabled" value="true" {{ \App\Models\Setting::get('auto_backup_enabled', 'true') === 'true' ? 'checked' : '' }} class="w-4 h-4 text-blue-600 rounded border-slate-300">

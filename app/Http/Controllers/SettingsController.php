@@ -537,6 +537,8 @@ class SettingsController extends Controller
                 Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/' . $filename]);
             }
 
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated business profile and company branding ('{$request->business_name}')");
+
             return $this->respond($request, true, 'Business profile & branding updated successfully!');
         } catch (Throwable $e) {
             Log::error("Failed to update business profile: " . $e->getMessage());
@@ -563,6 +565,8 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'bank_account_no'], ['value' => $request->bank_account_no ?? '']);
             Setting::updateOrCreate(['key' => 'bank_ifsc'], ['value' => strtoupper($request->bank_ifsc ?? '')]);
             Setting::updateOrCreate(['key' => 'terms_and_conditions'], ['value' => $request->terms_and_conditions ?? '']);
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated bank details and billing terms & conditions");
 
             return $this->respond($request, true, 'Bank details & billing defaults updated successfully!');
         } catch (Throwable $e) {
@@ -595,6 +599,8 @@ class SettingsController extends Controller
             Setting::set('serial_number_digits', (string) $request->serial_number_digits);
             Setting::set('serial_reset_frequency', $request->serial_reset_frequency);
 
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated invoice & sales order auto-increment serial settings");
+
             return $this->respond($request, true, 'Document prefix & auto-increment serial settings updated successfully!');
         } catch (Throwable $e) {
             Log::error("Failed to update serial settings: " . $e->getMessage());
@@ -617,6 +623,8 @@ class SettingsController extends Controller
             Setting::set('default_gst_rate', (string) $request->default_gst_rate);
             Setting::set('financial_year_start_month', (string) $request->financial_year_start_month);
             Setting::set('number_format_style', $request->number_format_style);
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated default GST rate ({$request->default_gst_rate}%) and financial year settings");
 
             return $this->respond($request, true, 'Financial & Tax configuration updated successfully!');
         } catch (Throwable $e) {
@@ -658,6 +666,8 @@ class SettingsController extends Controller
             Setting::set('mail_encryption', $request->mail_encryption);
             Setting::set('mail_from_address', $fromAddress);
             Setting::set('mail_from_name', trim($request->mail_from_name));
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated SMTP email delivery settings ('{$fromAddress}')");
 
             return $this->respond($request, true, 'Email (SMTP) delivery settings saved successfully!');
         } catch (Throwable $e) {
@@ -733,6 +743,7 @@ class SettingsController extends Controller
             'session_timeout_minutes' => 'required|integer|min:15|max:1440',
             'auto_backup_enabled' => 'nullable|string|in:true,false',
             'auto_backup_frequency' => 'required|string|in:daily,weekly,monthly',
+            'auto_backup_retention' => 'required|string|in:1_month,3_months,6_months,1_year,never',
             'auto_backup_time' => 'required|string',
             'auto_backup_day' => 'required|string',
         ]);
@@ -745,8 +756,14 @@ class SettingsController extends Controller
             Setting::set('session_timeout_minutes', (string) $request->session_timeout_minutes);
             Setting::set('auto_backup_enabled', $request->has('auto_backup_enabled') ? 'true' : 'false');
             Setting::set('auto_backup_frequency', $request->auto_backup_frequency);
+            Setting::set('auto_backup_retention', $request->auto_backup_retention);
             Setting::set('auto_backup_time', $request->auto_backup_time);
             Setting::set('auto_backup_day', $request->auto_backup_day);
+
+            // Run catch-up cleanup if retention rule changed
+            app(BackupService::class)->cleanOldBackups();
+
+            \App\Services\AuditLogService::log('Settings', 'updated', "Updated security policies (Session Inactivity Timeout: {$request->session_timeout_minutes} mins, Auto Backup: {$request->auto_backup_frequency}, Retention: {$request->auto_backup_retention})");
 
             return $this->respond($request, true, 'Security & backup schedule preferences saved successfully!');
         } catch (Throwable $e) {

@@ -266,7 +266,63 @@ class BackupService
             Log::info("Automatic Catch-Up Backup created successfully ({$frequency}): {$filename}");
         }
 
+        $this->cleanOldBackups();
+
         return $filePath;
+    }
+
+    /**
+     * Auto-purge old backup files based on retention policy setting (keeping latest 1 intact).
+     */
+    public function cleanOldBackups(): int
+    {
+        $retention = \App\Models\Setting::get('auto_backup_retention', '3_months');
+        if ($retention === 'never') {
+            return 0;
+        }
+
+        $now = Carbon::now();
+        $cutoff = match ($retention) {
+            '1_month' => $now->copy()->subDays(30),
+            '6_months' => $now->copy()->subDays(180),
+            '1_year' => $now->copy()->subDays(365),
+            default => $now->copy()->subDays(90), // 3_months
+        };
+
+        $files = File::files($this->backupDirectory);
+        $sqlFiles = [];
+        foreach ($files as $file) {
+            if ($file->getExtension() === 'sql') {
+                $sqlFiles[] = [
+                    'path' => $file->getPathname(),
+                    'mtime' => $file->getMTime(),
+                    'name' => $file->getFilename(),
+                ];
+            }
+        }
+
+        // Sort descending by modified time (newest first)
+        usort($sqlFiles, fn($a, $b) => $b['mtime'] <=> $a['mtime']);
+
+        if (count($sqlFiles) <= 1) {
+            return 0; // Always keep at least 1 latest backup intact
+        }
+
+        $deletedCount = 0;
+        // Skip index 0 (the latest backup file)
+        for ($i = 1; $i < count($sqlFiles); $i++) {
+            if ($sqlFiles[$i]['mtime'] < $cutoff->timestamp) {
+                try {
+                    File::delete($sqlFiles[$i]['path']);
+                    $deletedCount++;
+                    Log::info("Auto-Purged old backup file ({$retention}): {$sqlFiles[$i]['name']}");
+                } catch (Throwable $e) {
+                    Log::error("Failed to auto-purge backup file {$sqlFiles[$i]['name']}: " . $e->getMessage());
+                }
+            }
+        }
+
+        return $deletedCount;
     }
 
     /**
@@ -317,6 +373,8 @@ class BackupService
      */
     public function listLocalBackups(): array
     {
+        $this->cleanOldBackups();
+
         $files = File::files($this->backupDirectory);
         $backups = [];
 
