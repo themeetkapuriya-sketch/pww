@@ -16,10 +16,16 @@
             <p class="text-sm text-slate-500 mt-1">Real-time system audit trail & security action logs. Restricted to Super Admin.</p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('activity-logs.export', request()->all()) }}" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5">
+            <a href="{{ route('activity-logs.export', request()->all()) }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Export Audit Logs (CSV)
             </a>
+            @if(auth()->user() && auth()->user()->role === 'super_admin')
+                <button type="button" onclick="window.openClearAuditLogsModal()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Clear Audit Logs
+                </button>
+            @endif
         </div>
     </div>
 
@@ -181,10 +187,58 @@
                 </tbody>
             </table>
         </div>
-
-        <div class="pt-3">
-            {{ $logs->links() }}
-        </div>
     </div>
 </div>
+
+<!-- Clear Audit Logs Modal Dialog -->
+<div id="clearAuditLogsModal" onclick="if(event.target===this) window.closeClearAuditLogsModal()" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full transition-all duration-300">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <span class="text-rose-600">🗑️</span> Clear Audit Trail Logs
+            </h3>
+            <button type="button" onclick="window.closeClearAuditLogsModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+        </div>
+
+        <form action="{{ route('activity-logs.clear') }}" method="POST" class="ajax-form space-y-4">
+            @csrf
+            <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 font-medium">
+                ⚠️ <strong>Warning:</strong> Deleting audit logs is permanent. The system will automatically create a log entry recording this clear action.
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Logs to Clear</label>
+                <select name="range" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-800 font-semibold">
+                    <option value="all">All Audit Log Records (Complete Clear)</option>
+                    <option value="30_days">Logs Older Than 30 Days</option>
+                    <option value="90_days">Logs Older Than 90 Days</option>
+                    <option value="365_days">Logs Older Than 1 Year (365 Days)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="window.closeClearAuditLogsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1">
+                    Confirm & Clear Logs
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+window.openClearAuditLogsModal = function() {
+    document.querySelectorAll('#clearAuditLogsModal').forEach(m => m.classList.remove('hidden'));
+};
+
+window.closeClearAuditLogsModal = function() {
+    document.querySelectorAll('#clearAuditLogsModal').forEach(m => m.classList.add('hidden'));
+};
+
+$(document).off('keydown.clearAuditLogsModal').on('keydown.clearAuditLogsModal', function(e) {
+    if (e.key === 'Escape') {
+        window.closeClearAuditLogsModal();
+    }
+});
+</script>
 @endsection

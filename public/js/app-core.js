@@ -140,8 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
             $('#spaTopProgressBar').remove();
         }
 
-        // Hover prefetch for sidebar and internal navigation links
-        $(document).on('mouseenter', 'a.nav-link-item, #sidebar a, .page-nav-link', function() {
+        // Hover, mousedown, and touchstart prefetch for sidebar and internal navigation links
+        $(document).on('mouseenter mousedown touchstart', 'a.nav-link-item, #sidebar a, .page-nav-link', function() {
             const href = $(this).attr('href');
             if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.includes('/logout') || pageCache.has(href)) return;
             try {
@@ -154,6 +154,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (e) {}
         });
+
+        // Background cache pre-warmer for instant 0ms sidebar switching
+        function prewarmSidebarCache() {
+            $('#sidebar a.nav-link-item').each(function() {
+                const href = $(this).attr('href');
+                if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.includes('/logout') || pageCache.has(href)) return;
+                try {
+                    const url = new URL(href, window.location.href);
+                    if (url.origin === window.location.origin && 
+                        !url.pathname.includes('/print') && 
+                        !url.pathname.includes('/download') && 
+                        !url.pathname.includes('/export')) {
+                        fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(r => r.ok ? r.text() : null)
+                            .then(html => { if (html) pageCache.set(url.href, html); })
+                            .catch(() => {});
+                    }
+                } catch (e) {}
+            });
+        }
+        setTimeout(prewarmSidebarCache, 800);
 
         // Expose loadPage to window so it can be called elsewhere
         window.loadPage = async function(url, skipCache = false) {
@@ -181,6 +202,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
                 const newContent = doc.getElementById('page-content');
                 
+                if (typeof window.closeCategoryModal === 'function') {
+                    window.closeCategoryModal();
+                }
+                if (typeof window.closeClearAuditLogsModal === 'function') {
+                    window.closeClearAuditLogsModal();
+                }
+                document.querySelectorAll('#categoryModal, #clearAuditLogsModal').forEach(m => m.classList.add('hidden'));
+
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);
                     if (doc.title) {

@@ -165,4 +165,5 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     // 14. Super-Admin User Activity Audit Logs
     Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('activity-logs');
     Route::get('/activity-logs/export', [\App\Http\Controllers\ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
+    Route::post('/activity-logs/clear', [\App\Http\Controllers\ActivityLogController::class, 'clearLogs'])->name('activity-logs.clear');
 });

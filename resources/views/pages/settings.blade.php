@@ -2360,11 +2360,11 @@ async function saveModuleVisibilityAjax(e) {
 </script>
 
 <!-- Add / Edit Category Modal Dialog -->
-<div id="categoryModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+<div id="categoryModal" onclick="if(event.target===this) window.closeCategoryModal()" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 max-w-md w-full transition-all duration-300">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
             <h3 id="categoryModalTitle" class="text-base font-bold text-slate-800">Add New Category</h3>
-            <button type="button" onclick="closeCategoryModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+            <button type="button" onclick="window.closeCategoryModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
         <form id="categoryForm" action="" method="POST" class="ajax-form space-y-4">
@@ -2379,7 +2379,7 @@ async function saveModuleVisibilityAjax(e) {
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeCategoryModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="button" onclick="window.closeCategoryModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" id="categorySubmitBtn" class="btn-primary py-2.5 px-6 text-xs font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs cursor-pointer">
                     Save Category
                 </button>
@@ -2389,7 +2389,7 @@ async function saveModuleVisibilityAjax(e) {
 </div>
 
 <script>
-function openAddCategoryModal(type) {
+window.openAddCategoryModal = function(type) {
     const modal = document.getElementById('categoryModal');
     const form = document.getElementById('categoryForm');
     const title = document.getElementById('categoryModalTitle');
@@ -2405,9 +2405,9 @@ function openAddCategoryModal(type) {
         if (title) title.innerText = type === 'purchase' ? 'Add Purchase Category' : 'Add Expense Category';
         modal.classList.remove('hidden');
     }
-}
+};
 
-function openEditCategoryModal(type, key, currentLabel) {
+window.openEditCategoryModal = function(type, key, currentLabel) {
     const modal = document.getElementById('categoryModal');
     const form = document.getElementById('categoryForm');
     const title = document.getElementById('categoryModalTitle');
@@ -2423,14 +2423,13 @@ function openEditCategoryModal(type, key, currentLabel) {
         if (title) title.innerText = type === 'purchase' ? 'Edit Purchase Category' : 'Edit Expense Category';
         modal.classList.remove('hidden');
     }
-}
+};
 
-function closeCategoryModal() {
-    const modal = document.getElementById('categoryModal');
-    if (modal) modal.classList.add('hidden');
-}
+window.closeCategoryModal = function() {
+    document.querySelectorAll('#categoryModal').forEach(m => m.classList.add('hidden'));
+};
 
-function deleteCategorySetting(type, key, label) {
+window.deleteCategorySetting = function(type, key, label) {
     if (type === 'purchase' && key === 'raw_material') {
         if (window.showToast) window.showToast('danger', "Cannot delete 'Raw Material Purchase' category! It is required for automatic inventory restock.");
         return;
@@ -2452,10 +2451,11 @@ function deleteCategorySetting(type, key, label) {
                     type: type,
                     key: key
                 },
-                success: function(res) {
+                success: async function(res) {
                     if (res.success) {
                         if (window.showToast) window.showToast('success', res.message);
-                        setTimeout(() => window.location.reload(), 600);
+                        window.clearPageCache();
+                        await window.loadPage(window.location.href, true);
                     } else {
                         if (window.showToast) window.showToast('danger', res.message);
                     }
@@ -2467,7 +2467,14 @@ function deleteCategorySetting(type, key, label) {
             });
         }
     );
-}
+};
+
+// Global escape key handler to close category modal
+$(document).off('keydown.categoryModal').on('keydown.categoryModal', function(e) {
+    if (e.key === 'Escape') {
+        window.closeCategoryModal();
+    }
+});
 </script>
 
 <style>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -75,7 +76,7 @@ class ActivityLogController extends Controller
         $modules = ActivityLog::distinct()->pluck('module')->filter()->values();
         $usersList = User::orderBy('name')->get(['id', 'name', 'email', 'role']);
 
-        $logs = $query->paginate(25)->withQueryString();
+        $logs = $query->limit(500)->get();
 
         return view('pages.activity_logs', compact(
             'logs',
@@ -145,5 +146,53 @@ class ActivityLogController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Clear / Prune Audit Logs (Super Admin only).
+     */
+    public function clearLogs(Request $request)
+    {
+        $this->authorizeSuperAdmin();
+
+        $range = $request->input('range', 'all');
+
+        $count = 0;
+        $description = '';
+
+        if ($range === '30_days') {
+            $cutoff = Carbon::now()->subDays(30);
+            $count = ActivityLog::where('created_at', '<', $cutoff)->delete();
+            $description = "Cleared audit logs older than 30 days ({$count} entries removed)";
+        } elseif ($range === '90_days') {
+            $cutoff = Carbon::now()->subDays(90);
+            $count = ActivityLog::where('created_at', '<', $cutoff)->delete();
+            $description = "Cleared audit logs older than 90 days ({$count} entries removed)";
+        } elseif ($range === '365_days') {
+            $cutoff = Carbon::now()->subDays(365);
+            $count = ActivityLog::where('created_at', '<', $cutoff)->delete();
+            $description = "Cleared audit logs older than 1 year ({$count} entries removed)";
+        } else {
+            $count = ActivityLog::count();
+            ActivityLog::truncate();
+            $description = "Cleared all system audit log records ({$count} entries removed)";
+        }
+
+        // Record the clear action itself in audit log
+        AuditLogService::log(
+            'ActivityLogs',
+            'deleted',
+            $description
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $description,
+                'count' => $count
+            ]);
+        }
+
+        return redirect()->route('activity-logs')->with('success', $description);
     }
 }

@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Setting;
-use App\Models\Product;
-use App\Models\StaffProfile;
 use App\Services\RolePermissionService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database with complete settings, roles, users, and initial catalogs.
+     * Seed the application's database with core settings and Super Admin account.
      */
     public function run(): void
     {
@@ -81,66 +79,6 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
                 'is_active' => true,
                 'permissions' => RolePermissionService::getDefaultPermissionsForRole('super_admin'),
-            ]
-        );
-
-        // 5. Initial Finished Goods Products Catalog
-        Product::firstOrCreate(
-            ['product_name' => 'Heavy Duty Industrial Storage Rack (2000x1000x500mm)'],
-            [
-                'hsn_code' => '7308',
-                'unit' => 'NOS',
-                'unit_price' => 4500.00,
-                'gst_rate' => 18,
-                'unit_weight_kg' => 42.50,
-                'price_per_kg' => 105.88,
-                'reorder_level' => 10,
-                'current_stock' => 45,
-            ]
-        );
-
-        Product::firstOrCreate(
-            ['product_name' => 'Heavy Duty Steel Pallet (1200x1000mm)'],
-            [
-                'hsn_code' => '7308',
-                'unit' => 'NOS',
-                'unit_price' => 2800.00,
-                'gst_rate' => 18,
-                'unit_weight_kg' => 26.00,
-                'price_per_kg' => 107.69,
-                'reorder_level' => 15,
-                'current_stock' => 60,
-            ]
-        );
-
-        // 6. Initial Staff Profiles & Employees Catalog
-        StaffProfile::firstOrCreate(
-            ['worker_id' => 'EMP-1001'],
-            [
-                'name' => 'Rajesh Kumar',
-                'phone' => '9876543210',
-                'designation' => 'Senior Welder & Fabricator',
-                'wage_type' => 'per-day',
-                'daily_rate' => 750.00,
-                'piece_rate_per_unit' => 45.00,
-                'overtime_rate_per_hour' => 100.00,
-                'joining_date' => '2024-01-15',
-                'status' => 'active',
-            ]
-        );
-
-        StaffProfile::firstOrCreate(
-            ['worker_id' => 'EMP-1002'],
-            [
-                'name' => 'Suresh Patel',
-                'phone' => '9876543211',
-                'designation' => 'Assembly Helper',
-                'wage_type' => 'per-day',
-                'daily_rate' => 550.00,
-                'piece_rate_per_unit' => 30.00,
-                'overtime_rate_per_hour' => 75.00,
-                'joining_date' => '2024-03-01',
-                'status' => 'active',
             ]
         );
     }
