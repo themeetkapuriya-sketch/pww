@@ -2179,6 +2179,9 @@ window.saveModuleToggleAjax = async function(checkbox) {
             if (window.showToast) {
                 window.showToast(toastType, dynamicToastMsg);
             }
+            if (typeof window.clearPageCache === 'function') {
+                window.clearPageCache();
+            }
             
             // Live update Sidebar Navigation links instantly
             const isProd = modulesForm.querySelector('input[name="module_production"]')?.checked;

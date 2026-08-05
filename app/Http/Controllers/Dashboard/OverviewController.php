@@ -192,7 +192,7 @@ class OverviewController extends Controller
         }
 
         // Recent Activity Feed
-        $recentInvoices = Invoice::with('plant.client')->orderBy('created_at', 'desc')->take(5)->get();
+        $recentInvoices = Invoice::with(['plant.client', 'items.rawMaterial'])->orderBy('created_at', 'desc')->take(5)->get();
         $recentOrders = SalesOrder::with(['client', 'plant'])->orderBy('created_at', 'desc')->take(5)->get();
         $recentProductionLogs = ProductionLog::with('product')->orderBy('production_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
         $latestPurchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->orderBy('id', 'desc')->take(5)->get();

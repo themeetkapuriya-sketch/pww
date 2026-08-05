@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const url = new URL(href, window.location.href);
                 if (url.origin === window.location.origin && !url.pathname.includes('/print') && !url.pathname.includes('/download') && !url.pathname.includes('/export')) {
-                    fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } })
                         .then(r => r.ok ? r.text() : null)
                         .then(html => { if (html) pageCache.set(url.href, html); })
                         .catch(() => {});
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         !url.pathname.includes('/print') && 
                         !url.pathname.includes('/download') && 
                         !url.pathname.includes('/export')) {
-                        fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } })
                             .then(r => r.ok ? r.text() : null)
                             .then(html => { if (html) pageCache.set(url.href, html); })
                             .catch(() => {});
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!skipCache && pageCache.has(url)) {
                     htmlText = pageCache.get(url);
                 } else {
-                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } });
                     if (!response.ok) {
                         window.location.href = url;
                         return;

@@ -75,6 +75,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
         <!-- 1. Annual Billed Sales -->
+        @if(\App\Models\Setting::get('module_invoices', 'true') === 'true')
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-indigo-600/50" style="background: linear-gradient(135deg, #3730a3 0%, #312e81 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl group-hover:scale-125 transition"></div>
             <div class="flex items-center justify-between">
@@ -96,8 +97,10 @@
                 Annual Billed Sales Total (Incl. GST)
             </div>
         </div>
+        @endif
 
         <!-- 2. Monthly Revenue -->
+        @if(\App\Models\Setting::get('module_invoices', 'true') === 'true')
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-blue-500/50" style="background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-400/10 rounded-full blur-xl group-hover:scale-125 transition pointer-events-none"></div>
             <div class="flex items-center justify-between">
@@ -120,8 +123,10 @@
                 Current Month Total Billed (Incl. GST)
             </div>
         </div>
+        @endif
 
         <!-- 3. Outstanding Receivables -->
+        @if(\App\Models\Setting::get('module_invoices', 'true') === 'true' && \App\Models\Setting::get('track_payments', 'true') === 'true')
         <div class="text-white rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition border border-amber-500/50" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
             <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-400/10 rounded-full blur-xl group-hover:scale-125 transition pointer-events-none"></div>
             <div class="flex items-center justify-between">
@@ -143,8 +148,10 @@
                 Unpaid Client Invoice Balance Total
             </div>
         </div>
+        @endif
 
         <!-- 4. Net GST Liability -->
+        @if(\App\Models\Setting::get('module_reports', 'true') === 'true' || \App\Models\Setting::get('module_invoices', 'true') === 'true')
         @php
             $gstStatus = $currentMonthGstStatus ?? ($currentMonthGstPaid ? 'paid' : 'unpaid');
         @endphp
@@ -186,11 +193,13 @@
                 @endif
             </div>
         </div>
+        @endif
     </div>
 
     <!-- Secondary Operational Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 1. Active Sales Orders -->
+        @if(\App\Models\Setting::get('module_orders', 'true') === 'true')
         <div class="bg-blue-100/90 rounded-2xl p-4 shadow-sm border border-blue-300 flex flex-col justify-between hover:shadow-md hover:border-blue-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -209,8 +218,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- 2. Monthly Factory Expense -->
+        @if(\App\Models\Setting::get('module_expenses', 'true') === 'true')
         <div class="bg-purple-100/90 rounded-2xl p-4 shadow-sm border border-purple-300 flex flex-col justify-between hover:shadow-md hover:border-purple-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-purple-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -229,8 +240,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- 3. Monthly Factory Purchase -->
+        @if(\App\Models\Setting::get('module_purchases', 'true') === 'true')
         <div class="bg-amber-100/90 rounded-2xl p-4 shadow-sm border border-amber-300 flex flex-col justify-between hover:shadow-md hover:border-amber-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-amber-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -249,8 +262,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- 4. Low Stock Reorder Alerts -->
+        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')
         <div class="bg-rose-100/90 rounded-2xl p-4 shadow-sm border border-rose-300 flex flex-col justify-between hover:shadow-md hover:border-rose-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -269,6 +284,7 @@
                 </a>
             </div>
         </div>
+        @endif
     </div>
 
 
@@ -399,6 +415,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
         <!-- 1. Recent Production Logs -->
+        @if(\App\Models\Setting::get('module_production', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -435,8 +452,10 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
         <!-- 2. Active Sales Orders -->
+        @if(\App\Models\Setting::get('module_orders', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -500,8 +519,10 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
         <!-- 3. Recent Invoices -->
+        @if(\App\Models\Setting::get('module_invoices', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -513,13 +534,29 @@
                 @forelse($recentInvoices as $inv)
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
                         <div>
-                            <div class="text-xs font-black text-slate-800">{{ $inv->invoice_number }}</div>
-                            <div class="text-[11px] font-medium text-slate-500 truncate max-w-[180px]">
-                                {{ $inv->plant->client->company_name ?? 'Client' }}
-                                @if($inv->plant && $inv->plant->plant_name)
-                                    <span class="text-[10px] font-bold text-blue-600">({{ $inv->plant->plant_name }})</span>
-                                @endif
-                            </div>
+                            @php
+                                $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
+                                $matNames = $isRm ? $inv->items->map(fn($i) => $i->rawMaterial->material_name ?? ($i->item_name ?: 'Scrap Material'))->filter()->unique()->implode(', ') : null;
+                                $clientName = $isRm ? ($inv->custom_client_name ?: ($inv->plant->client->company_name ?? 'Local Buyer')) : ($inv->plant->client->company_name ?? 'Client');
+                            @endphp
+                            @if($isRm)
+                                <div class="text-xs font-black text-slate-800 truncate max-w-[200px]" title="{{ $clientName }}">
+                                    {{ $clientName }}
+                                </div>
+                                <div class="text-[11px] font-semibold text-slate-500 truncate max-w-[200px]" title="Material: {{ $matNames }}">
+                                    {{ $matNames ?: 'Scrap / Raw Material Sale' }}
+                                </div>
+                            @else
+                                <div class="text-xs font-black text-slate-800">
+                                    {{ $inv->invoice_number }}
+                                </div>
+                                <div class="text-[11px] font-semibold text-slate-500 truncate max-w-[180px]">
+                                    {{ $clientName }}
+                                    @if($inv->plant && $inv->plant->plant_name)
+                                        <span class="text-[10px] font-bold text-blue-600">({{ $inv->plant->plant_name }})</span>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                         <div class="text-right">
                             <div class="text-xs font-bold text-slate-900">₹{{ format_indian($inv->total_amount, 2) }}</div>
@@ -543,12 +580,14 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
     </div>
 
     <!-- Row 2 Below Row 1: Recent 5 Purchase Bills, Recent 5 Factory Expenses, Low Stock Alerts (3-Column Grid) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 1. Latest 5 Purchase Records -->
+        @if(\App\Models\Setting::get('module_purchases', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -582,8 +621,10 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
         <!-- 2. Latest 5 Expense Records -->
+        @if(\App\Models\Setting::get('module_expenses', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -614,8 +655,10 @@
                 @endforelse
             </div>
         </div>
+        @endif
 
         <!-- 3. Low Stock Inventory Alerts -->
+        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2 text-rose-700">
@@ -640,6 +683,7 @@
                 @endforelse
             </div>
         </div>
+        @endif
     </div>
 </div>
 

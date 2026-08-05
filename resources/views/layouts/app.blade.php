@@ -1,4 +1,4 @@
-@if(request()->ajax() && !request()->pjax())
+@if(request()->header('X-PWW-SPA') === '1')
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
     <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
         @yield('content')
