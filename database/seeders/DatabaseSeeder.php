@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'logo.jpg']);
         Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/signature_1785313553.png']);
 
-        // Default Active Module Controls
+        // Default Active Module & Feature Controls
         Setting::updateOrCreate(['key' => 'module_invoices'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'module_orders'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'module_purchases'], ['value' => 'true']);
@@ -68,6 +68,11 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'module_bom'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'module_inventory'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'module_payroll'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_reports'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_backups'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'module_activity_logs'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'track_stock'], ['value' => 'true']);
+        Setting::updateOrCreate(['key' => 'track_payments'], ['value' => 'true']);
 
         // 2. Primary Super Admin Account Setup
         User::updateOrCreate(
