@@ -29,7 +29,8 @@
             </div>
             <div>
                 <h1 class="text-2xl font-black text-slate-800 tracking-tight">Praful Welding Works</h1>
-                <p class="text-xs text-blue-600 font-bold uppercase tracking-widest mt-1">ERP Secure Login Portal</p>
+                <p class="text-base text-blue-600 font-extrabold mt-1">Welcome To Admin Panel ! 👋</p>
+                <p class="text-sm text-slate-500 font-medium mt-1">Please sign-in to your account and get access</p>
             </div>
         </div>
 
