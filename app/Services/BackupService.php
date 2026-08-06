@@ -374,14 +374,6 @@ class BackupService
     }
 
     /**
-     * Alias for backward compatibility.
-     */
-    public function ensureMonthlyBackupExists(): string
-    {
-        return $this->ensureAutomaticBackupExists();
-    }
-
-    /**
      * Restore database from an uploaded SQL backup file.
      */
     public function restoreFromSqlFile(string $filePath): void

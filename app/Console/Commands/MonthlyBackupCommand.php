@@ -31,8 +31,8 @@ class MonthlyBackupCommand extends Command
         $this->info('Starting automated monthly database backup...');
 
         try {
-            $filePath = $backupService->ensureMonthlyBackupExists();
-            $this->info("Monthly backup verified and created successfully at: {$filePath}");
+            $filePath = $backupService->ensureAutomaticBackupExists();
+            $this->info("Automatic backup verified and created successfully at: {$filePath}");
             Log::info("Monthly backup command executed successfully: {$filePath}");
             return Command::SUCCESS;
         } catch (Throwable $e) {

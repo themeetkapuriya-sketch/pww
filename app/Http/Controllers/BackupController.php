@@ -23,8 +23,8 @@ class BackupController extends Controller
      */
     public function index()
     {
-        // Ensure monthly backup catch-up check runs when accessing dashboard
-        $this->backupService->ensureMonthlyBackupExists();
+        // Ensure automatic backup catch-up check runs when accessing dashboard
+        $this->backupService->ensureAutomaticBackupExists();
 
         $backups = $this->backupService->listLocalBackups();
 
