@@ -299,9 +299,147 @@
         </table>
 
     @elseif($reportType === 'gst')
-        @php $gstType = request('gst_type', 'gstr3b'); @endphp
+        @php $gstType = $gstType ?? request('gst_type', 'gstr3b'); @endphp
 
-        @if($gstType === 'gstr1')
+        @if($gstType === 'combined' || $gstType === 'all')
+            <!-- SECTION 1: GSTR-3B -->
+            <h3 style="color: #2563eb; margin-bottom: 10px;">SECTION 1: GSTR-3B Monthly Return Summary</h3>
+            @php
+                $netGst = $invoiceSummary['total_gst'] - $purchaseSummary['total_gst'];
+            @endphp
+            <table class="summary-box">
+                <tr>
+                    <td style="width: 32%; padding-right: 10px;">
+                        <div class="summary-card">
+                            <div class="card-label">Sales GST Output Liability</div>
+                            <div class="card-val text-red">₹{{ format_indian($invoiceSummary['total_gst'], 2) }}</div>
+                        </div>
+                    </td>
+                    <td style="width: 32%; padding-right: 10px;">
+                        <div class="summary-card">
+                            <div class="card-label">Purchase Input Tax Credit (ITC)</div>
+                            <div class="card-val text-green">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</div>
+                        </div>
+                    </td>
+                    <td style="width: 36%;">
+                        <div class="summary-card">
+                            <div class="card-label">Net Tax Payable / (Credit)</div>
+                            <div class="card-val {{ $netGst > 0 ? 'text-red' : 'text-green' }}">
+                                ₹{{ format_indian(abs($netGst), 2) }} {{ $netGst > 0 ? 'DUE' : 'ITC CREDIT' }}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <h4 style="margin-top: 15px; margin-bottom: 5px;">3.1 Details of Outward Supplies & Output Tax Liability</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Nature of Supplies</th>
+                        <th class="text-right" style="width: 20%;">Total Taxable (₹)</th>
+                        <th class="text-right" style="width: 20%;">Integrated Tax (₹)</th>
+                        <th class="text-right" style="width: 20%;">Central & State Tax (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-bold">(a) Outward Taxable Supplies (Other than Zero-Rated)</td>
+                        <td class="text-right font-bold">₹{{ format_indian($invoiceSummary['total_taxable'], 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($invoiceSummary['total_igst'], 2) }}</td>
+                        <td class="text-right">₹{{ format_indian($invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'], 2) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4 style="margin-top: 15px; margin-bottom: 5px;">4. Eligible Input Tax Credit (ITC)</h4>
+            <table class="data-table" style="margin-bottom: 25px;">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">Details of ITC Available</th>
+                        <th class="text-right" style="width: 40%;">Total ITC Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-bold">(A) Input Tax Credit Available (All Inward Purchases & Raw Material)</td>
+                        <td class="text-right font-bold text-green">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="page-break-before: always;"></div>
+
+            <!-- SECTION 2: GSTR-1 -->
+            <h3 style="color: #2563eb; margin-bottom: 10px;">SECTION 2: GSTR-1 Outward Sales Return</h3>
+            <table class="data-table" style="margin-bottom: 25px;">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Invoice No.</th>
+                        <th style="width: 18%;">GSTIN</th>
+                        <th style="width: 23%;">Client Company</th>
+                        <th class="text-right" style="width: 11%;">Taxable (₹)</th>
+                        <th class="text-right" style="width: 11%;">CGST (9%)</th>
+                        <th class="text-right" style="width: 11%;">SGST (9%)</th>
+                        <th class="text-right" style="width: 11%;">IGST (18%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($invoices as $inv)
+                        @php
+                            $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
+                        @endphp
+                        <tr>
+                            <td class="font-bold text-blue">{{ $isRm ? 'NILL' : $inv->invoice_number }}</td>
+                            <td>{{ $isRm ? ($inv->custom_buyer_gstin ?? 'URP / Retail') : ($inv->plant->client->gstin ?? 'URP / Retail') }}</td>
+                            <td>{{ $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A') }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->cgst, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->sgst, 2) }}</td>
+                            <td class="text-right">₹{{ format_indian($inv->igst, 2) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center">No GSTR-1 records found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            <div style="page-break-before: always;"></div>
+
+            <!-- SECTION 3: GSTR-2 -->
+            <h3 style="color: #2563eb; margin-bottom: 10px;">SECTION 3: GSTR-2 Inward Purchase Input Tax Credit (ITC)</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">Bill Date</th>
+                        <th style="width: 15%;">Bill No.</th>
+                        <th style="width: 25%;">Supplier / Vendor Name</th>
+                        <th style="width: 18%;">Item Description</th>
+                        <th class="text-center" style="width: 10%;">GST Rate</th>
+                        <th class="text-right" style="width: 20%;">ITC Tax Paid (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($purchases as $pur)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($pur->purchase_date)->format('d/m/Y') }}</td>
+                            <td>{{ $pur->bill_number ?? 'N/A' }}</td>
+                            <td class="font-bold">{{ $pur->vendor_name }}</td>
+                            <td>{{ $pur->item_name }}</td>
+                            <td class="text-center">{{ number_format($pur->gst_rate, 0) }}%</td>
+                            <td class="text-right font-bold text-red">₹{{ format_indian($pur->gst_amount, 2) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center">No GSTR-2 ITC purchase records found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+        @elseif($gstType === 'gstr1')
             <h3 style="color: #2563eb; margin-bottom: 10px;">GSTR-1 Outward Sales Return</h3>
             <table class="summary-box">
                 <tr>
