@@ -119,7 +119,42 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 ---
 
+### 6. System Customization & Power Features (Page: `Settings Hub`)
+
+#### ⚡ 1-Click Simplified Billing & Accounting Mode
+* For clients who only want to manage Invoicing, Vendor Purchases, Expenses, Clients, and Financial Reports without managing raw materials, stock deductions, or factory workers:
+1. Go to **Settings Hub** (`/settings`) → **Active Modules** tab.
+2. Toggle ON **⚡ 1-Click Simplified Billing & Accounting Mode**.
+3. **Instant Transformation**:
+   - Automatically checks and shows: Invoices, Purchases, Expenses, Clients, and Reports.
+   - Automatically unchecks and hides: Orders, Production Logs, BOM, Inventory, and Payroll.
+   - Automatically dims and locks **Automatic Inventory Stock Deductions** to prevent stock errors.
+
+#### ⏰ Automated Database Backups & Email Off-Site Delivery
+1. Go to **Settings Hub** (`/settings`) → **Security & System Backups** tab.
+2. Set your schedule preference:
+   - **Schedule**: `Daily`, `Weekly`, or `Monthly`.
+   - **Preferred Execution Time**: Use the **Alarm-Style Time Picker** (select exact Hour, Minute, and AM/PM).
+   - **Email Backup Attachment**: Enable to automatically send a copy of the `.sql` backup file to your email inbox for off-site data safety.
+3. **Automated Catch-Up & Auto-Download**:
+   - The moment the scheduled time arrives, the system generates the backup, emails it to your inbox, and **automatically downloads the `.sql` file directly into your PC `Downloads` folder** with a green toast notification!
+
+#### ⚡ Global Keyboard Hotkeys
+Speed up daily operations with keyboard shortcuts from anywhere in the portal:
+* **`Alt + I`** — Open Sales Invoice Ledger
+* **`Alt + P`** — Open Purchase Ledger
+* **`Alt + E`** — Open Expense Ledger
+* **`Alt + R`** — Open Reports & CA Exports
+* **`Alt + S`** — Open Settings Hub
+* **`Alt + H`** — Show Hotkey Cheat-Sheet Notification
+
+#### ☀️ / 🌙 Light & Dark Mode Visual Theme Switcher
+* Click the theme toggle icon (`☀️ / 🌙`) in the top navigation header next to the date.
+* Instantly switches between Crisp Light Mode and High-Contrast Dark Slate Mode (`#0f172a` & `#1e293b`), preserving your choice across browser sessions!
+
+---
+
 ### 🌐 100% Offline Capability Guide
 - **Zero Internet Requirement**: All styling (Tailwind CSS), popups (SweetAlert2), DataTables, and JavaScript run from local files stored on your hard drive (`public/vendor/`).
 - **Local Data Safety**: Your business data stays 100% private on your local computer.
-- **Offline Backups**: Automated backups save `.sql` files directly to `storage/app/backups/`.
+- **Offline & Email Backups**: Automated backups save `.sql` files directly to `storage/app/backups/`, download to your local PC Downloads folder, and email attachments when online.

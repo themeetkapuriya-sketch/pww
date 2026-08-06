@@ -25,7 +25,10 @@
 - 🏢 **Clients & Multi-Plant Destinations**: Client master directory with regional GSTIN verification and multiple factory plant delivery addresses.
 - 📈 **Audit & GST Tax Returns**: GSTR-1, GSTR-3B tax liability calculators, net tax payable insights, and CSV/PDF exportable reports.
 - 🛡️ **Super-Admin Activity Audit Logs**: Real-time audit trail capturing all user actions (Invoices, Purchases, Inventory, Expenses, Payroll, Settings, Logins) with CSV export (`/activity-logs`). Restricted exclusively to Super Admin.
-- ⚙️ **Category Management & Backup Scheduling**: Dynamic Purchase & Expense category management with mandatory system protections, plus execution time and day controls for automated backups.
+- ⚙️ **Category Management & Backup Scheduling**: Dynamic Purchase & Expense category management with mandatory system protections, plus alarm-style execution time pickers, automatic PC Downloads folder saving, and email attachments for off-site backups.
+- ⚡ **1-Click Simplified Billing & Accounting Mode**: Master toggle to simplify the portal for billing-only usage (Invoices, Purchases, Expenses, Clients, Reports), automatically suppressing manufacturing tabs and locking stock deductions.
+- ⌨️ **Global Keyboard Hotkeys**: Ultra-fast hotkey shortcuts (`Alt+I` Invoices, `Alt+P` Purchases, `Alt+E` Expenses, `Alt+R` Reports, `Alt+S` Settings, `Alt+H` Cheat Sheet).
+- ☀️/🌙 **Visual Light & Dark Theme Switcher**: Instant theme toggle button in the header (`☀️ / 🌙`) with dark slate palette (`#0f172a` & `#1e293b`) and session persistence.
 - 🔐 **Super Admin Security & Role Management**: Public registration disabled. User accounts are created strictly by Super Admin. Super Admin (`pww@gmail.com`) is permanently protected from deactivation. Deactivated users redirect to a unified `/account-deactivated` page.
 - 🌐 **100% Offline Capability**: All vendor assets (jQuery v3.7.1, DataTables v1.13.11, SweetAlert2 v11.17.2, TomSelect v2.4.1, Chart.js v4.4.7, Tailwind JS engine, and local Outfit fonts) are stored locally in `public/vendor/` and `public/fonts/`.
 

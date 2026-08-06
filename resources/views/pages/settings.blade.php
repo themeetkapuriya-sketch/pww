@@ -640,18 +640,99 @@
 
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Preferred Execution Time</label>
-                            <select name="auto_backup_time" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800">
-                                @for ($h = 0; $h < 24; $h++)
-                                    @php
-                                        $val = sprintf('%02d:00', $h);
-                                        $formattedTime = date('h:i A', strtotime("2026-01-01 $val"));
-                                    @endphp
-                                    <option value="{{ $val }}" {{ $savedTime === $val ? 'selected' : '' }}>
-                                        {{ $val }} ({{ $formattedTime }})
-                                    </option>
-                                @endfor
-                            </select>
-                            <span class="text-[11px] text-slate-400">Target hour of the day to generate automatic backups</span>
+                            @php
+                                $ts = strtotime("2026-01-01 " . ($savedTime ?? '13:00'));
+                                $currentHour = date('h', $ts);
+                                $currentMin = sprintf('%02d', (int)(round(date('i', $ts) / 5) * 5) % 60);
+                                $currentMeridiem = date('A', $ts);
+                            @endphp
+
+                            <input type="hidden" name="auto_backup_time" id="auto_backup_time_input" value="{{ $savedTime ?? '13:00' }}">
+
+                            <!-- Custom Auto Backup Clock Time Selector -->
+                            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <!-- Hour Select -->
+                                    <div class="flex-1">
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-center">Hour</span>
+                                        <select id="alarm_hour" onchange="updateAlarmTimeVal()" class="w-full bg-white border border-slate-200 rounded-xl py-2 px-2 text-center text-base font-extrabold text-slate-800 shadow-2xs focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                            @for ($h = 1; $h <= 12; $h++)
+                                                @php $hVal = sprintf('%02d', $h); @endphp
+                                                <option value="{{ $hVal }}" {{ $currentHour === $hVal ? 'selected' : '' }}>{{ $hVal }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+
+                                    <span class="text-lg font-black text-slate-400 self-end pb-2">:</span>
+
+                                    <!-- Minute Select -->
+                                    <div class="flex-1">
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-center">Minute</span>
+                                        <select id="alarm_minute" onchange="updateAlarmTimeVal()" class="w-full bg-white border border-slate-200 rounded-xl py-2 px-2 text-center text-base font-extrabold text-slate-800 shadow-2xs focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                                            @foreach (['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'] as $mVal)
+                                                <option value="{{ $mVal }}" {{ $currentMin === $mVal ? 'selected' : '' }}>{{ $mVal }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <!-- AM / PM Toggle -->
+                                    <div class="flex-1">
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-center">Period</span>
+                                        <div class="grid grid-cols-2 bg-white border border-slate-200 rounded-xl p-1 shadow-2xs">
+                                            <button type="button" 
+                                                    id="alarm_am_btn" 
+                                                    onclick="setAlarmMeridiem('AM')" 
+                                                    class="py-1.5 rounded-lg text-xs font-black transition cursor-pointer {{ $currentMeridiem === 'AM' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                                                AM
+                                            </button>
+                                            <button type="button" 
+                                                    id="alarm_pm_btn" 
+                                                    onclick="setAlarmMeridiem('PM')" 
+                                                    class="py-1.5 rounded-lg text-xs font-black transition cursor-pointer {{ $currentMeridiem === 'PM' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100' }}">
+                                                PM
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-[11px] font-bold text-blue-600 pt-1 px-1 border-t border-slate-200/60">
+                                    <span class="flex items-center gap-1">⏰ Execution Time:</span>
+                                    <span id="alarm_time_display" class="font-black text-xs text-blue-700 uppercase bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                                        {{ $currentHour }}:{{ $currentMin }} {{ $currentMeridiem }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <script>
+                                function updateAlarmTimeVal() {
+                                    const h = document.getElementById('alarm_hour').value;
+                                    const m = document.getElementById('alarm_minute').value;
+                                    const isPM = document.getElementById('alarm_pm_btn').classList.contains('bg-blue-600');
+                                    const meridiem = isPM ? 'PM' : 'AM';
+                                    
+                                    let hour24 = parseInt(h, 10);
+                                    if (meridiem === 'PM' && hour24 < 12) hour24 += 12;
+                                    if (meridiem === 'AM' && hour24 === 12) hour24 = 0;
+
+                                    const time24Str = String(hour24).padStart(2, '0') + ':' + m;
+                                    document.getElementById('auto_backup_time_input').value = time24Str;
+                                    document.getElementById('alarm_time_display').innerText = `${h}:${m} ${meridiem}`;
+                                }
+
+                                function setAlarmMeridiem(meridiem) {
+                                    const amBtn = document.getElementById('alarm_am_btn');
+                                    const pmBtn = document.getElementById('alarm_pm_btn');
+
+                                    if (meridiem === 'AM') {
+                                        amBtn.className = "py-1.5 rounded-lg text-xs font-black transition cursor-pointer bg-blue-600 text-white shadow-2xs";
+                                        pmBtn.className = "py-1.5 rounded-lg text-xs font-black transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                                    } else {
+                                        pmBtn.className = "py-1.5 rounded-lg text-xs font-black transition cursor-pointer bg-blue-600 text-white shadow-2xs";
+                                        amBtn.className = "py-1.5 rounded-lg text-xs font-black transition cursor-pointer text-slate-600 hover:bg-slate-100";
+                                    }
+                                    updateAlarmTimeVal();
+                                }
+                            </script>
                         </div>
 
                         <div>

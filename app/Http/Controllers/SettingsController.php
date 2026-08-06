@@ -755,6 +755,7 @@ class SettingsController extends Controller
         $validator = Validator::make($request->all(), [
             'session_timeout_minutes' => 'required|integer|min:15|max:1440',
             'auto_backup_enabled' => 'nullable|string|in:true,false',
+            'auto_email_backup' => 'nullable|string|in:true,false',
             'auto_backup_frequency' => 'required|string|in:daily,weekly,monthly',
             'auto_backup_retention' => 'required|string|in:1_month,3_months,6_months,1_year,never',
             'auto_backup_time' => 'required|string',
@@ -768,6 +769,7 @@ class SettingsController extends Controller
         try {
             Setting::set('session_timeout_minutes', (string) $request->session_timeout_minutes);
             Setting::set('auto_backup_enabled', $request->has('auto_backup_enabled') ? 'true' : 'false');
+            Setting::set('auto_email_backup', $request->input('auto_email_backup', 'true'));
             Setting::set('auto_backup_frequency', $request->auto_backup_frequency);
             Setting::set('auto_backup_retention', $request->auto_backup_retention);
             Setting::set('auto_backup_time', $request->auto_backup_time);

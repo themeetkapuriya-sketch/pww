@@ -276,10 +276,47 @@ class BackupService
             $sqlContent = $this->generateFullSqlDump();
             File::put($filePath, $sqlContent);
             Log::info("Automatic Catch-Up Backup created successfully ({$frequency}): {$filename}");
+            $this->sendBackupEmailNotification($filePath, $filename);
             $this->cleanOldBackups();
+            return $filePath;
         }
 
-        return $filePath;
+        return '';
+    }
+
+    /**
+     * Send backup SQL file as email attachment if enabled.
+     */
+    public function sendBackupEmailNotification(string $filePath, string $filename): bool
+    {
+        try {
+            $sendEmail = \App\Models\Setting::get('auto_email_backup', 'true') === 'true';
+            if (!$sendEmail) {
+                return false;
+            }
+
+            $toEmail = \App\Models\Setting::get('business_email', 'vekariyah@gmail.com');
+            if (empty($toEmail)) {
+                return false;
+            }
+
+            $businessName = \App\Models\Setting::get('business_name', 'Praful Welding Works');
+            
+            \Illuminate\Support\Facades\Mail::raw(
+                "Hello,\n\nAn automated database backup snapshot '{$filename}' has been generated for {$businessName}.\n\nThe backup SQL file is attached to this email for off-site data safety.\n\nBest regards,\n{$businessName} ERP System",
+                function ($message) use ($toEmail, $businessName, $filePath, $filename) {
+                    $message->to($toEmail)
+                            ->subject("📦 Automated Database Backup: {$filename} - {$businessName}")
+                            ->attach($filePath, ['as' => $filename, 'mime' => 'text/plain']);
+                }
+            );
+
+            Log::info("Backup email sent to {$toEmail} with attachment {$filename}");
+            return true;
+        } catch (Throwable $e) {
+            Log::error("Failed to send backup email attachment: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -413,7 +450,7 @@ class BackupService
                 $backups[] = [
                     'filename' => $filename,
                     'size' => $sizeFormatted,
-                    'created_at' => Carbon::createFromTimestamp($file->getMTime())->format('d M Y, h:i A'),
+                    'created_at' => Carbon::createFromTimestamp($file->getMTime())->setTimezone(config('app.timezone', 'Asia/Kolkata'))->format('d M Y, h:i A'),
                     'timestamp' => $file->getMTime(),
                     'type' => $type,
                     'path' => $file->getPathname(),

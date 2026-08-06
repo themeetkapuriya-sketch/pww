@@ -1010,9 +1010,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 msgLower.includes('error')
             );
 
+            const isInfo = (typeLower === 'info');
+
             const isWarning = (
                 typeLower === 'warning' ||
-                typeLower === 'info' ||
                 msgLower.includes('required') ||
                 msgLower.includes('at least')
             );
@@ -1023,6 +1024,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600 shrink-0')
                      .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
                 $innerCard.attr('class', 'bg-[#F43F5E] text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-rose-500');
+                $msgText.attr('class', 'text-sm font-bold text-white');
+            } else if (isInfo) {
+                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 shrink-0')
+                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>');
+                $innerCard.attr('class', 'bg-blue-600 text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-blue-500');
                 $msgText.attr('class', 'text-sm font-bold text-white');
             } else if (isWarning) {
                 $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 shrink-0')
@@ -1162,6 +1168,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // Global Keyboard Hotkeys Listener (Alt+I, Alt+P, Alt+E, Alt+R, Alt+S, Alt+H)
+        $(document).on('keydown', function(e) {
+            if ($(e.target).is('input, select, textarea, [contenteditable="true"]')) {
+                return;
+            }
+
+            if (e.altKey) {
+                const key = e.key.toLowerCase();
+                if (key === 'i') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/invoices');
+                } else if (key === 'p') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/purchases');
+                } else if (key === 'e') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/expenses');
+                } else if (key === 'r') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/reports');
+                } else if (key === 's') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/settings');
+                } else if (key === 'h') {
+                    e.preventDefault();
+                    if (window.showToast) {
+                        window.showToast('info', '⌨️ Hotkeys: Alt+I (Invoices), Alt+P (Purchases), Alt+E (Expenses), Alt+R (Reports), Alt+S (Settings)');
+                    }
+                }
+            }
+        });
+
+        // Theme Engine (Light / Dark Mode Toggle)
+        window.initThemeEngine = function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        };
+
+        window.toggleTheme = function() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            if (window.showToast) {
+                window.showToast('info', isDark ? '🌙 Dark Mode Activated' : '☀️ Light Mode Activated');
+            }
+        };
+
+        window.initThemeEngine();
 
         // Run initial forms setup, DataTables, and modal teleport on DOM ready
         initializeForms();

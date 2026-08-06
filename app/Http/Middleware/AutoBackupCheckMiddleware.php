@@ -17,11 +17,10 @@ class AutoBackupCheckMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Run smart local catch-up check once per session / day for authenticated users
-        if (\Illuminate\Support\Facades\Auth::check() && !Session::has('monthly_backup_checked')) {
+        // Run background automatic backup catch-up check for authenticated users
+        if (\Illuminate\Support\Facades\Auth::check()) {
             try {
-                $createdPath = app(BackupService::class)->ensureMonthlyBackupExists();
-                Session::put('monthly_backup_checked', true);
+                $createdPath = app(BackupService::class)->ensureAutomaticBackupExists();
 
                 if (!empty($createdPath) && \Illuminate\Support\Facades\File::exists($createdPath)) {
                     Session::flash('auto_download_backup_url', route('backup.downloadFile', ['filename' => basename($createdPath)]));

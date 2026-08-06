@@ -2,6 +2,23 @@
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
     <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
         @yield('content')
+        @if(session('auto_download_backup_url'))
+            <script>
+                (function() {
+                    setTimeout(function() {
+                        const a = document.createElement('a');
+                        a.href = "{{ session('auto_download_backup_url') }}";
+                        a.download = '';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        if (window.showToast) {
+                            window.showToast('success', '📦 Backup file automatically downloaded to your local Downloads folder!');
+                        }
+                    }, 400);
+                })();
+            </script>
+        @endif
     </div>
 @else
 <!DOCTYPE html>
@@ -20,6 +37,7 @@
     <script src="{{ asset('vendor/tailwindcss.js') }}"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -33,11 +51,155 @@
     <link rel="stylesheet" href="{{ asset('vendor/sweetalert2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/jquery.dataTables.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/tom-select.min.css') }}">
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <style>
         /* Global Bold Text for all Form Input Boxes across all pages */
         input,
         select,
         textarea,
+        .combobox-search-input,
+        .ts-control,
+        .ts-control input,
+        .ts-control .item {
+            font-weight: 700 !important;
+        }
+
+        /* Dark Mode Comprehensive UI Styling Rules */
+        html.dark {
+            color-scheme: dark;
+            background-color: #0f172a !important;
+        }
+
+        html.dark body {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+
+        /* Headings & Text Colors */
+        html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
+        html.dark .text-slate-900, html.dark .text-slate-800, html.dark .text-slate-700,
+        html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700 {
+            color: #f8fafc !important;
+        }
+
+        html.dark .text-slate-600, html.dark .text-slate-500,
+        html.dark .text-gray-600, html.dark .text-gray-500 {
+            color: #cbd5e1 !important;
+        }
+
+        html.dark .text-slate-400, html.dark .text-gray-400 {
+            color: #94a3b8 !important;
+        }
+
+        /* Containers, Header, Sidebar & Cards */
+        html.dark header,
+        html.dark aside#sidebar,
+        html.dark .bg-white,
+        html.dark .bg-slate-50,
+        html.dark .bg-slate-100,
+        html.dark .bg-slate-200,
+        html.dark .bg-gray-50,
+        html.dark .bg-gray-100,
+        html.dark .bg-gray-200,
+        html.dark [class*="bg-slate-50"],
+        html.dark [class*="bg-slate-100"] {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        /* Form Controls, Inputs, Selects, Textareas */
+        html.dark input,
+        html.dark select,
+        html.dark textarea,
+        html.dark .combobox-search-input,
+        html.dark .ts-control,
+        html.dark .ts-control input {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+
+        html.dark input::placeholder,
+        html.dark select::placeholder,
+        html.dark textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Dropdowns & TomSelect Options */
+        html.dark .ts-dropdown,
+        html.dark .ts-dropdown .ts-dropdown-content,
+        html.dark .combobox-dropdown {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+
+        html.dark .ts-dropdown .option,
+        html.dark .combobox-option {
+            color: #e2e8f0 !important;
+        }
+
+        html.dark .ts-dropdown .option.active,
+        html.dark .ts-dropdown .option:hover,
+        html.dark .combobox-option:hover {
+            background-color: #334155 !important;
+            color: #60a5fa !important;
+        }
+
+        /* Cancel, Close, and Secondary Buttons */
+        html.dark button.bg-slate-100,
+        html.dark button.bg-slate-200,
+        html.dark button.hover\:bg-slate-100:hover,
+        html.dark button.hover\:bg-slate-200:hover,
+        html.dark .btn-secondary {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+
+        html.dark button.bg-slate-100:hover,
+        html.dark button.bg-slate-200:hover {
+            background-color: #475569 !important;
+            color: #ffffff !important;
+        }
+
+        /* Badges & Pills (Vehicle Numbers, Badges, etc.) */
+        html.dark .bg-slate-100,
+        html.dark .bg-slate-200,
+        html.dark .bg-blue-50,
+        html.dark .bg-emerald-50,
+        html.dark .bg-indigo-50,
+        html.dark .bg-purple-50 {
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #f8fafc !important;
+        }
+
+        html.dark .text-blue-700, html.dark .text-blue-800, html.dark .text-blue-900,
+        html.dark .text-indigo-700, html.dark .text-indigo-800, html.dark .text-indigo-900 {
+            color: #93c5fd !important;
+        }
+
+        /* DataTables */
+        html.dark table.erp-datatable tbody tr {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark table.erp-datatable thead th {
+            background-color: #0f172a !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
         .combobox-search-input,
         .ts-control,
         .ts-control input,
@@ -1002,6 +1164,21 @@
         });
     </script>
     @if(session('auto_download_backup_url'))
+        <script>
+            (function() {
+                setTimeout(function() {
+                    const a = document.createElement('a');
+                    a.href = "{{ session('auto_download_backup_url') }}";
+                    a.download = '';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    if (window.showToast) {
+                        window.showToast('success', '📦 Backup file automatically downloaded to your local Downloads folder!');
+                    }
+                }, 400);
+            })();
+        </script>
         <iframe src="{{ session('auto_download_backup_url') }}" style="display:none; width:0; height:0;" aria-hidden="true"></iframe>
     @endif
 </body>
