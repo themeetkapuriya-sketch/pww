@@ -228,9 +228,7 @@
                                                <span>${res.message || 'Authentication successful! Redirecting...'}</span>
                                            `);
 
-                            setTimeout(function () {
-                                window.location.href = res.redirect || '/overview';
-                            }, 500);
+                            window.location.href = res.redirect || '/overview';
                         } else {
                             showGlobalErrors(res.errors || ['Authentication failed. Please try again.']);
                             resetSubmitBtn();
@@ -242,29 +240,52 @@
                             window.location.href = xhr.responseJSON.redirect;
                             return;
                         }
-                        
+
+                        if (xhr.status === 419) {
+                            // Auto-fetch fresh CSRF token & retry login seamlessly
+                            $.get('/login', function (html) {
+                                const newToken = $(html).find('input[name="_token"]').val();
+                                if (newToken) {
+                                    $('input[name="_token"]').val(newToken);
+                                    $loginForm.submit();
+                                } else {
+                                    window.location.reload();
+                                }
+                            }).fail(function () {
+                                window.location.reload();
+                            });
+                            return;
+                        }
+
                         let errors = [];
 
-                        if (xhr.status === 422 && xhr.responseJSON) {
-                            const errObj = xhr.responseJSON.errors || {};
-                            if (Array.isArray(errObj)) {
-                                errors = errObj;
-                            } else if (typeof errObj === 'object') {
-                                Object.keys(errObj).forEach(key => {
-                                    if (Array.isArray(errObj[key])) {
-                                        errors.push(...errObj[key]);
-                                    } else {
-                                        errors.push(errObj[key]);
-                                    }
+                        if (xhr.responseJSON) {
+                            const resObj = xhr.responseJSON;
+                            if (resObj.errors) {
+                                const errObj = resObj.errors;
+                                if (Array.isArray(errObj)) {
+                                    errors = errObj;
+                                } else if (typeof errObj === 'object') {
+                                    Object.keys(errObj).forEach(key => {
+                                        if (Array.isArray(errObj[key])) {
+                                            errors.push(...errObj[key]);
+                                        } else {
+                                            errors.push(errObj[key]);
+                                        }
 
-                                    // Mark inline error if key matches field
-                                    if (key === 'email') setFieldError($email, $emailError, errObj[key][0] || errObj[key]);
-                                    if (key === 'password') setFieldError($password, $passwordError, errObj[key][0] || errObj[key]);
-                                });
+                                        if (key === 'email') setFieldError($email, $emailError, errObj[key][0] || errObj[key]);
+                                        if (key === 'password') setFieldError($password, $passwordError, errObj[key][0] || errObj[key]);
+                                    });
+                                } else if (typeof errObj === 'string') {
+                                    errors.push(errObj);
+                                }
                             }
-                        } else if (xhr.status === 401 && xhr.responseJSON && xhr.responseJSON.errors) {
-                            errors = xhr.responseJSON.errors;
-                        } else {
+                            if (errors.length === 0 && resObj.message) {
+                                errors.push(resObj.message);
+                            }
+                        }
+
+                        if (errors.length === 0) {
                             errors = ['Authentication failed. Please check your credentials and network connection.'];
                         }
 

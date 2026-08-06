@@ -39,6 +39,7 @@ class SettingsController extends Controller
 
         // Get active module states
         $modules = [
+            'simplified_billing_mode' => Setting::get('simplified_billing_mode', 'false') === 'true',
             'module_invoices' => Setting::get('module_invoices', 'true') === 'true',
             'module_orders' => Setting::get('module_orders', 'true') === 'true',
             'module_purchases' => Setting::get('module_purchases', 'true') === 'true',
@@ -88,6 +89,7 @@ class SettingsController extends Controller
     {
         try {
             $moduleKeys = [
+                'simplified_billing_mode',
                 'module_invoices',
                 'module_orders',
                 'module_purchases',
@@ -104,8 +106,19 @@ class SettingsController extends Controller
                 'track_payments',
             ];
 
+            $isSimplified = in_array(strtolower((string)$request->input('simplified_billing_mode')), ['true', '1', 'yes', 'on'], true);
+
             foreach ($moduleKeys as $key) {
-                $isSet = $request->has($key) ? 'true' : 'false';
+                if ($isSimplified && $key === 'track_stock') {
+                    $isSet = 'false';
+                } else {
+                    $val = $request->input($key);
+                    if ($val !== null) {
+                        $isSet = in_array(strtolower((string)$val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
+                    } else {
+                        $isSet = $request->has($key) ? 'true' : 'false';
+                    }
+                }
                 Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
             }
 

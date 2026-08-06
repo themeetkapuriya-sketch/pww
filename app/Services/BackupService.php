@@ -245,17 +245,29 @@ class BackupService
         }
 
         $frequency = \App\Models\Setting::get('auto_backup_frequency', 'monthly');
+        $timeStr = \App\Models\Setting::get('auto_backup_time', '18:00');
+        $dayName = \App\Models\Setting::get('auto_backup_day', 'Wednesday');
+
         $now = Carbon::now();
+        $timeParts = explode(':', $timeStr);
+        $targetHour = (int) ($timeParts[0] ?? 18);
+        $targetMin = (int) ($timeParts[1] ?? 0);
 
         if ($frequency === 'daily') {
-            $key = $now->format('Y_m_d');
-            $filename = "auto_backup_daily_{$key}.sql";
+            $scheduledToday = $now->copy()->setTime($targetHour, $targetMin, 0);
+            $targetDate = $now->greaterThanOrEqualTo($scheduledToday) ? $now->copy() : $now->copy()->subDay();
+            $filename = "auto_backup_daily_" . $targetDate->format('Y_m_d') . ".sql";
         } elseif ($frequency === 'weekly') {
-            $key = $now->format('Y_W');
-            $filename = "auto_backup_weekly_{$key}.sql";
+            $daysOfWeek = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
+            $targetDayIndex = $daysOfWeek[$dayName] ?? 3;
+
+            $thisWeekTarget = $now->copy()->startOfWeek(Carbon::SUNDAY)->addDays($targetDayIndex)->setTime($targetHour, $targetMin, 0);
+            $targetDate = $now->greaterThanOrEqualTo($thisWeekTarget) ? $thisWeekTarget : $thisWeekTarget->copy()->subWeek();
+            $filename = "auto_backup_weekly_" . $targetDate->format('Y_m_d') . ".sql";
         } else {
-            $key = $now->format('Y_m');
-            $filename = "auto_backup_monthly_{$key}.sql";
+            $thisMonthTarget = $now->copy()->startOfMonth()->setTime($targetHour, $targetMin, 0);
+            $targetDate = $now->greaterThanOrEqualTo($thisMonthTarget) ? $now->copy() : $now->copy()->subMonth();
+            $filename = "auto_backup_monthly_" . $targetDate->format('Y_m') . ".sql";
         }
 
         $filePath = $this->backupDirectory . DIRECTORY_SEPARATOR . $filename;
@@ -264,9 +276,8 @@ class BackupService
             $sqlContent = $this->generateFullSqlDump();
             File::put($filePath, $sqlContent);
             Log::info("Automatic Catch-Up Backup created successfully ({$frequency}): {$filename}");
+            $this->cleanOldBackups();
         }
-
-        $this->cleanOldBackups();
 
         return $filePath;
     }
@@ -389,6 +400,10 @@ class BackupService
                 $type = 'Manual Full';
                 if (str_contains($filename, 'auto_backup_monthly')) {
                     $type = 'Automated Monthly';
+                } elseif (str_contains($filename, 'auto_backup_weekly')) {
+                    $type = 'Automated Weekly';
+                } elseif (str_contains($filename, 'auto_backup_daily')) {
+                    $type = 'Automated Daily';
                 } elseif (str_contains($filename, 'pre_restore_safety')) {
                     $type = 'Safety Snapshot';
                 } elseif (str_contains($filename, 'pww_backup_')) {

@@ -114,7 +114,8 @@ class PurchaseController extends Controller
         $purchase = DB::transaction(function() use ($validated) {
             $pur = Purchase::create($validated);
 
-            if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+            $trackStock = in_array(strtolower((string) \App\Models\Setting::get('track_stock', 'true')), ['true', '1', 'yes', 'on'], true);
+            if ($trackStock && $validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
                 $material = RawMaterial::find($validated['raw_material_id']);
                 if ($material) {
                     $material->current_stock += (float) $validated['quantity'];

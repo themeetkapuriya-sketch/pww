@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use App\Models\Role;
+use App\Services\AuditLogService;
 
 class AuthController extends Controller
 {
@@ -22,7 +24,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle AJAX login request with Rate Limiting protection.
+     * Handle fast & secure login request with Rate Limiting protection.
      */
     public function login(Request $request)
     {
@@ -38,10 +40,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Throttle key based on combined lowercased Email + IP address
+        // Throttle key based on combined lowercased Email + IP address (Max 5 attempts per 60 seconds)
         $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
 
-        // Check if rate limit exceeded (Max 5 attempts per 1 minute)
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             $message = "Too many login attempts. Please try again in {$seconds} seconds.";
@@ -60,14 +61,14 @@ class AuthController extends Controller
         }
 
         $credentials = $request->only('email', 'password');
+        $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (Auth::attempt($credentials, $remember)) {
             /** @var \App\Models\User $user */
             $user = Auth::user();
 
-            // Super Admin (Owner) is ALWAYS 100% active & exempt from all deactivation checks
+            // Check Account & Role Active Status (Super Admin is always exempt)
             if ($user->role !== 'super_admin') {
-                // 1. Check if user account itself is active
                 if (!$user->is_active || !in_array($user->status, ['active', 'approved'])) {
                     Auth::logout();
                     $msg = 'Your user account has been deactivated or is pending administrator approval.';
@@ -89,8 +90,7 @@ class AuthController extends Controller
                     return redirect()->route('account.deactivated');
                 }
 
-                // 2. Check if assigned user role is active
-                $roleRecord = \App\Models\Role::where('slug', $user->role)->first();
+                $roleRecord = Role::where('slug', $user->role)->first();
                 if ($roleRecord && !$roleRecord->is_active) {
                     Auth::logout();
                     $roleName = $roleRecord->name ?? ucfirst(str_replace('_', ' ', (string) $user->role));
@@ -114,35 +114,49 @@ class AuthController extends Controller
                 }
             }
 
+            // Secure session regeneration & rate limiter reset
             $request->session()->regenerate();
             RateLimiter::clear($throttleKey);
 
-            \App\Services\AuditLogService::log('Auth', 'login', "User '{$user->name}' logged in successfully.");
+            AuditLogService::log('Auth', 'login', "User '{$user->name}' logged in successfully.");
 
             $redirectUrl = route('overview');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful! Redirecting...',
-                'redirect' => $redirectUrl
-            ]);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful!',
+                    'redirect' => $redirectUrl
+                ]);
+            }
+
+            return redirect()->intended($redirectUrl);
         }
 
-        // Increment rate limiter counter for failed login attempt (1 minute decay)
+        // Hit Rate Limiter on failed authentication
         RateLimiter::hit($throttleKey, 60);
 
-        return response()->json([
-            'success' => false,
-            'errors' => ['These credentials do not match our records.']
-        ], 401);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['These credentials do not match our records.']
+            ], 401);
+        }
+
+        return redirect()->back()
+            ->withInput($request->only('email'))
+            ->withErrors(['email' => 'These credentials do not match our records.']);
     }
 
     /**
-     * Handle logout.
+     * Handle fast & secure logout request.
      */
     public function logout(Request $request)
     {
-        \App\Services\AuditLogService::log('Auth', 'logout', "User logged out.");
+        if (Auth::check()) {
+            AuditLogService::log('Auth', 'logout', "User logged out.");
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -459,9 +459,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 success: async function(response) {
                     if ($submitBtn.length) {
-                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none');
+                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
                     }
                     window.showToast('success', response.message || 'Operation completed successfully!');
+
+                    if ($form.hasClass('no-reload') || $form.hasClass('no-refresh') || ($form.attr('action') && $form.attr('action').includes('/settings/security'))) {
+                        return;
+                    }
+
                     if (!$form.hasClass('no-reset')) {
                         $form[0].reset();
                     }

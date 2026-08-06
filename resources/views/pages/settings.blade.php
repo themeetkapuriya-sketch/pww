@@ -583,8 +583,8 @@
             $settingBackupService = app(\App\Services\BackupService::class);
             $settingLocalBackups = $settingBackupService->listLocalBackups();
             $latestSettingBackup = $settingLocalBackups[0] ?? null;
-            $savedTime = \App\Models\Setting::get('auto_backup_time', '00:00');
-            $savedDay = \App\Models\Setting::get('auto_backup_day', 'Sunday');
+            $savedTime = \App\Models\Setting::get('auto_backup_time', '18:00');
+            $savedDay = \App\Models\Setting::get('auto_backup_day', 'Wednesday');
             $savedFreq = \App\Models\Setting::get('auto_backup_frequency', 'monthly');
         @endphp
         <div id="subTab-security" class="sub-tab-content hidden space-y-6">
@@ -620,7 +620,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('settings.security') }}" method="POST" class="ajax-form space-y-6">
+                <form action="{{ route('settings.security') }}" method="POST" class="ajax-form no-reload no-reset space-y-6">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -1219,9 +1219,28 @@
                 </div>
             </div>
 
-            <form action="{{ route('settings.modules') }}" method="POST" id="modulesVisibilityForm" onsubmit="saveModuleVisibilityAjax(event)" class="space-y-6">
+            <form action="{{ route('settings.modules') }}" method="POST" id="modulesVisibilityForm" class="ajax-form no-reload no-reset space-y-6">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                    <!-- 1-Click Master Mode: Simplified Billing & Accounting Mode -->
+                    <div class="p-5 rounded-2xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-blue-50/80 to-purple-50/90 flex flex-col md:flex-row md:items-center justify-between gap-4 col-span-1 md:col-span-3 shadow-xs mb-2">
+                        <div class="space-y-1">
+                            <span class="block text-base font-extrabold text-indigo-950 flex items-center gap-2">
+                                ⚡ 1-Click Simplified Billing & Accounting Mode
+                                @if($modules['simplified_billing_mode'] ?? false)
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-2xs">ACTIVE</span>
+                                @endif
+                            </span>
+                            <p class="text-xs text-indigo-900/80 font-medium leading-relaxed">
+                                Turn <strong>ON</strong> to instantly configure the ERP for pure billing & accounting (Invoices, Purchases, Expenses, Clients & Reports). Automatically disables Stock Management, Production, Orders & Payroll for a clean, hassle-free layout!
+                            </p>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer select-none shrink-0">
+                            <input type="checkbox" id="simplified_billing_mode_toggle" name="simplified_billing_mode" value="true" {{ ($modules['simplified_billing_mode'] ?? false) ? 'checked' : '' }} class="erp-toggle-input" onchange="toggleSimplifiedBillingModeAjax(this)">
+                            <span class="erp-toggle-slider"></span>
+                        </label>
+                    </div>
 
                     <!-- Invoices -->
                     <div class="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
@@ -1368,15 +1387,21 @@
                     </div>
 
                     <!-- Automatic Stock Deductions -->
-                    <div class="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 flex items-center justify-between col-span-1 md:col-span-3">
+                    @php
+                        $isSimplifiedActive = $modules['simplified_billing_mode'] ?? false;
+                    @endphp
+                    <div id="track_stock_card" class="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 flex items-center justify-between col-span-1 md:col-span-3 {{ $isSimplifiedActive ? 'opacity-60 pointer-events-none' : '' }}">
                         <div>
                             <span class="block text-sm font-bold text-blue-900 flex items-center gap-1.5">
                                 📦 Automatic Inventory Stock Deductions
+                                <span id="track_stock_disabled_badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300 {{ $isSimplifiedActive ? '' : 'hidden' }}">
+                                    🔒 Disabled in Simplified Billing Mode
+                                </span>
                             </span>
                             <span class="text-[11px] text-slate-600 font-medium">Auto-deduct item stock on Invoices. Turn OFF if client only does Billing and does not track Stock/BOM.</span>
                         </div>
                         <label class="inline-flex items-center cursor-pointer select-none">
-                            <input type="checkbox" name="track_stock" value="true" {{ ($modules['track_stock'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                            <input type="checkbox" name="track_stock" value="true" {{ ($modules['track_stock'] ?? true) && !$isSimplifiedActive ? 'checked' : '' }} {{ $isSimplifiedActive ? 'disabled' : '' }} class="erp-toggle-input">
                             <span class="erp-toggle-slider"></span>
                         </label>
                     </div>
@@ -2407,6 +2432,91 @@ async function saveModuleVisibilityAjax(e) {
 </div>
 
 <script>
+window.toggleSimplifiedBillingModeAjax = function(el) {
+    const isChecked = el.checked;
+
+    // 1. Instantly update DOM checkboxes on the page
+    $('input[name="module_invoices"]').prop('checked', true);
+    $('input[name="module_purchases"]').prop('checked', true);
+    $('input[name="module_expenses"]').prop('checked', true);
+    $('input[name="module_clients"]').prop('checked', true);
+    $('input[name="module_reports"]').prop('checked', true);
+    
+    $('input[name="module_orders"]').prop('checked', !isChecked);
+    $('input[name="module_production"]').prop('checked', !isChecked);
+    $('input[name="module_bom"]').prop('checked', !isChecked);
+    $('input[name="module_inventory"]').prop('checked', !isChecked);
+    $('input[name="module_payroll"]').prop('checked', !isChecked);
+    $('input[name="track_stock"]').prop('checked', !isChecked);
+
+    // 2. Instantly toggle sidebar links on screen
+    $('#sidebar-module-orders').toggleClass('hidden', isChecked);
+    $('#sidebar-module-production').toggleClass('hidden', isChecked);
+    $('#sidebar-module-bom').toggleClass('hidden', isChecked);
+    $('#sidebar-module-rawmaterial').toggleClass('hidden', isChecked);
+    $('#sidebar-module-product').toggleClass('hidden', isChecked);
+    $('#sidebar-module-payroll').toggleClass('hidden', isChecked);
+    $('#sidebar-section-inventory-bom').toggleClass('hidden', isChecked);
+
+    // 3. Update track_stock card state & badge
+    const $trackStockCard = $('#track_stock_card');
+    const $trackStockInput = $('input[name="track_stock"]');
+    const $trackStockBadge = $('#track_stock_disabled_badge');
+
+    if (isChecked) {
+        $trackStockInput.prop('checked', false).prop('disabled', true);
+        $trackStockCard.addClass('opacity-60 pointer-events-none');
+        $trackStockBadge.removeClass('hidden');
+    } else {
+        $trackStockInput.prop('disabled', false).prop('checked', true);
+        $trackStockCard.removeClass('opacity-60 pointer-events-none');
+        $trackStockBadge.addClass('hidden');
+    }
+
+    // 4. Update active badge on card
+    const $cardTitle = $(el).closest('.p-5').find('.text-indigo-950');
+    $cardTitle.find('.bg-emerald-500').remove();
+    if (isChecked) {
+        $cardTitle.append('<span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-2xs">ACTIVE</span>');
+    }
+
+    // 4. Send background AJAX request
+    $.ajax({
+        url: "{{ route('settings.modules') }}",
+        type: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            simplified_billing_mode: isChecked ? 'true' : 'false',
+            module_invoices: 'true',
+            module_purchases: 'true',
+            module_expenses: 'true',
+            module_clients: 'true',
+            module_reports: 'true',
+            module_backups: 'true',
+            module_activity_logs: 'true',
+            track_payments: 'true',
+            module_orders: isChecked ? 'false' : 'true',
+            module_production: isChecked ? 'false' : 'true',
+            module_bom: isChecked ? 'false' : 'true',
+            module_inventory: isChecked ? 'false' : 'true',
+            module_payroll: isChecked ? 'false' : 'true',
+            track_stock: isChecked ? 'false' : 'true',
+        },
+        success: function(res) {
+            if (res.success) {
+                if (window.showToast) {
+                    window.showToast('success', isChecked ? 'Simplified Billing & Accounting Mode Activated!' : 'Full ERP Mode Restored!');
+                }
+            }
+        },
+        error: function(err) {
+            if (window.showToast) {
+                window.showToast('danger', 'Failed to update billing mode.');
+            }
+        }
+    });
+};
+
 window.openAddCategoryModal = function(type) {
     const modal = document.getElementById('categoryModal');
     const form = document.getElementById('categoryForm');

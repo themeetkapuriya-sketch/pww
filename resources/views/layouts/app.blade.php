@@ -1001,6 +1001,9 @@
             window.ERPComboboxManager.init();
         });
     </script>
+    @if(session('auto_download_backup_url'))
+        <iframe src="{{ session('auto_download_backup_url') }}" style="display:none; width:0; height:0;" aria-hidden="true"></iframe>
+    @endif
 </body>
 </html>
 @endif

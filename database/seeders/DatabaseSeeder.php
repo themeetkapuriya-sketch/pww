@@ -48,8 +48,11 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'mail_from_name'], ['value' => 'Praful Welding Works']);
 
         Setting::updateOrCreate(['key' => 'session_timeout_minutes'], ['value' => '120']);
+        Setting::updateOrCreate(['key' => 'simplified_billing_mode'], ['value' => 'false']);
         Setting::updateOrCreate(['key' => 'auto_backup_enabled'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'auto_backup_frequency'], ['value' => 'monthly']);
+        Setting::updateOrCreate(['key' => 'auto_backup_time'], ['value' => '18:00']);
+        Setting::updateOrCreate(['key' => 'auto_backup_day'], ['value' => 'Wednesday']);
         Setting::updateOrCreate(['key' => 'auto_backup_retention'], ['value' => '3_months']);
 
         Setting::updateOrCreate(
