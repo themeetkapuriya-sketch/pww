@@ -1305,15 +1305,15 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
                     <!-- 1-Click Master Mode: Simplified Billing & Accounting Mode -->
-                    <div class="p-5 rounded-2xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-50/90 via-blue-50/80 to-purple-50/90 flex flex-col md:flex-row md:items-center justify-between gap-4 col-span-1 md:col-span-3 shadow-xs mb-2">
+                    <div class="p-5 rounded-2xl border-2 border-indigo-200 dark:border-indigo-700 bg-gradient-to-r from-indigo-50/90 via-blue-50/80 to-purple-50/90 dark:from-indigo-950/80 dark:via-slate-900/90 dark:to-purple-950/80 flex flex-col md:flex-row md:items-center justify-between gap-4 col-span-1 md:col-span-3 shadow-xs mb-2">
                         <div class="space-y-1">
-                            <span class="block text-base font-extrabold text-indigo-950 flex items-center gap-2">
+                            <span class="block text-base font-extrabold text-indigo-950 dark:text-indigo-100 flex items-center gap-2">
                                 ⚡ 1-Click Simplified Billing & Accounting Mode
                                 @if($modules['simplified_billing_mode'] ?? false)
                                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-2xs">ACTIVE</span>
                                 @endif
                             </span>
-                            <p class="text-xs text-indigo-900/80 font-medium leading-relaxed">
+                            <p class="text-xs text-indigo-900/80 dark:text-indigo-200/90 font-medium leading-relaxed">
                                 Turn <strong>ON</strong> to instantly configure the ERP for pure billing & accounting (Invoices, Purchases, Expenses, Clients & Reports). Automatically disables Stock Management, Production, Orders & Payroll for a clean, hassle-free layout!
                             </p>
                         </div>
@@ -2273,9 +2273,93 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSettingsPage);
 }
 
+window.toggleSimplifiedBillingModeAjax = async function(checkbox) {
+    const modulesForm = document.getElementById('modulesVisibilityForm');
+    if (!modulesForm || !checkbox) return;
+
+    const isSimplified = checkbox.checked;
+
+    if (isSimplified) {
+        ['module_orders', 'module_production', 'module_bom', 'module_inventory', 'module_payroll'].forEach(name => {
+            const input = modulesForm.querySelector(`input[name="${name}"]`);
+            if (input) input.checked = false;
+        });
+        ['module_invoices', 'module_purchases', 'module_expenses', 'module_clients', 'module_reports'].forEach(name => {
+            const input = modulesForm.querySelector(`input[name="${name}"]`);
+            if (input) input.checked = true;
+        });
+    }
+
+    const toastMsg = isSimplified ? '⚡ Simplified Billing Mode Enabled!' : 'Full Manufacturing ERP Mode Enabled!';
+    const toastType = isSimplified ? 'info' : 'success';
+
+    try {
+        const formData = new FormData(modulesForm);
+        const response = await fetch(modulesForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        });
+
+        const res = await response.json();
+        if (response.ok && res.success) {
+            if (window.showToast) {
+                window.showToast(toastType, toastMsg);
+            }
+            if (typeof window.clearPageCache === 'function') {
+                window.clearPageCache();
+            }
+
+            const toggleNav = (id, show) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !show);
+            };
+
+            toggleNav('sidebar-module-production', !isSimplified && (modulesForm.querySelector('input[name="module_production"]')?.checked));
+            toggleNav('sidebar-module-orders', !isSimplified && (modulesForm.querySelector('input[name="module_orders"]')?.checked));
+            toggleNav('sidebar-module-invoices', modulesForm.querySelector('input[name="module_invoices"]')?.checked);
+            toggleNav('sidebar-module-purchases', modulesForm.querySelector('input[name="module_purchases"]')?.checked);
+            toggleNav('sidebar-module-expenses', modulesForm.querySelector('input[name="module_expenses"]')?.checked);
+            toggleNav('sidebar-module-rawmaterial', !isSimplified && (modulesForm.querySelector('input[name="module_inventory"]')?.checked));
+            toggleNav('sidebar-module-product', !isSimplified && (modulesForm.querySelector('input[name="module_inventory"]')?.checked));
+            toggleNav('sidebar-module-bom', !isSimplified && (modulesForm.querySelector('input[name="module_bom"]')?.checked));
+            toggleNav('sidebar-module-clients', modulesForm.querySelector('input[name="module_clients"]')?.checked);
+            toggleNav('sidebar-module-payroll', !isSimplified && (modulesForm.querySelector('input[name="module_payroll"]')?.checked));
+            toggleNav('sidebar-module-reports', modulesForm.querySelector('input[name="module_reports"]')?.checked);
+
+            const sectionInvBom = document.getElementById('sidebar-section-inventory-bom');
+            if (sectionInvBom) {
+                sectionInvBom.classList.toggle('hidden', isSimplified || (!modulesForm.querySelector('input[name="module_inventory"]')?.checked && !modulesForm.querySelector('input[name="module_bom"]')?.checked));
+            }
+        } else {
+            checkbox.checked = !isSimplified;
+            if (window.showToast) {
+                window.showToast('error', res.message || 'Failed to update module mode.');
+            }
+        }
+    } catch (err) {
+        checkbox.checked = !isSimplified;
+        console.error('Failed to toggle simplified billing mode:', err);
+        if (window.showToast) {
+            window.showToast('error', 'Failed to update module mode.');
+        }
+    }
+};
+
 window.saveModuleToggleAjax = async function(checkbox) {
     const modulesForm = document.getElementById('modulesVisibilityForm');
     if (!modulesForm || !checkbox) return;
+
+    if (checkbox.name !== 'simplified_billing_mode' && checkbox.checked) {
+        if (['module_orders', 'module_production', 'module_bom', 'module_inventory', 'module_payroll'].includes(checkbox.name)) {
+            const simpToggle = modulesForm.querySelector('input[name="simplified_billing_mode"]');
+            if (simpToggle) simpToggle.checked = false;
+        }
+    }
 
     const cardLabel = checkbox.closest('div.p-4')?.querySelector('.font-bold')?.innerText?.trim() || 'Module';
     const cleanName = cardLabel.replace(/^[📦💳\s]+/, '').trim();
@@ -2305,15 +2389,16 @@ window.saveModuleToggleAjax = async function(checkbox) {
             }
             
             // Live update Sidebar Navigation links instantly
-            const isProd = modulesForm.querySelector('input[name="module_production"]')?.checked;
-            const isOrders = modulesForm.querySelector('input[name="module_orders"]')?.checked;
+            const isSimplified = modulesForm.querySelector('input[name="simplified_billing_mode"]')?.checked;
+            const isProd = !isSimplified && modulesForm.querySelector('input[name="module_production"]')?.checked;
+            const isOrders = !isSimplified && modulesForm.querySelector('input[name="module_orders"]')?.checked;
             const isInvoices = modulesForm.querySelector('input[name="module_invoices"]')?.checked;
             const isPurchases = modulesForm.querySelector('input[name="module_purchases"]')?.checked;
             const isExpenses = modulesForm.querySelector('input[name="module_expenses"]')?.checked;
-            const isInventory = modulesForm.querySelector('input[name="module_inventory"]')?.checked;
-            const isBom = modulesForm.querySelector('input[name="module_bom"]')?.checked;
+            const isInventory = !isSimplified && modulesForm.querySelector('input[name="module_inventory"]')?.checked;
+            const isBom = !isSimplified && modulesForm.querySelector('input[name="module_bom"]')?.checked;
             const isClients = modulesForm.querySelector('input[name="module_clients"]')?.checked;
-            const isPayroll = modulesForm.querySelector('input[name="module_payroll"]')?.checked;
+            const isPayroll = !isSimplified && modulesForm.querySelector('input[name="module_payroll"]')?.checked;
             const isReports = modulesForm.querySelector('input[name="module_reports"]')?.checked;
             const isBackups = modulesForm.querySelector('input[name="module_backups"]')?.checked;
             const isActivityLogs = modulesForm.querySelector('input[name="module_activity_logs"]')?.checked;
@@ -2404,6 +2489,9 @@ async function saveModuleVisibilityAjax(e) {
         const res = await response.json();
 
         if (response.ok && res.success) {
+            if (typeof window.clearPageCache === 'function') {
+                window.clearPageCache();
+            }
             // Live update Sidebar Navigation without reloading the page
             const isProd = form.querySelector('input[name="module_production"]')?.checked;
             const isOrders = form.querySelector('input[name="module_orders"]')?.checked;

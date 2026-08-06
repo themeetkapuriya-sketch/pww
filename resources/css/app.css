@@ -66,3 +66,56 @@ html.dark table.erp-datatable thead th {
     background-color: #0f172a !important;
     color: #cbd5e1 !important;
 }
+
+/* Dark Mode Container & Banner Adjustments */
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-100,
+html.dark .bg-slate-200 {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+html.dark .from-indigo-50\/90,
+html.dark .from-indigo-50,
+html.dark .bg-gradient-to-r {
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%) !important;
+    border-color: #4338ca !important;
+}
+
+html.dark .text-indigo-950,
+html.dark .text-indigo-900,
+html.dark .text-indigo-900\/80 {
+    color: #e0e7ff !important;
+}
+
+html.dark .border-indigo-200 {
+    border-color: #4338ca !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-100 {
+    border-color: #334155 !important;
+}
+
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+    color: #f8fafc !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-600 {
+    color: #94a3b8 !important;
+}
+
+/* Toggle Switch Slider in Dark Mode */
+html.dark .erp-toggle-slider,
+html.dark .matrix-toggle-slider {
+    background-color: #475569 !important;
+}
+
+html.dark .erp-toggle-input:checked + .erp-toggle-slider {
+    background-color: #2563eb !important;
+}
+

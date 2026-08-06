@@ -19,11 +19,13 @@
             </p>
         </div>
 
+        @if(\App\Models\Setting::get('module_payroll', 'true') === 'true' && \App\Models\Setting::get('simplified_billing_mode', 'false') !== 'true')
         <div class="flex items-center gap-2">
             <button type="button" onclick="openQuickAttendanceModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.02]">
                 <span>📅</span> Today's Attendance Sheet
             </button>
         </div>
+        @endif
     </div>
 
     <!-- 3 Net Revenue Cards (Lifetime Revenue, Annual Revenue, Monthly Revenue) -->
@@ -197,9 +199,9 @@
     </div>
 
     <!-- Secondary Operational Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 {{ \App\Models\Setting::get('simplified_billing_mode', 'false') === 'true' ? 'lg:grid-cols-2' : 'lg:grid-cols-4' }} gap-4">
         <!-- 1. Active Sales Orders -->
-        @if(\App\Models\Setting::get('module_orders', 'true') === 'true')
+        @if(\App\Models\Setting::get('module_orders', 'true') === 'true' && \App\Models\Setting::get('simplified_billing_mode', 'false') !== 'true')
         <div class="bg-blue-100/90 rounded-2xl p-4 shadow-sm border border-blue-300 flex flex-col justify-between hover:shadow-md hover:border-blue-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -265,7 +267,7 @@
         @endif
 
         <!-- 4. Low Stock Reorder Alerts -->
-        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')
+        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true' && \App\Models\Setting::get('simplified_billing_mode', 'false') !== 'true')
         <div class="bg-rose-100/90 rounded-2xl p-4 shadow-sm border border-rose-300 flex flex-col justify-between hover:shadow-md hover:border-rose-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -411,9 +413,16 @@
         </div>
     </div>
 
-    <!-- Row 1 Below Chart: 1. Production Logs, 2. Active Sales Orders, 3. Recent Invoices (3-Column Grid) -->
+    @if(\App\Models\Setting::get('simplified_billing_mode', 'false') === 'true')
+    <!-- Simplified Billing Mode: Single Balanced 3-Column Grid (Invoices | Purchases | Expenses) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
+        @include('pages.partials.overview_recent_invoices')
+        @include('pages.partials.overview_recent_purchases')
+        @include('pages.partials.overview_recent_expenses')
+    </div>
+    @else
+    <!-- Full Manufacturing ERP Mode: 2 Rows of 3-Column Grids -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 1. Recent Production Logs -->
         @if(\App\Models\Setting::get('module_production', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
@@ -522,140 +531,16 @@
         @endif
 
         <!-- 3. Recent Invoices -->
-        @if(\App\Models\Setting::get('module_invoices', 'true') === 'true')
-        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <span>🧾</span> Recent Invoices
-                </h2>
-                <a href="{{ route('invoices') }}" class="text-xs font-bold text-blue-600 hover:underline">All Invoices →</a>
-            </div>
-            <div class="space-y-2">
-                @forelse($recentInvoices as $inv)
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
-                        <div>
-                            @php
-                                $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
-                                $matNames = $isRm ? $inv->items->map(fn($i) => $i->rawMaterial->material_name ?? ($i->item_name ?: 'Scrap Material'))->filter()->unique()->implode(', ') : null;
-                                $clientName = $isRm ? ($inv->custom_client_name ?: ($inv->plant->client->company_name ?? 'Local Buyer')) : ($inv->plant->client->company_name ?? 'Client');
-                            @endphp
-                            @if($isRm)
-                                <div class="text-xs font-black text-slate-800 truncate max-w-[200px]" title="{{ $clientName }}">
-                                    {{ $clientName }}
-                                </div>
-                                <div class="text-[11px] font-semibold text-slate-500 truncate max-w-[200px]" title="Material: {{ $matNames }}">
-                                    {{ $matNames ?: 'Scrap / Raw Material Sale' }}
-                                </div>
-                            @else
-                                <div class="text-xs font-black text-slate-800">
-                                    {{ $inv->invoice_number }}
-                                </div>
-                                <div class="text-[11px] font-semibold text-slate-500 truncate max-w-[180px]">
-                                    {{ $clientName }}
-                                    @if($inv->plant && $inv->plant->plant_name)
-                                        <span class="text-[10px] font-bold text-blue-600">({{ $inv->plant->plant_name }})</span>
-                                    @endif
-                                </div>
-                            @endif
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-bold text-slate-900">₹{{ format_indian($inv->total_amount, 2) }}</div>
-                            @if(($inv->payment_status ?? 'unpaid') === 'paid')
-                                <span class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-0.5 bg-emerald-100 text-emerald-700">
-                                    PAID
-                                </span>
-                            @else
-                                <button type="button" 
-                                        onclick="openDashboardPayModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
-                                        class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-0.5 transition cursor-pointer border shadow-2xs 
-                                        {{ $inv->payment_status === 'partially_paid' ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' : 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200' }}"
-                                        title="Click to record payment directly from Dashboard">
-                                    {{ $inv->payment_status === 'partially_paid' ? 'Partial (₹' . format_indian($inv->remaining_balance, 0) . ' Due)' : 'Pay (₹' . format_indian($inv->remaining_balance, 0) . ' Due)' }}
-                                </button>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-xs text-slate-400 text-center py-4">No recent invoices logged.</p>
-                @endforelse
-            </div>
-        </div>
-        @endif
-
+        @include('pages.partials.overview_recent_invoices')
     </div>
 
     <!-- Row 2 Below Row 1: Recent 5 Purchase Bills, Recent 5 Factory Expenses, Low Stock Alerts (3-Column Grid) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 1. Latest 5 Purchase Records -->
-        @if(\App\Models\Setting::get('module_purchases', 'true') === 'true')
-        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <span>🛒</span> Recent 5 Purchase Bills
-                </h2>
-                <a href="{{ route('purchases') }}" class="text-xs font-bold text-purple-600 hover:underline">View Purchases →</a>
-            </div>
-            <div class="space-y-2">
-                @forelse($latestPurchases as $pur)
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
-                        <div>
-                            <div class="text-xs font-black text-slate-800">
-                                {{ $pur->rawMaterial->material_name ?? ($pur->item_name ?? ucfirst(str_replace('_', ' ', $pur->purchase_type))) }}
-                            </div>
-                            <div class="text-[11px] font-medium text-slate-500">
-                                {{ $pur->purchase_date ? $pur->purchase_date->format('d M Y') : 'N/A' }}
-                                @if($pur->vendor_name)
-                                    • <span class="font-semibold text-slate-700">{{ $pur->vendor_name }}</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-black text-purple-700">₹{{ format_indian($pur->total_amount, 2) }}</div>
-                            @if($pur->quantity > 0)
-                                <div class="text-[10px] font-bold text-slate-400">{{ format_indian($pur->quantity, 2) }} {{ $pur->unit ?? 'Units' }}</div>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-xs text-slate-400 text-center py-4">No recent purchase records logged.</p>
-                @endforelse
-            </div>
-        </div>
-        @endif
+        @include('pages.partials.overview_recent_purchases')
 
         <!-- 2. Latest 5 Expense Records -->
-        @if(\App\Models\Setting::get('module_expenses', 'true') === 'true')
-        <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <span>💸</span> Recent 5 Factory Expenses
-                </h2>
-                <a href="{{ route('expenses') }}" class="text-xs font-bold text-rose-600 hover:underline">View Expenses →</a>
-            </div>
-            <div class="space-y-2">
-                @forelse($latestExpenses as $exp)
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
-                        <div>
-                            <div class="text-xs font-black text-slate-800 capitalize">
-                                {{ $exp->expense_category === 'gst_payment' ? 'GST Payment / Tax' : str_replace('_', ' ', $exp->expense_category) }}
-                            </div>
-                            <div class="text-[11px] font-medium text-slate-500 truncate max-w-[200px]">
-                                {{ $exp->expense_date ? $exp->expense_date->format('d M Y') : 'N/A' }}
-                                @if($exp->description)
-                                    • {{ $exp->description }}
-                                @endif
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-black text-rose-600">₹{{ format_indian($exp->amount, 2) }}</div>
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-xs text-slate-400 text-center py-4">No recent expense records logged.</p>
-                @endforelse
-            </div>
-        </div>
-        @endif
+        @include('pages.partials.overview_recent_expenses')
 
         <!-- 3. Low Stock Inventory Alerts -->
         @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')
@@ -685,6 +570,7 @@
         </div>
         @endif
     </div>
+    @endif
 </div>
 
 <script>

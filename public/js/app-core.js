@@ -1169,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Global Keyboard Hotkeys Listener (Alt+I, Alt+P, Alt+E, Alt+R, Alt+S, Alt+H)
+        // Global Keyboard Hotkeys Listener (Alt+O, Alt+I, Alt+P, Alt+E, Alt+R, Alt+S, Alt+H)
         $(document).on('keydown', function(e) {
             if ($(e.target).is('input, select, textarea, [contenteditable="true"]')) {
                 return;
@@ -1177,7 +1177,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (e.altKey) {
                 const key = e.key.toLowerCase();
-                if (key === 'i') {
+                if (key === 'o') {
+                    e.preventDefault();
+                    if (window.loadPage) window.loadPage('/overview');
+                } else if (key === 'i') {
                     e.preventDefault();
                     if (window.loadPage) window.loadPage('/invoices');
                 } else if (key === 'p') {
@@ -1195,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (key === 'h') {
                     e.preventDefault();
                     if (window.showToast) {
-                        window.showToast('info', '⌨️ Hotkeys: Alt+I (Invoices), Alt+P (Purchases), Alt+E (Expenses), Alt+R (Reports), Alt+S (Settings)');
+                        window.showToast('info', '⌨️ Hotkeys: Alt+O (Overview), Alt+I (Invoices), Alt+P (Purchases), Alt+E (Expenses), Alt+R (Reports), Alt+S (Settings)');
                     }
                 }
             }
@@ -1225,6 +1228,13 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeForms();
         window.initErpDataTables();
         initGlobalModalTeleport();
-        $(document).ajaxComplete(initGlobalModalTeleport);
+        $(document).ajaxComplete(function(event, xhr, settings) {
+            initGlobalModalTeleport();
+            if (settings && settings.type && settings.type.toUpperCase() !== 'GET') {
+                if (typeof window.clearPageCache === 'function') {
+                    window.clearPageCache();
+                }
+            }
+        });
     });
 });

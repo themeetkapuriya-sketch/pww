@@ -141,6 +141,7 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 #### ⚡ Global Keyboard Hotkeys
 Speed up daily operations with keyboard shortcuts from anywhere in the portal:
+* **`Alt + O`** — Open Overview Dashboard
 * **`Alt + I`** — Open Sales Invoice Ledger
 * **`Alt + P`** — Open Purchase Ledger
 * **`Alt + E`** — Open Expense Ledger

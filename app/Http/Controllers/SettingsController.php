@@ -107,19 +107,30 @@ class SettingsController extends Controller
             ];
 
             $isSimplified = in_array(strtolower((string)$request->input('simplified_billing_mode')), ['true', '1', 'yes', 'on'], true);
+            Setting::updateOrCreate(['key' => 'simplified_billing_mode'], ['value' => $isSimplified ? 'true' : 'false']);
 
-            foreach ($moduleKeys as $key) {
-                if ($isSimplified && $key === 'track_stock') {
-                    $isSet = 'false';
-                } else {
+            if ($isSimplified) {
+                Setting::updateOrCreate(['key' => 'track_stock'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_orders'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_production'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_bom'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_inventory'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_payroll'], ['value' => 'false']);
+                Setting::updateOrCreate(['key' => 'module_invoices'], ['value' => 'true']);
+                Setting::updateOrCreate(['key' => 'module_purchases'], ['value' => 'true']);
+                Setting::updateOrCreate(['key' => 'module_expenses'], ['value' => 'true']);
+                Setting::updateOrCreate(['key' => 'module_clients'], ['value' => 'true']);
+                Setting::updateOrCreate(['key' => 'module_reports'], ['value' => 'true']);
+            } else {
+                foreach ($moduleKeys as $key) {
                     $val = $request->input($key);
                     if ($val !== null) {
                         $isSet = in_array(strtolower((string)$val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
                     } else {
                         $isSet = $request->has($key) ? 'true' : 'false';
                     }
+                    Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
                 }
-                Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
             }
 
             \App\Services\AuditLogService::log('Settings', 'updated', "Updated ERP module visibility & feature toggles matrix");
