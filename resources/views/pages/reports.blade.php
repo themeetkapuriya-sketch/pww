@@ -570,22 +570,18 @@
         @endphp
 
         <!-- GST Return Type Capsule Sub-Bar -->
-        <div class="flex flex-wrap border-b border-slate-200 bg-white p-1.5 rounded-2xl shadow-xs gap-1.5 mb-5">
+        <div class="flex border-b border-slate-200 bg-white p-1.5 rounded-2xl shadow-xs space-x-1.5 mb-5">
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr3b', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
-               class="flex-1 min-w-[150px] text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr3b' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
+               class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr3b' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
                 ⚖️ GSTR-3B (Monthly Summary)
             </a>
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr1', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
-               class="flex-1 min-w-[150px] text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr1' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
+               class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr1' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
                 📄 GSTR-1 (Sales Return)
             </a>
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr2', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
-               class="flex-1 min-w-[150px] text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr2' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
-                🛒 GSTR-2 (Purchase ITC)
-            </a>
-            <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'combined', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
-               class="flex-1 min-w-[180px] text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'combined' ? 'bg-purple-600 text-white shadow-xs' : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200' }}">
-                📦 Combined Master Package (GSTR 1+2+3B)
+               class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr2' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
+                📦 GSTR-2 (Purchase ITC)
             </a>
         </div>
 
@@ -722,129 +718,6 @@
                             @empty
                                 <tr>
                                     <td colspan="7" class="px-3 py-6 text-center text-slate-400 font-medium">No GSTR-2 purchase ITC records available for this period.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        @elseif ($gstType === 'combined')
-            <!-- 5.4 COMBINED MASTER GST AUDIT PACKAGE VIEW -->
-            <div class="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-2xl p-6 text-white shadow-md mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <span class="px-3 py-1 bg-purple-500/30 text-purple-200 border border-purple-400/40 rounded-full text-xs font-black uppercase tracking-wider">Master Audit Package</span>
-                    <h3 class="text-xl font-black mt-2">Combined GST Returns (GSTR-1 + GSTR-2 + GSTR-3B)</h3>
-                    <p class="text-xs text-purple-200 mt-1">Single master file export containing all Outward Sales, Inward Purchase ITC, and Net Settlement Returns.</p>
-                </div>
-                <div class="flex items-center space-x-3 shrink-0">
-                    <a href="{{ route('reports.export.pdf', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'combined']) }}" 
-                       class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-2 no-ajax">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg>
-                        Download Combined PDF
-                    </a>
-                    <a href="{{ route('reports.export', ['start_date' => $startDate, 'end_date' => $endDate, 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'report_type' => 'gst', 'gst_type' => 'combined']) }}" 
-                       class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-2 no-ajax">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/></svg>
-                        Export Combined CSV
-                    </a>
-                </div>
-            </div>
-
-            <!-- GSTR-3B Summary Card -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-                <h4 class="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <span>⚖️</span> Section 1: GSTR-3B Tax Settlement Summary
-                </h4>
-                @php $netGst = $invoiceSummary['total_gst'] - $purchaseSummary['total_gst']; @endphp
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Sales GST Output Liability</span>
-                        <span class="text-lg font-black text-rose-600 block mt-1">₹{{ format_indian($invoiceSummary['total_gst'], 2) }}</span>
-                    </div>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Purchase Input Tax Credit (ITC)</span>
-                        <span class="text-lg font-black text-emerald-600 block mt-1">₹{{ format_indian($purchaseSummary['total_gst'], 2) }}</span>
-                    </div>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Net Tax Payable / (Credit)</span>
-                        <span class="text-lg font-black {{ $netGst > 0 ? 'text-rose-600' : 'text-emerald-600' }} block mt-1">
-                            ₹{{ format_indian(abs($netGst), 2) }} {{ $netGst > 0 ? 'DUE' : 'ITC CREDIT' }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- GSTR-1 Outward Sales Ledger -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-6 space-y-4">
-                <h4 class="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <span>📄</span> Section 2: GSTR-1 Outward B2B Sales Ledger
-                </h4>
-                <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
-                    <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                        <thead class="bg-slate-50 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-2.5 text-left font-bold uppercase">Invoice No.</th>
-                                <th class="px-4 py-2.5 text-left font-bold uppercase">Client Company</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">Taxable Value</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">CGST (9%)</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">SGST (9%)</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">IGST (18%)</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">Total Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse($invoices as $inv)
-                                @php $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-')); @endphp
-                                <tr class="hover:bg-slate-50/50 transition">
-                                    <td class="px-4 py-2.5 font-bold font-mono text-blue-600">{{ $isRm ? 'NILL' : $inv->invoice_number }}</td>
-                                    <td class="px-4 py-2.5 font-bold text-slate-800">{{ $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A') }}</td>
-                                    <td class="px-4 py-2.5 text-right font-semibold text-slate-700">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
-                                    <td class="px-4 py-2.5 text-right text-slate-500">₹{{ number_format($inv->cgst, 2) }}</td>
-                                    <td class="px-4 py-2.5 text-right text-slate-500">₹{{ number_format($inv->sgst, 2) }}</td>
-                                    <td class="px-4 py-2.5 text-right text-slate-500">₹{{ number_format($inv->igst, 2) }}</td>
-                                    <td class="px-4 py-2.5 text-right font-bold text-slate-900">₹{{ number_format($inv->total_amount, 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-4 py-6 text-center text-slate-400">No GSTR-1 sales records found.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- GSTR-2 Inward Purchases Ledger -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-                <h4 class="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <span>🛒</span> Section 3: GSTR-2 Inward Purchases & ITC Ledger
-                </h4>
-                <div class="overflow-x-auto w-full max-w-full border border-slate-200 rounded-xl">
-                    <table class="erp-datatable min-w-full divide-y divide-slate-200 text-xs">
-                        <thead class="bg-slate-50 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-2.5 text-left font-bold uppercase">Bill No.</th>
-                                <th class="px-4 py-2.5 text-left font-bold uppercase">Vendor Name</th>
-                                <th class="px-4 py-2.5 text-left font-bold uppercase">Item Description</th>
-                                <th class="px-4 py-2.5 text-center font-bold uppercase">GST Rate</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">ITC GST Paid</th>
-                                <th class="px-4 py-2.5 text-right font-bold uppercase">Total Bill</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse($purchases as $pur)
-                                <tr class="hover:bg-slate-50/50 transition">
-                                    <td class="px-4 py-2.5 font-bold font-mono text-slate-700">{{ $pur->bill_number ?? 'N/A' }}</td>
-                                    <td class="px-4 py-2.5 font-bold text-slate-800">{{ $pur->vendor_name }}</td>
-                                    <td class="px-4 py-2.5 text-slate-600">{{ $pur->item_name }}</td>
-                                    <td class="px-4 py-2.5 text-center font-bold text-slate-500">{{ number_format($pur->gst_rate, 0) }}%</td>
-                                    <td class="px-4 py-2.5 text-right font-bold text-rose-600">₹{{ number_format($pur->gst_amount, 2) }}</td>
-                                    <td class="px-4 py-2.5 text-right font-bold text-slate-900">₹{{ number_format($pur->total_amount, 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="px-4 py-6 text-center text-slate-400">No GSTR-2 purchase records found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

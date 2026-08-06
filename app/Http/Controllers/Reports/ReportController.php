@@ -310,80 +310,7 @@ class ReportController extends Controller
             } elseif ($reportType === 'gst') {
                 $gstType = $request->input('gst_type', 'gstr3b');
 
-                if ($gstType === 'combined' || $gstType === 'all') {
-                    // COMBINED MASTER GST PACKAGE (GSTR-3B + GSTR-1 + GSTR-2)
-                    $invoices = Invoice::with(['plant.client'])
-                        ->where(function($q) use ($startDate, $endDate) {
-                            $q->whereBetween('invoice_date', [$startDate, $endDate])
-                              ->orWhere(function($sub) use ($startDate, $endDate) {
-                                  $sub->whereNull('invoice_date')
-                                      ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                              });
-                        })
-                        ->orderBy('invoice_date', 'desc')
-                        ->get();
-
-                    $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])
-                        ->orderBy('purchase_date', 'desc')
-                        ->get();
-
-                    $totalSalesTaxable = $invoices->sum('total_taxable_value');
-                    $totalSalesCgst = $invoices->sum('cgst');
-                    $totalSalesSgst = $invoices->sum('sgst');
-                    $totalSalesIgst = $invoices->sum('igst');
-                    $totalSalesGst = $totalSalesCgst + $totalSalesSgst + $totalSalesIgst;
-                    $totalPurchaseGst = $purchases->sum('gst_amount');
-                    $netPayable = $totalSalesGst - $totalPurchaseGst;
-
-                    fputcsv($handle, ['PRAFUL WELDING WORKS - COMBINED MASTER GST AUDIT PACKAGE']);
-                    fputcsv($handle, ['Period:', $startDate, 'to', $endDate]);
-                    fputcsv($handle, []);
-                    
-                    // SECTION 1: GSTR-3B
-                    fputcsv($handle, ['=== SECTION 1: GSTR-3B MONTHLY RETURN SUMMARY ===']);
-                    fputcsv($handle, ['Section', 'Details', 'Taxable Value (INR)', 'IGST (INR)', 'CGST & SGST (INR)', 'Total Tax (INR)']);
-                    fputcsv($handle, ['3.1 (a)', 'Outward Taxable Supplies (Sales)', $totalSalesTaxable, $totalSalesIgst, ($totalSalesCgst + $totalSalesSgst), $totalSalesGst]);
-                    fputcsv($handle, ['4. (A)', 'Eligible Input Tax Credit (Purchases)', '-', '-', '-', $totalPurchaseGst]);
-                    fputcsv($handle, ['6.1', 'Net Tax Liability / Carry Forward', '-', '-', '-', $netPayable]);
-                    fputcsv($handle, []);
-
-                    // SECTION 2: GSTR-1
-                    fputcsv($handle, ['=== SECTION 2: GSTR-1 OUTWARD SALES LEDGER ===']);
-                    fputcsv($handle, ['Invoice No.', 'Client GSTIN', 'Client Company', 'Plant Name', 'Invoice Date', 'Taxable Value (INR)', 'CGST (9%)', 'SGST (9%)', 'IGST (18%)', 'Total Invoice Amount (INR)']);
-                    foreach ($invoices as $inv) {
-                        $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
-                        fputcsv($handle, [
-                            $isRm ? 'NILL' : $inv->invoice_number,
-                            $isRm ? ($inv->custom_buyer_gstin ?? 'URP / Retail') : ($inv->plant->client->gstin ?? 'URP / Retail'),
-                            $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A'),
-                            $isRm ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ'),
-                            Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
-                            $inv->total_taxable_value,
-                            $inv->cgst,
-                            $inv->sgst,
-                            $inv->igst,
-                            $inv->total_amount
-                        ]);
-                    }
-                    fputcsv($handle, []);
-
-                    // SECTION 3: GSTR-2
-                    fputcsv($handle, ['=== SECTION 3: GSTR-2 INWARD PURCHASES ITC LEDGER ===']);
-                    fputcsv($handle, ['Bill Date', 'Bill No.', 'Vendor / Supplier Name', 'Category', 'Item Description', 'Quantity', 'GST Rate (%)', 'Input Tax Credit GST Paid (INR)', 'Total Amount (INR)']);
-                    foreach ($purchases as $pur) {
-                        fputcsv($handle, [
-                            Carbon::parse($pur->purchase_date)->format('d/m/Y'),
-                            $pur->bill_number ?? 'N/A',
-                            $pur->vendor_name,
-                            ucwords(str_replace('_', ' ', $pur->purchase_type)),
-                            $pur->item_name,
-                            $pur->quantity,
-                            $pur->gst_rate,
-                            $pur->gst_amount,
-                            $pur->total_amount
-                        ]);
-                    }
-                } elseif ($gstType === 'gstr1') {
+                if ($gstType === 'gstr1') {
                     $invoices = Invoice::with(['plant.client'])
                         ->where(function($q) use ($startDate, $endDate) {
                             $q->whereBetween('invoice_date', [$startDate, $endDate])
@@ -488,7 +415,6 @@ class ReportController extends Controller
     {
         [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
         $reportType = $request->input('report_type', 'invoice');
-        $gstType = $request->input('gst_type', 'gstr3b');
 
         $invoices = Invoice::with(['plant.client', 'items.product'])
             ->where(function($q) use ($startDate, $endDate) {
@@ -534,13 +460,12 @@ class ReportController extends Controller
         ];
 
         $pdfContent = $this->pdfService->renderViewToPdf('pdf.report_pdf', compact(
-            'startDate', 'endDate', 'period', 'reportType', 'gstType',
+            'startDate', 'endDate', 'period', 'reportType',
             'invoices', 'purchases', 'expenses', 'financials',
             'invoiceSummary', 'purchaseSummary', 'expenseSummary'
         ));
 
-        $gstTypeSuffix = $reportType === 'gst' ? '_' . strtoupper($gstType) : '';
-        $filename = "PWW_" . ucfirst($reportType) . $gstTypeSuffix . "_Report_{$startDate}_to_{$endDate}.pdf";
+        $filename = "PWW_" . ucfirst($reportType) . "_Report_{$startDate}_to_{$endDate}.pdf";
         return response()->streamDownload(
             fn () => print($pdfContent),
             $filename,
