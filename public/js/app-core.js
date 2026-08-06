@@ -201,11 +201,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     htmlText = pageCache.get(url);
                 } else {
                     const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } });
+                    
+                    // Handle session timeout / unauthorized / CSRF expiration
+                    if (response.status === 401 || response.status === 419) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    if (response.redirected && response.url && response.url.includes('/login')) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
                     if (!response.ok) {
                         window.location.href = url;
                         return;
                     }
+
                     htmlText = await response.text();
+
+                    // If response is the login page (unauthenticated redirect), perform clean full-page redirect to login
+                    if (htmlText.includes('name="email"') && (htmlText.includes('name="password"') || htmlText.includes('PWW ERP - Secure Authentication'))) {
+                        window.location.href = '/login';
+                        return;
+                    }
                 }
 
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
@@ -1244,11 +1263,21 @@ document.addEventListener('DOMContentLoaded', () => {
         window.initErpDataTables();
         initGlobalModalTeleport();
         $(document).ajaxComplete(function(event, xhr, settings) {
+            if (xhr && (xhr.status === 401 || xhr.status === 419)) {
+                window.location.href = '/login';
+                return;
+            }
             initGlobalModalTeleport();
             if (settings && settings.type && settings.type.toUpperCase() !== 'GET') {
                 if (typeof window.clearPageCache === 'function') {
                     window.clearPageCache();
                 }
+            }
+        });
+
+        $(document).ajaxError(function(event, xhr, settings, thrownError) {
+            if (xhr && (xhr.status === 401 || xhr.status === 419)) {
+                window.location.href = '/login';
             }
         });
     });
