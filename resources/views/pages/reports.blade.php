@@ -572,14 +572,17 @@
         <!-- GST Return Type Capsule Sub-Bar -->
         <div class="flex border-b border-slate-200 bg-white p-1.5 rounded-2xl shadow-xs space-x-1.5 mb-5">
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr3b', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
+               data-preserve-scroll="true"
                class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr3b' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
                 ⚖️ GSTR-3B (Monthly Summary)
             </a>
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr1', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
+               data-preserve-scroll="true"
                class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr1' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
                 📄 GSTR-1 (Sales Return)
             </a>
             <a href="{{ route('reports', ['report_type' => 'gst', 'gst_type' => 'gstr2', 'filter_period' => $period, 'filter_month' => $filterMonth ?? '', 'filter_year' => $filterYear ?? '', 'start_date' => $startDate, 'end_date' => $endDate]) }}" 
+               data-preserve-scroll="true"
                class="flex-1 text-center py-2 px-3 rounded-xl text-xs font-bold transition {{ $gstType === 'gstr2' ? 'bg-[#4371D7] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50' }}">
                 📦 GSTR-2 (Purchase ITC)
             </a>

@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(prewarmSidebarCache, 800);
 
         // Expose loadPage to window so it can be called elsewhere
-        window.loadPage = async function(url, skipCache = false) {
+        window.loadPage = async function(url, skipCache = false, preserveScroll = null) {
             if (skipCache) {
                 pageCache.clear();
             }
@@ -185,6 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = url;
                 return;
             }
+
+            const currentScrollY = window.scrollY;
+            let shouldPreserveScroll = false;
+            try {
+                const targetUrlObj = new URL(url, window.location.origin);
+                if (preserveScroll === true || targetUrlObj.pathname === window.location.pathname) {
+                    shouldPreserveScroll = true;
+                }
+            } catch(e) {}
             
             try {
                 let htmlText;
@@ -241,7 +250,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     history.pushState(null, '', url);
                 }
 
-                window.scrollTo({ top: 0, behavior: 'instant' });
+                if (shouldPreserveScroll && preserveScroll !== false) {
+                    window.scrollTo({ top: currentScrollY, behavior: 'instant' });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                }
                 initializeForms();
                 updateActiveSidebarLinks(url);
                 applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
@@ -318,7 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     !url.pathname.includes('/export')) {
                     
                     e.preventDefault();
-                    await window.loadPage(url.href);
+                    const isPreserve = $(this).data('preserve-scroll') === true || $(this).hasClass('preserve-scroll') || url.pathname === window.location.pathname;
+                    await window.loadPage(url.href, false, isPreserve);
                 }
             } catch (err) {
                 console.error('Link intercept error:', err);
@@ -342,7 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (url.origin === window.location.origin) {
                     e.preventDefault();
-                    await window.loadPage(url.href);
+                    const isPreserve = $form.data('preserve-scroll') === true || url.pathname === window.location.pathname;
+                    await window.loadPage(url.href, false, isPreserve);
                 }
                 return;
             }
