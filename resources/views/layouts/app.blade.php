@@ -28,6 +28,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        window.AppConfig = Object.freeze({
+            baseUrl: "{{ url('/') }}",
+            csrfToken: "{{ csrf_token() }}",
+            routes: {
+                toggleUserStatus: "{{ url('/settings/users/:id/toggle-status') }}",
+                deleteUser: "{{ url('/settings/users/:id') }}",
+                toggleRoleStatus: "{{ url('/settings/roles/:slug/toggle-status') }}",
+                deleteRole: "{{ url('/settings/roles/:key') }}",
+                toggleRolePermission: "{{ route('settings.roles.toggle-permission') }}",
+            }
+        });
+    </script>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <!-- Local Fonts & Styles -->
     <link rel="stylesheet" href="{{ asset('fonts/outfit/outfit.css') }}">
@@ -148,9 +161,18 @@
 
         html.dark .ts-dropdown .option.active,
         html.dark .ts-dropdown .option:hover,
-        html.dark .combobox-option:hover {
+        html.dark .combobox-option:hover,
+        html.dark .other-opt-btn:hover,
+        html.dark button.hover\:bg-blue-50:hover,
+        html.dark a.hover\:bg-blue-50:hover,
+        html.dark [class*="hover:bg-blue-50"]:hover {
             background-color: #334155 !important;
             color: #60a5fa !important;
+        }
+
+        html.dark .other-opt-btn.bg-blue-50 {
+            background-color: #1e3a8a !important;
+            color: #93c5fd !important;
         }
 
         /* Cancel, Close, and Secondary Buttons */
@@ -187,17 +209,124 @@
             color: #93c5fd !important;
         }
 
-        /* DataTables */
-        html.dark table.erp-datatable tbody tr {
+        /* DataTables Full Dark Mode Styling */
+        html.dark table.erp-datatable,
+        html.dark table.dataTable,
+        html.dark table.erp-datatable tbody,
+        html.dark table.dataTable tbody,
+        html.dark table.erp-datatable tbody tr,
+        html.dark table.dataTable tbody tr,
+        html.dark table.erp-datatable tbody td,
+        html.dark table.dataTable tbody td,
+        html.dark table.dataTable.no-footer {
             background-color: #1e293b !important;
             color: #f8fafc !important;
             border-color: #334155 !important;
         }
 
-        html.dark table.erp-datatable thead th {
+        html.dark table.erp-datatable tbody tr:hover,
+        html.dark table.dataTable tbody tr:hover {
+            background-color: #334155 !important;
+        }
+
+        html.dark table.erp-datatable thead th,
+        html.dark table.dataTable thead th {
             background-color: #0f172a !important;
             color: #cbd5e1 !important;
             border-color: #334155 !important;
+        }
+
+        html.dark .dataTables_empty,
+        html.dark td.dataTables_empty {
+            background-color: #1e293b !important;
+            color: #94a3b8 !important;
+        }
+
+        /* DataTables Controls: Length Menu Dropdown & Search Input */
+        html.dark .dataTables_length select,
+        html.dark .dataTables_filter input,
+        html.dark .dt-length select,
+        html.dark .dt-search input,
+        html.dark input[type="search"] {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+        }
+
+        html.dark .dataTables_length label,
+        html.dark .dataTables_filter label,
+        html.dark .dataTables_info,
+        html.dark .dataTables_paginate {
+            color: #cbd5e1 !important;
+        }
+
+        /* DataTables Pagination Buttons */
+        html.dark .dataTables_paginate .paginate_button,
+        html.dark .dt-paging .dt-paging-button {
+            background-color: #1e293b !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark .dataTables_paginate .paginate_button.current,
+        html.dark .dataTables_paginate .paginate_button.current:hover,
+        html.dark .dt-paging .dt-paging-button.current {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+
+        html.dark .dataTables_paginate .paginate_button:hover,
+        html.dark .dt-paging .dt-paging-button:hover {
+            background-color: #334155 !important;
+            color: #ffffff !important;
+        }
+
+        /* SweetAlert2 Comprehensive Dark Mode Styling */
+        html.dark .swal2-popup,
+        html.dark div.swal2-popup {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+        }
+
+        html.dark .swal2-title,
+        html.dark h2.swal2-title,
+        html.dark #swal2-title {
+            color: #ffffff !important;
+        }
+
+        html.dark .swal2-html-container,
+        html.dark .swal2-content,
+        html.dark #swal2-html-container {
+            color: #cbd5e1 !important;
+        }
+
+        html.dark .swal2-icon.swal2-warning {
+            border-color: #f59e0b !important;
+            color: #f59e0b !important;
+        }
+
+        html.dark .swal2-icon.swal2-error,
+        html.dark .swal2-icon.swal2-danger {
+            border-color: #ef4444 !important;
+            color: #ef4444 !important;
+        }
+
+        html.dark .swal2-icon.swal2-success {
+            border-color: #10b981 !important;
+            color: #10b981 !important;
+        }
+
+        html.dark .swal2-icon.swal2-info {
+            border-color: #3b82f6 !important;
+            color: #3b82f6 !important;
+        }
+
+        html.dark .swal2-validation-message {
+            background-color: #0f172a !important;
+            color: #f87171 !important;
         }
 
         .combobox-search-input,
@@ -769,7 +898,6 @@
     <script src="{{ asset('vendor/chart.min.js') }}"></script>
     <script src="{{ asset('vendor/tom-select.complete.min.js') }}"></script>
     <script src="{{ asset('vendor/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ asset('js/app-core.js') }}"></script>
     @stack('modals')
 
     <!-- Global Record Invoice Payment Modal -->

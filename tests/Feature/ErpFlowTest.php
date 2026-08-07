@@ -1339,4 +1339,53 @@ class ErpFlowTest extends TestCase
         $userResponse->assertRedirect();
         $this->assertDatabaseHas('users', ['email' => 'accountant@test.com', 'role' => 'accountant']);
     }
+
+    /**
+     * Test export of NIC-compliant E-Way Bill JSON file payload.
+     */
+    public function test_export_eway_bill_json_payload()
+    {
+        $admin = User::create([
+            'name' => 'Eway Admin',
+            'email' => 'eway_admin@test.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $client = \App\Models\Client::create([
+            'company_name' => 'Gujarat Steel Corp',
+            'client_email' => 'steel@gujarat.com',
+            'gst_number' => '24ABCDE1234F1Z5',
+        ]);
+
+        $plant = \App\Models\ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Ahmedabad Works',
+            'opening_balance' => 0,
+            'gst_number' => '24ABCDE1234F1Z5',
+        ]);
+
+        $invoice = \App\Models\Invoice::create([
+            'invoice_number' => 'PWW/25-26/999',
+            'plant_id' => $plant->id,
+            'vehicle_number' => 'GJ03AB1234',
+            'invoice_date' => now()->toDateString(),
+            'total_taxable_value' => 10000.00,
+            'cgst' => 900.00,
+            'sgst' => 900.00,
+            'igst' => 0.00,
+            'total_amount' => 11800.00,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('invoice.exportEwayJson', $invoice->id));
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/json');
+        
+        $json = $response->json();
+        $this->assertEquals('1.0.1121', $json['version']);
+        $this->assertCount(1, $json['billLists']);
+        $this->assertEquals('PWW/25-26/999', $json['billLists'][0]['docNo']);
+        $this->assertEquals('24ABCDE1234F1Z5', $json['billLists'][0]['toGstin']);
+        $this->assertEquals(11800.00, $json['billLists'][0]['totInvValue']);
+    }
 }

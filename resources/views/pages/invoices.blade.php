@@ -430,6 +430,11 @@
                                    class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white shadow-2xs transition duration-150 transform hover:scale-105">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 </a>
+                                <a href="{{ route('invoice.exportEwayJson', $inv->id) }}" 
+                                   title="Download E-Way Bill JSON File (Govt Portal Upload)"
+                                   class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition duration-150 transform hover:scale-105">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8h4l3 3v5h-2m-6 0h2"></path></svg>
+                                </a>
                                 <button type="button" 
                                         title="Edit Invoice Details"
                                         onclick="window.editInvoiceRecord({{ $inv->id }})"
@@ -1055,6 +1060,11 @@
 
         const $form = $('#customInvoiceForm');
         if ($form.length) {
+            if (typeof window.clearFormErrors === 'function') {
+                window.clearFormErrors($form);
+            } else {
+                $form.find('.form-alert').remove();
+            }
             $form[0].reset();
             $form.find('input[name="invoice_id"]').val('');
             $form.find('input[name="sales_order_id"]').val('');

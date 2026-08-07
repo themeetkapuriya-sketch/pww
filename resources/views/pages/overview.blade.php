@@ -416,9 +416,9 @@
     @if(\App\Models\Setting::get('simplified_billing_mode', 'false') === 'true')
     <!-- Simplified Billing Mode: Single Balanced 3-Column Grid (Invoices | Purchases | Expenses) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        @include('pages.partials.overview_recent_invoices')
-        @include('pages.partials.overview_recent_purchases')
-        @include('pages.partials.overview_recent_expenses')
+        @include('pages.overview.partials.recent_invoices')
+        @include('pages.overview.partials.recent_purchases')
+        @include('pages.overview.partials.recent_expenses')
     </div>
     @else
     <!-- Full Manufacturing ERP Mode: 2 Rows of 3-Column Grids -->
@@ -531,16 +531,16 @@
         @endif
 
         <!-- 3. Recent Invoices -->
-        @include('pages.partials.overview_recent_invoices')
+        @include('pages.overview.partials.recent_invoices')
     </div>
 
     <!-- Row 2 Below Row 1: Recent 5 Purchase Bills, Recent 5 Factory Expenses, Low Stock Alerts (3-Column Grid) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 1. Latest 5 Purchase Records -->
-        @include('pages.partials.overview_recent_purchases')
+        @include('pages.overview.partials.recent_purchases')
 
         <!-- 2. Latest 5 Expense Records -->
-        @include('pages.partials.overview_recent_expenses')
+        @include('pages.overview.partials.recent_expenses')
 
         <!-- 3. Low Stock Inventory Alerts -->
         @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')

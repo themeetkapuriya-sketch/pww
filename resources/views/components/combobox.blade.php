@@ -33,7 +33,12 @@
 
 <div id="{{ $elementId }}_wrapper" class="combobox-wrapper {{ $containerClass }}" data-combobox-id="{{ $elementId }}" data-allow-custom="{{ $allowCustom ? 'true' : 'false' }}">
     @if($label)
-        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">{{ $label }}</label>
+        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
+            {!! $label !!}
+            @if($required && !str_contains($label, '*'))
+                <span class="text-rose-500">*</span>
+            @endif
+        </label>
     @endif
 
     <!-- Hidden Input for Form Submit -->

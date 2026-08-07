@@ -341,9 +341,10 @@ class InvoiceController extends Controller
                 'data' => $invoice
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to log invoice: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to log invoice: ' . $e->getMessage()]
+                'errors' => ['Failed to log invoice. Please try again.']
             ], 500);
         }
     }
@@ -353,6 +354,8 @@ class InvoiceController extends Controller
      */
     public function recordInvoicePayment(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         if ($request->has('amount')) {
             $request->merge([
                 'amount' => str_replace(',', '', (string)$request->input('amount'))
@@ -418,9 +421,10 @@ class InvoiceController extends Controller
                 'message' => "Payment of ₹" . number_format($amount, 2) . " recorded successfully for Invoice '{$invoice->invoice_number}'!"
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to record invoice payment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to record payment: ' . $e->getMessage()]
+                'errors' => ['Failed to record payment. Please try again.']
             ], 500);
         }
     }
@@ -471,9 +475,10 @@ class InvoiceController extends Controller
                 'message' => "Invoice '{$invoice->invoice_number}' marked as fully paid successfully!"
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to update payment status: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to update payment status: ' . $e->getMessage()]
+                'errors' => ['Failed to update payment status. Please try again.']
             ], 500);
         }
     }
@@ -515,9 +520,10 @@ class InvoiceController extends Controller
                 'message' => "Invoice '{$invNum}' deleted successfully!"
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to delete invoice: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to delete invoice: ' . $e->getMessage()]
+                'errors' => ['Failed to delete invoice. Please try again.']
             ], 500);
         }
     }
@@ -594,7 +600,7 @@ class InvoiceController extends Controller
             Log::error("Failed to send invoice email for ID {$id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send email. ' . $e->getMessage()
+                'message' => 'Failed to send email. Please check your SMTP settings and try again.'
             ], 500);
         }
     }
@@ -628,5 +634,24 @@ class InvoiceController extends Controller
         }
 
         return strtoupper(trim($val));
+    }
+
+    /**
+     * Download NIC-compliant E-Way Bill JSON file (v1.0.1121) for bulk upload on Govt portal.
+     */
+    public function downloadEwayJson($id)
+    {
+        $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial', 'salesOrder'])->findOrFail($id);
+        $payload = \App\Services\EwayBillService::generateJsonPayload($invoice);
+        
+        $safeNumber = preg_replace('/[^A-Za-z0-9_-]/', '_', $invoice->invoice_number);
+        $filename = "eway_invoice_{$safeNumber}.json";
+
+        \App\Services\AuditLogService::log('Invoices', 'export', "Exported E-Way Bill JSON file for Invoice #{$invoice->invoice_number}");
+
+        return response()->json($payload, 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 }

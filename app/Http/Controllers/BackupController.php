@@ -79,7 +79,7 @@ class BackupController extends Controller
             ]);
         } catch (Throwable $e) {
             Log::error("Full Backup Download Failed: " . $e->getMessage());
-            return back()->with('error', 'Failed to generate full backup: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate full backup. Please try again.');
         }
     }
 
@@ -118,7 +118,7 @@ class BackupController extends Controller
             ]);
         } catch (Throwable $e) {
             Log::error("Filtered Backup Download Failed: " . $e->getMessage());
-            return back()->with('error', 'Failed to generate filtered backup: ' . $e->getMessage());
+            return back()->with('error', 'Failed to generate filtered backup. Please try again.');
         }
     }
 
@@ -140,7 +140,7 @@ class BackupController extends Controller
             return back()->with('success', 'Database restored successfully! A safety snapshot of your previous state was automatically saved before restoration.');
         } catch (Throwable $e) {
             Log::error("Database Restore Failed: " . $e->getMessage());
-            return back()->with('error', 'Database restoration failed: ' . $e->getMessage());
+            return back()->with('error', 'Database restoration failed. Please try again.');
         }
     }
 

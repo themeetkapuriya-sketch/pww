@@ -15,7 +15,7 @@ class BackupService
 
     public function __construct()
     {
-        $this->backupDirectory = storage_path('app/backups');
+        $this->backupDirectory = env('BACKUP_PATH', storage_path('app/backups'));
         if (!File::exists($this->backupDirectory)) {
             File::makeDirectory($this->backupDirectory, 0755, true);
         }

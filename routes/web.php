@@ -86,6 +86,7 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::get('/invoices/{id}/preview', [InvoiceController::class, 'previewInvoice'])->name('invoice.preview');
     Route::get('/invoices/{id}/download', [InvoiceController::class, 'downloadInvoicePdf'])->name('invoice.download');
     Route::post('/invoices/{id}/send-email', [InvoiceController::class, 'sendInvoiceEmail'])->name('invoice.send-email');
+    Route::get('/invoices/{id}/export-eway-json', [InvoiceController::class, 'downloadEwayJson'])->name('invoice.exportEwayJson');
     Route::delete('/invoices/{id}', [InvoiceController::class, 'deleteInvoice'])->name('invoice.delete');
 
     // 7. Purchase Ledger (Raw Materials, Machinery, Tools)

@@ -240,6 +240,16 @@
                 <span>Print</span>
             </a>
 
+            <!-- 3.5 E-Way Bill JSON Button -->
+            <a 
+                href="{{ route('invoice.exportEwayJson', $invoice->id) }}" 
+                class="w-full flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition duration-150"
+                title="Download NIC-compliant E-Way Bill JSON file for official Govt portal upload"
+            >
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8h4l3 3v5h-2m-6 0h2"></path></svg>
+                <span>E-Way Bill JSON</span>
+            </a>
+
             <!-- 4. Edit Invoice Button -->
             <a 
                 href="{{ route('invoices', ['edit' => $invoice->id]) }}" 

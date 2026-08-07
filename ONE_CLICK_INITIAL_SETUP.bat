@@ -33,9 +33,10 @@ call php artisan key:generate
 echo [5/6] Migrating Database & Seeding System Master Data...
 call php artisan migrate:fresh --seed --force
 
-:: 6. Build Local Frontend Assets & Clear Caches
-echo [6/6] Building Production Assets & Optimizing System Caches...
+:: 6. Build Local Frontend Assets, Storage Link & Clear Caches
+echo [6/6] Building Production Assets, Symlinking Storage & Optimizing Caches...
 call npm run build
+call php artisan storage:link
 call php artisan optimize:clear
 
 echo.
@@ -44,6 +45,7 @@ echo   INITIAL SETUP COMPLETED SUCCESSFULLY!
 echo   
 echo   Super Admin Email: pww@gmail.com
 echo   Super Admin Pass:  password
+echo   Auto Backup Path:  D:\pww_backups
 echo
 echo   Double-click START_ERP.bat to launch the application!
 echo ============================================================

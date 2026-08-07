@@ -8,6 +8,7 @@ use App\Models\Purchase;
 use App\Models\RawMaterial;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class PurchaseController extends Controller
@@ -219,9 +220,10 @@ class PurchaseController extends Controller
                 'data' => $purchase
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to update purchase: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update purchase: ' . $e->getMessage()
+                'message' => 'Failed to update purchase. Please try again.'
             ], 500);
         }
     }
@@ -243,9 +245,10 @@ class PurchaseController extends Controller
                 'message' => "Purchase record '{$item}' deleted successfully!"
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to delete purchase record: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete purchase record: ' . $e->getMessage()
+                'message' => 'Failed to delete purchase record. Please try again.'
             ], 500);
         }
     }
@@ -255,6 +258,8 @@ class PurchaseController extends Controller
      */
     public function recordPurchasePayment(Request $request, $id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         if ($request->has('amount')) {
             $request->merge([
                 'amount' => str_replace(',', '', (string)$request->input('amount'))
@@ -315,9 +320,10 @@ class PurchaseController extends Controller
                 'message' => "Vendor payout of ₹" . number_format($amount, 2) . " recorded successfully!"
             ]);
         } catch (Exception $e) {
+            Log::error('Failed to record vendor payout: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to record vendor payout: ' . $e->getMessage()]
+                'errors' => ['Failed to record vendor payout. Please try again.']
             ], 500);
         }
     }

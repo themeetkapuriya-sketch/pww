@@ -137,25 +137,25 @@ class RolePermissionService
             return false;
         }
 
-        // Check if assigned role is deactivated by administrator (Super Admin exempt)
-        if ($user->role !== 'super_admin') {
-            try {
-                $roleRecord = Role::where('slug', $user->role)->first();
-                if ($roleRecord && !$roleRecord->is_active) {
-                    return false;
-                }
-            } catch (\Throwable $e) {}
-        }
+        $userRole = strtolower(trim($user->role ?? ''));
 
-        // System Settings page & backups are strictly restricted to Super Admin & Admin
-        if ($permissionKey === 'backups_settings_manage') {
-            return in_array($user->role, ['super_admin', 'admin']);
-        }
-
-        // Super admins and admin role always have 100% permissions
-        if (in_array($user->role, ['super_admin', 'admin'])) {
+        // 1. Super admins and admin roles always have 100% permissions and cannot be locked out
+        if (in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master'])) {
             return true;
         }
+
+        // 2. System Settings page & backups permission check
+        if ($permissionKey === 'backups_settings_manage') {
+            return in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']);
+        }
+
+        // 3. Check if assigned role is deactivated by administrator
+        try {
+            $roleRecord = Role::where('slug', $user->role)->first();
+            if ($roleRecord && !$roleRecord->is_active) {
+                return false;
+            }
+        } catch (\Throwable $e) {}
 
         // If user role is 'custom' and has explicit custom JSON permissions, check user permissions
         if ($user->role === 'custom' && is_array($user->permissions) && count($user->permissions) > 0) {

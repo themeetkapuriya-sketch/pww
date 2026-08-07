@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Payroll;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\StaffProfileResource;
 use Illuminate\Http\Request;
 use App\Models\StaffProfile;
 use App\Models\AttendanceRecord;
@@ -172,9 +173,10 @@ class EmployeeController extends Controller
                 'message' => "Daily attendance for " . \Carbon\Carbon::parse($validated['date'])->format('d M, Y') . " saved successfully!"
             ]);
         } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to save attendance: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save attendance: ' . $e->getMessage()
+                'message' => 'Failed to save attendance. Please try again.'
             ], 500);
         }
     }
@@ -207,6 +209,8 @@ class EmployeeController extends Controller
      */
     public function disburseSalary(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+
         $validated = $request->validate([
             'staff_profile_id' => 'required|exists:staff_profiles,id',
             'month_year' => 'required|string|max:7',
@@ -294,9 +298,10 @@ class EmployeeController extends Controller
                 'data' => $disbursalRecord
             ]);
         } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to process salary disbursal: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process salary disbursal: ' . $e->getMessage()
+                'message' => 'Failed to process salary disbursal. Please try again.'
             ], 500);
         }
     }
@@ -306,6 +311,8 @@ class EmployeeController extends Controller
      */
     public function deleteDisbursal($id)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+
         try {
             $disbursal = SalaryDisbursal::findOrFail($id);
             if ($disbursal->expense_id) {
@@ -318,9 +325,10 @@ class EmployeeController extends Controller
                 'message' => 'Salary disbursal record and linked expense deleted successfully!'
             ]);
         } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete salary disbursal: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete salary disbursal: ' . $e->getMessage()
+                'message' => 'Failed to delete salary disbursal. Please try again.'
             ], 500);
         }
     }
@@ -330,6 +338,8 @@ class EmployeeController extends Controller
      */
     public function payPayroll(Request $request)
     {
+        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+
         $validated = $request->validate([
             'labor_log_ids' => 'required|array|min:1',
             'labor_log_ids.*' => 'required|exists:labor_logs,id',
@@ -342,9 +352,10 @@ class EmployeeController extends Controller
                 'message' => "Successfully paid compiled wages for {$count} logged runs!"
             ]);
         } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to pay payroll: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => [$e->getMessage()]
+                'errors' => ['Failed to process payroll payment. Please try again.']
             ], 500);
         }
     }

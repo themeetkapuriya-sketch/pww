@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\User;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
@@ -148,34 +147,10 @@ class ProfileController extends Controller
                 'message' => 'Business settings updated successfully!'
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to save business settings: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to save business settings: ' . $e->getMessage()]
-            ], 500);
-        }
-    }
-
-    /**
-     * Trigger Database Re-seeding for demonstration.
-     */
-    public function resetData()
-    {
-        try {
-            Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
-            
-            $seedUser = User::where('email', 'pww@gmail.com')->first();
-            if ($seedUser) {
-                auth()->login($seedUser);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Database reset and seeded with production-grade demo data successfully!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['Database reset failed: ' . $e->getMessage()]
+                'errors' => ['Failed to save business settings. Please try again.']
             ], 500);
         }
     }

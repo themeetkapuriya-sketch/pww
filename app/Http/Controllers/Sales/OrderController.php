@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use Illuminate\Http\Request;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
@@ -32,7 +33,8 @@ class OrderController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(20)->appends($request->query());
         $clients = Client::with('plants')->orderBy('company_name')->get();
-        $finishedGoods = Product::orderBy('product_name')->get();
+        $rawFinishedGoods = Product::orderBy('product_name')->get();
+        $finishedGoods = ProductResource::collection($rawFinishedGoods);
 
         $stats = [
             'total' => SalesOrder::count(),

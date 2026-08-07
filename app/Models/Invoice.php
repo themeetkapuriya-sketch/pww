@@ -73,6 +73,14 @@ class Invoice extends Model
     }
 
     /**
+     * Get the associated sales order.
+     */
+    public function salesOrder()
+    {
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+    }
+
+    /**
      * Get the client via client plant.
      */
     public function getClientAttribute()

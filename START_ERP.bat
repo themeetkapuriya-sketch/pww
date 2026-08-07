@@ -26,7 +26,7 @@ echo [OK] MySQL Database Server active.
 
 :: 2. Refresh Application Caches
 echo [INFO] Refreshing application caches...
-cd /d "C:\laravel project\pww"
+cd /d "%~dp0"
 call php artisan config:clear >nul 2>&1
 call php artisan view:clear >nul 2>&1
 call php artisan route:clear >nul 2>&1
@@ -35,17 +35,18 @@ call php artisan route:clear >nul 2>&1
 echo [INFO] Opening ERP Portal in Default Web Browser...
 start http://127.0.0.1:8000
 
-:: 4. Start Laravel Server directly in THIS SINGLE terminal window
+:: 4. Start Laravel Server directly in THIS SINGLE terminal window (Binding 0.0.0.0 for LAN access)
 echo.
 echo ============================================================
-echo   SUCCESS! PWW ERP is now running on your computer.
+echo   SUCCESS! PWW ERP is now running on your local network.
 echo   
-echo   Login Portal: http://127.0.0.1:8000
+echo   Local Host Access: http://127.0.0.1:8000
+echo   Network LAN Access: http://YOUR_PC_IP_ADDRESS:8000
 echo   
 echo   NOTE: Keep this single terminal window open while working.
 echo ============================================================
 echo.
 
-php artisan serve --host=127.0.0.1 --port=8000
+php artisan serve --host=0.0.0.0 --port=8000
 
 pause

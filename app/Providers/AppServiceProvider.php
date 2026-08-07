@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
             return "<?php echo format_indian({$expression}); ?>";
         });
 
-        if ($this->app->environment('production') || env('APP_ENV') === 'production') {
+        if ($this->app->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
@@ -43,12 +43,23 @@ class AppServiceProvider extends ServiceProvider
                         $mailUsername = $fromAddress;
                     }
 
+                    $encryptedPassword = \App\Models\Setting::get('mail_password');
+                    $mailPassword = null;
+                    if (!empty($encryptedPassword)) {
+                        try {
+                            $mailPassword = \Illuminate\Support\Facades\Crypt::decryptString($encryptedPassword);
+                        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                            // Fallback: password was stored before encryption was added
+                            $mailPassword = $encryptedPassword;
+                        }
+                    }
+
                     config([
                         'mail.default' => 'smtp',
                         'mail.mailers.smtp.host' => $mailHost,
                         'mail.mailers.smtp.port' => (int) \App\Models\Setting::get('mail_port', 587),
                         'mail.mailers.smtp.username' => $mailUsername,
-                        'mail.mailers.smtp.password' => \App\Models\Setting::get('mail_password'),
+                        'mail.mailers.smtp.password' => $mailPassword,
                         'mail.mailers.smtp.encryption' => \App\Models\Setting::get('mail_encryption', 'tls'),
                         'mail.from.address' => $fromAddress,
                         'mail.from.name' => \App\Models\Setting::get('mail_from_name', 'Praful Welding Works'),

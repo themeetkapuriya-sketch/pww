@@ -20,6 +20,11 @@ class AutoBackupCheckMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip middleware checks on authentication/logout/export routes for instant performance
+        if ($request->is('logout') || $request->routeIs('logout') || $request->is('login') || $request->is('invoices/*/export-eway-json') || $request->routeIs('invoice.exportEwayJson')) {
+            return $next($request);
+        }
+
         if (Auth::check()) {
             // 1. Enforce Configured Session Inactivity Timeout
             $timeoutMinutes = (int) Setting::get('session_timeout_minutes', '120');
@@ -42,19 +47,28 @@ class AutoBackupCheckMiddleware
             }
 
             Session::put('last_activity_time', $currentTime);
-
-            // 2. Run background automatic backup catch-up check
-            try {
-                $createdPath = app(BackupService::class)->ensureAutomaticBackupExists();
-
-                if (!empty($createdPath) && File::exists($createdPath)) {
-                    Session::flash('auto_download_backup_url', route('backup.downloadFile', ['filename' => basename($createdPath)]));
-                }
-            } catch (\Throwable $e) {
-                // Silently ignore middleware check errors to avoid blocking user navigation
-            }
         }
 
         return $next($request);
+    }
+
+    /**
+     * Handle tasks AFTER the HTTP response has already been sent to the client browser.
+     * Keeps user navigation and logout instantaneous (< 50ms).
+     */
+    public function terminate(Request $request, Response $response): void
+    {
+        // Skip background backup checks on auth/logout/export routes
+        if ($request->is('logout') || $request->routeIs('logout') || $request->is('login') || $request->is('invoices/*/export-eway-json') || $request->routeIs('invoice.exportEwayJson')) {
+            return;
+        }
+
+        if (Auth::check()) {
+            try {
+                app(BackupService::class)->ensureAutomaticBackupExists();
+            } catch (\Throwable $e) {
+                // Silently ignore background backup errors to preserve system availability
+            }
+        }
     }
 }

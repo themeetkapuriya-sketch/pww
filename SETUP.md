@@ -1,58 +1,48 @@
-# 🛠️ Praful Welding Works (PWW) ERP - Client Device Local Setup Guide
+# 🛠️ Praful Welding Works (PWW) ERP - Local Machine Setup Guide
 
-This document provides a comprehensive, step-by-step installation and configuration guide for setting up the **Praful Welding Works ERP System** on a client's local computer or local factory server (Windows / Linux / macOS).
+This document is the official setup and user guide for running the **Praful Welding Works ERP System** locally on your personal computer / local workstation (Windows / macOS / Linux).
 
-## ⚡ 1-CLICK LAUNCHER FOR NON-TECHNICAL CLIENTS
+> 📌 **Note:** This application is configured strictly for **local machine use**. No cloud hosting or remote server deployment is required.
 
-For non-technical users, **zero technical knowledge or terminal commands are required**:
+---
 
-1. **Daily 1-Click Launch**:
+## ⚡ 1-CLICK SYSTEM LAUNCHER (Simplest Way)
+
+For everyday usage, **no technical commands or terminal windows are needed**:
+
+1. **Daily Startup**:
    Double-click **`START_ERP.bat`** in the project folder.
-   * It starts the local ERP server automatically in the background.
-   * It automatically opens your default browser directly to **`http://127.0.0.1:8000`**.
+   * Starts the local MySQL database server automatically if it isn't running.
+   * Launches the ERP server locally on **`http://127.0.0.1:8000`**.
+   * Automatically opens your default web browser to the login page.
 
-2. **First-Time 1-Click Setup**:
-   Double-click **`ONE_CLICK_INITIAL_SETUP.bat`** to run initial environment configuration and database seeding automatically.
-
----
-
-## 📋 1. System Requirements
-
-Before starting the installation, ensure the client machine meets the following prerequisites:
-
-### Hardware Requirements:
-- **Operating System**: Windows 10 / Windows 11 (or Ubuntu Linux 20.04+)
-- **RAM**: 4 GB minimum (8 GB recommended)
-- **Disk Space**: 2 GB free SSD/HDD storage space
-
-### Software Prerequisites:
-- **PHP**: Version 8.2 or higher (with extensions: `pdo`, `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `fileinfo`)
-- **Database**: MySQL Server 8.0+ or MariaDB (e.g. via XAMPP / WampServer)
-- **Dependency Managers**: 
-  - Composer 2.x+ ([Download Composer](https://getcomposer.org/))
-  - Node.js 18.x+ & NPM ([Download Node.js](https://nodejs.org/))
+2. **First-Time Setup**:
+   Double-click **`ONE_CLICK_INITIAL_SETUP.bat`** to generate your local `.env`, create database tables, seed sample data, link storage, and prepare local frontend assets automatically.
 
 ---
 
-## 💻 2. Step-by-Step Installation Guide
+## 💻 Local Prerequisites
 
-### Step 1: Copy Project Folder to Client Machine
-Copy or clone the ERP project folder to the client's local disk (e.g., `C:\pww` or `C:\xampp\htdocs\pww`).
+Before starting, ensure your local computer has:
 
-Open Command Prompt / PowerShell as Administrator and navigate into the project directory:
+* **PHP**: 8.2 or higher (XAMPP / Laragon / standalone PHP)
+* **MySQL Database**: MySQL 8.0+ or MariaDB (via XAMPP / WampServer)
+* **Composer**: 2.x+ ([Download Composer](https://getcomposer.org/))
+* **Node.js & NPM**: 18.x+ ([Download Node.js](https://nodejs.org/))
+
+---
+
+## 🔧 Step-by-Step Manual Local Setup
+
+If you prefer setting up the local environment manually via terminal:
+
+### Step 1: Open Terminal in Project Folder
 ```powershell
-cd C:\laravel project\pww
+cd "C:\laravel project\pww"
 ```
 
----
-
-### Step 2: Configure Environment File
-Copy `.env.example` to create the active `.env` configuration file:
-```powershell
-copy .env.example .env
-```
-
-Ensure `.env` contains the correct local MySQL database settings:
+### Step 2: Configure Local Environment (`.env`)
+Ensure `.env` exists and contains local configuration defaults:
 ```env
 APP_NAME="Praful Welding Works ERP"
 APP_ENV=local
@@ -69,143 +59,57 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
----
-
-### Step 3: Install PHP & Node Dependencies
-Run the following commands to install backend and frontend packages:
-
+### Step 3: Install Local Dependencies
 ```powershell
-# 1. Install PHP Composer Packages
+# Install PHP packages
 composer install
 
-# 2. Install NPM Frontend Dependencies
+# Install Frontend packages
 npm install
 
-# 3. Generate Application Security Key
+# Generate local security key
 php artisan key:generate
 ```
 
----
-
-### Step 4: Create MySQL Database & Run Seeders
-1. Open XAMPP Control Panel or MySQL CLI and start **Apache** and **MySQL**.
-2. Open phpMyAdmin (`http://localhost/phpmyadmin`) or MySQL Command Line and create a new database named **`pww`**:
+### Step 4: Setup Database & Storage Symlink
+1. Start **MySQL** in XAMPP / WampServer.
+2. Create local database `pww`:
    ```sql
    CREATE DATABASE pww CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
-3. Run database migrations and seed default system settings & Super Admin account:
+3. Run local database migrations & default master data seeders:
    ```powershell
-   php artisan migrate:fresh --seed --force
+   php artisan migrate:fresh --seed
+   ```
+4. Create local public storage link (for avatars, logos, documents):
+   ```powershell
+   php artisan storage:link
    ```
 
----
-
-### Step 5: Build Local Offline Assets
-Compile Tailwind CSS and JavaScript bundles for offline execution:
+### Step 5: Build Local Assets & Start Application
 ```powershell
-# Clear all view and config caches
-php artisan config:clear
-php artisan view:clear
-
-# Build production assets
+# Build frontend assets
 npm run build
-```
 
----
-
-## 🚀 3. Quick All-In-One Automated Setup Command
-
-Alternatively, after creating the `pww` database in MySQL, you can perform all installation steps automatically with a single command:
-
-```powershell
-composer setup
-```
-
----
-
-## 🔑 4. Default Admin Login Credentials
-
-Once the database is seeded, open your browser and navigate to `http://127.0.0.1:8000/login`.
-
-Log in using the default Super Admin credentials:
-
-- 📧 **Login Email**: `pww@gmail.com`
-- 🔒 **Password**: `password`
-- 🛡️ **Role**: Super Admin (Full System Access)
-
-> 💡 **Security Tip**: After logging in for the first time, navigate to **Profile Settings** to update your password.
-
----
-
-## 🌐 5. Running the Application Locally
-
-### Method A: Using Laravel Artisan Server (Simplest)
-Open Terminal inside `C:\laravel project\pww` and run:
-```powershell
+# Start local server
 php artisan serve
 ```
-Open **`http://127.0.0.1:8000`** in Google Chrome or Microsoft Edge.
+
+Access the portal in your browser at: **`http://127.0.0.1:8000`**
 
 ---
 
-### Method B: Configuring Apache VirtualHost (Optional for Custom Domain)
-If the client wants to open the app via `http://pww.local` without running `php artisan serve`:
+## 🔑 Default Local Login Credentials
 
-1. In XAMPP `apache/conf/extra/httpd-vhosts.conf`, add:
-   ```apache
-   <VirtualHost *:80>
-       DocumentRoot "C:/laravel project/pww/public"
-       ServerName pww.local
-       <Directory "C:/laravel project/pww/public">
-           Options Indexes FollowSymLinks
-           AllowOverride All
-           Require all granted
-       </Directory>
-   </VirtualHost>
-   ```
-2. In Windows Hosts file (`C:\Windows\System32\drivers\etc\hosts`), add:
-   ```text
-   127.0.0.1   pww.local
-   ```
-3. Restart Apache. Open **`http://pww.local`** in browser.
+- 📧 **Super Admin Email**: `pww@gmail.com`
+- 🔒 **Password**: `password`
+- 🛡️ **Role**: Super Admin (Full Local ERP Access)
 
 ---
 
-## 🛡️ 6. Offline Operation & Security
+## 💾 Local Data Safety & Backups
 
-### 100% Offline Capability:
-- All core CSS styles (Tailwind), DataTables (v1.13.11 with Royal Blue Pill Pagination), SweetAlert2 (v11.17.2), TomSelect (v2.4.1), Chart.js (v4.4.7), and jQuery (v3.7.1) are pre-bundled in `public/vendor/`.
-- **Zero internet connection is required** for daily operations (Invoices, Orders, Production Logs, Reports, Printing).
-
-### Super Admin & Access Security:
-- **Public registration is completely disabled**. All system users are created and managed by the Super Admin in **Settings -> User Access Matrix**.
-- The primary Super Admin account (`pww@gmail.com`) is **permanently protected** and cannot be deactivated or deleted.
-- Deactivated user accounts are automatically redirected to a unified `/account-deactivated` page with Super Admin contact information.
-
-### Automated Local Backups:
-- Database backup `.sql` snapshots are created automatically upon login according to your backup schedule (`monthly`/`weekly`).
-- Backup files are stored locally on the client's computer at:
+- All business data is stored 100% locally on your machine in the MySQL database.
+- Automatic database snapshots are generated upon login and stored locally at:
   `C:\laravel project\pww\storage\app\backups\`
-- You can also navigate to **Backup & Restore Hub** (`/backup`) in the portal to generate on-demand backups or restore a snapshot.
-
----
-
-## ❓ 7. Troubleshooting Common Setup Issues
-
-### Issue 1: `SQLSTATE[HY000] [1049] Unknown database 'pww'`
-* **Cause**: The database `pww` has not been created in MySQL yet.
-* **Fix**: Open phpMyAdmin or MySQL CLI and run `CREATE DATABASE pww;`.
-
-### Issue 2: `Port 8000 is already in use`
-* **Fix**: Start the server on a different port:
-  ```powershell
-  php artisan serve --port=8080
-  ```
-
-### Issue 3: Missing Styling or Blank White Page
-* **Fix**: Re-clear caches and re-compile frontend assets:
-  ```powershell
-  php artisan config:clear
-  php artisan view:clear
-  npm run build
-  ```
+- You can also navigate to **Backup & Restore Hub** (`/backup`) inside the app to download `.sql` backups directly to your local computer.
