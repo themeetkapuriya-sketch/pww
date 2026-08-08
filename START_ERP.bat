@@ -1,6 +1,15 @@
 @echo off
+cd /d "%~dp0"
 title Praful Welding Works ERP - System Launcher
 color 0A
+
+:: Auto-detect XAMPP PHP & MySQL paths if not already in system PATH
+where php >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    if exist "C:\xampp\php\php.exe" (
+        set "PATH=C:\xampp\php;C:\xampp\mysql\bin;%PATH%"
+    )
+)
 
 echo ============================================================
 echo      PRAFUL WELDING WORKS ERP - SYSTEM LAUNCHER
@@ -26,14 +35,13 @@ echo [OK] MySQL Database Server active.
 
 :: 2. Refresh Application Caches
 echo [INFO] Refreshing application caches...
-cd /d "%~dp0"
 call php artisan config:clear >nul 2>&1
 call php artisan view:clear >nul 2>&1
 call php artisan route:clear >nul 2>&1
 
-:: 3. Open Web Browser
+:: 3. Open Web Browser after 2 second delay
 echo [INFO] Opening ERP Portal in Default Web Browser...
-start http://127.0.0.1:8000
+start "" powershell -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:8000'"
 
 :: 4. Start Laravel Server directly in THIS SINGLE terminal window (Binding 0.0.0.0 for LAN access)
 echo.
