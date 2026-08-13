@@ -28,7 +28,7 @@
             <button type="button" id="productCloseBtn" onclick="toggleProductForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form id="productForm" action="{{ route('inventory.goods.store') }}" method="POST" class="ajax-form space-y-4">
+        <form id="productForm" action="{{ route('inventory.goods.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/product">
             @csrf
             <input type="hidden" name="_method" id="product_form_method" value="POST">
 
@@ -50,10 +50,10 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Primary Unit)</label>
-                    <input type="text" id="good_uom" name="uom" list="product_uom_list" placeholder="e.g. piece, set, box, kg" value="piece" required
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit)</label>
+                    <input type="text" id="good_uom" name="uom" list="product_uom_list" placeholder="e.g. piece, set, kg" value="piece" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                     <datalist id="product_uom_list">
                         <option value="piece">Pieces (pcs)</option>
@@ -69,30 +69,36 @@
                     </datalist>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Unit Weight (Kg/Pcs)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Weight (Kg/Pcs)</label>
                     <input type="number" id="good_unit_weight_kg" name="unit_weight_kg" step="0.001" min="0" placeholder="e.g. 14.500" value="0.000"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium font-mono">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Price / Piece (₹)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Price / Pcs (₹)</label>
                     <input type="number" id="good_price" name="selling_price" step="0.01" min="0" placeholder="e.g. 1850.00" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Price / Kg (₹)</label>
-                    <input type="number" id="good_price_per_kg" name="price_per_kg" step="0.01" min="0" placeholder="Optional (e.g. 125.00)"
+                    <input type="number" id="good_price_per_kg" name="price_per_kg" step="0.01" min="0" placeholder="Optional (125)"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium font-mono">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">GST Rate (%)</label>
                     <select id="good_gst_rate" name="gst_rate" required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                        <option value="18.00" selected>18% (Standard GST)</option>
-                        <option value="12.00">12% (Reduced Tax)</option>
-                        <option value="5.00">5% (Essential Goods)</option>
-                        <option value="28.00">28% (Luxury / Heavy Equipment)</option>
-                        <option value="0.00">0% (Exempt Goods)</option>
+                        <option value="18.00" selected>18% (Standard)</option>
+                        <option value="12.00">12% (Reduced)</option>
+                        <option value="5.00">5% (Essential)</option>
+                        <option value="28.00">28% (Luxury)</option>
+                        <option value="0.00">0% (Exempt)</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Min Stock Alert</label>
+                    <input type="number" id="good_safety_threshold" name="safety_threshold" min="0" placeholder="e.g. 10" value="10"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium font-mono"
+                           title="Set to 0 to disable alerts for this item">
                 </div>
             </div>
 
@@ -108,12 +114,12 @@
     <!-- 2. RECORDS LIST UNDERNEATH -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
         <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Products Catalog
+            <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            Finished Goods Master Table
         </h3>
         
         <div class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+            <table class="erp-datatable divide-y divide-slate-200 text-sm" style="min-width: 1100px; width: 100%;">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
@@ -127,14 +133,24 @@
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
                         @endif
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Selling Prices</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Last Updated</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-28">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($finishedGoods as $good)
-                        <tr class="hover:bg-slate-50 transition" id="row-good-{{ $good->id }}">
+                        @php 
+                            $threshold = $good->safety_threshold ?? 10;
+                            $isLowStock = $good->current_stock <= $threshold && $threshold > 0;
+                        @endphp
+                        <tr class="hover:bg-slate-50 transition {{ $isLowStock ? 'bg-rose-50/40' : '' }}" id="row-good-{{ $good->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $good->product_name }}</td>
+                            <td class="px-6 py-4 font-semibold text-slate-800">
+                                {{ $good->product_name }}
+                                @if($isLowStock)
+                                    <span class="ml-1.5 px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold text-[10px] rounded">Low Stock</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ $good->hsn_code ?? '-' }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 capitalize text-xs font-semibold">{{ $good->uom }}</td>
@@ -149,10 +165,18 @@
                                     <span class="block text-[10px] text-slate-500">(₹{{ number_format($good->price_per_kg, 2) }}/kg)</span>
                                 @endif
                             </td>
+                            <td class="px-6 py-4 text-center text-slate-600 text-xs">
+                                @if($good->updated_at)
+                                    <span class="font-semibold text-slate-700 block">{{ $good->updated_at->format('d M Y') }}</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">{{ $good->updated_at->format('h:i A') }}</span>
+                                @else
+                                    <span class="text-slate-400 italic">-</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <button type="button" 
-                                            onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ $good->sku }}', '{{ $good->hsn_code ?? '' }}', '{{ $good->uom }}', {{ $good->current_stock }}, {{ $good->selling_price }}, {{ $good->gst_rate }}, {{ $good->unit_weight_kg }}, {{ $good->price_per_kg ?? 'null' }})"
+                                            onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ $good->sku }}', '{{ $good->hsn_code ?? '' }}', '{{ $good->uom }}', {{ $good->current_stock }}, {{ $good->selling_price }}, {{ $good->gst_rate }}, {{ $good->unit_weight_kg }}, {{ $good->price_per_kg ?? 'null' }}, {{ $good->safety_threshold ?? 10 }})"
                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                             title="Edit Product Details">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -168,7 +192,7 @@
                         </tr>
                     @empty
                         <tr class="empty-row">
-                            <td colspan="10" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="11" class="px-6 py-12 text-center text-slate-400">
                                 <div class="flex flex-col items-center justify-center space-y-2">
                                     <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -216,6 +240,7 @@ function resetProductForm() {
     document.getElementById('good_price').value = '';
     if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = '';
     if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = '18.00';
+    if (document.getElementById('good_safety_threshold')) document.getElementById('good_safety_threshold').value = '10';
     
     const btn = document.getElementById('productSubmitBtn');
     btn.innerText = 'Save Product';
@@ -237,7 +262,7 @@ function toggleProductForm(showExplicit = null) {
     }
 }
 
-function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 18.00, unitWeight = 0.000, pricePerKg = '') {
+function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 18.00, unitWeight = 0.000, pricePerKg = '', safetyThreshold = 10) {
     const card = document.getElementById('productCard');
     if (!card) return;
 
@@ -263,6 +288,7 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 1
     document.getElementById('good_price').value = price;
     if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = (pricePerKg !== '' && pricePerKg !== null && pricePerKg !== undefined) ? parseFloat(pricePerKg).toFixed(2) : '';
     if (document.getElementById('good_gst_rate')) document.getElementById('good_gst_rate').value = parseFloat(gstRate).toFixed(2);
+    if (document.getElementById('good_safety_threshold')) document.getElementById('good_safety_threshold').value = safetyThreshold;
     
     const btn = document.getElementById('productSubmitBtn');
     btn.innerText = 'Update Product';

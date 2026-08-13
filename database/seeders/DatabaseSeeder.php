@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Setting;
+use App\Models\User;
 use App\Services\RolePermissionService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
         Setting::updateOrCreate(['key' => 'mail_from_address'], ['value' => 'pww@gmail.com']);
         Setting::updateOrCreate(['key' => 'mail_from_name'], ['value' => 'Praful Welding Works']);
 
-        Setting::updateOrCreate(['key' => 'session_timeout_minutes'], ['value' => '120']);
+        Setting::updateOrCreate(['key' => 'session_timeout_minutes'], ['value' => '60']);
         Setting::updateOrCreate(['key' => 'simplified_billing_mode'], ['value' => 'false']);
         Setting::updateOrCreate(['key' => 'auto_backup_enabled'], ['value' => 'true']);
         Setting::updateOrCreate(['key' => 'auto_email_backup'], ['value' => 'true']);

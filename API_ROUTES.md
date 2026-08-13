@@ -45,6 +45,7 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/inventory/materials` | `POST` | `RawMaterialController@store` | Inline | `inventory.materials.store` | JSON (200 / 422) |
 | `/inventory/materials/{id}` | `PUT` | `RawMaterialController@update` | Inline | `inventory.materials.update` | JSON (200 / 422) |
+| `/inventory/materials/{id}/adjust` | `POST` | `RawMaterialController@adjustStock` | Inline | `inventory.materials.adjust` | JSON (200 / 422) |
 | `/inventory/materials/{id}` | `DELETE` | `RawMaterialController@destroy` | - | `inventory.materials.delete` | JSON (200) |
 
 #### 📦 Products Catalog (`ProductController`)
@@ -77,7 +78,10 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/orders` | `POST` | `OrderController@storeOrder` | `StoreSalesOrderRequest` | `orders.store` | JSON (200 / 422) |
-| `/orders/{id}/status` | `POST` | `OrderController@updateStatus` | Inline | `orders.status.update` | JSON (200 / 422) |
+| `/orders/{id}` | `PUT` | `OrderController@updateOrder` | Inline | `orders.update` | JSON (200 / 422) |
+| `/orders/{id}/status` | `PATCH` | `OrderController@updateOrderStatus` | Inline | `orders.updateStatus` | JSON (200 / 422) |
+| `/orders/{id}/details` | `GET` | `OrderController@orderDetails` | - | `orders.details` | JSON/HTML |
+| `/orders/{id}/job-card` | `GET` | `OrderController@showJobCard` | - | `orders.jobCard` | HTML View / PDF |
 
 #### 🧾 Invoices & Payments (`InvoiceController`)
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
@@ -103,6 +107,8 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/employees` | `POST` | `EmployeeController@storeEmployee` | Inline | `employees.store` | JSON (200 / 422) |
 | `/employees/{id}` | `PUT` | `EmployeeController@updateEmployee` | Inline | `employees.update` | JSON (200 / 422) |
 | `/employees/{id}` | `DELETE` | `EmployeeController@deleteEmployee` | - | `employees.delete` | JSON (200) |
+| `/employees/advance` | `POST` | `EmployeeController@storeAdvance` | Inline | `employees.advance.store` | JSON (200 / 422) |
+| `/employees/advance/{id}` | `DELETE` | `EmployeeController@deleteAdvance` | - | `employees.advance.delete` | JSON (200) |
 
 #### ⚙️ Settings & Categories (`SettingsController`)
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
@@ -110,10 +116,16 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/settings/categories/store` | `POST` | `SettingsController@storeCategory` | Inline | `settings.categories.store` | JSON (200 / 422) |
 | `/settings/categories/update` | `POST` | `SettingsController@updateCategory` | Inline | `settings.categories.update` | JSON (200 / 422) |
 | `/settings/categories/delete` | `POST` | `SettingsController@deleteCategory` | Inline | `settings.categories.delete` | JSON (200 / 422) |
+| `/settings/backups/create` | `POST` | `SettingsController@triggerManualBackup` | Inline | `settings.backups.create` | JSON (200) |
+| `/settings/backups/download/{filename}` | `GET` | `SettingsController@downloadBackup` | - | `settings.backups.download` | File Download |
+| `/settings/backups/restore` | `POST` | `SettingsController@restoreBackup` | Inline | `settings.backups.restore` | JSON (200 / 422) |
+| `/settings/resync-cache` | `POST` | `SettingsController@resyncCache` | Inline | `settings.resync` | JSON (200) |
+| `/settings/prune-system` | `POST` | `SettingsController@pruneSystemLogs` | Inline | `settings.prune` | JSON (200) |
 
 #### 🛡️ Super-Admin Activity Audit Logs (`ActivityLogController`)
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/activity-logs` | `GET` | `ActivityLogController@index` | SuperAdminCheck | `activity-logs` | HTML View (Super Admin) |
 | `/activity-logs/export` | `GET` | `ActivityLogController@exportCsv` | SuperAdminCheck | `activity-logs.export` | CSV Stream Download |
+| `/activity-logs/clear` | `POST` | `ActivityLogController@clearLogs` | SuperAdminCheck | `activity-logs.clear` | JSON (200) |
 

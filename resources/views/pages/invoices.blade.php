@@ -249,8 +249,8 @@
                                                     required />
                                     </div>
                                     <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="Pcs">Pcs</option>
-                                        <option value="Kg">Kg</option>
+                                        <option value="Pcs" {{ strtolower($it->billing_uom ?? 'Pcs') === 'pcs' || strtolower($it->billing_uom ?? '') === 'piece' ? 'selected' : '' }}>Pcs</option>
+                                        <option value="Kg" {{ strtolower($it->billing_uom ?? '') === 'kg' ? 'selected' : '' }}>Kg</option>
                                     </select>
                                     <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                                     <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
@@ -636,6 +636,7 @@
             uomSelect.value = formattedUom;
         }
     }
+    window.ensureAndSelectUom = ensureAndSelectUom;
 
     // Event delegation on billingRowsContainer — auto-fill price on product or UOM select
     billingRowsContainer.addEventListener('change', function(e) {
@@ -724,20 +725,18 @@
         
         // Resolve destination state directly from selected client plant option
         let state = 'Gujarat';
-        const clientSelect = document.getElementById('invoiceClientSelect');
+        const plantHidden = document.getElementById('invoiceClientSelect_hidden');
 
-        if (clientSelect && clientSelect.value) {
-            let selectedOpt = null;
-            if (clientSelect.selectedIndex >= 0 && clientSelect.options[clientSelect.selectedIndex]) {
-                selectedOpt = clientSelect.options[clientSelect.selectedIndex];
-            }
-            if (!selectedOpt || !selectedOpt.value) {
+        if (plantHidden && plantHidden.value) {
+            const plantWrapper = document.getElementById('invoiceClientSelect_wrapper');
+            if (plantWrapper) {
+                let selectedOpt = null;
                 try {
-                    selectedOpt = clientSelect.querySelector('option[value="' + CSS.escape(clientSelect.value) + '"]');
+                    selectedOpt = plantWrapper.querySelector('.combobox-option[data-value="' + CSS.escape(plantHidden.value) + '"]');
                 } catch(e) {}
-            }
-            if (selectedOpt && selectedOpt.getAttribute('data-state')) {
-                state = selectedOpt.getAttribute('data-state');
+                if (selectedOpt && (selectedOpt.getAttribute('data-state') || selectedOpt.dataset.state)) {
+                    state = selectedOpt.getAttribute('data-state') || selectedOpt.dataset.state;
+                }
             }
         }
 
@@ -828,22 +827,44 @@
 <script>
     // Invoice data registry
     window.erpInvoicesMap = window.erpInvoicesMap || {};
-    @foreach ($invoices as $inv)
+    @php
+        $allInvoicesToRegister = collect();
+        if (isset($invoices)) {
+            $allInvoicesToRegister = $allInvoicesToRegister->concat($invoices instanceof \Illuminate\Pagination\LengthAwarePaginator ? $invoices->items() : $invoices);
+        }
+        if (isset($finishedGoodsInvoices)) {
+            $allInvoicesToRegister = $allInvoicesToRegister->concat($finishedGoodsInvoices instanceof \Illuminate\Pagination\LengthAwarePaginator ? $finishedGoodsInvoices->items() : $finishedGoodsInvoices);
+        }
+        if (isset($rawMaterialInvoices)) {
+            $allInvoicesToRegister = $allInvoicesToRegister->concat($rawMaterialInvoices instanceof \Illuminate\Pagination\LengthAwarePaginator ? $rawMaterialInvoices->items() : $rawMaterialInvoices);
+        }
+        if (isset($editInvoice) && $editInvoice) {
+            $allInvoicesToRegister->push($editInvoice);
+        }
+        $allInvoicesToRegister = $allInvoicesToRegister->unique('id');
+    @endphp
+
+    @foreach ($allInvoicesToRegister as $inv)
         @php
             $itemsArray = [];
             foreach ($inv->items as $it) {
-                $itemKey = ($it->item_type === 'raw_material') ? ('raw_material_' . $it->raw_material_id) : ('product_' . ($it->product_id ?? $it->finished_good_id));
+                $itemType = $it->item_type ?? (($inv->invoice_mode === 'raw_material' || !empty($it->raw_material_id)) ? 'raw_material' : 'product');
+                $prodId = $it->product_id ?? $it->finished_good_id;
+                $rmId = $it->raw_material_id;
+                $itemKey = ($itemType === 'raw_material' && $rmId) ? ('raw_material_' . $rmId) : ('product_' . $prodId);
                 $itemsArray[] = [
                     'key' => $itemKey,
-                    'item_type' => $it->item_type ?? 'product',
-                    'product_id' => $it->product_id ?? $it->finished_good_id,
-                    'raw_material_id' => $it->raw_material_id,
-                    'billing_uom' => $it->billing_uom,
-                    'quantity' => $it->quantity,
-                    'unit_price' => $it->unit_price
+                    'item_type' => $itemType,
+                    'product_id' => $prodId,
+                    'raw_material_id' => $rmId,
+                    'billing_uom' => $it->billing_uom ?? ($itemType === 'raw_material' ? 'Kg' : 'Pcs'),
+                    'quantity' => (float)$it->quantity,
+                    'unit_price' => (float)$it->unit_price
                 ];
             }
             $invPlantId = $inv->plant_id ?? '';
+            $invDate = $inv->invoice_date ? \Carbon\Carbon::parse($inv->invoice_date)->format('Y-m-d') : ($inv->created_at ? \Carbon\Carbon::parse($inv->created_at)->format('Y-m-d') : date('Y-m-d'));
+            $dueDate = $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : '';
         @endphp
         window.erpInvoicesMap[{{ $inv->id }}] = {
             id: {{ $inv->id }},
@@ -852,44 +873,14 @@
             custom_gst_rate: @json($inv->custom_gst_rate),
             custom_buyer_gstin: @json($inv->custom_buyer_gstin),
             invoice_number: @json($inv->invoice_number),
+            vehicle_number: @json($inv->vehicle_number),
+            invoice_date: @json($invDate),
+            due_date: @json($dueDate),
             client_id: @json($inv->client_id),
             plant_id: @json($invPlantId),
-            due_date: @json($inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : date('Y-m-d')),
             items: @json($itemsArray)
         };
     @endforeach
-
-    @if(isset($editInvoice) && $editInvoice)
-        @php
-            $inv = $editInvoice;
-            $itemsArray = [];
-            foreach ($inv->items as $it) {
-                $itemKey = ($it->item_type === 'raw_material') ? ('raw_material_' . $it->raw_material_id) : ('product_' . ($it->product_id ?? $it->finished_good_id));
-                $itemsArray[] = [
-                    'key' => $itemKey,
-                    'item_type' => $it->item_type ?? 'product',
-                    'product_id' => $it->product_id ?? $it->finished_good_id,
-                    'raw_material_id' => $it->raw_material_id,
-                    'billing_uom' => $it->billing_uom,
-                    'quantity' => $it->quantity,
-                    'unit_price' => $it->unit_price
-                ];
-            }
-            $invPlantId = $inv->plant_id ?? '';
-        @endphp
-        window.erpInvoicesMap[{{ $inv->id }}] = {
-            id: {{ $inv->id }},
-            invoice_mode: @json($inv->invoice_mode ?? 'finished_goods'),
-            custom_client_name: @json($inv->custom_client_name),
-            custom_gst_rate: @json($inv->custom_gst_rate),
-            custom_buyer_gstin: @json($inv->custom_buyer_gstin),
-            invoice_number: @json($inv->invoice_number),
-            client_id: @json($inv->client_id),
-            plant_id: @json($invPlantId),
-            due_date: @json($inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : date('Y-m-d')),
-            items: @json($itemsArray)
-        };
-    @endif
 
     window.switchLedgerTab = function(tab) {
         const tabFG = document.getElementById('ledgerTabFinishedGoods');
@@ -944,7 +935,7 @@
         const regClient = document.getElementById('registeredClientContainer');
         const custClient = document.getElementById('customClientContainer');
         const gstSlab = document.getElementById('gstRateSlabContainer');
-        const clientSelect = document.getElementById('invoiceClientSelect');
+        const plantHidden = document.getElementById('invoiceClientSelect_hidden');
         const custInput = document.getElementById('customClientNameInput');
         
         if (input) {
@@ -958,7 +949,8 @@
         if (container) {
             container.querySelectorAll('.billing-row').forEach(row => {
                 const flexGrow = row.querySelector('.flex-grow');
-                if (flexGrow) {
+                const hiddenInput = row.querySelector('.combobox-hidden-input');
+                if (flexGrow && (!hiddenInput || !hiddenInput.value)) {
                     flexGrow.innerHTML = targetTpl;
                 }
             });
@@ -978,7 +970,7 @@
             if (invNumContainer) invNumContainer.classList.add('hidden');
             if (vehNumContainer) vehNumContainer.classList.add('hidden');
             
-            if (clientSelect) clientSelect.removeAttribute('required');
+            if (plantHidden) plantHidden.removeAttribute('required');
             if (invNumInput) invNumInput.removeAttribute('required');
             if (custInput) custInput.setAttribute('required', 'required');
             switchLedgerTab('raw_material');
@@ -992,7 +984,7 @@
             if (invNumContainer) invNumContainer.classList.remove('hidden');
             if (vehNumContainer) vehNumContainer.classList.remove('hidden');
             
-            if (clientSelect) clientSelect.setAttribute('required', 'required');
+            if (plantHidden) plantHidden.setAttribute('required', 'required');
             if (invNumInput) invNumInput.setAttribute('required', 'required');
             if (custInput) custInput.removeAttribute('required');
             switchLedgerTab('finished_goods');
@@ -1074,10 +1066,22 @@
             $form.find('input[name="custom_client_name"]').val('');
             $form.find('input[name="custom_buyer_gstin"]').val('');
 
-            $form.find('select#invoiceClientSelect').val('');
-            if (typeof window.syncDirectClientDisplay === 'function') {
-                window.syncDirectClientDisplay();
+            const plantHidden = document.getElementById('invoiceClientSelect_hidden');
+            if (plantHidden) {
+                plantHidden.value = '';
+                plantHidden.dispatchEvent(new Event('change', { bubbles: true }));
             }
+            const plantWrapper = document.getElementById('invoiceClientSelect_wrapper');
+            if (plantWrapper && window.ERPComboboxManager) {
+                window.ERPComboboxManager.syncDisplay(plantWrapper);
+            }
+
+            // Reset input border styling from Amber Edit mode back to normal Slate/Blue
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]):not(.combobox-search-input), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
+                if (!this.disabled) {
+                    this.className = 'w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium';
+                }
+            });
         }
 
         // Preserve active mode on reset
@@ -1130,6 +1134,7 @@
         const invoice = window.erpInvoicesMap[id];
         if (!invoice) {
             console.error('Invoice record not found for id:', id);
+            if (window.showToast) window.showToast('error', 'Invoice record details not found.');
             return;
         }
 
@@ -1166,7 +1171,9 @@
         const $form = $('#customInvoiceForm');
         if ($form.length) {
             $form.find('input[name="invoice_id"]').val(invoice.id);
-            $form.find('input[name="invoice_number"]').val(invoice.invoice_number);
+            $form.find('input[name="invoice_number"]').val(invoice.invoice_number || '');
+            $form.find('input[name="invoice_date"]').val(invoice.invoice_date || '');
+            $form.find('input[name="vehicle_number"]').val(invoice.vehicle_number || '');
             
             if (invoice.invoice_mode === 'raw_material' || invoice.custom_client_name) {
                 switchInvoiceMode('raw_material');
@@ -1179,9 +1186,13 @@
             } else {
                 switchInvoiceMode('finished_goods');
                 if (invoice.plant_id) {
-                    $form.find('select#invoiceClientSelect').val(invoice.plant_id);
-                    if (typeof window.syncDirectClientDisplay === 'function') {
-                        window.syncDirectClientDisplay();
+                    const plantHidden = document.getElementById('invoiceClientSelect_hidden');
+                    if (plantHidden) {
+                        plantHidden.value = invoice.plant_id;
+                        const plantWrapper = document.getElementById('invoiceClientSelect_wrapper');
+                        if (plantWrapper && window.ERPComboboxManager) {
+                            window.ERPComboboxManager.syncDisplay(plantWrapper);
+                        }
                     }
                 }
             }
@@ -1189,15 +1200,11 @@
             if (invoice.due_date) {
                 $form.find('input[name="due_date"]').val(invoice.due_date);
             }
-            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select):not(#invoiceClientSelect), textarea').each(function() {
+            $form.find('input:not([type="hidden"]):not([name="quantities[]"]):not([name="unit_prices[]"]):not(.combobox-search-input), select:not([name="product_ids[]"]):not([name="billing_uoms[]"]):not(.billing-uom-select), textarea').each(function() {
                 if (!this.disabled) {
                     this.className = 'w-full bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-medium';
                 }
             });
-            if (window.invoiceClientTomSelect && window.invoiceClientTomSelect.control) {
-                window.invoiceClientTomSelect.control.style.backgroundColor = '#ffffff';
-                window.invoiceClientTomSelect.control.style.borderColor = '#fde68a';
-            }
         }
 
         const container = document.getElementById('billingRowsContainer');
@@ -1210,6 +1217,10 @@
 
                 const row = document.createElement('div');
                 row.className = 'billing-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
+
+                const qtyVal = (item.quantity !== null && item.quantity !== undefined) ? parseFloat(item.quantity) : '';
+                const priceVal = (item.unit_price !== null && item.unit_price !== undefined) ? (parseFloat(item.unit_price)).toFixed(2) : '';
+
                 row.innerHTML = `
                     <div class="flex-grow">
                         ${currentTpl}
@@ -1218,25 +1229,34 @@
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
                     </select>
-                    <input type="number" name="quantities[]" value="${parseFloat(item.quantity)}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
-                    <input type="number" name="unit_prices[]" value="${parseFloat(item.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
+                    <input type="number" name="quantities[]" value="${qtyVal}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
+                    <input type="number" name="unit_prices[]" value="${priceVal}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
                     <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
                 `;
-                const itemVal = item.key || (item.item_type === 'raw_material' ? ('raw_material_' + item.raw_material_id) : ('product_' + (item.product_id || item.finished_good_id)));
+                let itemVal = item.key;
+                if (!itemVal) {
+                    if (item.raw_material_id) {
+                        itemVal = 'raw_material_' + item.raw_material_id;
+                    } else if (item.product_id || item.finished_good_id) {
+                        itemVal = 'product_' + (item.product_id || item.finished_good_id);
+                    }
+                }
                 const hiddenInp = row.querySelector('.combobox-hidden-input');
-                if (hiddenInp) hiddenInp.value = itemVal;
+                if (hiddenInp && itemVal) hiddenInp.value = itemVal;
+
                 const wrapper = row.querySelector('.combobox-wrapper');
                 if (wrapper && window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(wrapper);
-                if (row.querySelector('select[name="billing_uoms[]"]')) {
-                    const uomSel = row.querySelector('select[name="billing_uoms[]"]');
-                    ensureAndSelectUom(uomSel, item.billing_uom || (isRm ? 'Kg' : 'Pcs'));
+
+                const uomSel = row.querySelector('select[name="billing_uoms[]"]');
+                if (uomSel && window.ensureAndSelectUom) {
+                    window.ensureAndSelectUom(uomSel, item.billing_uom || (isRm ? 'Kg' : 'Pcs'));
                 }
                 container.appendChild(row);
             });
-            
-            if (typeof window.recalculateCustomInvoice === 'function') {
-                window.recalculateCustomInvoice();
-            }
+        }
+
+        if (typeof window.recalculateCustomInvoice === 'function') {
+            window.recalculateCustomInvoice();
         }
 
         const formElem = document.getElementById('customInvoiceForm');

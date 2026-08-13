@@ -128,11 +128,144 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // In-memory page response cache for instant 0ms page switching
-        const pageCache = new Map();
+        window.pageCache = window.pageCache || new Map();
+        const pageCache = window.pageCache;
 
-        // Clear page cache when any data form is submitted or mutated
+        // Render dynamic Low Stock Alert counter and dropdown in header
+        window.renderStockAlerts = function(data) {
+            const totalCount = data?.total_count || 0;
+            const rawMaterials = data?.raw_materials || [];
+            const products = data?.products || [];
+
+            const wrapper = document.getElementById('lowStockDropdownWrapper');
+            if (!wrapper) return;
+
+            let btn = document.getElementById('lowStockAlertBtn');
+            if (btn) {
+                btn.title = totalCount > 0 ? `${totalCount} items are low on stock!` : 'Stock levels optimal';
+                if (totalCount > 0) {
+                    btn.className = 'relative p-2 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-amber-600 hover:text-amber-700 ring-2 ring-amber-300/60 transition cursor-pointer border border-slate-200/80';
+                    let badge = btn.querySelector('span');
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'absolute -top-1.5 -right-1.5 px-1.5 py-0.2 bg-rose-500 text-white font-black text-[10px] rounded-full shadow-xs border border-white animate-pulse';
+                        btn.appendChild(badge);
+                    }
+                    badge.textContent = totalCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    btn.className = 'relative p-2 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 transition cursor-pointer border border-slate-200/80';
+                    let badge = btn.querySelector('span');
+                    if (badge) badge.classList.add('hidden');
+                }
+            }
+
+            const card = document.getElementById('headerLowStockCard');
+            if (!card) return;
+
+            let html = `
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <span class="p-1.5 rounded-lg ${totalCount > 0 ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">
+                            ${totalCount > 0 ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'}
+                        </span>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-800">Inventory Stock Alerts</h4>
+                            <p class="text-[10px] text-slate-500 font-medium">
+                                ${totalCount > 0 ? totalCount + ' item(s) below safe minimum' : 'All warehouse stock is healthy'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (totalCount > 0) {
+                html += '<div class="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar text-xs">';
+                if (rawMaterials.length > 0) {
+                    html += '<div class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">Raw Materials</div>';
+                    rawMaterials.forEach(rm => {
+                        const stockNum = parseFloat(rm.current_stock || 0).toFixed(2);
+                        const minNum = parseFloat(rm.safety_threshold > 0 ? rm.safety_threshold : 50).toFixed(0);
+                        html += `
+                            <div class="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200/80 flex items-center justify-between">
+                                <div class="min-w-0 pr-2">
+                                    <p class="font-bold text-slate-800 truncate">${rm.material_name}</p>
+                                    <p class="text-[10px] text-amber-700 font-semibold font-mono">
+                                        Live: <span class="font-black text-rose-600">${stockNum} ${rm.unit || 'kg'}</span> (Min: ${minNum})
+                                    </p>
+                                </div>
+                                <a href="/purchases?open=1&material_id=${rm.id}" class="shrink-0 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] rounded-lg shadow-2xs transition">
+                                    + Order
+                                </a>
+                            </div>
+                        `;
+                    });
+                }
+                if (products.length > 0) {
+                    html += '<div class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 pt-1">Finished Goods</div>';
+                    products.forEach(pr => {
+                        html += `
+                            <div class="p-2.5 bg-blue-50/60 rounded-xl border border-blue-200/80 flex items-center justify-between">
+                                <div class="min-w-0 pr-2">
+                                    <p class="font-bold text-slate-800 truncate">${pr.product_name}</p>
+                                    <p class="text-[10px] text-blue-700 font-semibold font-mono">
+                                        Live: <span class="font-black text-rose-600">${pr.current_stock} ${pr.uom || 'pcs'}</span> (Min: 10)
+                                    </p>
+                                </div>
+                                <a href="/production" class="shrink-0 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded-lg shadow-2xs transition">
+                                    + Produce
+                                </a>
+                            </div>
+                        `;
+                    });
+                }
+                html += '</div>';
+            } else {
+                html += `
+                    <div class="py-6 text-center text-xs text-slate-500 space-y-1">
+                        <div class="text-2xl">🎉</div>
+                        <p class="font-bold text-slate-700">No Low Stock Items!</p>
+                        <p class="text-[11px] text-slate-400">All materials and finished products are well above minimum thresholds.</p>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+                    <a href="/rawmaterial" class="text-blue-600 hover:underline">Raw Materials ➡️</a>
+                    <a href="/product" class="text-blue-600 hover:underline">Products ➡️</a>
+                </div>
+            `;
+
+            card.innerHTML = html;
+        };
+
+        // Instantly refresh both header widgets (Active Orders Pipeline & Low Stock Alerts)
+        window.refreshHeaderWidgets = async function() {
+            try {
+                const res = await fetch(window.location.href, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' },
+                    cache: 'no-store'
+                });
+                if (!res.ok) return;
+                const htmlText = await res.text();
+                const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+                const newSpaHeader = doc.getElementById('spa-header-content');
+                const currentHeader = document.querySelector('header');
+                if (newSpaHeader && currentHeader) {
+                    const newHeaderEl = newSpaHeader.querySelector('header') || newSpaHeader;
+                    currentHeader.innerHTML = newHeaderEl.tagName === 'HEADER' ? newHeaderEl.innerHTML : newSpaHeader.innerHTML;
+                }
+            } catch(e) {}
+        };
+        window.refreshStockAlerts = window.refreshHeaderWidgets;
+
+        // Clear page cache when any data form is submitted or mutated and re-sync stock alerts
         window.clearPageCache = function() {
             pageCache.clear();
+            if (typeof window.refreshHeaderWidgets === 'function') {
+                window.refreshHeaderWidgets();
+            }
         };
 
         // Remove any legacy progress bar if present
@@ -221,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     htmlText = await response.text();
 
                     // If response is the login page (unauthenticated redirect), perform clean full-page redirect to login
-                    if (htmlText.includes('name="email"') && (htmlText.includes('name="password"') || htmlText.includes('PWW ERP - Secure Authentication'))) {
+                    if (htmlText.includes('<title>PWW ERP - Secure Authentication</title>') || (htmlText.includes('name="email"') && htmlText.includes('name="password"') && !htmlText.includes('id="page-content"'))) {
                         window.location.href = '/login';
                         return;
                     }
@@ -236,7 +369,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof window.closeClearAuditLogsModal === 'function') {
                     window.closeClearAuditLogsModal();
                 }
-                document.querySelectorAll('#categoryModal, #clearAuditLogsModal').forEach(m => m.classList.add('hidden'));
+                if (typeof window.closeAdvanceModal === 'function') {
+                    window.closeAdvanceModal();
+                }
+                if (typeof window.closeDisburseModal === 'function') {
+                    window.closeDisburseModal();
+                }
+                document.querySelectorAll('#categoryModal, #clearAuditLogsModal, #giveAdvanceModal, #disburseSalaryModal').forEach(m => m.classList.add('hidden'));
 
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);
@@ -262,6 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         txt.innerHTML = pageTitleStr;
                         pageTitleStr = txt.value;
                         $('#headerPageTitle').text(pageTitleStr);
+                    }
+                }
+
+                // Dynamically sync Top Navigation Header (for instantaneous Active Orders & Stock Alert updates)
+                const newSpaHeader = doc.getElementById('spa-header-content');
+                const currentHeader = document.querySelector('header');
+                if (newSpaHeader && currentHeader) {
+                    const newHeaderEl = newSpaHeader.querySelector('header') || newSpaHeader;
+                    currentHeader.innerHTML = newHeaderEl.tagName === 'HEADER' ? newHeaderEl.innerHTML : newSpaHeader.innerHTML;
+                } else if (currentHeader) {
+                    const newHeaderEl = doc.querySelector('header');
+                    if (newHeaderEl) {
+                        currentHeader.innerHTML = newHeaderEl.innerHTML;
                     }
                 }
                 
@@ -337,18 +489,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Intercept Link Clicks for SPA Navigation
         $(document).on('click', 'a', async function(e) {
             const href = $(this).attr('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || $(this).attr('target') || $(this).hasClass('no-ajax')) {
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || $(this).attr('target') || $(this).hasClass('no-ajax') || $(this).attr('download') !== undefined) {
                 return;
             }
             
             try {
                 const url = new URL(href, window.location.href);
-                if (url.origin === window.location.origin && 
-                    !url.pathname.includes('/logout') && 
-                    !url.pathname.includes('/print') && 
-                    !url.pathname.includes('/download') && 
-                    !url.pathname.includes('/export')) {
-                    
+                const isDownloadUrl = url.pathname.includes('/logout') || 
+                                     url.pathname.includes('/print') || 
+                                     url.pathname.includes('/download') || 
+                                     url.pathname.includes('/export') || 
+                                     url.pathname.includes('/backup/full') || 
+                                     url.pathname.includes('/backup/filtered');
+
+                if (url.origin === window.location.origin && !isDownloadUrl) {
                     e.preventDefault();
                     const isPreserve = $(this).data('preserve-scroll') === true || $(this).hasClass('preserve-scroll') || url.pathname === window.location.pathname;
                     await window.loadPage(url.href, false, isPreserve);
@@ -469,6 +623,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 $submitBtn.prop('disabled', true).addClass('opacity-50 pointer-events-none');
             }
             
+            // Abort previous pending request on same form to prevent double-submit race conditions
+            if ($form.data('activeXhr')) {
+                try { $form.data('activeXhr').abort(); } catch(e) {}
+            }
+
             let ajaxData;
             let processData = true;
             let contentType = 'application/x-www-form-urlencoded; charset=UTF-8';
@@ -481,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ajaxData = $form.serialize();
             }
 
-            $.ajax({
+            const currentXhr = $.ajax({
                 url: $form.attr('action'),
                 method: $form.attr('method') || 'POST',
                 data: ajaxData,
@@ -492,10 +651,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Accept': 'application/json'
                 },
                 success: async function(response) {
+                    $form.removeData('activeXhr');
                     if ($submitBtn.length) {
                         $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
                     }
                     window.showToast('success', response.message || 'Operation completed successfully!');
+
+                    // Trigger custom DOM event for modular component handlers
+                    $form.trigger('ajax:success', [response]);
+
+                    // Auto-close specified or parent modal
+                    const customModalTarget = $form.attr('data-close-modal');
+                    if (customModalTarget) {
+                        $(customModalTarget).addClass('hidden');
+                    }
+                    const $parentModal = $form.closest('.fixed.inset-0');
+                    if ($parentModal.length) {
+                        $parentModal.addClass('hidden');
+                    }
 
                     if ($form.hasClass('no-reload') || $form.hasClass('no-refresh') || ($form.attr('action') && $form.attr('action').includes('/settings/security'))) {
                         return;
@@ -504,13 +677,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!$form.hasClass('no-reset')) {
                         $form[0].reset();
                     }
-                    if (window.location.search.includes('prefill_') || window.location.search.includes('log_gst')) {
-                        if (window.history && window.history.replaceState) {
-                            window.history.replaceState({}, document.title, window.location.pathname);
-                        }
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
                     }
+
+                    const inlineFormCard = $form.closest('#productionFormCard, #purchaseFormContainer, #invoiceFormContainer');
+                    if (inlineFormCard.length) {
+                        inlineFormCard.addClass('hidden');
+                    }
+
+                    // Target Specific Location Redirect Resolution
                     let targetUrl = window.location.href;
-                    if ($form.attr('id') === 'customInvoiceForm') {
+                    if (response && response.redirect) {
+                        targetUrl = response.redirect;
+                    } else if ($form.attr('data-redirect')) {
+                        targetUrl = $form.attr('data-redirect');
+                    } else if ($form.attr('id') === 'customInvoiceForm') {
                         const invMode = $form.find('#invoiceModeInput').val();
                         if (invMode === 'raw_material') {
                             targetUrl = window.location.pathname + '?mode=raw_material';
@@ -520,10 +702,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     await window.loadPage(targetUrl, true);
                 },
                 error: function(xhr) {
+                    $form.removeData('activeXhr');
                     if ($submitBtn.length) {
                         $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
                     }
-                    
+
+                    // Handle 419 CSRF Token Expiration
+                    if (xhr.status === 419) {
+                        window.showToast('warning', 'Session expired. Refreshing page...');
+                        setTimeout(() => window.location.reload(), 1200);
+                        return;
+                    }
+
                     if (xhr.status === 422) {
                         const responseData = xhr.responseJSON || {};
                         const errors = responseData.errors || {};
@@ -558,8 +748,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     $el = $form.find(`[name="${parsedKey}"]`);
                                 }
                                 
-                                if ($el.length && $el.is(':visible')) {
-                                    showInlineError($el.first(), errorMsg);
+                                const $comboWrap = $el.closest('.combobox-wrapper').length ? $el.closest('.combobox-wrapper') : $el.siblings('.combobox-wrapper');
+                                if ($el.length && ($el.is(':visible') || $comboWrap.length > 0)) {
+                                    const $targetEl = $comboWrap.length ? $comboWrap.find('input').first() : $el.first();
+                                    showInlineError($targetEl, errorMsg);
                                     hasShownError = true;
                                 } else {
                                     showGlobalFormError($form, errorMsg);
@@ -664,6 +856,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             $element.removeClass('border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-opacity-50 text-red-900 bg-red-50/10');
         }
+
+        window.clearInlineError = clearInlineError;
+        window.clearFormErrors = function($form) {
+            const $f = $($form);
+            if ($f.length) {
+                $f.find('.form-alert').remove();
+                $f.find('input, select, textarea').each(function() {
+                    clearInlineError($(this));
+                });
+            }
+        };
 
         // GST State Code Map for all 36 States & UTs
         const GST_STATE_CODES = {
@@ -1203,37 +1406,47 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Global Keyboard Hotkeys Listener (Alt+O, Alt+I, Alt+P, Alt+E, Alt+R, Alt+S, Alt+H)
+        // Global Keyboard Hotkeys Listener
         $(document).on('keydown', function(e) {
+            // Ignore hotkeys when typing in form fields
             if ($(e.target).is('input, select, textarea, [contenteditable="true"]')) {
                 return;
             }
 
             if (e.altKey) {
                 const key = e.key.toLowerCase();
-                if (key === 'o') {
+
+                // Route mapping: key -> path
+                const routes = {
+                    'o': '/overview',
+                    'i': '/invoices',
+                    'p': '/purchases',
+                    'e': '/expenses',
+                    'r': '/reports',
+                    'b': '/backup',
+                    'a': '/activity-logs'
+                };
+
+                // Handle navigation shortcuts
+                if (routes[key]) {
                     e.preventDefault();
-                    if (window.loadPage) window.loadPage('/overview');
-                } else if (key === 'i') {
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
+                    if (window.loadPage) window.loadPage(routes[key]);
+                    return false;
+                }
+
+                // Handle special action shortcuts (Help Toast)
+                if (key === 'h') {
                     e.preventDefault();
-                    if (window.loadPage) window.loadPage('/invoices');
-                } else if (key === 'p') {
-                    e.preventDefault();
-                    if (window.loadPage) window.loadPage('/purchases');
-                } else if (key === 'e') {
-                    e.preventDefault();
-                    if (window.loadPage) window.loadPage('/expenses');
-                } else if (key === 'r') {
-                    e.preventDefault();
-                    if (window.loadPage) window.loadPage('/reports');
-                } else if (key === 's') {
-                    e.preventDefault();
-                    if (window.loadPage) window.loadPage('/settings');
-                } else if (key === 'h') {
-                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+
                     if (window.showToast) {
-                        window.showToast('info', '⌨️ Hotkeys: Alt+O (Overview), Alt+I (Invoices), Alt+P (Purchases), Alt+E (Expenses), Alt+R (Reports), Alt+S (Settings)');
+                        window.showToast('info', '⌨️ Hotkeys: Alt+O (Overview), Alt+I (Invoices), Alt+P (Purchases), Alt+E (Expenses), Alt+R (Reports), Alt+B (Backup), Alt+A (Audits)');
                     }
+                    return false;
                 }
             }
         });

@@ -77,7 +77,7 @@ $indianStates = [
             <button type="button" onclick="toggleCreateClientForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form action="{{ route('clients.store') }}" method="POST" class="ajax-form space-y-4">
+        <form action="{{ route('clients.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/clients">
             @csrf
             <input type="hidden" name="create_primary_plant" id="create_primary_plant_flag" value="1">
 
@@ -154,7 +154,7 @@ $indianStates = [
             </h3>
             <button type="button" onclick="toggleCreatePlantForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
-        <form action="{{ route('clients.plants.store') }}" method="POST" class="ajax-form space-y-4">
+        <form action="{{ route('clients.plants.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/clients">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -273,19 +273,21 @@ $indianStates = [
                                 <span>Add Plant</span>
                             </button>
                         @endif
+                        <div class="flex items-center space-x-1.5">
                             <button type="button" 
                                     title="Edit Client Profile"
-                                    onclick="openEditClientForm({{ $c->id }}, '{{ addslashes($c->company_name) }}', '{{ addslashes($c->client_email) }}', '{{ addslashes($c->gst_number) }}', '{{ addslashes($c->corporate_address) }}')"
-                                    class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                    onclick="openEditClientForm({{ $c->id }}, '{{ addslashes($c->company_name) }}', '{{ addslashes($c->client_email) }}', '{{ addslashes($c->gst_number) }}', '{{ addslashes($c->corporate_address) }}', '{{ $c->opening_balance }}')"
+                                    class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105 shrink-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
                             <button type="button" 
                                     title="Delete Client Profile"
                                     onclick="deleteClient({{ $c->id }}, '{{ addslashes($c->company_name) }}')"
-                                    class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
+                                    class="w-8 h-8 p-1.5 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105 shrink-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
+                    </div> <!-- End Card Top Header -->
                     </div>
 
                     <!-- INLINE EDIT CLIENT FORM (COLLAPSIBLE PER CLIENT) -->
@@ -294,7 +296,7 @@ $indianStates = [
                             <h4 class="text-sm font-bold text-amber-900">Edit Client Profile</h4>
                             <button type="button" onclick="closeEditClientForm({{ $c->id }})" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
                         </div>
-                        <form action="{{ route('clients.update', $c->id) }}" method="POST" class="ajax-form space-y-3">
+                        <form action="{{ route('clients.update', $c->id) }}" method="POST" class="ajax-form space-y-3" data-redirect="/clients">
                             @csrf
                             @method('PUT')
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -335,14 +337,14 @@ $indianStates = [
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Main Billing Address Section -->
                         <div class="lg:col-span-1 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-6">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Main Billing Address</span>
-                            <p class="text-sm text-slate-600 leading-relaxed">{{ $c->corporate_address }}</p>
+                            <span class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Main Billing Address</span>
+                            <p class="text-sm text-slate-700 leading-relaxed">{{ $c->corporate_address }}</p>
                         </div>
                         
                         <!-- Delivery Plants Grid -->
                         <div class="lg:col-span-2">
                             <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Delivery Plants</span>
+                                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Registered Delivery Plants</span>
                             </div>
 
                             @if ($c->plants->isEmpty())
@@ -408,11 +410,13 @@ $indianStates = [
 
                                             <!-- Plant Action Buttons -->
                                             <div class="flex items-center justify-between pt-3 mt-2 border-t border-slate-100">
-                                                <a href="{{ route('clients.ledger', ['id' => $c->id, 'plant_id' => $p->id]) }}" 
-                                                   class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold transition flex items-center space-x-1">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                    <span>Plant Ledger</span>
-                                                </a>
+                                                <div class="flex items-center space-x-1.5">
+                                                    <a href="{{ route('clients.ledger', ['id' => $c->id, 'plant_id' => $p->id]) }}" 
+                                                       class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold transition flex items-center space-x-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                        <span>Plant Ledger</span>
+                                                    </a>
+                                                </div>
                                                 <div class="flex items-center space-x-1.5">
                                                     <button type="button" 
                                                             title="Edit Plant Details"
@@ -435,7 +439,7 @@ $indianStates = [
                                                     <h5 class="text-xs font-bold text-amber-900">Edit Plant</h5>
                                                     <button type="button" onclick="closeEditPlantForm({{ $p->id }})" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
                                                 </div>
-                                                <form action="{{ route('clients.plants.update', $p->id) }}" method="POST" class="ajax-form space-y-2">
+                                                <form action="{{ route('clients.plants.update', $p->id) }}" method="POST" class="ajax-form space-y-2" data-redirect="/clients">
                                                     @csrf
                                                     @method('PUT')
                                                     <div>

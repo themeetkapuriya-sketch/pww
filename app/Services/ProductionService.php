@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Product;
-use App\Models\RawMaterial;
-use App\Models\ProductionLog;
-use App\Models\LaborLog;
-use App\Models\StaffProfile;
-use App\Models\SalesOrder;
 use App\Exceptions\InsufficientStockException;
+use App\Models\LaborLog;
+use App\Models\Product;
+use App\Models\ProductionLog;
+use App\Models\SalesOrder;
+use App\Models\Setting;
+use App\Models\StaffProfile;
 use Illuminate\Support\Facades\DB;
 
 class ProductionService
@@ -22,8 +22,9 @@ class ProductionService
      * @param int $recordedByUserId
      * @param string $productionDate
      * @param array $laborData array of ['staff_profile_id' => x, 'units_completed' => y]
-     * @return ProductionLog
-     * @throws InsufficientStockException
+     * @return \App\Models\ProductionLog
+     *
+     * @throws \App\Exceptions\InsufficientStockException
      */
     public function logProduction(
         int $productId,
@@ -36,38 +37,42 @@ class ProductionService
         return DB::transaction(function () use ($productId, $quantityManufactured, $quantityRejected, $recordedByUserId, $productionDate, $laborData) {
             $product = Product::findOrFail($productId);
 
-            // Fetch BOM items
-            $bomItems = $product->billOfMaterials()->with('rawMaterial')->get();
+            $trackStock = Setting::isStockEnabled();
 
-            // Check and deduct raw materials
-            foreach ($bomItems as $bom) {
-                $rawMaterial = $bom->rawMaterial;
-                
-                // Total Consumed = quantity_manufactured * required_quantity * (1 + (waste_percentage / 100))
-                $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
-                $totalConsumed = $quantityManufactured * $bom->required_quantity * $wasteMultiplier;
+            if ($trackStock) {
+                // Fetch BOM items
+                $bomItems = $product->billOfMaterials()->with('rawMaterial')->get();
 
-                if ($rawMaterial->current_stock < $totalConsumed) {
-                    throw new InsufficientStockException(
-                        $rawMaterial->material_name,
-                        $totalConsumed,
-                        $rawMaterial->current_stock
-                    );
+                // Check and deduct raw materials
+                foreach ($bomItems as $bom) {
+                    $rawMaterial = $bom->rawMaterial;
+
+                    // Total Consumed = quantity_manufactured * required_quantity * (1 + (waste_percentage / 100))
+                    $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
+                    $totalConsumed = $quantityManufactured * $bom->required_quantity * $wasteMultiplier;
+
+                    if ($rawMaterial->current_stock < $totalConsumed) {
+                        throw new InsufficientStockException(
+                            $rawMaterial->material_name,
+                            $totalConsumed,
+                            $rawMaterial->current_stock
+                        );
+                    }
+
+                    // Deduct stock
+                    $rawMaterial->decrement('current_stock', $totalConsumed);
                 }
 
-                // Deduct stock
-                $rawMaterial->decrement('current_stock', $totalConsumed);
-            }
+                // Increment product stock
+                $product->increment('current_stock', $quantityManufactured);
 
-            // Increment product stock
-            $product->increment('current_stock', $quantityManufactured);
-
-            // Auto-check and promote in_production Sales Orders if stock is now sufficient
-            $inProductionOrders = SalesOrder::where('status', 'in_production')
-                ->with('items.product')
-                ->get();
-            foreach ($inProductionOrders as $ord) {
-                $ord->autoPromoteIfStockAvailable();
+                // Auto-check and promote in_production Sales Orders if stock is now sufficient
+                $inProductionOrders = SalesOrder::where('status', 'in_production')
+                    ->with('items.product')
+                    ->get();
+                foreach ($inProductionOrders as $ord) {
+                    $ord->autoPromoteIfStockAvailable();
+                }
             }
 
             // Create production log
@@ -81,12 +86,12 @@ class ProductionService
 
             // Create labor logs if provided
             foreach ($laborData as $labor) {
-                if (empty($labor['staff_profile_id']) || !isset($labor['units_completed'])) {
+                if (empty($labor['staff_profile_id']) || ! isset($labor['units_completed'])) {
                     continue;
                 }
 
                 $staffProfile = StaffProfile::findOrFail($labor['staff_profile_id']);
-                
+
                 // Calculate payout if wage_type is piece-rate
                 $payout = 0.00;
                 if ($staffProfile->wage_type === 'per-day') {

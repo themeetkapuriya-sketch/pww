@@ -16,6 +16,7 @@ class SalaryDisbursal extends Model
         'rate_amount',
         'days_present',
         'total_salary',
+        'advance_deduction',
         'status',
         'payment_date',
         'payment_method',
@@ -27,6 +28,7 @@ class SalaryDisbursal extends Model
         'rate_amount' => 'decimal:2',
         'days_present' => 'decimal:1',
         'total_salary' => 'decimal:2',
+        'advance_deduction' => 'decimal:2',
         'payment_date' => 'date',
     ];
 

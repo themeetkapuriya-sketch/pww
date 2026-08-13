@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Setting;
-use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -24,17 +24,17 @@ class ProfileController extends Controller
     public function updateProfile(Request $request)
     {
         $user = auth()->user();
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
         ]);
 
         $user->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile information updated successfully!'
+            'message' => 'Profile information updated successfully!',
         ]);
     }
 
@@ -50,20 +50,20 @@ class ProfileController extends Controller
             'new_password' => 'required|string|min:8|confirmed',
         ]);
 
-        if (!Hash::check($validated['current_password'], $user->password)) {
+        if (! Hash::check($validated['current_password'], $user->password)) {
             return response()->json([
                 'success' => false,
-                'errors' => ['current_password' => ['The provided current password does not match our records.']]
+                'errors' => ['current_password' => ['The provided current password does not match our records.']],
             ], 422);
         }
 
         $user->update([
-            'password' => Hash::make($validated['new_password'])
+            'password' => Hash::make($validated['new_password']),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Password updated successfully!'
+            'message' => 'Password updated successfully!',
         ]);
     }
 
@@ -100,10 +100,10 @@ class ProfileController extends Controller
         ]);
 
         $validated['gstin'] = strtoupper(trim($validated['gstin']));
-        if (!empty($validated['msme_number'])) {
+        if (! empty($validated['msme_number'])) {
             $validated['msme_number'] = strtoupper(trim($validated['msme_number']));
         }
-        
+
         $ifsc = strtoupper(trim($validated['bank_ifsc']));
         if (strlen($ifsc) === 11 && $ifsc[4] === 'O') {
             $ifsc[4] = '0';
@@ -130,27 +130,28 @@ class ProfileController extends Controller
 
             if ($request->hasFile('logo')) {
                 $file = $request->file('logo');
-                $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
+                $filename = 'logo_'.time().'.'.$file->getClientOriginalExtension();
                 $file->move(public_path('uploads'), $filename);
-                Setting::set('logo_path', 'uploads/' . $filename);
+                Setting::set('logo_path', 'uploads/'.$filename);
             }
 
             if ($request->hasFile('signature')) {
                 $file = $request->file('signature');
-                $filename = 'signature_' . time() . '.' . $file->getClientOriginalExtension();
+                $filename = 'signature_'.time().'.'.$file->getClientOriginalExtension();
                 $file->move(public_path('uploads'), $filename);
-                Setting::set('signature_path', 'uploads/' . $filename);
+                Setting::set('signature_path', 'uploads/'.$filename);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Business settings updated successfully!'
+                'message' => 'Business settings updated successfully!',
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to save business settings: ' . $e->getMessage());
+            Log::error('Failed to save business settings: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to save business settings. Please try again.']
+                'errors' => ['Failed to save business settings. Please try again.'],
             ], 500);
         }
     }

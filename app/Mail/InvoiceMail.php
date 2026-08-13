@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Invoice;
+use App\Services\InvoicePdfService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -16,11 +17,17 @@ class InvoiceMail extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public $invoice;
+
     public $customSubject;
+
     public $messageBody;
+
     public $pdfContent;
+
     public $client;
+
     public $plant;
+
     public $groupedItems;
 
     /**
@@ -82,7 +89,7 @@ class InvoiceMail extends Mailable implements ShouldQueue
 
         $pdfData = $this->pdfContent
             ? base64_decode($this->pdfContent)
-            : app(\App\Services\InvoicePdfService::class)->generateInvoicePdf($this->invoice);
+            : app(InvoicePdfService::class)->generateInvoicePdf($this->invoice);
 
         return [
             Attachment::fromData(fn () => $pdfData, "Invoice-{$this->invoice->invoice_number}.pdf")

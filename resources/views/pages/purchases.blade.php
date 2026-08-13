@@ -366,33 +366,7 @@
     </div>
 </div>
 
-<script>
-$(document).ready(function() {
-    function toggleFields() {
-        const val = $('#purchaseTypeSelect').val();
-        if (val === 'raw_material') {
-            $('#rawMaterialSelectContainer').removeClass('hidden');
-            $('#qtyUnitContainer').removeClass('hidden');
-            $('#itemNameInputContainer').addClass('hidden');
-        } else {
-            $('#rawMaterialSelectContainer').addClass('hidden');
-            $('#rawMaterialSelect').val('');
-            $('#qtyUnitContainer').addClass('hidden');
-            $('#itemNameInputContainer').removeClass('hidden');
-        }
-    }
 
-    toggleFields();
-    $('#purchaseTypeSelect').on('change', toggleFields);
-
-    $('#rawMaterialSelect').on('change', function() {
-        const opt = $(this).find('option:selected');
-        if (opt.val()) {
-            $('#itemNameInput').val(opt.data('name'));
-            $('#unitInput').val(opt.data('unit'));
-        }
-    });
-});
 
 window.openVendorPaymentModal = function(id, vendorName, remainingBalance) {
     document.getElementById('modalPurchaseId').value = id;
@@ -562,24 +536,23 @@ window.closeVendorPaymentModal = function() {
         const val = (hiddenInp ? hiddenInp.value : '') || (searchInp ? searchInp.value : '');
         const type = val.toLowerCase().trim();
 
-        const isRawMaterial = type !== '' && (type === 'raw_material' || type.includes('raw_material') || type.includes('raw material'));
+        const isRawMaterial = type === '' || type === 'raw_material' || type.includes('raw_material') || type.includes('raw material');
 
         const rmHiddenInp = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
-        const rmContainer = document.getElementById('rawMaterialSelectContainer');
-        const qtyUnitContainer = document.getElementById('qtyUnitContainer');
-
+        const rmSearchInp = document.getElementById('rawMaterialSelect_search');
+        const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
         const itemNameInput = document.getElementById('itemNameInput');
         const quantityInput = document.getElementById('quantityInput');
         const unitInput = document.getElementById('unitInput');
 
-        const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
-
         if (isRawMaterial) {
-            if (rmContainer) rmContainer.classList.remove('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
-            if (qtyUnitContainer) qtyUnitContainer.classList.remove('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
-            if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) rmHiddenInp.disabled = false;
-            
+            if (rmSearchInp) {
+                rmSearchInp.disabled = false;
+                rmSearchInp.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
+
             if (quantityInput) {
                 quantityInput.disabled = false;
                 quantityInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
@@ -591,24 +564,29 @@ window.closeVendorPaymentModal = function() {
                 unitInput.classList.add('bg-slate-50');
             }
             if (itemNameInput) {
-                itemNameInput.disabled = true;
-                itemNameInput.required = false;
-                itemNameInput.classList.remove('bg-slate-50');
-                itemNameInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.disabled = false;
+                itemNameInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.classList.add('bg-slate-50');
             }
 
             if (rmHiddenInp && rmHiddenInp.value) {
                 window.handleRawMaterialSelectChange();
             }
         } else {
-            if (rmContainer) rmContainer.classList.add('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
-            if (qtyUnitContainer) qtyUnitContainer.classList.add('pointer-events-none', 'opacity-40', 'select-none', 'filter', 'blur-[0.5px]');
-            if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) {
                 rmHiddenInp.disabled = true;
                 rmHiddenInp.value = '';
+            }
+            if (rmSearchInp) {
+                rmSearchInp.disabled = true;
+                rmSearchInp.value = '';
+                rmSearchInp.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
+            if (rmWrapper) {
+                rmWrapper.classList.add('pointer-events-none', 'opacity-50');
                 if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
             }
+
             if (quantityInput) {
                 quantityInput.disabled = true;
                 quantityInput.value = '';
@@ -684,18 +662,20 @@ window.closeVendorPaymentModal = function() {
         const val = (ptInp ? ptInp.value : '') || (searchInp ? searchInp.value : '');
         const type = val.toLowerCase().trim();
 
-        const isRawMaterial = type !== '' && (type === 'raw_material' || type.includes('raw_material') || type.includes('raw material'));
+        const isRawMaterial = type === '' || type === 'raw_material' || type.includes('raw_material') || type.includes('raw material');
 
         const rmHiddenInp = document.getElementById('edit_raw_material_id_hidden') || document.getElementById('edit_raw_material_id');
+        const rmSearchInp = document.getElementById('edit_raw_material_id_search');
         const itemNameInput = document.getElementById('edit_item_name');
         const quantityInput = document.getElementById('edit_quantity');
         const unitInput = document.getElementById('edit_unit');
 
-        const rmWrapper = rmHiddenInp ? rmHiddenInp.closest('.combobox-wrapper') : null;
-
         if (isRawMaterial) {
-            if (rmWrapper) rmWrapper.classList.remove('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) rmHiddenInp.disabled = false;
+            if (rmSearchInp) {
+                rmSearchInp.disabled = false;
+                rmSearchInp.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+            }
             if (quantityInput) {
                 quantityInput.disabled = false;
                 quantityInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
@@ -707,17 +687,19 @@ window.closeVendorPaymentModal = function() {
                 unitInput.classList.add('bg-white');
             }
             if (itemNameInput) {
-                itemNameInput.disabled = true;
-                itemNameInput.required = false;
-                itemNameInput.classList.remove('bg-white');
-                itemNameInput.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.disabled = false;
+                itemNameInput.classList.remove('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
+                itemNameInput.classList.add('bg-white');
             }
         } else {
-            if (rmWrapper) rmWrapper.classList.add('pointer-events-none', 'opacity-50');
             if (rmHiddenInp) {
                 rmHiddenInp.disabled = true;
                 rmHiddenInp.value = '';
-                if (window.ERPComboboxManager) window.ERPComboboxManager.syncDisplay(rmWrapper);
+            }
+            if (rmSearchInp) {
+                rmSearchInp.disabled = true;
+                rmSearchInp.value = '';
+                rmSearchInp.classList.add('bg-slate-100', 'opacity-50', 'cursor-not-allowed');
             }
             if (quantityInput) {
                 quantityInput.disabled = true;
@@ -793,26 +775,58 @@ window.closeVendorPaymentModal = function() {
         }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        window.handlePurchaseTypeChange();
-
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('open') || urlParams.has('material_id')) {
-            const formContainer = document.getElementById('purchaseFormContainer');
-            if (formContainer) {
-                formContainer.classList.remove('hidden');
-                formContainer.scrollIntoView({ behavior: 'smooth' });
+    (function initPurchasePrefill() {
+        function runPrefill() {
+            if (typeof window.handlePurchaseTypeChange === 'function') {
+                window.handlePurchaseTypeChange();
             }
-            if (urlParams.has('material_id')) {
-                const matSelect = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
-                if (matSelect) {
-                    matSelect.value = urlParams.get('material_id');
-                    matSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const matId = urlParams.get('material_id') || urlParams.get('prefill_raw_material');
+
+            if (urlParams.has('open') || matId) {
+                const formContainer = document.getElementById('purchaseFormContainer');
+                if (formContainer) {
+                    formContainer.classList.remove('hidden');
+                    formContainer.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                const typeSelect = document.getElementById('purchaseTypeSelect_hidden') || document.getElementById('purchaseTypeSelect');
+                if (typeSelect) {
+                    typeSelect.value = 'raw_material';
+                    const wrapper = typeSelect.closest('.combobox-wrapper');
+                    if (wrapper && window.ERPComboboxManager) {
+                        window.ERPComboboxManager.syncDisplay(wrapper);
+                    }
+                    if (typeof window.handlePurchaseTypeChange === 'function') {
+                        window.handlePurchaseTypeChange();
+                    }
+                }
+
+                if (matId) {
+                    const matSelect = document.getElementById('rawMaterialSelect_hidden') || document.getElementById('rawMaterialSelect');
+                    if (matSelect) {
+                        matSelect.value = matId;
+                        const wrapper = matSelect.closest('.combobox-wrapper');
+                        if (wrapper && window.ERPComboboxManager) {
+                            window.ERPComboboxManager.syncDisplay(wrapper);
+                        }
+                        matSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        if (typeof window.handleRawMaterialSelectChange === 'function') {
+                            window.handleRawMaterialSelectChange();
+                        }
+                    }
+                }
+
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }
-            window.history.replaceState({}, document.title, window.location.pathname);
         }
-    });
+
+        runPrefill();
+        document.addEventListener('DOMContentLoaded', runPrefill);
+    })();
 
     window.submitVendorPayment = function(e) {
         e.preventDefault();

@@ -13,14 +13,13 @@ class CheckPermissionMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $permissionKey
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string $permissionKey): Response
     {
         $user = Auth::user();
 
-        if (!RolePermissionService::userHasPermission($user, $permissionKey)) {
+        if (! RolePermissionService::userHasPermission($user, $permissionKey)) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,

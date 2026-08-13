@@ -253,22 +253,22 @@
                     </label>
                 </div>
 
-                <!-- Automatic Stock Deductions -->
+                <!-- Stock Management -->
                 @php
                     $isSimplifiedActive = $modules['simplified_billing_mode'] ?? false;
                 @endphp
                 <div id="track_stock_card" class="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 flex items-center justify-between col-span-1 md:col-span-3 {{ $isSimplifiedActive ? 'opacity-60 pointer-events-none' : '' }}">
                     <div>
                         <span class="block text-sm font-bold text-blue-900 flex items-center gap-1.5">
-                            📦 Automatic Inventory Stock Deductions
+                            📦 Stock Management
                             <span id="track_stock_disabled_badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300 {{ $isSimplifiedActive ? '' : 'hidden' }}">
                                 🔒 Disabled in Simplified Billing Mode
                             </span>
                         </span>
-                        <span class="text-[11px] text-slate-600 font-medium">Auto-deduct item stock on Invoices. Turn OFF if client only does Billing and does not track Stock/BOM.</span>
+                        <span class="text-[11px] text-slate-600 font-medium">Enable inventory stock tracking, auto-deductions on invoices, and stock-based order pipeline checks. Turn OFF if you only do billing.</span>
                     </div>
                     <label class="inline-flex items-center cursor-pointer select-none">
-                        <input type="checkbox" name="track_stock" value="true" {{ ($modules['track_stock'] ?? true) && !$isSimplifiedActive ? 'checked' : '' }} {{ $isSimplifiedActive ? 'disabled' : '' }} class="erp-toggle-input">
+                        <input type="checkbox" name="track_stock" value="true" {{ ($modules['track_stock'] ?? true) && !$isSimplifiedActive ? 'checked' : '' }} {{ $isSimplifiedActive ? 'disabled' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
                         <span class="erp-toggle-slider"></span>
                     </label>
                 </div>

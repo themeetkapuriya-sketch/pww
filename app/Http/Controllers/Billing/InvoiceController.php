@@ -3,21 +3,25 @@
 namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Invoice;
-use App\Models\InvoiceItem;
-use App\Models\Product;
-use App\Models\RawMaterial;
+use App\Mail\InvoiceMail;
 use App\Models\Client;
 use App\Models\ClientPlant;
-use App\Models\SalesOrder;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Payment;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\InvoiceMail;
+use App\Models\Product;
+use App\Models\RawMaterial;
+use App\Models\SalesOrder;
+use App\Models\Setting;
+use App\Services\AuditLogService;
+use App\Services\EwayBillService;
 use App\Services\InvoicePdfService;
+use App\Services\RolePermissionService;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -27,6 +31,7 @@ class InvoiceController extends Controller
     {
         $this->pdfService = $pdfService;
     }
+
     /**
      * 6. Invoices & Billing.
      */
@@ -34,7 +39,7 @@ class InvoiceController extends Controller
     {
         $invoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->orderBy('created_at', 'desc')->paginate(50);
         $finishedGoodsInvoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
             })
             ->orderBy('created_at', 'desc')
@@ -78,7 +83,9 @@ class InvoiceController extends Controller
     public function generateCustomInvoice(Request $request)
     {
         $action = $request->filled('invoice_id') ? 'action_update' : 'action_insert';
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, $action)) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, $action)) {
+            return $res;
+        }
 
         $pIds = $request->input('product_ids', $request->input('finished_good_ids', $request->input('item_keys')));
         $request->merge(['product_ids' => $pIds]);
@@ -89,7 +96,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
             'invoice_mode' => 'nullable|string|in:finished_goods,raw_material',
-            'invoice_number' => ($invMode === 'raw_material' ? 'nullable|string' : 'required|string|unique:invoices,invoice_number' . ($invoiceId ? ',' . $invoiceId : '')),
+            'invoice_number' => ($invMode === 'raw_material' ? 'nullable|string' : 'required|string|unique:invoices,invoice_number'.($invoiceId ? ','.$invoiceId : '')),
             'plant_id' => ($invMode === 'raw_material' ? 'nullable|exists:client_plants,id' : 'required|exists:client_plants,id'),
             'custom_client_name' => ($invMode === 'raw_material' ? 'required|string|max:255' : 'nullable|string|max:255'),
             'custom_buyer_gstin' => 'nullable|string|max:30',
@@ -115,10 +122,11 @@ class InvoiceController extends Controller
 
         try {
             $invoice = DB::transaction(function () use ($validated, $request, $invoiceId, $invMode) {
-                $plantId = !empty($validated['plant_id']) ? $validated['plant_id'] : null;
+                $plantId = ! empty($validated['plant_id']) ? $validated['plant_id'] : null;
                 $plant = $plantId ? ClientPlant::find($plantId) : null;
-                $isGujarat = $plant ? (strcasecmp(trim($plant->state), 'Gujarat') === 0) : true;
-                $customGstRate = isset($validated['gst_rate']) ? (float)$validated['gst_rate'] : null;
+                $homeState = Setting::get('home_state', 'Gujarat');
+                $isHomeState = $plant ? (strcasecmp(trim($plant->state), trim($homeState)) === 0) : true;
+                $customGstRate = isset($validated['gst_rate']) ? (float) $validated['gst_rate'] : null;
 
                 // Parse line items (Products vs Raw Materials)
                 $parsedItems = [];
@@ -128,8 +136,8 @@ class InvoiceController extends Controller
                 $igst = 0.00;
 
                 foreach ($validated['product_ids'] as $idx => $rawKey) {
-                    $qty = (float)$validated['quantities'][$idx];
-                    $price = (float)$validated['unit_prices'][$idx];
+                    $qty = (float) $validated['quantities'][$idx];
+                    $price = (float) $validated['unit_prices'][$idx];
                     $lineTotal = round($qty * $price, 2);
                     $taxable += $lineTotal;
 
@@ -148,18 +156,18 @@ class InvoiceController extends Controller
                             $itemName = $rm->material_name;
                             $defaultUom = $rm->unit ?? 'kg';
                         }
-                    } else if (str_starts_with($rawKey, 'product_')) {
+                    } elseif (str_starts_with($rawKey, 'product_')) {
                         $itemType = 'product';
                         $productId = (int) str_replace('product_', '', $rawKey);
                         $product = Product::find($productId);
                         if ($product) {
                             $itemName = $product->product_name;
-                            $rate = isset($product->gst_rate) ? (float)$product->gst_rate : 18.00;
+                            $rate = isset($product->gst_rate) ? (float) $product->gst_rate : 18.00;
                             $defaultUom = $product->uom ?? 'piece';
                         }
                     } else {
                         // Numeric ID fallback
-                        $numId = (int)$rawKey;
+                        $numId = (int) $rawKey;
                         if ($invMode === 'raw_material') {
                             $itemType = 'raw_material';
                             $rawMaterialId = $numId;
@@ -174,7 +182,7 @@ class InvoiceController extends Controller
                             $product = Product::find($productId);
                             if ($product) {
                                 $itemName = $product->product_name;
-                                $rate = isset($product->gst_rate) ? (float)$product->gst_rate : 18.00;
+                                $rate = isset($product->gst_rate) ? (float) $product->gst_rate : 18.00;
                                 $defaultUom = $product->uom ?? 'piece';
                             }
                         }
@@ -186,7 +194,7 @@ class InvoiceController extends Controller
                     }
 
                     if ($rate > 0) {
-                        if ($isGujarat) {
+                        if ($isHomeState) {
                             $cgst += round($lineTotal * ($rate / 200.0), 2);
                             $sgst += round($lineTotal * ($rate / 200.0), 2);
                         } else {
@@ -208,7 +216,7 @@ class InvoiceController extends Controller
                 $igst = round($igst, 2);
                 $total = round($taxable + $cgst + $sgst + $igst, 2);
                 $invDate = $validated['invoice_date'] ?? date('Y-m-d');
-                $dueDate = !empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate . ' +30 days'));
+                $dueDate = ! empty($validated['due_date']) ? $validated['due_date'] : date('Y-m-d', strtotime($invDate.' +30 days'));
 
                 $vehicleNumber = self::formatVehicleNumber($validated['vehicle_number'] ?? null);
 
@@ -227,23 +235,23 @@ class InvoiceController extends Controller
                     $finalInvoiceNumber = $validated['invoice_number'];
                 }
 
-                $trackStock = in_array(strtolower((string)\App\Models\Setting::get('track_stock', 'true')), ['true', '1', 'yes', 'on'], true);
+                $trackStock = Setting::isStockEnabled();
 
                 if ($invoiceId) {
                     $invoice = Invoice::findOrFail($invoiceId);
-                    
+
                     // Restore stock before updating if stock tracking is enabled
                     if ($trackStock) {
                         foreach ($invoice->items as $oldItem) {
-                            if (!empty($oldItem->raw_material_id)) {
+                            if (! empty($oldItem->raw_material_id)) {
                                 $rm = RawMaterial::find($oldItem->raw_material_id);
                                 if ($rm) {
-                                    $rm->increment('current_stock', (float)$oldItem->quantity);
+                                    $rm->increment('current_stock', (float) $oldItem->quantity);
                                 }
-                            } else if (!empty($oldItem->product_id)) {
+                            } elseif (! empty($oldItem->product_id)) {
                                 $product = Product::find($oldItem->product_id);
                                 if ($product) {
-                                    $product->increment('current_stock', (float)$oldItem->quantity);
+                                    $product->increment('current_stock', (float) $oldItem->quantity);
                                 }
                             }
                         }
@@ -268,7 +276,7 @@ class InvoiceController extends Controller
                         'due_date' => $dueDate,
                     ]);
                 } else {
-                    $trackPayments = (\App\Models\Setting::get('track_payments', 'true') === 'true');
+                    $trackPayments = (Setting::get('track_payments', 'true') === 'true');
                     $initialPaymentStatus = $trackPayments ? 'unpaid' : 'paid';
                     $initialPaidAmount = $trackPayments ? 0.00 : $total;
 
@@ -290,13 +298,13 @@ class InvoiceController extends Controller
                         'payment_status' => $initialPaymentStatus,
                         'paid_amount' => $initialPaidAmount,
                         'due_date' => $dueDate,
-                        'created_at' => $invDate . ' ' . now()->format('H:i:s'),
+                        'created_at' => $invDate.' '.now()->format('H:i:s'),
                     ]);
                 }
 
                 foreach ($parsedItems as $idx => $itemData) {
-                    $qty = (float)$validated['quantities'][$idx];
-                    $buom = isset($request->billing_uoms[$idx]) ? $request->billing_uoms[$idx] : $itemData['default_uom'];
+                    $qty = (float) $validated['quantities'][$idx];
+                    $buom = $request->input("billing_uoms.{$idx}") ?: $itemData['default_uom'];
                     InvoiceItem::create([
                         'invoice_id' => $invoice->id,
                         'item_type' => $itemData['type'],
@@ -311,12 +319,12 @@ class InvoiceController extends Controller
 
                     // Automatically deduct inventory stock upon sale if stock tracking is enabled
                     if ($trackStock) {
-                        if (!empty($itemData['raw_material_id'])) {
+                        if (! empty($itemData['raw_material_id'])) {
                             $rm = RawMaterial::find($itemData['raw_material_id']);
                             if ($rm) {
                                 $rm->decrement('current_stock', $qty);
                             }
-                        } else if (!empty($itemData['product_id'])) {
+                        } elseif (! empty($itemData['product_id'])) {
                             $product = Product::find($itemData['product_id']);
                             if ($product) {
                                 $product->decrement('current_stock', $qty);
@@ -330,21 +338,23 @@ class InvoiceController extends Controller
                     SalesOrder::where('id', $invoice->sales_order_id)->update(['status' => 'dispatched']);
                 }
 
-                \App\Services\AuditLogService::log('Invoices', $invoiceId ? 'updated' : 'created', "Logged Invoice #{$invoice->invoice_number} (Amount: ₹" . number_format($invoice->total_amount, 2) . ")");
+                AuditLogService::log('Invoices', $invoiceId ? 'updated' : 'created', "Logged Invoice #{$invoice->invoice_number} (Amount: ₹".number_format($invoice->total_amount, 2).')');
 
                 return $invoice;
             });
 
             return response()->json([
                 'success' => true,
-                'message' => $invoiceId ? "Invoice #{$finalInvoiceNumber} updated successfully!" : "Custom Tax Invoice '{$invoice->invoice_number}' logged successfully!",
-                'data' => $invoice
+                'message' => $invoiceId ? "Invoice #{$invoice->invoice_number} updated successfully!" : "Custom Tax Invoice '{$invoice->invoice_number}' logged successfully!",
+                'data' => $invoice,
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to log invoice: ' . $e->getMessage());
+            Log::error('Failed to log invoice: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to log invoice. Please try again.']
+                'message' => 'Failed to log invoice: '.$e->getMessage(),
+                'errors' => [$e->getMessage()],
             ], 500);
         }
     }
@@ -354,11 +364,13 @@ class InvoiceController extends Controller
      */
     public function recordInvoicePayment(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         if ($request->has('amount')) {
             $request->merge([
-                'amount' => str_replace(',', '', (string)$request->input('amount'))
+                'amount' => str_replace(',', '', (string) $request->input('amount')),
             ]);
         }
 
@@ -382,7 +394,7 @@ class InvoiceController extends Controller
             if ($amount > ($remaining + 0.01)) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['amount' => ["Payment amount (₹" . number_format($amount, 2) . ") cannot exceed remaining invoice balance (₹" . number_format($remaining, 2) . ")."]]
+                    'errors' => ['amount' => ['Payment amount (₹'.number_format($amount, 2).') cannot exceed remaining invoice balance (₹'.number_format($remaining, 2).').']],
                 ], 422);
             }
 
@@ -401,8 +413,8 @@ class InvoiceController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
-                $newPaidAmount = round((float)$invoice->paid_amount + $amount, 2);
-                $totalAmount = (float)$invoice->total_amount;
+                $newPaidAmount = round((float) $invoice->paid_amount + $amount, 2);
+                $totalAmount = (float) $invoice->total_amount;
 
                 $newStatus = 'partially_paid';
                 if ($newPaidAmount >= ($totalAmount - 0.01)) {
@@ -418,13 +430,14 @@ class InvoiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Payment of ₹" . number_format($amount, 2) . " recorded successfully for Invoice '{$invoice->invoice_number}'!"
+                'message' => 'Payment of ₹'.number_format($amount, 2)." recorded successfully for Invoice '{$invoice->invoice_number}'!",
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to record invoice payment: ' . $e->getMessage());
+            Log::error('Failed to record invoice payment: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to record payment. Please try again.']
+                'errors' => ['Failed to record payment. Please try again.'],
             ], 500);
         }
     }
@@ -434,7 +447,9 @@ class InvoiceController extends Controller
      */
     public function payInvoice($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_update')) {
+            return $res;
+        }
 
         try {
             $invoice = Invoice::with('plant.client')->findOrFail($id);
@@ -443,7 +458,7 @@ class InvoiceController extends Controller
             if ($remaining <= 0) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Invoice '{$invoice->invoice_number}' is already fully paid."
+                    'message' => "Invoice '{$invoice->invoice_number}' is already fully paid.",
                 ]);
             }
 
@@ -472,13 +487,14 @@ class InvoiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Invoice '{$invoice->invoice_number}' marked as fully paid successfully!"
+                'message' => "Invoice '{$invoice->invoice_number}' marked as fully paid successfully!",
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to update payment status: ' . $e->getMessage());
+            Log::error('Failed to update payment status: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to update payment status. Please try again.']
+                'errors' => ['Failed to update payment status. Please try again.'],
             ], 500);
         }
     }
@@ -488,7 +504,9 @@ class InvoiceController extends Controller
      */
     public function deleteInvoice($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         try {
             $invoice = Invoice::with('items')->findOrFail($id);
@@ -496,34 +514,40 @@ class InvoiceController extends Controller
 
             DB::transaction(function () use ($invoice, $invNum) {
                 Payment::where('invoice_id', $invoice->id)->delete();
-                foreach ($invoice->items as $item) {
-                    if ($item->item_type === 'raw_material' && $item->raw_material_id) {
-                        $rm = RawMaterial::find($item->raw_material_id);
-                        if ($rm) {
-                            $rm->increment('current_stock', (float)$item->quantity);
-                        }
-                    } else if ($item->product_id) {
-                        $product = Product::find($item->product_id);
-                        if ($product) {
-                            $product->increment('current_stock', (float)$item->quantity);
+
+                $trackStock = Setting::isStockEnabled();
+                if ($trackStock) {
+                    foreach ($invoice->items as $item) {
+                        if ($item->item_type === 'raw_material' && $item->raw_material_id) {
+                            $rm = RawMaterial::find($item->raw_material_id);
+                            if ($rm) {
+                                $rm->increment('current_stock', (float) $item->quantity);
+                            }
+                        } elseif ($item->product_id) {
+                            $product = Product::find($item->product_id);
+                            if ($product) {
+                                $product->increment('current_stock', (float) $item->quantity);
+                            }
                         }
                     }
                 }
+
                 $invoice->items()->delete();
                 $invoice->delete();
 
-                \App\Services\AuditLogService::log('Invoices', 'deleted', "Deleted Invoice #{$invNum} and restored items stock");
+                AuditLogService::log('Invoices', 'deleted', "Deleted Invoice #{$invNum}".($trackStock ? ' and restored items stock' : ''));
             });
 
             return response()->json([
                 'success' => true,
-                'message' => "Invoice '{$invNum}' deleted successfully!"
+                'message' => "Invoice '{$invNum}' deleted successfully!",
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to delete invoice: ' . $e->getMessage());
+            Log::error('Failed to delete invoice: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to delete invoice. Please try again.']
+                'errors' => ['Failed to delete invoice. Please try again.'],
             ], 500);
         }
     }
@@ -564,12 +588,13 @@ class InvoiceController extends Controller
             $pdfContent = $this->pdfService->generateInvoicePdf($invoice);
 
             return response()->streamDownload(
-                fn () => print($pdfContent),
+                fn () => print ($pdfContent),
                 "Invoice-{$invoice->invoice_number}.pdf",
                 ['Content-Type' => 'application/pdf']
             );
         } catch (Exception $e) {
-            Log::error("Failed to download PDF for invoice ID {$id}: " . $e->getMessage());
+            Log::error("Failed to download PDF for invoice ID {$id}: ".$e->getMessage());
+
             return back()->with('error', 'Unable to generate PDF document. Please try again.');
         }
     }
@@ -594,13 +619,14 @@ class InvoiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Invoice #{$invoice->invoice_number} emailed successfully to {$request->recipient_email}!"
+                'message' => "Invoice #{$invoice->invoice_number} emailed successfully to {$request->recipient_email}!",
             ]);
         } catch (Exception $e) {
-            Log::error("Failed to send invoice email for ID {$id}: " . $e->getMessage());
+            Log::error("Failed to send invoice email for ID {$id}: ".$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send email. Please check your SMTP settings and try again.'
+                'message' => 'Failed to send email. Please check your SMTP settings and try again.',
             ], 500);
         }
     }
@@ -620,9 +646,10 @@ class InvoiceController extends Controller
         if (preg_match('/^([A-Z]{2})([0-9O]{1,2})([A-Z]{1,3})([0-9O]{1,4})$/', $clean, $m)) {
             $dist = str_replace('O', '0', $m[2]);
             if (strlen($dist) === 1) {
-                $dist = '0' . $dist;
+                $dist = '0'.$dist;
             }
             $num = str_replace('O', '0', $m[4]);
+
             return "{$m[1]}-{$dist}-{$m[3]}-{$num}";
         }
 
@@ -630,6 +657,7 @@ class InvoiceController extends Controller
         if (preg_match('/^([0-9O]{2})BH([0-9O]{1,4})([A-Z]{1,2})$/', $clean, $m)) {
             $yr = str_replace('O', '0', $m[1]);
             $num = str_replace('O', '0', $m[2]);
+
             return "{$yr}-BH-{$num}-{$m[3]}";
         }
 
@@ -642,12 +670,12 @@ class InvoiceController extends Controller
     public function downloadEwayJson($id)
     {
         $invoice = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial', 'salesOrder'])->findOrFail($id);
-        $payload = \App\Services\EwayBillService::generateJsonPayload($invoice);
-        
+        $payload = EwayBillService::generateJsonPayload($invoice);
+
         $safeNumber = preg_replace('/[^A-Za-z0-9_-]/', '_', $invoice->invoice_number);
         $filename = "eway_invoice_{$safeNumber}.json";
 
-        \App\Services\AuditLogService::log('Invoices', 'export', "Exported E-Way Bill JSON file for Invoice #{$invoice->invoice_number}");
+        AuditLogService::log('Invoices', 'export', "Exported E-Way Bill JSON file for Invoice #{$invoice->invoice_number}");
 
         return response()->json($payload, 200, [
             'Content-Type' => 'application/json',

@@ -82,6 +82,7 @@ Catalog of manufactured finished goods (welded racks, pallets, structures).
 | `price_per_kg` | Decimal(10,2) | Nullable | Unit Price Per Kg (₹) |
 | `reorder_level` | Integer | Default: 0 | Safety Reorder Threshold |
 | `current_stock` | Integer | Default: 0 | Finished Goods Available Stock |
+| `safety_threshold` | Integer | Default: 10 | Minimum Stock Safety Alert Level |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
 
@@ -238,4 +239,83 @@ Super-admin security audit trail and system action logs.
 | `user_agent` | Text | Nullable | Client Browser / Device User Agent |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+---
+
+### 11. `salary_advances` (Model: `App\Models\SalaryAdvance`)
+Tracks worker salary advance payouts and automatic payroll deductions.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key, Auto Increment | Unique Advance ID |
+| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` (Cascade) | Target Employee |
+| `advance_date` | Date | Not Null | Date of Advance Payout |
+| `amount` | Decimal(12,2) | Default: 0.00 | Advance Amount Paid (₹) |
+| `payment_method` | Varchar(255) | Default: 'Cash' | Method (`Cash`, `Bank Transfer`, `UPI`, `Cheque`) |
+| `status` | Enum | Default: 'pending' | Status (`pending`, `deducted`) |
+| `expense_id` | BigInt | Nullable | Linked Auto-Generated Expense Record ID |
+| `salary_disbursal_id` | BigInt | Nullable | Linked Salary Disbursal ID where advance was deducted |
+| `notes` | Text | Nullable | Optional Notes |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+---
+
+### 12. `stock_adjustments` (Model: `App\Models\StockAdjustment`)
+Inventory physical audit adjustments and variance stock logs.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key, Auto Increment | Unique Adjustment Log ID |
+| `raw_material_id` | BigInt | FK -> `raw_materials.id` (Cascade) | Target Raw Material |
+| `user_id` | BigInt | FK -> `users.id` (NullOnDelete) | Admin/Staff User ID performing adjustment |
+| `user_name` | Varchar(255) | Default: 'Admin' | User Name cached for audit durability |
+| `previous_stock` | Decimal(15,4) | Default: 0.0000 | Stock before adjustment |
+| `new_stock` | Decimal(15,4) | Default: 0.0000 | New verified physical stock quantity |
+| `variance_qty` | Decimal(15,4) | Default: 0.0000 | Stock Variance (+ or -) |
+| `reason` | Varchar(255) | Not Null | Adjustment Reason (Physical Audit, Waste, Damaged, Correction) |
+| `notes` | Text | Nullable | Additional Auditor Remarks |
+| `adjusted_at` | Timestamp | Default: Current | Audit Timestamp |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+---
+
+### 13. `salary_disbursals` (Model: `App\Models\SalaryDisbursal`)
+Monthly payroll ledger and staff salary disbursals.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key, Auto Increment | Unique Disbursal ID |
+| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` (Cascade) | Target Employee |
+| `month_year` | Varchar(7) | Not Null | Year and Month of Disbursal (e.g. "2026-07") |
+| `wage_type` | Enum | Default: 'per-day' | Compensation Model (`fixed`, `per-day`) |
+| `rate_amount` | Decimal(12,2) | Default: 0.00 | Pay Rate Per Day / Per Month (₹) |
+| `days_present` | Decimal(5,1) | Default: 0.0 | Count of Days Present |
+| `total_salary` | Decimal(12,2) | Default: 0.00 | Gross Calculated Salary (₹) |
+| `advance_deduction` | Decimal(12,2) | Default: 0.00 | Advance Salary Amount Deducted (₹) |
+| `status` | Enum | Default: 'pending' | Status (`pending`, `paid`) |
+| `payment_date` | Date | Nullable | Date of Payment |
+| `payment_method` | Varchar(255) | Default: 'Cash' | Method (`Cash`, `Bank Transfer`, `UPI`) |
+| `expense_id` | BigInt | Nullable | Linked Expense Record ID |
+| `notes` | Text | Nullable | Optional Remarks |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+---
+
+### 14. `attendance_records` (Model: `App\Models\AttendanceRecord`)
+Daily attendance tracking log for worker payroll computation.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key, Auto Increment | Unique Attendance ID |
+| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` (Cascade) | Target Employee |
+| `date` | Date | Not Null | Date of Attendance |
+| `status` | Enum | Default: 'present' | Daily Status (`present`, `half_day`, `absent`) |
+| `notes` | Text | Nullable | Optional Attendance Remarks |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+
 

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
+use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Models\Role;
-use App\Services\AuditLogService;
 
 class AuthController extends Controller
 {
@@ -20,6 +21,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('overview');
         }
+
         return view('auth.login');
     }
 
@@ -36,12 +38,12 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()->all()
+                'errors' => $validator->errors()->all(),
             ], 422);
         }
 
         // Throttle key based on combined lowercased Email + IP address (Max 5 attempts per 60 seconds)
-        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')).'|'.$request->ip());
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
@@ -51,7 +53,7 @@ class AuthController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => $message,
-                    'errors' => [$message]
+                    'errors' => [$message],
                 ], 429);
             }
 
@@ -64,15 +66,15 @@ class AuthController extends Controller
         $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
-            /** @var \App\Models\User $user */
+            /** @var User $user */
             $user = Auth::user();
 
             // Check Account & Role Active Status (Super Admin is always exempt)
             if ($user->role !== 'super_admin') {
-                if (!$user->is_active || !in_array($user->status, ['active', 'approved'])) {
+                if (! $user->is_active || ! in_array($user->status, ['active', 'approved'])) {
                     Auth::logout();
                     $msg = 'Your user account has been deactivated or is pending administrator approval.';
-                    
+
                     $request->session()->put([
                         'deactivated_reason' => $msg,
                         'deactivated_email' => $user->email,
@@ -84,18 +86,19 @@ class AuthController extends Controller
                         return response()->json([
                             'success' => false,
                             'redirect' => route('account.deactivated'),
-                            'message' => $msg
+                            'message' => $msg,
                         ], 403);
                     }
+
                     return redirect()->route('account.deactivated');
                 }
 
                 $roleRecord = Role::where('slug', $user->role)->first();
-                if ($roleRecord && !$roleRecord->is_active) {
+                if ($roleRecord && ! $roleRecord->is_active) {
                     Auth::logout();
                     $roleName = $roleRecord->name ?? ucfirst(str_replace('_', ' ', (string) $user->role));
                     $msg = "The '{$roleName}' role has been temporarily deactivated by administrator.";
-                    
+
                     $request->session()->put([
                         'deactivated_reason' => $msg,
                         'deactivated_email' => $user->email,
@@ -107,9 +110,10 @@ class AuthController extends Controller
                         return response()->json([
                             'success' => false,
                             'redirect' => route('account.deactivated'),
-                            'message' => $msg
+                            'message' => $msg,
                         ], 403);
                     }
+
                     return redirect()->route('account.deactivated');
                 }
             }
@@ -126,7 +130,7 @@ class AuthController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful!',
-                    'redirect' => $redirectUrl
+                    'redirect' => $redirectUrl,
                 ]);
             }
 
@@ -139,7 +143,7 @@ class AuthController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => false,
-                'errors' => ['These credentials do not match our records.']
+                'errors' => ['These credentials do not match our records.'],
             ], 401);
         }
 
@@ -154,7 +158,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         if (Auth::check()) {
-            AuditLogService::log('Auth', 'logout', "User logged out.");
+            AuditLogService::log('Auth', 'logout', 'User logged out.');
         }
 
         Auth::logout();
@@ -165,7 +169,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Logged out successfully.',
-                'redirect' => route('login')
+                'redirect' => route('login'),
             ]);
         }
 

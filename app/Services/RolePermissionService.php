@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class RolePermissionService
 {
@@ -43,14 +46,15 @@ class RolePermissionService
         try {
             $dbRoles = Role::where('is_active', true)->get();
             foreach ($dbRoles as $role) {
-                if (!isset($defaultRoles[$role->slug])) {
+                if (! isset($defaultRoles[$role->slug])) {
                     $defaultRoles[$role->slug] = [
                         'name' => $role->name,
                         'description' => $role->description ?? 'Custom defined system role.',
                     ];
                 }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         return $defaultRoles;
     }
@@ -99,10 +103,11 @@ class RolePermissionService
 
         try {
             $dbPerms = RolePermission::where('role_slug', $roleKey)->pluck('permission_key')->toArray();
-            if (!empty($dbPerms)) {
+            if (! empty($dbPerms)) {
                 return $dbPerms;
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         switch ($roleKey) {
             case 'accountant':
@@ -128,12 +133,12 @@ class RolePermissionService
      */
     public static function userHasPermission(?User $user, string $permissionKey): bool
     {
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         // If user account is inactive or pending, block all permissions
-        if (!$user->is_active || in_array($user->status, ['inactive', 'pending'])) {
+        if (! $user->is_active || in_array($user->status, ['inactive', 'pending'])) {
             return false;
         }
 
@@ -152,10 +157,11 @@ class RolePermissionService
         // 3. Check if assigned role is deactivated by administrator
         try {
             $roleRecord = Role::where('slug', $user->role)->first();
-            if ($roleRecord && !$roleRecord->is_active) {
+            if ($roleRecord && ! $roleRecord->is_active) {
                 return false;
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         // If user role is 'custom' and has explicit custom JSON permissions, check user permissions
         if ($user->role === 'custom' && is_array($user->permissions) && count($user->permissions) > 0) {
@@ -164,16 +170,17 @@ class RolePermissionService
 
         // Live Role Permissions Matrix check (from DB role_permissions table or defaults)
         $rolePermissions = self::getDefaultPermissionsForRole($user->role ?? 'staff');
+
         return in_array($permissionKey, $rolePermissions);
     }
 
     /**
      * Enforce action permission check and return 403 JSON / redirect response if unauthorized.
      */
-    public static function authorizeAction(\Illuminate\Http\Request $request, string $actionType): ?\Symfony\Component\HttpFoundation\Response
+    public static function authorizeAction(Request $request, string $actionType): ?Response
     {
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if (!self::userHasPermission($user, $actionType)) {
+        $user = Auth::user();
+        if (! self::userHasPermission($user, $actionType)) {
             $actionLabels = [
                 'action_insert' => 'create/add',
                 'action_update' => 'update/edit',

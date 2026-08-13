@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
@@ -109,7 +110,7 @@ class Invoice extends Model
      */
     public function getRemainingBalanceAttribute(): float
     {
-        return max(0.00, round((float)$this->total_amount - (float)$this->paid_amount, 2));
+        return max(0.00, round((float) $this->total_amount - (float) $this->paid_amount, 2));
     }
 
     /**
@@ -118,19 +119,19 @@ class Invoice extends Model
      */
     public static function generateNextInvoiceNumber(): string
     {
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         if ($now->month >= 4) {
-            $fyStart = \Carbon\Carbon::create($now->year, 4, 1, 0, 0, 0);
-            $fyEnd = \Carbon\Carbon::create($now->year + 1, 3, 31, 23, 59, 59);
+            $fyStart = Carbon::create($now->year, 4, 1, 0, 0, 0);
+            $fyEnd = Carbon::create($now->year + 1, 3, 31, 23, 59, 59);
         } else {
-            $fyStart = \Carbon\Carbon::create($now->year - 1, 4, 1, 0, 0, 0);
-            $fyEnd = \Carbon\Carbon::create($now->year, 3, 31, 23, 59, 59);
+            $fyStart = Carbon::create($now->year - 1, 4, 1, 0, 0, 0);
+            $fyEnd = Carbon::create($now->year, 3, 31, 23, 59, 59);
         }
 
         $prefix = Setting::get('invoice_prefix', 'PWW-');
         $customNextSeq = (int) Setting::get('invoice_next_sequence', 1);
 
-        $count = self::where(function($q) {
+        $count = self::where(function ($q) {
             $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
         })->whereBetween('created_at', [$fyStart, $fyEnd])->count();
 
@@ -140,6 +141,7 @@ class Invoice extends Model
             $nextSequence++;
             $candidate = Setting::formatDocumentNumber($prefix, $nextSequence);
         }
+
         return $candidate;
     }
 
@@ -148,13 +150,13 @@ class Invoice extends Model
      */
     public static function generateNextRawMaterialNumber(): string
     {
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         if ($now->month >= 4) {
-            $fyStart = \Carbon\Carbon::create($now->year, 4, 1, 0, 0, 0);
-            $fyEnd = \Carbon\Carbon::create($now->year + 1, 3, 31, 23, 59, 59);
+            $fyStart = Carbon::create($now->year, 4, 1, 0, 0, 0);
+            $fyEnd = Carbon::create($now->year + 1, 3, 31, 23, 59, 59);
         } else {
-            $fyStart = \Carbon\Carbon::create($now->year - 1, 4, 1, 0, 0, 0);
-            $fyEnd = \Carbon\Carbon::create($now->year, 3, 31, 23, 59, 59);
+            $fyStart = Carbon::create($now->year - 1, 4, 1, 0, 0, 0);
+            $fyEnd = Carbon::create($now->year, 3, 31, 23, 59, 59);
         }
 
         $count = self::where('invoice_mode', 'raw_material')->whereBetween('created_at', [$fyStart, $fyEnd])->count();
@@ -164,6 +166,7 @@ class Invoice extends Model
             $nextSequence++;
             $candidate = Setting::formatDocumentNumber('RMS-', $nextSequence);
         }
+
         return $candidate;
     }
 }

@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Payroll;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\StaffProfileResource;
-use Illuminate\Http\Request;
-use App\Models\StaffProfile;
 use App\Models\AttendanceRecord;
-use App\Models\SalaryDisbursal;
 use App\Models\Expense;
+use App\Models\SalaryAdvance;
+use App\Models\SalaryDisbursal;
+use App\Models\StaffProfile;
 use App\Services\PayrollService;
+use App\Services\RolePermissionService;
+use Carbon\Carbon;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -43,6 +46,7 @@ class EmployeeController extends Controller
             ->map(function ($records) {
                 $presentCount = $records->where('status', 'present')->count();
                 $halfDayCount = $records->where('status', 'half_day')->count();
+
                 return $presentCount + ($halfDayCount * 0.5);
             });
 
@@ -52,13 +56,22 @@ class EmployeeController extends Controller
             ->get()
             ->keyBy('staff_profile_id');
 
+        // Pending salary advances for each staff member
+        $pendingAdvances = SalaryAdvance::where('status', 'pending')
+            ->get()
+            ->groupBy('staff_profile_id')
+            ->map(function ($advances) {
+                return $advances->sum('amount');
+            });
+
         return view('pages.employees', compact(
             'staffProfiles',
             'selectedDate',
             'selectedMonth',
             'attendanceForDate',
             'monthlyAttendance',
-            'salaryDisbursals'
+            'salaryDisbursals',
+            'pendingAdvances'
         ));
     }
 
@@ -67,7 +80,9 @@ class EmployeeController extends Controller
      */
     public function storeEmployee(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
@@ -81,7 +96,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => "An employee profile for '{$validated['full_name']}' already exists!",
-                'errors' => ['full_name' => ["An employee profile for '{$validated['full_name']}' already exists!"]]
+                'errors' => ['full_name' => ["An employee profile for '{$validated['full_name']}' already exists!"]],
             ], 422);
         }
 
@@ -90,7 +105,7 @@ class EmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Employee profile for '{$staff->full_name}' created successfully!",
-            'data' => $staff
+            'data' => $staff,
         ]);
     }
 
@@ -99,7 +114,9 @@ class EmployeeController extends Controller
      */
     public function updateEmployee(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $staff = StaffProfile::findOrFail($id);
 
@@ -121,7 +138,7 @@ class EmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Employee profile for '{$staff->full_name}' updated successfully!",
-            'data' => $staff
+            'data' => $staff,
         ]);
     }
 
@@ -130,7 +147,9 @@ class EmployeeController extends Controller
      */
     public function deleteEmployee($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $staff = StaffProfile::findOrFail($id);
         $name = $staff->full_name;
@@ -138,7 +157,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Employee '{$name}' deleted successfully!"
+            'message' => "Employee '{$name}' deleted successfully!",
         ]);
     }
 
@@ -147,7 +166,9 @@ class EmployeeController extends Controller
      */
     public function storeAttendance(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'date' => 'required|date',
@@ -170,13 +191,14 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Daily attendance for " . \Carbon\Carbon::parse($validated['date'])->format('d M, Y') . " saved successfully!"
+                'message' => 'Daily attendance for '.Carbon::parse($validated['date'])->format('d M, Y').' saved successfully!',
             ]);
         } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to save attendance: ' . $e->getMessage());
+            Log::error('Failed to save attendance: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save attendance. Please try again.'
+                'message' => 'Failed to save attendance. Please try again.',
             ], 500);
         }
     }
@@ -194,13 +216,14 @@ class EmployeeController extends Controller
             ->map(function ($records) {
                 $presentCount = $records->where('status', 'present')->count();
                 $halfDayCount = $records->where('status', 'half_day')->count();
+
                 return $presentCount + ($halfDayCount * 0.5);
             });
 
         return response()->json([
             'success' => true,
             'month' => $month,
-            'summary' => $summary
+            'summary' => $summary,
         ]);
     }
 
@@ -209,13 +232,16 @@ class EmployeeController extends Controller
      */
     public function disburseSalary(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'staff_profile_id' => 'required|exists:staff_profiles,id',
             'month_year' => 'required|string|max:7',
             'days_present' => 'nullable|numeric|min:0',
             'total_salary' => 'nullable|numeric|min:0',
+            'advance_deduction' => 'nullable|numeric|min:0',
             'payment_status' => 'required|in:paid,pending',
             'payment_date' => 'nullable|date',
             'payment_method' => 'nullable|string',
@@ -228,6 +254,7 @@ class EmployeeController extends Controller
             $paymentStatus = $validated['payment_status'];
             $paymentDate = $validated['payment_date'] ?? now()->toDateString();
             $paymentMethod = $validated['payment_method'] ?? 'Cash';
+            $advanceDeduction = round((float) ($validated['advance_deduction'] ?? 0), 2);
 
             $rate = $staff->wage_type === 'per-day' ? (float) $staff->piece_rate_per_unit : (float) $staff->monthly_salary;
 
@@ -235,10 +262,13 @@ class EmployeeController extends Controller
                 $totalSalary = round((float) $request->input('total_salary'), 2);
             } else {
                 if ($staff->wage_type === 'per-day') {
-                    $totalSalary = round($daysPresent * $rate, 2);
+                    $totalSalary = round(($daysPresent * $rate) - $advanceDeduction, 2);
                 } else {
-                    $totalSalary = round($rate, 2);
+                    $totalSalary = round($rate - $advanceDeduction, 2);
                 }
+            }
+            if ($totalSalary < 0) {
+                $totalSalary = 0;
             }
 
             // Check if disbursal already exists
@@ -250,23 +280,28 @@ class EmployeeController extends Controller
 
             // If marking as PAID, create/update linked Expense entry in Expenses Ledger
             if ($paymentStatus === 'paid') {
+                $expenseNotes = "Salary payment for {$staff->full_name} ({$validated['month_year']}) via {$paymentMethod}";
+                if ($advanceDeduction > 0) {
+                    $expenseNotes .= ' (Net ₹'.number_format($totalSalary, 2).' after ₹'.number_format($advanceDeduction, 2).' advance deduction)';
+                }
+
                 if ($expenseId) {
                     $expense = Expense::find($expenseId);
                     if ($expense) {
                         $expense->update([
                             'expense_date' => $paymentDate,
                             'amount' => $totalSalary,
-                            'notes' => "Salary payment for {$staff->full_name} ({$validated['month_year']}) via {$paymentMethod}",
+                            'description' => $expenseNotes,
                         ]);
                     }
                 }
 
-                if (!$expenseId) {
+                if (! $expenseId) {
                     $expense = Expense::create([
                         'expense_date' => $paymentDate,
-                        'category' => 'Employee Salary / Payroll',
+                        'expense_category' => 'Employee Salary / Payroll',
                         'amount' => $totalSalary,
-                        'notes' => "Salary payment for {$staff->full_name} ({$validated['month_year']}) via {$paymentMethod}",
+                        'description' => $expenseNotes,
                     ]);
                     $expenseId = $expense->id;
                 }
@@ -282,6 +317,7 @@ class EmployeeController extends Controller
                     'rate_amount' => $rate,
                     'days_present' => $daysPresent,
                     'total_salary' => $totalSalary,
+                    'advance_deduction' => $advanceDeduction,
                     'status' => $paymentStatus,
                     'payment_date' => $paymentDate,
                     'payment_method' => $paymentMethod,
@@ -290,18 +326,29 @@ class EmployeeController extends Controller
                 ]
             );
 
+            // Reconcile pending advances if paid and advance deduction applied
+            if ($paymentStatus === 'paid' && $advanceDeduction > 0) {
+                SalaryAdvance::where('staff_profile_id', $staff->id)
+                    ->where('status', 'pending')
+                    ->update([
+                        'status' => 'deducted',
+                        'salary_disbursal_id' => $disbursalRecord->id,
+                    ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => $paymentStatus === 'paid'
-                    ? "Salary of ₹" . number_format($totalSalary, 2) . " paid for '{$staff->full_name}' and posted to Expenses Ledger!"
+                    ? 'Salary of ₹'.number_format($totalSalary, 2)." paid for '{$staff->full_name}' and posted to Expenses Ledger!"
                     : "Salary disbursal record updated as PENDING for '{$staff->full_name}'.",
-                'data' => $disbursalRecord
+                'data' => $disbursalRecord,
             ]);
         } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to process salary disbursal: ' . $e->getMessage());
+            Log::error('Failed to process salary disbursal: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process salary disbursal. Please try again.'
+                'message' => 'Failed to process salary disbursal. Please try again.',
             ], 500);
         }
     }
@@ -311,7 +358,9 @@ class EmployeeController extends Controller
      */
     public function deleteDisbursal($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         try {
             $disbursal = SalaryDisbursal::findOrFail($id);
@@ -322,13 +371,99 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Salary disbursal record and linked expense deleted successfully!'
+                'message' => 'Salary disbursal record and linked expense deleted successfully!',
             ]);
         } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to delete salary disbursal: ' . $e->getMessage());
+            Log::error('Failed to delete salary disbursal: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete salary disbursal. Please try again.'
+                'message' => 'Failed to delete salary disbursal record.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Issue Salary Advance & Auto-Log Expense.
+     */
+    public function storeAdvance(Request $request)
+    {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
+
+        $validated = $request->validate([
+            'staff_profile_id' => 'required|exists:staff_profiles,id',
+            'amount' => 'required|numeric|min:1',
+            'advance_date' => 'required|date',
+            'payment_method' => 'required|string',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $staff = StaffProfile::findOrFail($validated['staff_profile_id']);
+            $amount = (float) $validated['amount'];
+            $advanceDate = $validated['advance_date'];
+            $method = $validated['payment_method'];
+
+            // Log Expense entry
+            $expense = Expense::create([
+                'expense_date' => $advanceDate,
+                'expense_category' => 'Employee Salary Advance',
+                'amount' => $amount,
+                'description' => "Salary advance to {$staff->full_name}".(! empty($validated['notes']) ? " ({$validated['notes']})" : '')." via {$method}",
+            ]);
+
+            // Save Advance Record
+            $advance = SalaryAdvance::create([
+                'staff_profile_id' => $staff->id,
+                'advance_date' => $advanceDate,
+                'amount' => $amount,
+                'payment_method' => $method,
+                'status' => 'pending',
+                'expense_id' => $expense->id,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Salary advance of ₹'.number_format($amount, 2)." issued to '{$staff->full_name}' and posted to Expenses Ledger!",
+                'data' => $advance,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Failed to record salary advance: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record salary advance: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Salary Advance Record.
+     */
+    public function deleteAdvance(Request $request, $id)
+    {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_delete')) {
+            return $res;
+        }
+
+        try {
+            $advance = SalaryAdvance::findOrFail($id);
+            if ($advance->expense_id) {
+                Expense::where('id', $advance->expense_id)->delete();
+            }
+            $advance->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Salary advance record deleted successfully.',
+            ]);
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete salary advance record.',
             ], 500);
         }
     }
@@ -338,7 +473,9 @@ class EmployeeController extends Controller
      */
     public function payPayroll(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'labor_log_ids' => 'required|array|min:1',
@@ -347,15 +484,17 @@ class EmployeeController extends Controller
 
         try {
             $count = $this->payrollService->markWagesAsPaid($validated['labor_log_ids']);
+
             return response()->json([
                 'success' => true,
-                'message' => "Successfully paid compiled wages for {$count} logged runs!"
+                'message' => "Successfully paid compiled wages for {$count} logged runs!",
             ]);
         } catch (Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to pay payroll: ' . $e->getMessage());
+            Log::error('Failed to pay payroll: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to process payroll payment. Please try again.']
+                'errors' => ['Failed to process payroll payment. Please try again.'],
             ], 500);
         }
     }

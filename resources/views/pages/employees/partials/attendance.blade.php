@@ -16,7 +16,7 @@
             </div>
         </div>
 
-        <form action="{{ route('employees.attendance.store') }}" method="POST" class="ajax-form space-y-4" id="attendanceForm" novalidate>
+        <form action="{{ route('employees.attendance.store') }}" method="POST" class="ajax-form space-y-4" id="attendanceForm" data-redirect="/employees?tab=attendance" novalidate>
             @csrf
             <input type="hidden" name="date" id="attendanceFormDate" value="{{ $selectedDate }}">
 

@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Production;
 
+use App\Exceptions\InsufficientStockException;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\ProductionLog;
 use App\Models\Product;
+use App\Models\ProductionLog;
+use App\Models\Setting;
 use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\ProductionService;
-use App\Exceptions\InsufficientStockException;
+use App\Services\RolePermissionService;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductionController extends Controller
 {
@@ -30,6 +33,7 @@ class ProductionController extends Controller
         $finishedGoods = Product::all();
         $staffProfiles = StaffProfile::all();
         $users = User::all();
+
         return view('pages.production', compact('productionLogs', 'finishedGoods', 'staffProfiles', 'users'));
     }
 
@@ -38,10 +42,21 @@ class ProductionController extends Controller
      */
     public function logProduction(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
+
+        // Block production logging when stock management is OFF
+        $trackStock = Setting::isStockEnabled();
+        if (! $trackStock) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Production logging is disabled because Stock Management is turned OFF. Enable it from Settings → Active Modules.',
+            ], 422);
+        }
 
         $recordedBy = $request->input('recorded_by', auth()->id());
-        if (!$recordedBy) {
+        if (! $recordedBy) {
             $firstUser = User::first();
             $recordedBy = $firstUser ? $firstUser->id : 1;
         }
@@ -62,15 +77,15 @@ class ProductionController extends Controller
             $logs = [];
 
             try {
-                \Illuminate\Support\Facades\DB::beginTransaction();
+                DB::beginTransaction();
 
                 $laborData = [];
-                if (!empty($validated['labor'])) {
+                if (! empty($validated['labor'])) {
                     foreach ($validated['labor'] as $profileId => $units) {
                         if ($units > 0) {
                             $laborData[] = [
                                 'staff_profile_id' => $profileId,
-                                'units_completed' => (int) $units
+                                'units_completed' => (int) $units,
                             ];
                         }
                     }
@@ -94,26 +109,31 @@ class ProductionController extends Controller
                     $loggedCount++;
                 }
 
-                \Illuminate\Support\Facades\DB::commit();
+                DB::commit();
+
+                $stockMsg = Setting::isStockEnabled()
+                    ? ' Stock auto-deductions processed.' : '';
 
                 return response()->json([
                     'success' => true,
-                    'message' => "Successfully logged {$loggedCount} production run(s)! Stock auto-deductions processed.",
-                    'data' => $logs
+                    'message' => "Successfully logged {$loggedCount} production run(s)!{$stockMsg}",
+                    'data' => $logs,
                 ]);
             } catch (InsufficientStockException $e) {
-                \Illuminate\Support\Facades\DB::rollBack();
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
                     'message' => $e->getMessage(),
-                    'errors' => ['items' => [$e->getMessage()]]
+                    'errors' => ['items' => [$e->getMessage()]],
                 ], 422);
             } catch (Exception $e) {
-                \Illuminate\Support\Facades\DB::rollBack();
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Execution failed: ' . $e->getMessage(),
-                    'errors' => ['items' => ['Execution failed: ' . $e->getMessage()]]
+                    'message' => 'Execution failed: '.$e->getMessage(),
+                    'errors' => ['items' => ['Execution failed: '.$e->getMessage()]],
                 ], 422);
             }
         }
@@ -141,18 +161,18 @@ class ProductionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An identical production log already exists for this product, date, and quantity!',
-                'errors' => ['quantity_manufactured' => ['An identical production log already exists for this product, date, and quantity!']]
+                'errors' => ['quantity_manufactured' => ['An identical production log already exists for this product, date, and quantity!']],
             ], 422);
         }
 
         try {
             $laborData = [];
-            if (!empty($validated['labor'])) {
+            if (! empty($validated['labor'])) {
                 foreach ($validated['labor'] as $profileId => $units) {
                     if ($units > 0) {
                         $laborData[] = [
                             'staff_profile_id' => $profileId,
-                            'units_completed' => (int) $units
+                            'units_completed' => (int) $units,
                         ];
                     }
                 }
@@ -167,26 +187,29 @@ class ProductionController extends Controller
                 $laborData
             );
 
+            $stockMsg = Setting::isStockEnabled()
+                ? ' Stock auto-deductions processed!' : '';
+
             return response()->json([
                 'success' => true,
-                'message' => "Production batch #{$log->id} logged. Stock auto-deductions processed!",
-                'data' => $log
+                'message' => "Production batch #{$log->id} logged.{$stockMsg}",
+                'data' => $log,
             ]);
         } catch (InsufficientStockException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
                 'errors' => [
-                    'quantity_manufactured' => [$e->getMessage()]
-                ]
+                    'quantity_manufactured' => [$e->getMessage()],
+                ],
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Execution failed: ' . $e->getMessage(),
+                'message' => 'Execution failed: '.$e->getMessage(),
                 'errors' => [
-                    'quantity_manufactured' => ['Execution failed: ' . $e->getMessage()]
-                ]
+                    'quantity_manufactured' => ['Execution failed: '.$e->getMessage()],
+                ],
             ], 422);
         }
     }
@@ -196,7 +219,9 @@ class ProductionController extends Controller
      */
     public function updateProductionLog(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $log = ProductionLog::findOrFail($id);
 
@@ -207,8 +232,9 @@ class ProductionController extends Controller
             'production_date' => 'required|date',
         ]);
 
-        // Adjust finished product stock difference
-        if ($log->product_id == $validated['product_id']) {
+        // Adjust finished product stock difference (only if stock management is enabled)
+        $trackStock = Setting::isStockEnabled();
+        if ($trackStock && $log->product_id == $validated['product_id']) {
             $diff = $validated['quantity_manufactured'] - $log->quantity_manufactured;
             if ($diff != 0) {
                 $product = Product::find($validated['product_id']);
@@ -224,7 +250,7 @@ class ProductionController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Production batch #{$log->id} updated successfully!",
-            'data' => $log
+            'data' => $log,
         ]);
     }
 
@@ -233,16 +259,21 @@ class ProductionController extends Controller
      */
     public function deleteProductionLog($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $log = ProductionLog::findOrFail($id);
         $batchId = $log->id;
 
-        // Deduct manufactured qty from product stock upon deletion
-        $product = Product::find($log->product_id);
-        if ($product) {
-            $product->current_stock = max(0, $product->current_stock - $log->quantity_manufactured);
-            $product->save();
+        // Deduct manufactured qty from product stock upon deletion (only if stock management is enabled)
+        $trackStock = Setting::isStockEnabled();
+        if ($trackStock) {
+            $product = Product::find($log->product_id);
+            if ($product) {
+                $product->current_stock = max(0, $product->current_stock - $log->quantity_manufactured);
+                $product->save();
+            }
         }
 
         $log->laborLogs()->delete();
@@ -250,7 +281,7 @@ class ProductionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Production batch #{$batchId} deleted successfully!"
+            'message' => "Production batch #{$batchId} deleted successfully!",
         ]);
     }
 }

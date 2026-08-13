@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Services\AuditLogService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class ActivityLogController extends Controller
 {
@@ -17,7 +17,7 @@ class ActivityLogController extends Controller
     private function authorizeSuperAdmin()
     {
         $user = Auth::user();
-        if (!$user || $user->role !== 'super_admin') {
+        if (! $user || $user->role !== 'super_admin') {
             abort(403, 'Unauthorized access. Activity Audit Logs are restricted exclusively to Super Admins.');
         }
     }
@@ -33,13 +33,13 @@ class ActivityLogController extends Controller
 
         // Search Filter
         if ($request->filled('q')) {
-            $search = '%' . trim($request->q) . '%';
+            $search = '%'.trim($request->q).'%';
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', $search)
-                  ->orWhere('user_name', 'like', $search)
-                  ->orWhere('module', 'like', $search)
-                  ->orWhere('action', 'like', $search)
-                  ->orWhere('ip_address', 'like', $search);
+                    ->orWhere('user_name', 'like', $search)
+                    ->orWhere('module', 'like', $search)
+                    ->orWhere('action', 'like', $search)
+                    ->orWhere('ip_address', 'like', $search);
             });
         }
 
@@ -98,12 +98,12 @@ class ActivityLogController extends Controller
         $query = ActivityLog::query()->orderBy('created_at', 'desc');
 
         if ($request->filled('q')) {
-            $search = '%' . trim($request->q) . '%';
+            $search = '%'.trim($request->q).'%';
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', $search)
-                  ->orWhere('user_name', 'like', $search)
-                  ->orWhere('module', 'like', $search)
-                  ->orWhere('action', 'like', $search);
+                    ->orWhere('user_name', 'like', $search)
+                    ->orWhere('module', 'like', $search)
+                    ->orWhere('action', 'like', $search);
             });
         }
         if ($request->filled('module')) {
@@ -118,7 +118,7 @@ class ActivityLogController extends Controller
 
         $logs = $query->limit(5000)->get();
 
-        $filename = 'audit_logs_' . date('Ymd_His') . '.csv';
+        $filename = 'audit_logs_'.date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -139,7 +139,7 @@ class ActivityLogController extends Controller
                     strtoupper($log->action),
                     $log->description,
                     $log->ip_address,
-                    $log->user_agent
+                    $log->user_agent,
                 ]);
             }
             fclose($file);
@@ -189,7 +189,7 @@ class ActivityLogController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $description,
-                'count' => $count
+                'count' => $count,
             ]);
         }
 

@@ -90,7 +90,15 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 2. Click **+ Add New Client** to enter the client company name, GSTIN (e.g., `24AAACT2727Q1ZW`), and state code.
 3. Click **+ Add Plant Location** under that client to specify the delivery factory address.
 
-#### Step 4.2: Generate a GST Tax Invoice (Page: `Invoice Ledger`)
+#### Step 4.2: Create and Manage Sales Orders (Page: `Sales Orders`)
+1. Go to **Sales Orders** in the sidebar.
+2. Click **+ Create Sales Order**.
+3. Select **Client**, **Delivery Plant**, and fill in the PO Number, Order Date, and Target Delivery Date.
+4. Add products, select UOM, specify quantity and unit price, and click **Save Sales Order**.
+5. **Print Job Card**: Click the **Job Card** button next to any order to view and print the A4 Factory Job Card / Work Order. This card displays the client, shipping destination, finished goods availability, and calculated raw material requirements (MRP) for production.
+6. **Stock Check & Auto-Promote**: The system automatically checks inventory. If the required finished goods are in stock, the order status will auto-promote to `READY FOR DISPATCH`!
+
+#### Step 4.3: Generate a GST Tax Invoice (Page: `Invoice Ledger`)
 1. Click **Invoice Ledger** in the sidebar.
 2. Click **+ Direct Invoice Itemizer**.
 3. Select **Client** and **Shipping Plant Site**.
@@ -101,11 +109,25 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
    - **Inter-State (Outside Gujarat)**: 18% IGST.
 7. Click **Generate & Save Invoice**.
 
-#### Step 4.3: Collect Payment & Print Invoice
+#### Step 4.4: Collect Payment & Print Invoice
 - Click **Record Payment** (green button) on any unpaid invoice row to enter payment mode (`NEFT/RTGS`, `UPI`, `Cheque`, `Cash`) and received amount.
 - Click **Print / PDF** (blue button) to view, download, or print the formatted GST Tax Invoice.
 
+
 ---
+
+### 4.5. Salary Advances & Stock Audit Variance
+
+#### Pay Salary Advance (Page: `Employees`)
+1. Go to **Employees** in the sidebar.
+2. Click **+ Record Salary Advance**.
+3. Select Employee, enter **Advance Amount (₹)**, Payment Method (`Cash`, `Bank Transfer`, `UPI`), and Date.
+4. Click **Save Advance**. The advance amount will be automatically deducted when disbursing monthly salaries.
+
+#### Physical Stock Audit & Variance Adjustment (Page: `Raw Materials`)
+1. Go to **Raw Materials** in the sidebar.
+2. Click **Adjust Stock** next to any raw material item.
+3. Enter the **Actual Physical Verified Stock**, select a reason (`Physical Audit`, `Waste/Damage`, `Correction`), and save. The system logs the variance (+/-) in audit history.
 
 ### 5. Financial Audit & GST Tax Reports
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\RolePermissionService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -39,6 +40,7 @@ class User extends Authenticatable
         if (in_array($this->role, ['super_admin', 'admin'])) {
             return true;
         }
+
         return (bool) $this->is_active && ($this->status === 'active' || $this->status === 'approved');
     }
 
@@ -63,7 +65,7 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permissionKey): bool
     {
-        return \App\Services\RolePermissionService::userHasPermission($this, $permissionKey);
+        return RolePermissionService::userHasPermission($this, $permissionKey);
     }
 
     /**

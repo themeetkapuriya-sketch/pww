@@ -15,11 +15,11 @@ class StaffProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'                  => $this->id,
-            'user_id'             => $this->user_id,
-            'full_name'           => $this->full_name,
-            'wage_type'           => $this->wage_type,
-            'monthly_salary'      => (float) $this->monthly_salary,
+            'id' => $this->id,
+            'user_id' => $this->user_id,
+            'full_name' => $this->full_name,
+            'wage_type' => $this->wage_type,
+            'monthly_salary' => (float) $this->monthly_salary,
             'piece_rate_per_unit' => (float) $this->piece_rate_per_unit,
         ];
     }

@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
-use Illuminate\Http\Request;
+use App\Http\Resources\SalesOrderResource;
+use App\Models\Client;
+use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
-use App\Models\Client;
-use App\Models\ClientPlant;
-use App\Models\Product;
+use App\Models\Setting;
+use App\Services\RolePermissionService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -23,7 +25,7 @@ class OrderController extends Controller
 
         $query = SalesOrder::with(['client', 'plant', 'items.product']);
 
-        if ($status !== 'all' && !empty($status)) {
+        if ($status !== 'all' && ! empty($status)) {
             if ($status === 'dispatched') {
                 $query->whereIn('status', ['dispatched', 'completed']);
             } else {
@@ -52,7 +54,9 @@ class OrderController extends Controller
      */
     public function storeOrder(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
@@ -106,7 +110,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Sales Order '{$order->order_number}' created successfully!",
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -115,14 +119,16 @@ class OrderController extends Controller
      */
     public function updateOrder(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $order = SalesOrder::findOrFail($id);
 
         if (in_array($order->status, ['dispatched', 'completed'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Dispatched/Completed Sales Orders cannot be edited.'
+                'message' => 'Dispatched/Completed Sales Orders cannot be edited.',
             ], 422);
         }
 
@@ -179,7 +185,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Sales Order '{$order->order_number}' updated successfully!",
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -188,14 +194,16 @@ class OrderController extends Controller
      */
     public function updateOrderStatus(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $order = SalesOrder::findOrFail($id);
 
         if (in_array($order->status, ['dispatched', 'completed'])) {
             return response()->json([
                 'success' => false,
-                'message' => "Dispatched / Completed orders cannot be reverted to pending or modified."
+                'message' => 'Dispatched / Completed orders cannot be reverted to pending or modified.',
             ], 422);
         }
 
@@ -205,23 +213,25 @@ class OrderController extends Controller
 
         $requestedStatus = $validated['status'];
 
-        if (in_array($requestedStatus, ['ready_for_dispatch', 'dispatched', 'completed'])) {
+        $trackStock = Setting::isStockEnabled();
+
+        if ($trackStock && in_array($requestedStatus, ['ready_for_dispatch', 'dispatched', 'completed'])) {
             $deficits = $order->getStockDeficitDetails();
-            if (!empty($deficits)) {
-                $deficitMsgs = array_map(function($d) {
+            if (! empty($deficits)) {
+                $deficitMsgs = array_map(function ($d) {
                     return "'{$d['product_name']}' (Requires {$d['required_quantity']}, Current Stock: {$d['current_stock']} - Short by {$d['missing_quantity']})";
                 }, $deficits);
-                
+
                 return response()->json([
                     'success' => false,
-                    'message' => "Insufficient stock to mark as " . strtoupper(str_replace('_', ' ', $requestedStatus)) . ". Shortage: " . implode('; ', $deficitMsgs)
+                    'message' => 'Insufficient stock to mark as '.strtoupper(str_replace('_', ' ', $requestedStatus)).'. Shortage: '.implode('; ', $deficitMsgs),
                 ], 422);
             }
         }
 
         $order->update(['status' => $requestedStatus]);
 
-        if (in_array($requestedStatus, ['dispatched', 'completed'])) {
+        if ($trackStock && in_array($requestedStatus, ['dispatched', 'completed'])) {
             foreach ($order->items as $item) {
                 if ($item->product) {
                     $item->product->decrement('current_stock', $item->quantity);
@@ -243,7 +253,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -252,7 +262,9 @@ class OrderController extends Controller
      */
     public function deleteOrder($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $order = SalesOrder::findOrFail($id);
         $orderNum = $order->order_number;
@@ -264,7 +276,29 @@ class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Sales Order '{$orderNum}' deleted successfully!"
+            'message' => "Sales Order '{$orderNum}' deleted successfully!",
         ]);
+    }
+
+    /**
+     * Get 360° Order Details with MRP and FG Stock Status (AJAX API).
+     */
+    public function orderDetails($id)
+    {
+        $order = SalesOrder::with(['client', 'plant', 'items.product.billOfMaterials.rawMaterial'])->findOrFail($id);
+
+        return new SalesOrderResource($order);
+    }
+
+    /**
+     * Display printable Factory Job Card / Work Order (A4 view).
+     */
+    public function showJobCard($id)
+    {
+        $order = SalesOrder::with(['client', 'plant', 'items.product.billOfMaterials.rawMaterial'])->findOrFail($id);
+        $mrpData = $order->calculateRawMaterialRequirements();
+        $fgStatus = $order->getFinishedGoodsStockStatus();
+
+        return view('pages.orders.job_card', compact('order', 'mrpData', 'fgStatus'));
     }
 }

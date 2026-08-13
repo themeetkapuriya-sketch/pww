@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 use Throwable;
 
 class BackupService
@@ -16,7 +18,7 @@ class BackupService
     public function __construct()
     {
         $this->backupDirectory = env('BACKUP_PATH', storage_path('app/backups'));
-        if (!File::exists($this->backupDirectory)) {
+        if (! File::exists($this->backupDirectory)) {
             File::makeDirectory($this->backupDirectory, 0755, true);
         }
     }
@@ -36,8 +38,8 @@ class BackupService
     {
         $driver = DB::connection()->getDriverName();
         $sqlOutput = "-- PWW ERP Full Database Backup\n";
-        $sqlOutput .= "-- Generated: " . Carbon::now()->toDateTimeString() . "\n";
-        $sqlOutput .= "-- Database: " . DB::getDatabaseName() . "\n\n";
+        $sqlOutput .= '-- Generated: '.Carbon::now()->toDateTimeString()."\n";
+        $sqlOutput .= '-- Database: '.DB::getDatabaseName()."\n\n";
         $sqlOutput .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
         $tables = $this->getDatabaseTables($driver);
@@ -45,7 +47,7 @@ class BackupService
         foreach ($tables as $tableName) {
             $createTableSql = $this->getCreateTableSql($driver, $tableName);
             $sqlOutput .= "DROP TABLE IF EXISTS `{$tableName}`;\n";
-            $sqlOutput .= $createTableSql . ";\n\n";
+            $sqlOutput .= $createTableSql.";\n\n";
 
             $rows = DB::table($tableName)->get();
             if ($rows->count() > 0) {
@@ -58,13 +60,14 @@ class BackupService
                                 return 'NULL';
                             }
                             if ($driver === 'sqlite') {
-                                return "'" . str_replace("'", "''", $value) . "'";
+                                return "'".str_replace("'", "''", $value)."'";
                             }
+
                             return DB::connection()->getPdo()->quote($value);
                         }, (array) $row);
-                        $valueStrings[] = "(" . implode(", ", $values) . ")";
+                        $valueStrings[] = '('.implode(', ', $values).')';
                     }
-                    $insertSql .= implode(",\n", $valueStrings) . ";\n";
+                    $insertSql .= implode(",\n", $valueStrings).";\n";
                     $sqlOutput .= $insertSql;
                 }
                 $sqlOutput .= "\n";
@@ -72,6 +75,7 @@ class BackupService
         }
 
         $sqlOutput .= "SET FOREIGN_KEY_CHECKS=1;\n";
+
         return $sqlOutput;
     }
 
@@ -86,9 +90,9 @@ class BackupService
         $to = $dateRange['end'];
 
         $sqlOutput = "-- PWW ERP Filtered Data Backup\n";
-        $sqlOutput .= "-- Period Type: " . strtoupper($periodType) . "\n";
-        $sqlOutput .= "-- Range: " . $from->toDateString() . " to " . $to->toDateString() . "\n";
-        $sqlOutput .= "-- Generated: " . Carbon::now()->toDateTimeString() . "\n\n";
+        $sqlOutput .= '-- Period Type: '.strtoupper($periodType)."\n";
+        $sqlOutput .= '-- Range: '.$from->toDateString().' to '.$to->toDateString()."\n";
+        $sqlOutput .= '-- Generated: '.Carbon::now()->toDateTimeString()."\n\n";
         $sqlOutput .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
         $tables = $this->getDatabaseTables($driver);
@@ -101,7 +105,7 @@ class BackupService
 
             $createTableSql = $this->getCreateTableSql($driver, $tableName);
             $sqlOutput .= "DROP TABLE IF EXISTS `{$tableName}`;\n";
-            $sqlOutput .= $createTableSql . ";\n\n";
+            $sqlOutput .= $createTableSql.";\n\n";
 
             $query = DB::table($tableName);
 
@@ -135,13 +139,14 @@ class BackupService
                                 return 'NULL';
                             }
                             if ($driver === 'sqlite') {
-                                return "'" . str_replace("'", "''", $value) . "'";
+                                return "'".str_replace("'", "''", $value)."'";
                             }
+
                             return DB::connection()->getPdo()->quote($value);
                         }, (array) $row);
-                        $valueStrings[] = "(" . implode(", ", $values) . ")";
+                        $valueStrings[] = '('.implode(', ', $values).')';
                     }
-                    $insertSql .= implode(",\n", $valueStrings) . ";\n";
+                    $insertSql .= implode(",\n", $valueStrings).";\n";
                     $sqlOutput .= $insertSql;
                 }
                 $sqlOutput .= "\n";
@@ -152,7 +157,7 @@ class BackupService
 
         return [
             'content' => $sqlOutput,
-            'filename' => "pww_backup_{$periodType}_" . $from->format('Ymd') . "_to_" . $to->format('Ymd') . ".sql",
+            'filename' => "pww_backup_{$periodType}_".$from->format('Ymd').'_to_'.$to->format('Ymd').'.sql',
             'start_date' => $from->toDateString(),
             'end_date' => $to->toDateString(),
         ];
@@ -165,12 +170,14 @@ class BackupService
     {
         if ($driver === 'sqlite') {
             $rows = DB::select("SELECT name AS table_name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-            return array_map(fn($r) => $r->table_name, $rows);
+
+            return array_map(fn ($r) => $r->table_name, $rows);
         }
 
-        $dbNameKey = 'Tables_in_' . DB::getDatabaseName();
+        $dbNameKey = 'Tables_in_'.DB::getDatabaseName();
         $rows = DB::select('SHOW TABLES');
-        return array_map(fn($r) => $r->$dbNameKey, $rows);
+
+        return array_map(fn ($r) => $r->$dbNameKey, $rows);
     }
 
     /**
@@ -180,10 +187,12 @@ class BackupService
     {
         if ($driver === 'sqlite') {
             $stmt = DB::selectOne("SELECT sql FROM sqlite_master WHERE type='table' AND name = ?", [$tableName]);
+
             return $stmt ? $stmt->sql : "CREATE TABLE `{$tableName}` (id INTEGER PRIMARY KEY)";
         }
 
         $stmt = DB::selectOne("SHOW CREATE TABLE `{$tableName}`");
+
         return $stmt->{'Create Table'} ?? "CREATE TABLE `{$tableName}`";
     }
 
@@ -200,7 +209,8 @@ class BackupService
                 ];
 
             case 'specific_month':
-                $date = $month ? Carbon::parse($month . '-01') : Carbon::now();
+                $date = $month ? Carbon::parse($month.'-01') : Carbon::now();
+
                 return [
                     'start' => $date->copy()->startOfMonth(),
                     'end' => $date->copy()->endOfMonth(),
@@ -212,6 +222,7 @@ class BackupService
                 if (Carbon::now()->month < 4 && empty($financialYear)) {
                     $startYear--;
                 }
+
                 return [
                     'start' => Carbon::createFromDate($startYear, 4, 1)->startOfDay(),
                     'end' => Carbon::createFromDate($startYear + 1, 3, 31)->endOfDay(),
@@ -220,6 +231,7 @@ class BackupService
             case 'custom':
                 $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->subMonth()->startOfDay();
                 $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
                 return [
                     'start' => $start,
                     'end' => $end,
@@ -239,14 +251,14 @@ class BackupService
      */
     public function ensureAutomaticBackupExists(): string
     {
-        $enabled = \App\Models\Setting::get('auto_backup_enabled', 'true') === 'true';
-        if (!$enabled) {
+        $enabled = Setting::get('auto_backup_enabled', 'true') === 'true';
+        if (! $enabled) {
             return '';
         }
 
-        $frequency = \App\Models\Setting::get('auto_backup_frequency', 'monthly');
-        $timeStr = \App\Models\Setting::get('auto_backup_time', '18:00');
-        $dayName = \App\Models\Setting::get('auto_backup_day', 'Wednesday');
+        $frequency = Setting::get('auto_backup_frequency', 'monthly');
+        $timeStr = Setting::get('auto_backup_time', '18:00');
+        $dayName = Setting::get('auto_backup_day', 'Wednesday');
 
         $now = Carbon::now();
         $timeParts = explode(':', $timeStr);
@@ -256,28 +268,29 @@ class BackupService
         if ($frequency === 'daily') {
             $scheduledToday = $now->copy()->setTime($targetHour, $targetMin, 0);
             $targetDate = $now->greaterThanOrEqualTo($scheduledToday) ? $now->copy() : $now->copy()->subDay();
-            $filename = "auto_backup_daily_" . $targetDate->format('Y_m_d') . ".sql";
+            $filename = 'auto_backup_daily_'.$targetDate->format('Y_m_d').'.sql';
         } elseif ($frequency === 'weekly') {
             $daysOfWeek = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
             $targetDayIndex = $daysOfWeek[$dayName] ?? 3;
 
             $thisWeekTarget = $now->copy()->startOfWeek(Carbon::SUNDAY)->addDays($targetDayIndex)->setTime($targetHour, $targetMin, 0);
             $targetDate = $now->greaterThanOrEqualTo($thisWeekTarget) ? $thisWeekTarget : $thisWeekTarget->copy()->subWeek();
-            $filename = "auto_backup_weekly_" . $targetDate->format('Y_m_d') . ".sql";
+            $filename = 'auto_backup_weekly_'.$targetDate->format('Y_m_d').'.sql';
         } else {
             $thisMonthTarget = $now->copy()->startOfMonth()->setTime($targetHour, $targetMin, 0);
             $targetDate = $now->greaterThanOrEqualTo($thisMonthTarget) ? $now->copy() : $now->copy()->subMonth();
-            $filename = "auto_backup_monthly_" . $targetDate->format('Y_m') . ".sql";
+            $filename = 'auto_backup_monthly_'.$targetDate->format('Y_m').'.sql';
         }
 
-        $filePath = $this->backupDirectory . DIRECTORY_SEPARATOR . $filename;
+        $filePath = $this->backupDirectory.DIRECTORY_SEPARATOR.$filename;
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             $sqlContent = $this->generateFullSqlDump();
             File::put($filePath, $sqlContent);
             Log::info("Automatic Catch-Up Backup created successfully ({$frequency}): {$filename}");
             $this->sendBackupEmailNotification($filePath, $filename);
             $this->cleanOldBackups();
+
             return $filePath;
         }
 
@@ -290,31 +303,33 @@ class BackupService
     public function sendBackupEmailNotification(string $filePath, string $filename): bool
     {
         try {
-            $sendEmail = \App\Models\Setting::get('auto_email_backup', 'true') === 'true';
-            if (!$sendEmail) {
+            $sendEmail = Setting::get('auto_email_backup', 'true') === 'true';
+            if (! $sendEmail) {
                 return false;
             }
 
-            $toEmail = \App\Models\Setting::get('business_email', 'vekariyah@gmail.com');
+            $toEmail = Setting::get('business_email', 'vekariyah@gmail.com');
             if (empty($toEmail)) {
                 return false;
             }
 
-            $businessName = \App\Models\Setting::get('business_name', 'Praful Welding Works');
-            
-            \Illuminate\Support\Facades\Mail::raw(
+            $businessName = Setting::get('business_name', 'Praful Welding Works');
+
+            Mail::raw(
                 "Hello,\n\nAn automated database backup snapshot '{$filename}' has been generated for {$businessName}.\n\nThe backup SQL file is attached to this email for off-site data safety.\n\nBest regards,\n{$businessName} ERP System",
                 function ($message) use ($toEmail, $businessName, $filePath, $filename) {
                     $message->to($toEmail)
-                            ->subject("📦 Automated Database Backup: {$filename} - {$businessName}")
-                            ->attach($filePath, ['as' => $filename, 'mime' => 'text/plain']);
+                        ->subject("📦 Automated Database Backup: {$filename} - {$businessName}")
+                        ->attach($filePath, ['as' => $filename, 'mime' => 'text/plain']);
                 }
             );
 
             Log::info("Backup email sent to {$toEmail} with attachment {$filename}");
+
             return true;
         } catch (Throwable $e) {
-            Log::error("Failed to send backup email attachment: " . $e->getMessage());
+            Log::error('Failed to send backup email attachment: '.$e->getMessage());
+
             return false;
         }
     }
@@ -324,7 +339,7 @@ class BackupService
      */
     public function cleanOldBackups(): int
     {
-        $retention = \App\Models\Setting::get('auto_backup_retention', '3_months');
+        $retention = Setting::get('auto_backup_retention', '3_months');
         if ($retention === 'never') {
             return 0;
         }
@@ -350,7 +365,7 @@ class BackupService
         }
 
         // Sort descending by modified time (newest first)
-        usort($sqlFiles, fn($a, $b) => $b['mtime'] <=> $a['mtime']);
+        usort($sqlFiles, fn ($a, $b) => $b['mtime'] <=> $a['mtime']);
 
         if (count($sqlFiles) <= 1) {
             return 0; // Always keep at least 1 latest backup intact
@@ -365,7 +380,7 @@ class BackupService
                     $deletedCount++;
                     Log::info("Auto-Purged old backup file ({$retention}): {$sqlFiles[$i]['name']}");
                 } catch (Throwable $e) {
-                    Log::error("Failed to auto-purge backup file {$sqlFiles[$i]['name']}: " . $e->getMessage());
+                    Log::error("Failed to auto-purge backup file {$sqlFiles[$i]['name']}: ".$e->getMessage());
                 }
             }
         }
@@ -378,19 +393,19 @@ class BackupService
      */
     public function restoreFromSqlFile(string $filePath): void
     {
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             throw new \Exception("Backup file does not exist at: {$filePath}");
         }
 
         $sql = File::get($filePath);
 
         if (empty(trim($sql))) {
-            throw new \Exception("Backup file is empty or invalid.");
+            throw new \Exception('Backup file is empty or invalid.');
         }
 
         // Create emergency safety snapshot before restore
-        $safetyFilename = "pre_restore_safety_" . Carbon::now()->format('Ymd_His') . ".sql";
-        File::put($this->backupDirectory . DIRECTORY_SEPARATOR . $safetyFilename, $this->generateFullSqlDump());
+        $safetyFilename = 'pre_restore_safety_'.Carbon::now()->format('Ymd_His').'.sql';
+        File::put($this->backupDirectory.DIRECTORY_SEPARATOR.$safetyFilename, $this->generateFullSqlDump());
 
         $driver = DB::connection()->getDriverName();
         try {
@@ -403,7 +418,7 @@ class BackupService
             }
             Log::info("Database restored successfully from file: {$filePath}");
         } catch (Throwable $e) {
-            Log::error("Database Restoration Failed: " . $e->getMessage());
+            Log::error('Database Restoration Failed: '.$e->getMessage());
             throw $e;
         }
     }
@@ -422,9 +437,9 @@ class BackupService
             if ($file->getExtension() === 'sql') {
                 $filename = $file->getFilename();
                 $sizeBytes = $file->getSize();
-                $sizeFormatted = $sizeBytes >= 1048576 
-                    ? number_format($sizeBytes / 1048576, 2) . ' MB' 
-                    : number_format($sizeBytes / 1024, 2) . ' KB';
+                $sizeFormatted = $sizeBytes >= 1048576
+                    ? number_format($sizeBytes / 1048576, 2).' MB'
+                    : number_format($sizeBytes / 1024, 2).' KB';
 
                 $type = 'Manual Full';
                 if (str_contains($filename, 'auto_backup_monthly')) {
@@ -450,7 +465,7 @@ class BackupService
             }
         }
 
-        usort($backups, fn($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        usort($backups, fn ($a, $b) => $b['timestamp'] <=> $a['timestamp']);
 
         return $backups;
     }

@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Purchases;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\RawMaterial;
-use App\Models\Payment;
+use App\Models\Setting;
+use App\Services\AuditLogService;
+use App\Services\RolePermissionService;
+use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class PurchaseController extends Controller
 {
@@ -20,6 +23,7 @@ class PurchaseController extends Controller
     {
         $purchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->paginate(20);
         $rawMaterials = RawMaterial::orderBy('material_name')->get();
+
         return view('pages.purchases', compact('purchases', 'rawMaterials'));
     }
 
@@ -28,7 +32,9 @@ class PurchaseController extends Controller
      */
     public function storePurchase(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
@@ -70,7 +76,7 @@ class PurchaseController extends Controller
             $validated['quantity'] = 1.0;
         }
 
-        if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+        if ($validated['purchase_type'] === 'raw_material' && ! empty($validated['raw_material_id'])) {
             $material = RawMaterial::find($validated['raw_material_id']);
             if ($material) {
                 if (empty($validated['item_name'])) {
@@ -97,8 +103,8 @@ class PurchaseController extends Controller
             ->where('purchase_type', $validated['purchase_type'])
             ->where('total_amount', $totalAmt)
             ->whereDate('purchase_date', $validated['purchase_date'])
-            ->where(function($q) use ($validated) {
-                if (!empty($validated['bill_number'])) {
+            ->where(function ($q) use ($validated) {
+                if (! empty($validated['bill_number'])) {
                     $q->where('bill_number', $validated['bill_number']);
                 }
             })
@@ -108,15 +114,15 @@ class PurchaseController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An identical purchase entry already exists for this vendor, date, and amount!',
-                'errors' => ['vendor_name' => ['An identical purchase entry already exists for this vendor, date, and amount!']]
+                'errors' => ['vendor_name' => ['An identical purchase entry already exists for this vendor, date, and amount!']],
             ], 422);
         }
 
-        $purchase = DB::transaction(function() use ($validated) {
+        $purchase = DB::transaction(function () use ($validated) {
             $pur = Purchase::create($validated);
 
-            $trackStock = in_array(strtolower((string) \App\Models\Setting::get('track_stock', 'true')), ['true', '1', 'yes', 'on'], true);
-            if ($trackStock && $validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+            $trackStock = Setting::isStockEnabled();
+            if ($trackStock && $validated['purchase_type'] === 'raw_material' && ! empty($validated['raw_material_id'])) {
                 $material = RawMaterial::find($validated['raw_material_id']);
                 if ($material) {
                     $material->current_stock += (float) $validated['quantity'];
@@ -127,12 +133,15 @@ class PurchaseController extends Controller
             return $pur;
         });
 
-        \App\Services\AuditLogService::log('Purchases', 'created', "Logged purchase from '{$purchase->vendor_name}' for '{$purchase->item_name}' (Amount: ₹" . number_format($purchase->total_amount, 2) . ")");
+        AuditLogService::log('Purchases', 'created', "Logged purchase from '{$purchase->vendor_name}' for '{$purchase->item_name}' (Amount: ₹".number_format($purchase->total_amount, 2).')');
+
+        $stockMsg = Setting::isStockEnabled()
+            ? ' Stock & accounting updated.' : '';
 
         return response()->json([
             'success' => true,
-            'message' => "Purchase record '{$purchase->item_name}' logged successfully! Stock & accounting updated.",
-            'data' => $purchase
+            'message' => "Purchase record '{$purchase->item_name}' logged successfully!{$stockMsg}",
+            'data' => $purchase,
         ]);
     }
 
@@ -141,7 +150,9 @@ class PurchaseController extends Controller
      */
     public function updatePurchase(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'bill_number' => 'nullable|string|max:100',
@@ -183,7 +194,7 @@ class PurchaseController extends Controller
             $validated['quantity'] = 1.0;
         }
 
-        if ($validated['purchase_type'] === 'raw_material' && !empty($validated['raw_material_id'])) {
+        if ($validated['purchase_type'] === 'raw_material' && ! empty($validated['raw_material_id'])) {
             $material = RawMaterial::find($validated['raw_material_id']);
             if ($material) {
                 if (empty($validated['item_name'])) {
@@ -216,14 +227,15 @@ class PurchaseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Purchase entry updated successfully!",
-                'data' => $purchase
+                'message' => 'Purchase entry updated successfully!',
+                'data' => $purchase,
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to update purchase: ' . $e->getMessage());
+            Log::error('Failed to update purchase: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update purchase. Please try again.'
+                'message' => 'Failed to update purchase. Please try again.',
             ], 500);
         }
     }
@@ -233,7 +245,9 @@ class PurchaseController extends Controller
      */
     public function deletePurchase($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         try {
             $purchase = Purchase::findOrFail($id);
@@ -242,13 +256,14 @@ class PurchaseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Purchase record '{$item}' deleted successfully!"
+                'message' => "Purchase record '{$item}' deleted successfully!",
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to delete purchase record: ' . $e->getMessage());
+            Log::error('Failed to delete purchase record: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete purchase record. Please try again.'
+                'message' => 'Failed to delete purchase record. Please try again.',
             ], 500);
         }
     }
@@ -258,11 +273,13 @@ class PurchaseController extends Controller
      */
     public function recordPurchasePayment(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         if ($request->has('amount')) {
             $request->merge([
-                'amount' => str_replace(',', '', (string)$request->input('amount'))
+                'amount' => str_replace(',', '', (string) $request->input('amount')),
             ]);
         }
 
@@ -283,7 +300,7 @@ class PurchaseController extends Controller
             if ($amount > ($remaining + 0.01)) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['amount' => ["Payout amount (₹" . number_format($amount, 2) . ") cannot exceed remaining bill balance (₹" . number_format($remaining, 2) . ")."]]
+                    'errors' => ['amount' => ['Payout amount (₹'.number_format($amount, 2).') cannot exceed remaining bill balance (₹'.number_format($remaining, 2).').']],
                 ], 422);
             }
 
@@ -300,8 +317,8 @@ class PurchaseController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
-                $newPaidAmount = round((float)$purchase->paid_amount + $amount, 2);
-                $totalAmount = (float)$purchase->total_amount;
+                $newPaidAmount = round((float) $purchase->paid_amount + $amount, 2);
+                $totalAmount = (float) $purchase->total_amount;
 
                 $newStatus = 'partially_paid';
                 if ($newPaidAmount >= ($totalAmount - 0.01)) {
@@ -317,13 +334,14 @@ class PurchaseController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Vendor payout of ₹" . number_format($amount, 2) . " recorded successfully!"
+                'message' => 'Vendor payout of ₹'.number_format($amount, 2).' recorded successfully!',
             ]);
         } catch (Exception $e) {
-            Log::error('Failed to record vendor payout: ' . $e->getMessage());
+            Log::error('Failed to record vendor payout: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'errors' => ['Failed to record vendor payout. Please try again.']
+                'errors' => ['Failed to record vendor payout. Please try again.'],
             ], 500);
         }
     }

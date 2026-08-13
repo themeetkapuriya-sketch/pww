@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\BillOfMaterial;
 use App\Models\Product;
 use App\Models\RawMaterial;
-use App\Models\BillOfMaterial;
+use App\Services\RolePermissionService;
+use Illuminate\Http\Request;
 
 class BomController extends Controller
 {
@@ -17,6 +18,7 @@ class BomController extends Controller
     {
         $finishedGoods = Product::with('billOfMaterials.rawMaterial')->get();
         $rawMaterials = RawMaterial::all();
+
         return view('pages.bom', compact('finishedGoods', 'rawMaterials'));
     }
 
@@ -25,7 +27,9 @@ class BomController extends Controller
      */
     public function storeBom(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $productId = $request->input('product_id', $request->input('finished_good_id'));
         $request->merge(['product_id' => $productId]);
@@ -51,10 +55,14 @@ class BomController extends Controller
 
             $savedCount = 0;
             foreach ($validated['raw_material_ids'] as $idx => $matId) {
-                if (empty($matId)) continue;
+                if (empty($matId)) {
+                    continue;
+                }
                 $reqQty = (float) ($validated['required_quantities'][$idx] ?? 0);
                 $waste = (float) ($validated['waste_percentages'][$idx] ?? 0);
-                if ($reqQty <= 0) continue;
+                if ($reqQty <= 0) {
+                    continue;
+                }
 
                 BillOfMaterial::updateOrCreate(
                     [
@@ -96,8 +104,8 @@ class BomController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "BOM component mapping assigned successfully!",
-            'data' => $bom
+            'message' => 'BOM component mapping assigned successfully!',
+            'data' => $bom,
         ]);
     }
 
@@ -106,7 +114,9 @@ class BomController extends Controller
      */
     public function updateBom(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $bom = BillOfMaterial::findOrFail($id);
 
@@ -123,7 +133,7 @@ class BomController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'BOM component updated successfully!',
-            'data' => $bom->load('rawMaterial')
+            'data' => $bom->load('rawMaterial'),
         ]);
     }
 
@@ -132,14 +142,16 @@ class BomController extends Controller
      */
     public function deleteBom($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $bom = BillOfMaterial::findOrFail($id);
         $bom->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'BOM raw material component removed successfully!'
+            'message' => 'BOM raw material component removed successfully!',
         ]);
     }
 }

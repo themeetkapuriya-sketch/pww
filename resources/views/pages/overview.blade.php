@@ -267,7 +267,7 @@
         @endif
 
         <!-- 4. Low Stock Reorder Alerts -->
-        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true' && \App\Models\Setting::get('simplified_billing_mode', 'false') !== 'true')
+        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true' && \App\Models\Setting::get('simplified_billing_mode', 'false') !== 'true' && \App\Models\Setting::get('track_stock', 'true') === 'true')
         <div class="bg-rose-100/90 rounded-2xl p-4 shadow-sm border border-rose-300 flex flex-col justify-between hover:shadow-md hover:border-rose-400 transition-all duration-200">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-rose-600 text-white rounded-xl shadow-xs flex-shrink-0">
@@ -488,6 +488,7 @@
                             <div class="text-xs font-bold text-slate-900">₹{{ format_indian($order->total_amount, 2) }}</div>
                             @php
                                 $ordHasStock = $order->hasSufficientStock();
+                                $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
                             @endphp
 
                             @if ($order->status === 'pending')
@@ -498,11 +499,11 @@
                                     <span>▶ Start Production</span>
                                 </button>
                             @elseif ($order->status === 'in_production')
-                                @if ($ordHasStock)
+                                @if (!$trackStockEnabled || $ordHasStock)
                                     <button type="button" 
                                             onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'ready_for_dispatch')"
-                                            title="Stock ready! Click to mark Ready for Dispatch"
-                                            class="mt-1 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer animate-pulse">
+                                            title="{{ $trackStockEnabled ? 'Stock ready! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch' }}"
+                                            class="mt-1 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer {{ $trackStockEnabled ? 'animate-pulse' : '' }}">
                                         <span>📦 Mark Ready</span>
                                     </button>
                                 @else
@@ -543,7 +544,7 @@
         @include('pages.overview.partials.recent_expenses')
 
         <!-- 3. Low Stock Inventory Alerts -->
-        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true')
+        @if(\App\Models\Setting::get('module_inventory', 'true') === 'true' && \App\Models\Setting::get('track_stock', 'true') === 'true')
         <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2 text-rose-700">
@@ -829,7 +830,12 @@ function submitDashboardPayForm(e) {
             }
         },
         error: function(xhr) {
-            alert(xhr.responseJSON?.message || xhr.responseJSON?.errors?.[0] || 'Failed to record payment.');
+            const msg = xhr.responseJSON?.message || xhr.responseJSON?.errors?.[0] || 'Failed to record payment.';
+            if (window.showToast) {
+                window.showToast('danger', msg);
+            } else {
+                alert(msg);
+            }
         }
     });
 }
@@ -845,6 +851,7 @@ function submitDashboardPayForm(e) {
             <button type="button" onclick="closeDashboardPayModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
         </div>
         <form id="dashboardPayForm" onsubmit="submitDashboardPayForm(event)" class="space-y-4">
+            @csrf
             <input type="hidden" id="dash_pay_invoice_id" name="invoice_id">
             
             <div>

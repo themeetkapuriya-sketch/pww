@@ -21,7 +21,7 @@
                 </h3>
                 <button type="button" onclick="toggleInlineForm('employeeFormContainer', document.querySelector('button[onclick*=\'employeeFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
-            <form action="{{ route('employees.store') }}" method="POST" class="ajax-form space-y-4" novalidate>
+            <form action="{{ route('employees.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/employees?tab=directory" novalidate>
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -71,7 +71,7 @@
                 </h3>
                 <button type="button" onclick="closeEditEmployeeForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
-            <form id="editEmployeeForm" method="POST" class="ajax-form space-y-4" novalidate>
+            <form id="editEmployeeForm" method="POST" class="ajax-form space-y-4" data-redirect="/employees?tab=directory" data-close-modal="#editEmployeeFormCard" novalidate>
                 @csrf
                 @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

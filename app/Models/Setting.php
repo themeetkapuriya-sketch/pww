@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
@@ -14,6 +15,7 @@ class Setting extends Model
     public static function get($key, $default = null)
     {
         $setting = self::where('key', $key)->first();
+
         return ($setting !== null && $setting->value !== null) ? $setting->value : $default;
     }
 
@@ -29,6 +31,14 @@ class Setting extends Model
     }
 
     /**
+     * Check if Stock Management is enabled.
+     */
+    public static function isStockEnabled(): bool
+    {
+        return self::get('track_stock', 'true') === 'true';
+    }
+
+    /**
      * Format a document number with configurable date middle portion and digit padding.
      */
     public static function formatDocumentNumber(string $prefix, int $sequenceNumber): string
@@ -37,7 +47,7 @@ class Setting extends Model
         $digits = (int) self::get('serial_number_digits', 4); // 3, 4, 5, 6, 1
 
         $datePart = '';
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
 
         if ($dateFormat === 'Ymd') {
             $datePart = $now->format('Ymd');
@@ -48,25 +58,26 @@ class Setting extends Model
         } elseif ($dateFormat === 'FY') {
             $year = $now->year;
             if ($now->month >= 4) {
-                $fyStart = substr((string)$year, -2);
-                $fyEnd = substr((string)($year + 1), -2);
+                $fyStart = substr((string) $year, -2);
+                $fyEnd = substr((string) ($year + 1), -2);
             } else {
-                $fyStart = substr((string)($year - 1), -2);
-                $fyEnd = substr((string)$year, -2);
+                $fyStart = substr((string) ($year - 1), -2);
+                $fyEnd = substr((string) $year, -2);
             }
-            $datePart = $fyStart . $fyEnd;
+            $datePart = $fyStart.$fyEnd;
         }
 
-        $paddedSeq = str_pad((string)$sequenceNumber, $digits, '0', STR_PAD_LEFT);
+        $paddedSeq = str_pad((string) $sequenceNumber, $digits, '0', STR_PAD_LEFT);
 
-        if (!empty($datePart)) {
+        if (! empty($datePart)) {
             if (empty($prefix)) {
-                return $datePart . '-' . $paddedSeq;
+                return $datePart.'-'.$paddedSeq;
             }
             $separator = (str_ends_with($prefix, '-') || str_ends_with($prefix, '/')) ? '' : '-';
-            return $prefix . $separator . $datePart . '-' . $paddedSeq;
+
+            return $prefix.$separator.$datePart.'-'.$paddedSeq;
         }
 
-        return $prefix . $paddedSeq;
+        return $prefix.$paddedSeq;
     }
 }

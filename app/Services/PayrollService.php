@@ -4,14 +4,14 @@ namespace App\Services;
 
 use App\Models\LaborLog;
 use App\Models\StaffProfile;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class PayrollService
 {
     /**
      * Get compiled pending payouts for all piece-rate staff members.
      *
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function compilePendingPieceRateWages()
     {
@@ -24,7 +24,7 @@ class PayrollService
                 $pendingLogs = $staff->laborLogs;
                 $totalUnits = $pendingLogs->sum('units_completed');
                 $totalPayout = $pendingLogs->sum('calculated_payout');
-                
+
                 return [
                     'staff_profile_id' => $staff->id,
                     'full_name' => $staff->full_name,
@@ -44,7 +44,6 @@ class PayrollService
     /**
      * Mark a set of labor logs as paid.
      *
-     * @param array $laborLogIds
      * @return int Number of updated rows
      */
     public function markWagesAsPaid(array $laborLogIds): int

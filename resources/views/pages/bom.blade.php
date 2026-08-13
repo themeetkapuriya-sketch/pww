@@ -52,7 +52,7 @@
             <button type="button" onclick="toggleAddBomForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form action="{{ route('bom.store') }}" method="POST" class="ajax-form space-y-5">
+        <form action="{{ route('bom.store') }}" method="POST" class="ajax-form space-y-5" data-redirect="/bom">
             @csrf
             <input type="hidden" name="replace_mode" id="bomReplaceModeInput" value="0">
             
@@ -122,7 +122,7 @@
             <button type="button" onclick="closeEditBomCard()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form action="{{ route('bom.store') }}" method="POST" class="ajax-form space-y-5">
+        <form action="{{ route('bom.store') }}" method="POST" class="ajax-form space-y-5" data-redirect="/bom">
             @csrf
             <input type="hidden" name="replace_mode" value="1">
             <input type="hidden" name="product_id" id="edit_bom_product_id">
@@ -271,7 +271,7 @@
             <button type="button" onclick="closeEditBomModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4">
+        <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4" data-redirect="/bom" data-close-modal="#editBomModal">
             @csrf
             @method('PUT')
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

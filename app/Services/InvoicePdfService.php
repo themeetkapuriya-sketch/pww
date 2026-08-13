@@ -13,8 +13,6 @@ class InvoicePdfService
     /**
      * Generate binary PDF content for an Invoice instance using Spatie Browsershot.
      *
-     * @param Invoice $invoice
-     * @return string
      * @throws Throwable
      */
     public function generateInvoicePdf(Invoice $invoice): string
@@ -47,9 +45,6 @@ class InvoicePdfService
     /**
      * Render an arbitrary Blade view to binary PDF using Browsershot.
      *
-     * @param string $viewName
-     * @param array $data
-     * @return string
      * @throws Throwable
      */
     public function renderViewToPdf(string $viewName, array $data = []): string
@@ -57,6 +52,7 @@ class InvoicePdfService
         try {
             $data['isPdf'] = true;
             $html = View::make($viewName, $data)->render();
+
             return $this->renderHtmlToPdf($html);
         } catch (Throwable $e) {
             Log::error('View PDF Generation Error', [
@@ -70,9 +66,6 @@ class InvoicePdfService
 
     /**
      * Convert raw HTML string into PDF binary using Headless Chrome (Browsershot).
-     *
-     * @param string $html
-     * @return string
      */
     public function renderHtmlToPdf(string $html): string
     {

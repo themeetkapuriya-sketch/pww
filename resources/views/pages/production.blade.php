@@ -30,12 +30,29 @@
         'required' => true,
     ])->render();
 @endphp
+@php $trackStockOn = (\App\Models\Setting::get('track_stock', 'true') === 'true'); @endphp
 <div class="space-y-6">
+
+    @if(!$trackStockOn)
+    <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-300 rounded-2xl mb-4">
+        <span class="text-xl">⚠️</span>
+        <div>
+            <div class="text-sm font-bold text-amber-900">Production Logging Disabled</div>
+            <div class="text-xs text-amber-700">Stock Management is turned OFF. Enable it from <a href="{{ route('settings.index', ['tab' => 'other', 'sub' => 'modules']) }}" class="underline font-bold hover:text-amber-900">Settings → Active Modules</a> to log production runs.</div>
+        </div>
+    </div>
+    @endif
+
+    @if($trackStockOn)
     <x-page-header title="Production Logs" 
                    subtitle="Record rack manufacturing batches and monitor stock inventory."
                    action-text="Log Production Run" 
                    action-id="btnProductionToggle"
                    action-on-click="toggleProductionForm()" />
+    @else
+    <x-page-header title="Production Logs" 
+                   subtitle="Record rack manufacturing batches and monitor stock inventory." />
+    @endif
 
     <!-- 1. COLLAPSIBLE PRODUCTION LOG FORM -->
     <div id="productionFormCard" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
@@ -47,7 +64,7 @@
             <button type="button" id="productionCloseBtn" onclick="toggleProductionForm(false)" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
         </div>
 
-        <form id="productionForm" action="{{ route('production.store') }}" method="POST" class="ajax-form space-y-4">
+        <form id="productionForm" action="{{ route('production.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/production">
             @csrf
             <input type="hidden" name="_method" id="production_form_method" value="POST">
 
@@ -94,6 +111,7 @@
                                         id="prod_product_id_0"
                                         placeholder="Select Product..."
                                         :options="$productOptions"
+                                        :value="request('product_id')"
                                         required />
                         </div>
                         <div class="md:col-span-2">
@@ -398,5 +416,74 @@ function deleteProductionLog(id) {
         }
     );
 }
+
+window.toggleProductionForm = function(forceShow = null) {
+    const card = document.getElementById('productionFormCard');
+    const btn = document.getElementById('btnProductionToggle');
+    if (!card) return;
+
+    let show = forceShow !== null ? Boolean(forceShow) : card.classList.contains('hidden');
+
+    if (show) {
+        card.classList.remove('hidden');
+        if (btn) {
+            btn.classList.replace('bg-blue-600', 'bg-slate-700');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-800');
+        }
+    } else {
+        card.classList.add('hidden');
+        if (btn) {
+            btn.classList.replace('bg-slate-700', 'bg-blue-600');
+            btn.classList.replace('hover:bg-slate-800', 'hover:bg-blue-700');
+        }
+        const form = document.getElementById('productionForm');
+        if (form) {
+            form.reset();
+            form.querySelectorAll('.combobox-wrapper').forEach(w => {
+                if (window.ERPComboboxManager) window.ERPComboboxManager.clear(w);
+            });
+        }
+    }
+};
+
+// Auto-open and prefill product when navigating with ?open=1&product_id=...
+(function() {
+    function runProductionPrefill() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const prefillProductId = urlParams.get('product_id') || urlParams.get('prefill_product');
+
+        if (urlParams.has('open') || prefillProductId) {
+            const card = document.getElementById('productionFormCard');
+            if (card) {
+                card.classList.remove('hidden');
+                card.scrollIntoView({ behavior: 'smooth' });
+            }
+            if (prefillProductId) {
+                const prodSelect = document.getElementById('prod_product_id_0_hidden') || document.getElementById('prod_product_id_0');
+                if (prodSelect) {
+                    prodSelect.value = prefillProductId;
+                    const wrapper = prodSelect.closest('.combobox-wrapper');
+                    if (wrapper && window.ERPComboboxManager) {
+                        window.ERPComboboxManager.syncDisplay(wrapper);
+                    }
+                    prodSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const qtyInp = document.getElementById('prod_qty_mfg_0');
+                if (qtyInp) qtyInp.focus();
+            }
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+    }
+
+    runProductionPrefill();
+    document.addEventListener('DOMContentLoaded', runProductionPrefill);
+})();
+
+$(document).on('ajax:success', '#productionForm', function() {
+    const card = document.getElementById('productionFormCard');
+    if (card) card.classList.add('hidden');
+});
 </script>
 @endsection

@@ -3,18 +3,19 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Purchase;
-use App\Models\Expense;
 use App\Services\FinancialService;
 use App\Services\InvoicePdfService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
     protected $financialService;
+
     protected $pdfService;
 
     public function __construct(FinancialService $financialService, InvoicePdfService $pdfService)
@@ -29,8 +30,8 @@ class ReportController extends Controller
         $defaultPeriod = ($reportType === 'gst') ? 'month' : 'all';
 
         $period = $request->input('filter_period', $defaultPeriod);
-        
-        if ($request->has('start_date') && $request->has('end_date') && !$request->has('filter_period')) {
+
+        if ($request->has('start_date') && $request->has('end_date') && ! $request->has('filter_period')) {
             $period = 'custom';
         }
 
@@ -44,7 +45,7 @@ class ReportController extends Controller
                 break;
             case 'month':
                 try {
-                    $monthCarbon = Carbon::parse($filterMonth . '-01');
+                    $monthCarbon = Carbon::parse($filterMonth.'-01');
                     $startDate = $monthCarbon->startOfMonth()->toDateString();
                     $endDate = $monthCarbon->endOfMonth()->toDateString();
                 } catch (\Exception $e) {
@@ -55,7 +56,7 @@ class ReportController extends Controller
             case 'year':
                 $now = Carbon::now();
                 $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
-                $targetYear = (int)$request->input('filter_year', $fyStartYear);
+                $targetYear = (int) $request->input('filter_year', $fyStartYear);
                 $startDate = Carbon::create($targetYear, 4, 1)->toDateString();
                 $endDate = Carbon::create($targetYear + 1, 3, 31)->toDateString();
                 break;
@@ -79,12 +80,12 @@ class ReportController extends Controller
 
         // 1. Fetch Invoices
         $invoices = Invoice::with(['plant.client', 'items.product'])
-            ->where(function($q) use ($startDate, $endDate) {
+            ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('invoice_date', [$startDate, $endDate])
-                  ->orWhere(function($sub) use ($startDate, $endDate) {
-                      $sub->whereNull('invoice_date')
-                          ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                  });
+                    ->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNull('invoice_date')
+                            ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                    });
             })
             ->orderBy('invoice_date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -110,7 +111,7 @@ class ReportController extends Controller
             'total_sgst' => $invoices->sum('sgst'),
             'total_igst' => $invoices->sum('igst'),
             'total_amount' => $invoices->sum('total_amount'),
-            'total_due' => $invoices->sum(fn($inv) => $inv->remaining_balance),
+            'total_due' => $invoices->sum(fn ($inv) => $inv->remaining_balance),
         ];
         $invoiceSummary['total_gst'] = $invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'] + $invoiceSummary['total_igst'];
 
@@ -125,7 +126,7 @@ class ReportController extends Controller
         $expenseSummary = [
             'total_spent' => $expenses->sum('amount'),
             'total_count' => $expenses->count(),
-            'by_category' => $expenses->groupBy('expense_category')->map(function($group) {
+            'by_category' => $expenses->groupBy('expense_category')->map(function ($group) {
                 return $group->sum('amount');
             }),
         ];
@@ -153,7 +154,7 @@ class ReportController extends Controller
             $gstSummary['status_label'] = 'ITC CREDIT (₹0 TAX DUE)';
             $gstSummary['expense_entry'] = null;
             $gstSummary['total_paid'] = 0.00;
-        } else if ($gstTotalPaid >= $gstSummary['net_gst_payable']) {
+        } elseif ($gstTotalPaid >= $gstSummary['net_gst_payable']) {
             $gstSummary['is_paid'] = true;
             $gstSummary['status'] = 'paid';
             $gstSummary['status_label'] = 'PAID via Expense Ledger';
@@ -176,11 +177,11 @@ class ReportController extends Controller
         $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
         $fyStartDate = Carbon::create($fyStartYear, 4, 1)->startOfDay();
         $fyEndDate = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
-        $fySales = (float) Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
+        $fySales = (float) Invoice::where(function ($q) use ($fyStartDate, $fyEndDate) {
             $q->whereBetween('invoice_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])
-              ->orWhere(function($sub) use ($fyStartDate, $fyEndDate) {
-                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
-              });
+                ->orWhere(function ($sub) use ($fyStartDate, $fyEndDate) {
+                    $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
+                });
         })->sum('total_amount');
         $fyPurchases = (float) Purchase::whereBetween('purchase_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('total_amount');
         $fyExpenses = (float) Expense::whereBetween('expense_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])->sum('amount');
@@ -188,11 +189,11 @@ class ReportController extends Controller
 
         $mStart = $now->copy()->startOfMonth();
         $mEnd = $now->copy()->endOfMonth();
-        $mSales = (float) Invoice::where(function($q) use ($mStart, $mEnd) {
+        $mSales = (float) Invoice::where(function ($q) use ($mStart, $mEnd) {
             $q->whereBetween('invoice_date', [$mStart->toDateString(), $mEnd->toDateString()])
-              ->orWhere(function($sub) use ($mStart, $mEnd) {
-                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$mStart, $mEnd]);
-              });
+                ->orWhere(function ($sub) use ($mStart, $mEnd) {
+                    $sub->whereNull('invoice_date')->whereBetween('created_at', [$mStart, $mEnd]);
+                });
         })->sum('total_amount');
         $mPurchases = (float) Purchase::whereBetween('purchase_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('total_amount');
         $mExpenses = (float) Expense::whereBetween('expense_date', [$mStart->toDateString(), $mEnd->toDateString()])->sum('amount');
@@ -215,18 +216,18 @@ class ReportController extends Controller
         [$startDate, $endDate, $period, $filterMonth, $filterYear] = $this->getDateRange($request);
         $reportType = $request->input('report_type', 'invoice');
 
-        $response = new StreamedResponse(function() use ($startDate, $endDate, $reportType, $request) {
+        $response = new StreamedResponse(function () use ($startDate, $endDate, $reportType, $request) {
             $handle = fopen('php://output', 'w');
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
 
             if ($reportType === 'invoice') {
                 $invoices = Invoice::with(['plant.client'])
-                    ->where(function($q) use ($startDate, $endDate) {
+                    ->where(function ($q) use ($startDate, $endDate) {
                         $q->whereBetween('invoice_date', [$startDate, $endDate])
-                          ->orWhere(function($sub) use ($startDate, $endDate) {
-                              $sub->whereNull('invoice_date')
-                                  ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                          });
+                            ->orWhere(function ($sub) use ($startDate, $endDate) {
+                                $sub->whereNull('invoice_date')
+                                    ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                            });
                     })
                     ->orderBy('invoice_date', 'desc')
                     ->get();
@@ -249,7 +250,7 @@ class ReportController extends Controller
                         $inv->igst,
                         $inv->total_amount,
                         $inv->remaining_balance,
-                        strtoupper($inv->payment_status ?? 'unpaid')
+                        strtoupper($inv->payment_status ?? 'unpaid'),
                     ]);
                 }
             } elseif ($reportType === 'purchase') {
@@ -274,7 +275,7 @@ class ReportController extends Controller
                         $pur->gst_rate,
                         $pur->gst_amount,
                         $pur->total_amount,
-                        strtoupper($pur->payment_status ?? 'paid')
+                        strtoupper($pur->payment_status ?? 'paid'),
                     ]);
                 }
             } elseif ($reportType === 'financial') {
@@ -288,7 +289,7 @@ class ReportController extends Controller
                 fputcsv($handle, ['Total Purchases (B)', 'Raw material, machinery, tools, and vendor purchases', $financials['purchases']]);
                 fputcsv($handle, ['Total Expenses (C)', 'Operational overheads, salaries, rent, transport', $financials['expenses']]);
                 fputcsv($handle, ['NET REVENUE / PROFIT', 'Calculation: Total Sales - Purchases - Expenses', $financials['net_profit']]);
-                fputcsv($handle, ['Gross Profit Margin (%)', 'Margin Ratio', $financials['gross_profit_margin'] . '%']);
+                fputcsv($handle, ['Gross Profit Margin (%)', 'Margin Ratio', $financials['gross_profit_margin'].'%']);
             } elseif ($reportType === 'expense') {
                 $expenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
                     ->orderBy('expense_date', 'desc')
@@ -304,7 +305,7 @@ class ReportController extends Controller
                         Carbon::parse($exp->expense_date)->format('d/m/Y'),
                         ucwords(str_replace('_', ' ', $exp->expense_category)),
                         $exp->description ?? 'N/A',
-                        $exp->amount
+                        $exp->amount,
                     ]);
                 }
             } elseif ($reportType === 'gst') {
@@ -312,12 +313,12 @@ class ReportController extends Controller
 
                 if ($gstType === 'gstr1') {
                     $invoices = Invoice::with(['plant.client'])
-                        ->where(function($q) use ($startDate, $endDate) {
+                        ->where(function ($q) use ($startDate, $endDate) {
                             $q->whereBetween('invoice_date', [$startDate, $endDate])
-                              ->orWhere(function($sub) use ($startDate, $endDate) {
-                                  $sub->whereNull('invoice_date')
-                                      ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                              });
+                                ->orWhere(function ($sub) use ($startDate, $endDate) {
+                                    $sub->whereNull('invoice_date')
+                                        ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                                });
                         })
                         ->orderBy('invoice_date', 'desc')
                         ->get();
@@ -339,7 +340,7 @@ class ReportController extends Controller
                             $inv->cgst,
                             $inv->sgst,
                             $inv->igst,
-                            $inv->total_amount
+                            $inv->total_amount,
                         ]);
                     }
                 } elseif ($gstType === 'gstr2') {
@@ -362,16 +363,16 @@ class ReportController extends Controller
                             $pur->quantity,
                             $pur->gst_rate,
                             $pur->gst_amount,
-                            $pur->total_amount
+                            $pur->total_amount,
                         ]);
                     }
                 } else { // gstr3b
-                    $invoices = Invoice::where(function($q) use ($startDate, $endDate) {
+                    $invoices = Invoice::where(function ($q) use ($startDate, $endDate) {
                         $q->whereBetween('invoice_date', [$startDate, $endDate])
-                          ->orWhere(function($sub) use ($startDate, $endDate) {
-                              $sub->whereNull('invoice_date')
-                                  ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                          });
+                            ->orWhere(function ($sub) use ($startDate, $endDate) {
+                                $sub->whereNull('invoice_date')
+                                    ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                            });
                     })->get();
                     $purchases = Purchase::whereBetween('purchase_date', [$startDate, $endDate])->get();
 
@@ -396,11 +397,11 @@ class ReportController extends Controller
             fclose($handle);
         });
 
-        $gstTypeStr = $reportType === 'gst' ? '_' . strtoupper($request->input('gst_type', 'gstr1')) : '';
-        $filename = "PWW_" . ucfirst($reportType) . $gstTypeStr . "_Report_" . $startDate . "_to_" . $endDate . ".csv";
+        $gstTypeStr = $reportType === 'gst' ? '_'.strtoupper($request->input('gst_type', 'gstr1')) : '';
+        $filename = 'PWW_'.ucfirst($reportType).$gstTypeStr.'_Report_'.$startDate.'_to_'.$endDate.'.csv';
 
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $response->headers->set('Content-Disposition', 'attachment; filename="'.$filename.'"');
         $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
         $response->headers->set('Pragma', 'no-cache');
         $response->headers->set('Expires', '0');
@@ -417,12 +418,12 @@ class ReportController extends Controller
         $reportType = $request->input('report_type', 'invoice');
 
         $invoices = Invoice::with(['plant.client', 'items.product'])
-            ->where(function($q) use ($startDate, $endDate) {
+            ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('invoice_date', [$startDate, $endDate])
-                  ->orWhere(function($sub) use ($startDate, $endDate) {
-                      $sub->whereNull('invoice_date')
-                          ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
-                  });
+                    ->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNull('invoice_date')
+                            ->whereBetween('created_at', [Carbon::parse($startDate)->startOfDay(), Carbon::parse($endDate)->endOfDay()]);
+                    });
             })
             ->orderBy('invoice_date', 'desc')
             ->orderBy('created_at', 'desc')
@@ -444,7 +445,7 @@ class ReportController extends Controller
             'total_sgst' => $invoices->sum('sgst'),
             'total_igst' => $invoices->sum('igst'),
             'total_amount' => $invoices->sum('total_amount'),
-            'total_due' => $invoices->sum(fn($inv) => $inv->remaining_balance),
+            'total_due' => $invoices->sum(fn ($inv) => $inv->remaining_balance),
         ];
         $invoiceSummary['total_gst'] = $invoiceSummary['total_cgst'] + $invoiceSummary['total_sgst'] + $invoiceSummary['total_igst'];
 
@@ -456,7 +457,7 @@ class ReportController extends Controller
         $expenseSummary = [
             'total_spent' => $expenses->sum('amount'),
             'total_count' => $expenses->count(),
-            'by_category' => $expenses->groupBy('expense_category')->map(fn($g) => $g->sum('amount')),
+            'by_category' => $expenses->groupBy('expense_category')->map(fn ($g) => $g->sum('amount')),
         ];
 
         $pdfContent = $this->pdfService->renderViewToPdf('pdf.report_pdf', compact(
@@ -465,9 +466,10 @@ class ReportController extends Controller
             'invoiceSummary', 'purchaseSummary', 'expenseSummary'
         ));
 
-        $filename = "PWW_" . ucfirst($reportType) . "_Report_{$startDate}_to_{$endDate}.pdf";
+        $filename = 'PWW_'.ucfirst($reportType)."_Report_{$startDate}_to_{$endDate}.pdf";
+
         return response()->streamDownload(
-            fn () => print($pdfContent),
+            fn () => print ($pdfContent),
             $filename,
             ['Content-Type' => 'application/pdf']
         );

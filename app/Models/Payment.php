@@ -68,7 +68,7 @@ class Payment extends Model
             $seq = 1;
         }
 
-        return sprintf("%s%s-%04d", $prefix, $year, $seq);
+        return sprintf('%s%s-%04d', $prefix, $year, $seq);
     }
 
     /**

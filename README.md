@@ -21,6 +21,9 @@
 - 🧾 **Tax Invoice Ledger**: Multi-state Indian GST invoicing (CGST + SGST vs IGST), transport vehicle logging, PDF invoice generation, and thermal/A4 printing.
 - 🛍️ **Purchase Ledger**: Raw material procurement logging with auto-replenishment of stock levels.
 - 💸 **Expense Ledger & GST Credit (ITC)**: Operational overhead tracking, vendor GST expense logging, and Eligible Input Tax Credit (ITC) reconciliation.
+- 💵 **Salary Advances & Payroll Deductions**: Worker salary advance payouts with payment methods (Cash, Bank, UPI) and automatic deduction against monthly salary disbursals.
+- 🔍 **Stock Audit & Physical Variance Adjustments**: Physical inventory stock reconciliation, variance logging (+/-), and audit trail tracking for raw materials.
+- 🔔 **Header Alert Widgets**: Live header badge widgets for real-time tracking of active production pipeline orders and low-stock safety threshold alerts.
 - 👥 **Staff & Piece-Rate Payroll**: Employee directory, daily/piece-rate wage calculation matrix, and labor payout logs.
 - 🏢 **Clients & Multi-Plant Destinations**: Client master directory with regional GSTIN verification and multiple factory plant delivery addresses.
 - 📈 **Audit & GST Tax Returns**: GSTR-1, GSTR-3B tax liability calculators, net tax payable insights, and CSV/PDF exportable reports.

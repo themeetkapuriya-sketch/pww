@@ -28,7 +28,7 @@
                 </h3>
                 <button type="button" onclick="toggleInlineForm('expenseFormContainer', document.querySelector('button[onclick*=\'expenseFormContainer\']'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
-            <form action="{{ route('expense.store') }}" method="POST" class="ajax-form space-y-4">
+            <form action="{{ route('expense.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/expenses">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <x-combobox name="expense_category"
@@ -79,7 +79,7 @@
                 </h3>
                 <button type="button" onclick="closeEditExpenseCard()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
-            <form id="editExpenseForm" method="POST" class="ajax-form space-y-4">
+            <form id="editExpenseForm" method="POST" class="ajax-form space-y-4" data-redirect="/expenses" data-close-modal="#editExpenseCard">
                 @csrf
                 @method('PUT')
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class RawMaterial extends Model
 {
@@ -37,8 +37,8 @@ class RawMaterial extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class, 'bill_of_materials', 'raw_material_id', 'product_id')
-                    ->withPivot('required_quantity', 'waste_percentage')
-                    ->withTimestamps();
+            ->withPivot('required_quantity', 'waste_percentage')
+            ->withTimestamps();
     }
 
     /**
@@ -47,7 +47,31 @@ class RawMaterial extends Model
     public function finishedGoods()
     {
         return $this->belongsToMany(Product::class, 'bill_of_materials', 'raw_material_id', 'product_id')
-                    ->withPivot('required_quantity', 'waste_percentage')
-                    ->withTimestamps();
+            ->withPivot('required_quantity', 'waste_percentage')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all purchase entries for this raw material.
+     */
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class, 'raw_material_id')->orderBy('purchase_date', 'desc');
+    }
+
+    /**
+     * Get the latest purchase entry for this raw material.
+     */
+    public function latestPurchase()
+    {
+        return $this->hasOne(Purchase::class, 'raw_material_id')->latestOfMany('purchase_date');
+    }
+
+    /**
+     * Get all physical stock adjustment vouchers for this raw material.
+     */
+    public function adjustments()
+    {
+        return $this->hasMany(StockAdjustment::class, 'raw_material_id')->orderBy('adjusted_at', 'desc');
     }
 }

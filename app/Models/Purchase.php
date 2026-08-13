@@ -46,6 +46,6 @@ class Purchase extends Model
 
     public function getRemainingBalanceAttribute(): float
     {
-        return max(0.00, round((float)$this->total_amount - (float)($this->paid_amount ?? 0), 2));
+        return max(0.00, round((float) $this->total_amount - (float) ($this->paid_amount ?? 0), 2));
     }
 }

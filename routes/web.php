@@ -1,27 +1,30 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\Billing\InvoiceController;
 use App\Http\Controllers\Dashboard\OverviewController;
-use App\Http\Controllers\Inventory\RawMaterialController;
+use App\Http\Controllers\Expenses\ExpenseController;
 use App\Http\Controllers\Inventory\ProductController;
+use App\Http\Controllers\Inventory\RawMaterialController;
+use App\Http\Controllers\Payroll\EmployeeController;
 use App\Http\Controllers\Production\BomController;
 use App\Http\Controllers\Production\ProductionController;
+use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\Purchases\PurchaseController;
+use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Sales\ClientController;
 use App\Http\Controllers\Sales\OrderController;
-use App\Http\Controllers\Billing\InvoiceController;
-use App\Http\Controllers\Purchases\PurchaseController;
-use App\Http\Controllers\Payroll\EmployeeController;
-use App\Http\Controllers\Expenses\ExpenseController;
-use App\Http\Controllers\Reports\ReportController;
-use App\Http\Controllers\Profile\ProfileController;
-use App\Http\Controllers\BackupController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Middleware\AutoBackupCheckMiddleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // Include authentication routes
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 // Gated ERP routes (Requires Auth & AutoBackup Check)
-Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class])->group(function () {
+Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function () {
     Route::get('/', function () {
         return redirect()->route('overview');
     });
@@ -32,15 +35,17 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     // 2. Raw Materials & Products Catalog Management
     Route::get('/rawmaterial', [RawMaterialController::class, 'index'])->name('rawmaterial');
     Route::get('/product', [ProductController::class, 'index'])->name('product');
-    Route::get('/inventory', function (\Illuminate\Http\Request $request) {
+    Route::get('/inventory', function (Request $request) {
         if ($request->input('tab') === 'materials') {
             return redirect()->route('rawmaterial');
         }
+
         return redirect()->route('product');
     })->name('inventory');
 
     Route::post('/inventory/materials', [RawMaterialController::class, 'store'])->name('inventory.materials.store');
     Route::put('/inventory/materials/{id}', [RawMaterialController::class, 'update'])->name('inventory.materials.update');
+    Route::post('/inventory/materials/{id}/adjust', [RawMaterialController::class, 'adjustStock'])->name('inventory.materials.adjust');
     Route::delete('/inventory/materials/{id}', [RawMaterialController::class, 'destroy'])->name('inventory.materials.delete');
     Route::post('/inventory/goods', [ProductController::class, 'store'])->name('inventory.goods.store');
     Route::put('/inventory/goods/{id}', [ProductController::class, 'update'])->name('inventory.goods.update');
@@ -71,6 +76,8 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
 
     // 5.5 Sales Orders / Order Management
     Route::get('/orders', [OrderController::class, 'orders'])->name('orders');
+    Route::get('/orders/{id}/details', [OrderController::class, 'orderDetails'])->name('orders.details');
+    Route::get('/orders/{id}/job-card', [OrderController::class, 'showJobCard'])->name('orders.jobCard');
     Route::post('/orders', [OrderController::class, 'storeOrder'])->name('orders.store');
     Route::put('/orders/{id}', [OrderController::class, 'updateOrder'])->name('orders.update');
     Route::patch('/orders/{id}/status', [OrderController::class, 'updateOrderStatus'])->name('orders.updateStatus');
@@ -105,6 +112,8 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::get('/employees/attendance/summary', [EmployeeController::class, 'getMonthlySummary'])->name('employees.attendance.summary');
     Route::post('/employees/salary/disburse', [EmployeeController::class, 'disburseSalary'])->name('employees.salary.disburse');
     Route::delete('/employees/salary/disburse/{id}', [EmployeeController::class, 'deleteDisbursal'])->name('employees.salary.delete');
+    Route::post('/employees/advance', [EmployeeController::class, 'storeAdvance'])->name('employees.advance.store');
+    Route::delete('/employees/advance/{id}', [EmployeeController::class, 'deleteAdvance'])->name('employees.advance.delete');
     Route::post('/employees/payroll/pay', [EmployeeController::class, 'payPayroll'])->name('payroll.pay');
 
     // 9. Operational Expenses
@@ -162,9 +171,11 @@ Route::middleware(['auth', \App\Http\Middleware\AutoBackupCheckMiddleware::class
     Route::post('/settings/backups/create', [SettingsController::class, 'triggerManualBackup'])->name('settings.backups.create');
     Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup'])->name('settings.backups.download');
     Route::post('/settings/backups/restore', [SettingsController::class, 'restoreBackup'])->name('settings.backups.restore');
+    Route::post('/settings/resync-cache', [SettingsController::class, 'resyncCache'])->name('settings.resync');
+    Route::post('/settings/prune-system', [SettingsController::class, 'pruneSystemLogs'])->name('settings.prune');
 
     // 14. Super-Admin User Activity Audit Logs
-    Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('activity-logs');
-    Route::get('/activity-logs/export', [\App\Http\Controllers\ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
-    Route::post('/activity-logs/clear', [\App\Http\Controllers\ActivityLogController::class, 'clearLogs'])->name('activity-logs.clear');
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
+    Route::get('/activity-logs/export', [ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
+    Route::post('/activity-logs/clear', [ActivityLogController::class, 'clearLogs'])->name('activity-logs.clear');
 });

@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Client;
 use App\Models\ClientPlant;
 use App\Services\FinancialService;
 use App\Services\InvoicePdfService;
+use App\Services\RolePermissionService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
     protected $financialService;
+
     protected $pdfService;
 
     public function __construct(FinancialService $financialService, InvoicePdfService $pdfService)
@@ -28,8 +30,8 @@ class ClientController extends Controller
         $defaultPeriod = ($reportType === 'gst') ? 'month' : 'all';
 
         $period = $request->input('filter_period', $defaultPeriod);
-        
-        if ($request->has('start_date') && $request->has('end_date') && !$request->has('filter_period')) {
+
+        if ($request->has('start_date') && $request->has('end_date') && ! $request->has('filter_period')) {
             $period = 'custom';
         }
 
@@ -43,7 +45,7 @@ class ClientController extends Controller
                 break;
             case 'month':
                 try {
-                    $monthCarbon = Carbon::parse($filterMonth . '-01');
+                    $monthCarbon = Carbon::parse($filterMonth.'-01');
                     $startDate = $monthCarbon->startOfMonth()->toDateString();
                     $endDate = $monthCarbon->endOfMonth()->toDateString();
                 } catch (\Exception $e) {
@@ -54,7 +56,7 @@ class ClientController extends Controller
             case 'year':
                 $now = Carbon::now();
                 $fyStartYear = ($now->month >= 4) ? $now->year : ($now->year - 1);
-                $targetYear = (int)$request->input('filter_year', $fyStartYear);
+                $targetYear = (int) $request->input('filter_year', $fyStartYear);
                 $startDate = Carbon::create($targetYear, 4, 1)->toDateString();
                 $endDate = Carbon::create($targetYear + 1, 3, 31)->toDateString();
                 break;
@@ -79,8 +81,9 @@ class ClientController extends Controller
             'Odisha' => '21', 'Chhattisgarh' => '22', 'Madhya Pradesh' => '23', 'Gujarat' => '24',
             'Daman & Diu' => '25', 'Dadra & Nagar Haveli' => '26', 'Maharashtra' => '27', 'Andhra Pradesh' => '28',
             'Karnataka' => '29', 'Goa' => '30', 'Lakshadweep' => '31', 'Kerala' => '32',
-            'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar' => '35', 'Telangana' => '36', 'Ladakh' => '37'
+            'Tamil Nadu' => '33', 'Puducherry' => '34', 'Andaman & Nicobar' => '35', 'Telangana' => '36', 'Ladakh' => '37',
         ];
+
         return $gstStateCodes[trim($stateName)] ?? '24';
     }
 
@@ -90,6 +93,7 @@ class ClientController extends Controller
     public function clients()
     {
         $clients = Client::with('plants')->orderBy('company_name')->get();
+
         return view('pages.clients', compact('clients'));
     }
 
@@ -98,7 +102,9 @@ class ClientController extends Controller
      */
     public function storeClient(Request $request)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_insert')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
 
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
@@ -120,7 +126,7 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => "A client profile with company name '{$validated['company_name']}' or GSTIN '{$validated['gst_number']}' already exists!",
-                'errors' => ['company_name' => ["A client profile with company name or GSTIN already exists!"]]
+                'errors' => ['company_name' => ['A client profile with company name or GSTIN already exists!']],
             ], 422);
         }
 
@@ -133,14 +139,14 @@ class ClientController extends Controller
         ];
 
         $shouldCreatePlant = $request->boolean('create_primary_plant', true);
-        if ($shouldCreatePlant && !empty($validated['state'])) {
+        if ($shouldCreatePlant && ! empty($validated['state'])) {
             $plantState = $validated['state'];
             $expectedCode = self::getGstStateCode($plantState);
-            $gstInput = !empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
-            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+            $gstInput = ! empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
+            if (! str_starts_with(strtoupper($gstInput), $expectedCode)) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['gst_number' => ["GSTIN for {$plantState} must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                    'errors' => ['gst_number' => ["GSTIN for {$plantState} must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]],
                 ], 422);
             }
         }
@@ -151,10 +157,10 @@ class ClientController extends Controller
 
             $shouldCreatePlant = $request->boolean('create_primary_plant', true);
             if ($shouldCreatePlant) {
-                $plantName = !empty($validated['plant_name']) ? $validated['plant_name'] : ($validated['company_name'] . ' Main Plant');
-                $state = !empty($validated['state']) ? $validated['state'] : 'Gujarat';
-                $shippingAddress = !empty($validated['shipping_address']) ? $validated['shipping_address'] : $validated['corporate_address'];
-                $plantGst = !empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
+                $plantName = ! empty($validated['plant_name']) ? $validated['plant_name'] : ($validated['company_name'].' Main Plant');
+                $state = ! empty($validated['state']) ? $validated['state'] : 'Gujarat';
+                $shippingAddress = ! empty($validated['shipping_address']) ? $validated['shipping_address'] : $validated['corporate_address'];
+                $plantGst = ! empty($validated['plant_gst_number']) ? $validated['plant_gst_number'] : $validated['gst_number'];
 
                 ClientPlant::create([
                     'client_id' => $client->id,
@@ -170,7 +176,7 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Client profile '{$client->company_name}' registered successfully!",
-            'data' => $client
+            'data' => $client,
         ]);
     }
 
@@ -179,7 +185,9 @@ class ClientController extends Controller
      */
     public function updateClient(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $client = Client::findOrFail($id);
 
@@ -196,7 +204,7 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Client '{$client->company_name}' updated successfully!",
-            'data' => $client
+            'data' => $client,
         ]);
     }
 
@@ -205,7 +213,9 @@ class ClientController extends Controller
      */
     public function deleteClient($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $client = Client::findOrFail($id);
         $clientName = $client->company_name;
@@ -217,7 +227,7 @@ class ClientController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Client '{$clientName}' and its associated plants deleted successfully!"
+            'message' => "Client '{$clientName}' and its associated plants deleted successfully!",
         ]);
     }
 
@@ -240,19 +250,19 @@ class ClientController extends Controller
         $expectedCode = self::getGstStateCode($state);
         $client = Client::findOrFail($validated['client_id']);
         $clientGstCode = substr($client->gst_number, 0, 2);
-        $gstInput = !empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
+        $gstInput = ! empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
 
-        if (!empty($gstInput)) {
-            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+        if (! empty($gstInput)) {
+            if (! str_starts_with(strtoupper($gstInput), $expectedCode)) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]],
                 ], 422);
             }
         } elseif ($clientGstCode !== $expectedCode) {
             return response()->json([
                 'success' => false,
-                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]]
+                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]],
             ], 422);
         }
 
@@ -261,7 +271,7 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Client Plant '{$plant->plant_name}' created successfully!",
-            'data' => $plant
+            'data' => $plant,
         ]);
     }
 
@@ -270,7 +280,9 @@ class ClientController extends Controller
      */
     public function updatePlant(Request $request, $id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction($request, 'action_update')) return $res;
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
 
         $plant = ClientPlant::findOrFail($id);
 
@@ -287,19 +299,19 @@ class ClientController extends Controller
         $expectedCode = self::getGstStateCode($state);
         $client = $plant->client;
         $clientGstCode = $client ? substr($client->gst_number, 0, 2) : '24';
-        $gstInput = !empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
+        $gstInput = ! empty($validated['gst_number']) ? trim($validated['gst_number']) : null;
 
-        if (!empty($gstInput)) {
-            if (!str_starts_with(strtoupper($gstInput), $expectedCode)) {
+        if (! empty($gstInput)) {
+            if (! str_starts_with(strtoupper($gstInput), $expectedCode)) {
                 return response()->json([
                     'success' => false,
-                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]]
+                    'errors' => ['gst_number' => ["GSTIN for {$state} plant must start with State Code {$expectedCode} (e.g. {$expectedCode}AAAAB1111A1Z5). Entered: {$gstInput}"]],
                 ], 422);
             }
         } elseif ($clientGstCode !== $expectedCode) {
             return response()->json([
                 'success' => false,
-                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]]
+                'errors' => ['gst_number' => ["Plant GSTIN is REQUIRED for out-of-state plant in {$state}. State Code {$expectedCode} is required (cannot use Main GSTIN {$client->gst_number})."]],
             ], 422);
         }
 
@@ -308,7 +320,7 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Plant '{$plant->plant_name}' updated successfully!",
-            'data' => $plant
+            'data' => $plant,
         ]);
     }
 
@@ -317,7 +329,9 @@ class ClientController extends Controller
      */
     public function deletePlant($id)
     {
-        if ($res = \App\Services\RolePermissionService::authorizeAction(request(), 'action_delete')) return $res;
+        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+            return $res;
+        }
 
         $plant = ClientPlant::findOrFail($id);
         $plantName = $plant->plant_name;
@@ -325,7 +339,7 @@ class ClientController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Plant '{$plantName}' deleted successfully!"
+            'message' => "Plant '{$plantName}' deleted successfully!",
         ]);
     }
 
@@ -352,8 +366,8 @@ class ClientController extends Controller
         $plant_id = $plantId;
 
         return view('pages.client_ledger', compact(
-            'client', 'selectedPlant', 'opening_balance', 'total_debit', 
-            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date', 
+            'client', 'selectedPlant', 'opening_balance', 'total_debit',
+            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date',
             'end_date', 'period', 'plant_id', 'filterMonth', 'filterYear'
         ));
     }
@@ -381,17 +395,17 @@ class ClientController extends Controller
         $plant_id = $plantId;
 
         $pdfContent = $this->pdfService->renderViewToPdf('pdf.client_ledger_pdf', compact(
-            'client', 'selectedPlant', 'opening_balance', 'total_debit', 
-            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date', 
+            'client', 'selectedPlant', 'opening_balance', 'total_debit',
+            'total_credit', 'closing_balance', 'transactions', 'entries', 'start_date',
             'end_date', 'period', 'plant_id'
         ));
 
-        $plantSegment = $selectedPlant ? "-" . $selectedPlant->plant_name : "";
+        $plantSegment = $selectedPlant ? '-'.$selectedPlant->plant_name : '';
         $fileName = "Ledger-Statement-{$client->company_name}{$plantSegment}-{$startDate}-to-{$endDate}.pdf";
         $fileName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $fileName);
 
         return response()->streamDownload(
-            fn () => print($pdfContent),
+            fn () => print ($pdfContent),
             $fileName,
             ['Content-Type' => 'application/pdf']
         );

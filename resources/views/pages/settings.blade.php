@@ -474,8 +474,9 @@ window.handleCategoryFormSubmit = function(e) {
     const $form = $(e.target);
     return submitFormWithAjax($form, 'Category saved successfully!', async function() {
         closeCategoryModal();
-        if (window.loadPage) await window.loadPage(window.location.href);
-        else window.location.reload();
+        const targetUrl = "{{ route('settings.index') }}?tab=other&sub=categories";
+        if (window.loadPage) await window.loadPage(targetUrl);
+        else window.location.href = targetUrl;
     });
 };
 
@@ -838,10 +839,12 @@ window.deleteCategorySetting = function(type, key, label) {
                 url: "{{ route('settings.categories.delete') }}",
                 type: 'POST',
                 data: { _token: '{{ csrf_token() }}', type: type, key: key },
-                success: function(res) {
+                success: async function(res) {
                     if (res.success) {
                         if (window.showToast) window.showToast('success', res.message);
-                        setTimeout(() => window.location.reload(), 800);
+                        const targetUrl = "{{ route('settings.index') }}?tab=other&sub=categories";
+                        if (window.loadPage) await window.loadPage(targetUrl);
+                        else window.location.href = targetUrl;
                     }
                 }
             });
@@ -896,8 +899,10 @@ window.saveModuleToggleAjax = function(elem) {
 
     let moduleLabel = 'Module';
     if (elem) {
-        const $card = $(elem).closest('div');
-        const cardTitle = $card.parent().find('span.font-bold, span.font-extrabold').first().text().trim();
+        const $card = $(elem).closest('div.p-4, div.p-5');
+        const $titleEl = $card.find('span.font-bold, span.font-extrabold').first().clone();
+        $titleEl.find('#track_stock_disabled_badge').remove();
+        const cardTitle = $titleEl.text().trim();
         if (cardTitle) {
             moduleLabel = cardTitle.replace(/^⚡\s*/, '').replace(/\s*ACTIVE$/, '').trim();
         }
@@ -989,7 +994,7 @@ window.togglePasswordVisibility = function(inputId, eyeId, eyeOffId) {
     }
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+(function initSettingsTabsOnLoad() {
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab') || 'profile';
     const subTab = urlParams.get('sub');
@@ -1000,22 +1005,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Dropdown toggle for mobile/desktop settings nav
-    $(document).on('click', '#otherSettingsDropdownBtn', function(e) {
+    $(document).off('click', '#otherSettingsDropdownBtn').on('click', '#otherSettingsDropdownBtn', function(e) {
         e.stopPropagation();
         $('#otherSettingsDropdownMenu').toggleClass('hidden');
     });
-    $(document).on('mouseenter', '#otherSettingsDropdownWrapper', function() {
+    $(document).off('mouseenter', '#otherSettingsDropdownWrapper').on('mouseenter', '#otherSettingsDropdownWrapper', function() {
         $('#otherSettingsDropdownMenu').removeClass('hidden');
     });
-    $(document).on('mouseleave', '#otherSettingsDropdownWrapper', function() {
+    $(document).off('mouseleave', '#otherSettingsDropdownWrapper').on('mouseleave', '#otherSettingsDropdownWrapper', function() {
         $('#otherSettingsDropdownMenu').addClass('hidden');
     });
-    $(document).on('click', function(e) {
+    $(document).off('click.otherSettingsDoc').on('click.otherSettingsDoc', function(e) {
         if (!$(e.target).closest('#otherSettingsDropdownWrapper').length) {
             $('#otherSettingsDropdownMenu').addClass('hidden');
         }
     });
-});
+})();
 </script>
 
 <style>

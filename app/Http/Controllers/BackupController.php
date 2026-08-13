@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\BackupService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 use Throwable;
 
 class BackupController extends Controller
@@ -40,7 +40,7 @@ class BackupController extends Controller
             $y2 = substr((string) ($y1 + 1), -2);
             $financialYears[] = [
                 'key' => "{$y1}-{$y2}",
-                'label' => "FY {$y1}–{$y2} (Apr 1, {$y1} - Mar 31, " . ($y1 + 1) . ")"
+                'label' => "FY {$y1}–{$y2} (Apr 1, {$y1} - Mar 31, ".($y1 + 1).')',
             ];
         }
 
@@ -53,10 +53,11 @@ class BackupController extends Controller
     public function listJson()
     {
         $backups = $this->backupService->listLocalBackups();
+
         return response()->json([
             'success' => true,
             'count' => count($backups),
-            'backups' => $backups
+            'backups' => $backups,
         ]);
     }
 
@@ -67,18 +68,19 @@ class BackupController extends Controller
     {
         try {
             $sqlContent = $this->backupService->generateFullSqlDump();
-            $filename = "pww_full_backup_" . Carbon::now()->format('Ymd_His') . ".sql";
+            $filename = 'pww_full_backup_'.Carbon::now()->format('Ymd_His').'.sql';
 
             // Also save copy in storage/app/backups
-            $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . $filename;
+            $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.$filename;
             File::put($filePath, $sqlContent);
 
             return response()->download($filePath, $filename, [
                 'Content-Type' => 'application/octet-stream',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (Throwable $e) {
-            Log::error("Full Backup Download Failed: " . $e->getMessage());
+            Log::error('Full Backup Download Failed: '.$e->getMessage());
+
             return back()->with('error', 'Failed to generate full backup. Please try again.');
         }
     }
@@ -109,15 +111,16 @@ class BackupController extends Controller
             $sqlContent = $result['content'];
 
             // Also save copy in storage/app/backups
-            $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . $filename;
+            $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.$filename;
             File::put($filePath, $sqlContent);
 
             return response()->download($filePath, $filename, [
                 'Content-Type' => 'application/octet-stream',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (Throwable $e) {
-            Log::error("Filtered Backup Download Failed: " . $e->getMessage());
+            Log::error('Filtered Backup Download Failed: '.$e->getMessage());
+
             return back()->with('error', 'Failed to generate filtered backup. Please try again.');
         }
     }
@@ -139,7 +142,8 @@ class BackupController extends Controller
 
             return back()->with('success', 'Database restored successfully! A safety snapshot of your previous state was automatically saved before restoration.');
         } catch (Throwable $e) {
-            Log::error("Database Restore Failed: " . $e->getMessage());
+            Log::error('Database Restore Failed: '.$e->getMessage());
+
             return back()->with('error', 'Database restoration failed. Please try again.');
         }
     }
@@ -149,9 +153,9 @@ class BackupController extends Controller
      */
     public function downloadFile(string $filename)
     {
-        $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . basename($filename);
+        $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             return back()->with('error', 'Backup file not found.');
         }
 
@@ -163,7 +167,7 @@ class BackupController extends Controller
      */
     public function deleteFile(Request $request, string $filename)
     {
-        $filePath = $this->backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . basename($filename);
+        $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
 
         if (File::exists($filePath)) {
             File::delete($filePath);
@@ -171,7 +175,7 @@ class BackupController extends Controller
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Backup file '{$filename}' deleted successfully."
+                    'message' => "Backup file '{$filename}' deleted successfully.",
                 ]);
             }
 
@@ -181,7 +185,7 @@ class BackupController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Backup file not found.'
+                'message' => 'Backup file not found.',
             ], 404);
         }
 

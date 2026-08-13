@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('products') && !Schema::hasColumn('products', 'gst_rate')) {
+        if (Schema::hasTable('products') && ! Schema::hasColumn('products', 'gst_rate')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->decimal('gst_rate', 5, 2)->default(18.00)->after('current_stock');
             });

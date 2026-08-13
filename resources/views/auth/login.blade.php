@@ -153,7 +153,7 @@
             @csrf
             <div>
                 <label for="email" class="block text-xs font-bold uppercase mb-1 login-label">EMAIL ADDRESS</label>
-                <input type="email" id="email" name="email" value="" placeholder="e.g. pww@gmail.com"
+                <input type="email" id="email" name="email" value="" placeholder="e.g. pww@gmail.com" autocomplete="username" required
                        class="w-full rounded-xl py-2.5 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition login-input">
                 <p id="emailError" class="text-xs text-rose-500 dark:text-rose-400 font-semibold mt-1.5 hidden flex items-center">
                     <svg class="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -164,7 +164,7 @@
             <div>
                 <label for="password" class="block text-xs font-bold uppercase mb-1 login-label">PASSWORD</label>
                 <div class="relative">
-                    <input type="password" id="password" name="password" value="" placeholder="••••••••"
+                    <input type="password" id="password" name="password" value="" placeholder="••••••••" autocomplete="current-password" required
                            class="w-full rounded-xl py-2.5 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition login-input">
                     <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
                         <svg id="eyeIconOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

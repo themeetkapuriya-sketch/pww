@@ -40,6 +40,9 @@
 <!-- MODAL: DISBURSE SALARY & AUTO-LOG EXPENSE -->
 @include('pages.employees.partials.disburse_modal')
 
+<!-- MODAL: ISSUE SALARY ADVANCE & AUTO-LOG EXPENSE -->
+@include('pages.employees.partials.advance_modal')
+
 <script>
 let currentStaffRate = 0;
 let currentWageType = 'per-day';
@@ -75,9 +78,24 @@ function filterDisbursalMonth(monthVal) {
     }
 }
 
+function openAdvanceModal(staffId) {
+    if (staffId && document.getElementById('advanceStaffSelect')) {
+        document.getElementById('advanceStaffSelect').value = staffId;
+    }
+    const modal = document.getElementById('giveAdvanceModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeAdvanceModal() {
+    const modal = document.getElementById('giveAdvanceModal');
+    if (modal) modal.classList.add('hidden');
+}
+window.closeAdvanceModal = closeAdvanceModal;
+
 function openDisburseModal(btnOrStaff, monthYear, daysPresent, calculatedSalary, optionalDisbursal) {
     let staff = btnOrStaff;
     let disbursal = optionalDisbursal;
+    let pendingAdvance = 0;
 
     if (btnOrStaff && btnOrStaff.dataset) {
         if (btnOrStaff.dataset.staff) {
@@ -85,6 +103,9 @@ function openDisburseModal(btnOrStaff, monthYear, daysPresent, calculatedSalary,
         }
         if (btnOrStaff.dataset.disbursal) {
             try { disbursal = JSON.parse(btnOrStaff.dataset.disbursal); } catch(e) {}
+        }
+        if (btnOrStaff.dataset.pendingAdvance) {
+            pendingAdvance = parseFloat(btnOrStaff.dataset.pendingAdvance) || 0;
         }
     }
 
@@ -107,12 +128,32 @@ function openDisburseModal(btnOrStaff, monthYear, daysPresent, calculatedSalary,
     if (daysContainer) daysContainer.classList.remove('hidden');
     if (daysInput) daysInput.value = daysPresent || 0;
 
+    const advBadge = document.getElementById('disbursePendingAdvanceBadge');
+    if (advBadge) advBadge.innerText = `₹${pendingAdvance.toFixed(2)}`;
+
+    const advDeductInput = document.getElementById('disburseAdvanceDeductionInput');
+    if (advDeductInput) {
+        if (disbursal && disbursal.advance_deduction !== undefined && disbursal.advance_deduction !== null) {
+            advDeductInput.value = parseFloat(disbursal.advance_deduction).toFixed(2);
+        } else {
+            advDeductInput.value = pendingAdvance.toFixed(2);
+        }
+    }
+
     if (disbursal) {
         document.getElementById('disburseMethodSelect').value = disbursal.payment_method || 'Cash';
         document.getElementById('disburseNotes').value = disbursal.notes || '';
+        if (disbursal.payment_date && document.getElementById('disbursePaymentDate')) {
+            let pDate = disbursal.payment_date;
+            if (typeof pDate === 'string' && pDate.includes('T')) pDate = pDate.split('T')[0];
+            document.getElementById('disbursePaymentDate').value = pDate;
+        }
     } else {
         document.getElementById('disburseMethodSelect').value = 'Cash';
         document.getElementById('disburseNotes').value = '';
+        if (document.getElementById('disbursePaymentDate')) {
+            document.getElementById('disbursePaymentDate').value = new Date().toISOString().split('T')[0];
+        }
     }
 
     calculateModalSalary();
@@ -125,22 +166,28 @@ function openDisburseModal(btnOrStaff, monthYear, daysPresent, calculatedSalary,
 }
 
 function calculateModalSalary() {
-    let total = 0;
+    let gross = 0;
     if (currentWageType === 'per-day') {
         const days = parseFloat(document.getElementById('disburseDaysInput').value) || 0;
-        total = days * currentStaffRate;
+        gross = days * currentStaffRate;
     } else {
-        total = currentStaffRate;
+        gross = currentStaffRate;
     }
+
+    const advanceDeduction = parseFloat(document.getElementById('disburseAdvanceDeductionInput')?.value) || 0;
+    let net = gross - advanceDeduction;
+    if (net < 0) net = 0;
+
     const salaryInput = document.getElementById('disburseTotalSalaryInput');
     if (salaryInput) {
-        salaryInput.value = total.toFixed(2);
+        salaryInput.value = net.toFixed(2);
     }
 }
 
 function closeDisburseModal() {
-    document.getElementById('disburseSalaryModal').classList.add('hidden');
+    document.getElementById('disburseSalaryModal')?.classList.add('hidden');
 }
+window.closeDisburseModal = closeDisburseModal;
 
 function toggleInlineForm(containerId, btnEl) {
     const container = document.getElementById(containerId);

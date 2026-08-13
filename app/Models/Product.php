@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
@@ -19,11 +19,13 @@ class Product extends Model
         'selling_price',
         'price_per_kg',
         'gst_rate',
+        'safety_threshold',
         'alerts_enabled',
     ];
 
     protected $casts = [
         'current_stock' => 'integer',
+        'safety_threshold' => 'integer',
         'selling_price' => 'decimal:2',
         'price_per_kg' => 'decimal:2',
         'gst_rate' => 'decimal:2',
@@ -53,8 +55,8 @@ class Product extends Model
     public function rawMaterials()
     {
         return $this->belongsToMany(RawMaterial::class, 'bill_of_materials', 'product_id', 'raw_material_id')
-                    ->withPivot('required_quantity', 'waste_percentage')
-                    ->withTimestamps();
+            ->withPivot('required_quantity', 'waste_percentage')
+            ->withTimestamps();
     }
 
     /**

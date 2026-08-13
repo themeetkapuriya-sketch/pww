@@ -3,19 +3,17 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\RawMaterial;
-use App\Models\Product;
-use App\Models\Invoice;
-use App\Models\Expense;
-use App\Models\Purchase;
-use App\Models\SalesOrder;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-
-use App\Models\ProductionLog;
-use App\Models\StaffProfile;
 use App\Models\AttendanceRecord;
+use App\Models\Expense;
+use App\Models\Invoice;
+use App\Models\ProductionLog;
+use App\Models\Purchase;
+use App\Models\RawMaterial;
+use App\Models\SalesOrder;
+use App\Models\StaffProfile;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OverviewController extends Controller
 {
@@ -41,27 +39,27 @@ class OverviewController extends Controller
         $monthEnd = $now->copy()->endOfMonth();
 
         // Yearly Revenue & Taxable Base
-        $yearlyStats = Invoice::where(function($q) use ($fyStartDate, $fyEndDate) {
+        $yearlyStats = Invoice::where(function ($q) use ($fyStartDate, $fyEndDate) {
             $q->whereBetween('invoice_date', [$fyStartDate->toDateString(), $fyEndDate->toDateString()])
-              ->orWhere(function($sub) use ($fyStartDate, $fyEndDate) {
-                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
-              });
+                ->orWhere(function ($sub) use ($fyStartDate, $fyEndDate) {
+                    $sub->whereNull('invoice_date')->whereBetween('created_at', [$fyStartDate, $fyEndDate]);
+                });
         })->selectRaw('SUM(total_amount) as total_rev, SUM(total_taxable_value) as total_tax')->first();
 
-        $yearlyRevenue = (float)($yearlyStats->total_rev ?? 0);
-        $yearlyTaxable = (float)($yearlyStats->total_tax ?? 0);
+        $yearlyRevenue = (float) ($yearlyStats->total_rev ?? 0);
+        $yearlyTaxable = (float) ($yearlyStats->total_tax ?? 0);
 
         // Monthly Revenue & Taxable Base
-        $monthlyStats = Invoice::where(function($q) use ($monthStart, $monthEnd) {
+        $monthlyStats = Invoice::where(function ($q) use ($monthStart, $monthEnd) {
             $q->whereBetween('invoice_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-              ->orWhere(function($sub) use ($monthStart, $monthEnd) {
-                  $sub->whereNull('invoice_date')->whereBetween('created_at', [$monthStart, $monthEnd]);
-              });
+                ->orWhere(function ($sub) use ($monthStart, $monthEnd) {
+                    $sub->whereNull('invoice_date')->whereBetween('created_at', [$monthStart, $monthEnd]);
+                });
         })->selectRaw('SUM(total_amount) as total_rev, SUM(total_taxable_value) as total_tax, COUNT(*) as cnt, SUM(cgst) as cgst_sum, SUM(sgst) as sgst_sum, SUM(igst) as igst_sum')->first();
 
-        $monthlyRevenue = (float)($monthlyStats->total_rev ?? 0);
-        $monthlyTaxable = (float)($monthlyStats->total_tax ?? 0);
-        $monthlyInvoiceCount = (int)($monthlyStats->cnt ?? 0);
+        $monthlyRevenue = (float) ($monthlyStats->total_rev ?? 0);
+        $monthlyTaxable = (float) ($monthlyStats->total_tax ?? 0);
+        $monthlyInvoiceCount = (int) ($monthlyStats->cnt ?? 0);
 
         // Outstanding Receivables
         $totalReceivables = (float) DB::table('invoices')
@@ -69,7 +67,7 @@ class OverviewController extends Controller
             ->value('due') ?? 0;
 
         // Net GST Payable (Current Month)
-        $salesGstCollected = (float)(($monthlyStats->cgst_sum ?? 0) + ($monthlyStats->sgst_sum ?? 0) + ($monthlyStats->igst_sum ?? 0));
+        $salesGstCollected = (float) (($monthlyStats->cgst_sum ?? 0) + ($monthlyStats->sgst_sum ?? 0) + ($monthlyStats->igst_sum ?? 0));
         $purchasesItc = (float) Purchase::whereBetween('purchase_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->sum('gst_amount');
         $currentMonthNetGst = round($salesGstCollected - $purchasesItc, 2);
 
@@ -86,7 +84,7 @@ class OverviewController extends Controller
         if ($currentMonthNetGst <= 0) {
             $currentMonthGstPaid = true;
             $currentMonthGstStatus = 'no_due';
-        } else if ($currentMonthGstExpenseTotal >= $currentMonthNetGst || $currentMonthGstExpense !== null) {
+        } elseif ($currentMonthGstExpenseTotal >= $currentMonthNetGst || $currentMonthGstExpense !== null) {
             $currentMonthGstPaid = true;
             $currentMonthGstStatus = 'paid';
         } else {
@@ -128,11 +126,11 @@ class OverviewController extends Controller
 
         $invoiceChartData = DB::table('invoices')
             ->selectRaw("{$invDateSql} as m_key, SUM(total_amount) as total_sales")
-            ->where(function($q) use ($sixMonthsAgo, $monthEnd) {
+            ->where(function ($q) use ($sixMonthsAgo, $monthEnd) {
                 $q->whereBetween('invoice_date', [$sixMonthsAgo->toDateString(), $monthEnd->toDateString()])
-                  ->orWhere(function($sub) use ($sixMonthsAgo, $monthEnd) {
-                      $sub->whereNull('invoice_date')->whereBetween('created_at', [$sixMonthsAgo, $monthEnd]);
-                  });
+                    ->orWhere(function ($sub) use ($sixMonthsAgo, $monthEnd) {
+                        $sub->whereNull('invoice_date')->whereBetween('created_at', [$sixMonthsAgo, $monthEnd]);
+                    });
             })
             ->groupBy('m_key')
             ->pluck('total_sales', 'm_key');
@@ -154,8 +152,8 @@ class OverviewController extends Controller
             $mKey = $mStart->format('Y-m');
             $chartMonths[] = $mStart->format('M Y');
 
-            $salesVal = (float)($invoiceChartData[$mKey] ?? 0);
-            $expVal = (float)($expenseChartData[$mKey] ?? 0) + (float)($purchaseChartData[$mKey] ?? 0);
+            $salesVal = (float) ($invoiceChartData[$mKey] ?? 0);
+            $expVal = (float) ($expenseChartData[$mKey] ?? 0) + (float) ($purchaseChartData[$mKey] ?? 0);
 
             $chartSalesData[] = round($salesVal, 2);
             $chartExpenseData[] = round($expVal, 2);
@@ -174,20 +172,21 @@ class OverviewController extends Controller
             ->orderByDesc('sales')
             ->take(5)
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 $displayName = $item->company_name;
-                if (!empty($item->plant_name)) {
-                    $displayName .= ' (' . $item->plant_name . ')';
+                if (! empty($item->plant_name)) {
+                    $displayName .= ' ('.$item->plant_name.')';
                 }
+
                 return [
                     'name' => $displayName,
-                    'sales' => (float)$item->sales,
+                    'sales' => (float) $item->sales,
                 ];
             });
 
         if ($topClientsData->isEmpty()) {
             $topClientsData = collect([
-                ['name' => 'Main Plant', 'sales' => (float)Invoice::sum('total_amount')]
+                ['name' => 'Main Plant', 'sales' => (float) Invoice::sum('total_amount')],
             ]);
         }
 

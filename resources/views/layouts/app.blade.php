@@ -1,5 +1,8 @@
 @if(request()->header('X-PWW-SPA') === '1')
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
+    <div id="spa-header-content" class="hidden">
+        @include('layouts.header')
+    </div>
     <div id="page-content" class="p-4 md:px-8 md:pt-4 md:pb-8 flex-grow space-y-6">
         @yield('content')
         @if(session('auto_download_backup_url'))

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,33 +12,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
-            \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(100) DEFAULT 'staff'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(100) DEFAULT 'staff'");
         }
 
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'status')) {
+            if (! Schema::hasColumn('users', 'status')) {
                 $table->string('status')->default('pending')->after('role');
             }
-            if (!Schema::hasColumn('users', 'is_active')) {
+            if (! Schema::hasColumn('users', 'is_active')) {
                 $table->boolean('is_active')->default(false)->after('status');
             }
-            if (!Schema::hasColumn('users', 'phone')) {
+            if (! Schema::hasColumn('users', 'phone')) {
                 $table->string('phone')->nullable()->after('email');
             }
-            if (!Schema::hasColumn('users', 'salary')) {
+            if (! Schema::hasColumn('users', 'salary')) {
                 $table->decimal('salary', 10, 2)->nullable()->after('phone');
             }
-            if (!Schema::hasColumn('users', 'permissions')) {
+            if (! Schema::hasColumn('users', 'permissions')) {
                 $table->json('permissions')->nullable()->after('is_active');
             }
-            if (!Schema::hasColumn('users', 'avatar_path')) {
+            if (! Schema::hasColumn('users', 'avatar_path')) {
                 $table->string('avatar_path')->nullable()->after('salary');
             }
         });
 
         // 2. Dynamic Roles Table
-        if (!Schema::hasTable('roles')) {
+        if (! Schema::hasTable('roles')) {
             Schema::create('roles', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -49,7 +50,7 @@ return new class extends Migration
         }
 
         // 3. Role Permissions Mapping Table
-        if (!Schema::hasTable('role_permissions')) {
+        if (! Schema::hasTable('role_permissions')) {
             Schema::create('role_permissions', function (Blueprint $table) {
                 $table->id();
                 $table->string('role_slug');
@@ -61,7 +62,7 @@ return new class extends Migration
         }
 
         // 4. Hierarchical Navigation Modules Table
-        if (!Schema::hasTable('modules')) {
+        if (! Schema::hasTable('modules')) {
             Schema::create('modules', function (Blueprint $table) {
                 $table->id();
                 $table->string('title');

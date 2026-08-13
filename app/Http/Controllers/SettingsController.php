@@ -3,17 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
+use App\Models\Module;
+use App\Models\Role;
+use App\Models\RolePermission;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\BackupService;
 use App\Services\CategoryService;
 use App\Services\RolePermissionService;
+use Carbon\Carbon;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Throwable;
@@ -27,7 +37,7 @@ class SettingsController extends Controller
     {
         $user = Auth::user();
         $userRole = strtolower(trim($user->role ?? ''));
-        if (!$user || (!RolePermissionService::userHasPermission($user, 'backups_settings_manage') && !in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']))) {
+        if (! $user || (! RolePermissionService::userHasPermission($user, 'backups_settings_manage') && ! in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']))) {
             return redirect()->route('overview')->with('error', 'Access Denied: Apart from Admin and Super Admin, no one has access to System Settings.');
         }
 
@@ -39,7 +49,7 @@ class SettingsController extends Controller
         $permissionsList = RolePermissionService::getPermissionsList();
 
         // Fetch custom dynamic roles from database
-        $customRolesList = \App\Models\Role::orderBy('name')->get();
+        $customRolesList = Role::orderBy('name')->get();
 
         // Get active module states
         $modules = [
@@ -65,7 +75,7 @@ class SettingsController extends Controller
         try {
             $backups = app(BackupService::class)->listLocalBackups();
         } catch (Throwable $e) {
-            Log::error("Failed to load backups list: " . $e->getMessage());
+            Log::error('Failed to load backups list: '.$e->getMessage());
         }
 
         return view('pages.settings', compact('users', 'roles', 'customRolesList', 'permissionsList', 'modules', 'backups'));
@@ -111,7 +121,7 @@ class SettingsController extends Controller
             ];
 
             $oldSimplified = Setting::get('simplified_billing_mode', 'false') === 'true';
-            $isSimplified = in_array(strtolower((string)$request->input('simplified_billing_mode')), ['true', '1', 'yes', 'on'], true);
+            $isSimplified = in_array(strtolower((string) $request->input('simplified_billing_mode')), ['true', '1', 'yes', 'on'], true);
 
             Setting::updateOrCreate(['key' => 'simplified_billing_mode'], ['value' => $isSimplified ? 'true' : 'false']);
 
@@ -127,7 +137,7 @@ class SettingsController extends Controller
                 Setting::updateOrCreate(['key' => 'module_expenses'], ['value' => 'true']);
                 Setting::updateOrCreate(['key' => 'module_clients'], ['value' => 'true']);
                 Setting::updateOrCreate(['key' => 'module_reports'], ['value' => 'true']);
-            } elseif ($oldSimplified && !$isSimplified) {
+            } elseif ($oldSimplified && ! $isSimplified) {
                 foreach ($moduleKeys as $key) {
                     if ($key !== 'simplified_billing_mode') {
                         Setting::updateOrCreate(['key' => $key], ['value' => 'true']);
@@ -137,7 +147,7 @@ class SettingsController extends Controller
                 foreach ($moduleKeys as $key) {
                     $val = $request->input($key);
                     if ($val !== null) {
-                        $isSet = in_array(strtolower((string)$val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
+                        $isSet = in_array(strtolower((string) $val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
                     } else {
                         $isSet = $request->has($key) ? 'true' : 'false';
                     }
@@ -145,7 +155,7 @@ class SettingsController extends Controller
                 }
             }
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated ERP module visibility & feature toggles matrix");
+            AuditLogService::log('Settings', 'updated', 'Updated ERP module visibility & feature toggles matrix');
 
             $modulesState = [];
             foreach ($moduleKeys as $key) {
@@ -153,10 +163,11 @@ class SettingsController extends Controller
             }
 
             return $this->respond($request, true, 'Active ERP module visibility updated successfully! Sidebar navigation updated.', [
-                'modules' => $modulesState
+                'modules' => $modulesState,
             ]);
         } catch (Throwable $e) {
-            Log::error("Failed to update module toggles: " . $e->getMessage());
+            Log::error('Failed to update module toggles: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update modules. Please try again.');
         }
     }
@@ -195,11 +206,12 @@ class SettingsController extends Controller
                 'permissions' => $permissions,
             ]);
 
-            \App\Services\AuditLogService::log('Settings', 'created', "Created user account '{$user->name}' ({$user->email}, Role: {$user->role})");
+            AuditLogService::log('Settings', 'created', "Created user account '{$user->name}' ({$user->email}, Role: {$user->role})");
 
             return $this->respond($request, true, "User account for '{$user->name}' created successfully!");
         } catch (Throwable $e) {
-            Log::error("Failed to create user account: " . $e->getMessage());
+            Log::error('Failed to create user account: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to create user. Please try again.');
         }
     }
@@ -222,11 +234,12 @@ class SettingsController extends Controller
             $user->permissions = RolePermissionService::getDefaultPermissionsForRole($validated['role']);
             $user->save();
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Approved pending user account '{$user->name}' as " . ucfirst(str_replace('_', ' ', $user->role)));
+            AuditLogService::log('Settings', 'updated', "Approved pending user account '{$user->name}' as ".ucfirst(str_replace('_', ' ', $user->role)));
 
-            return $this->respond($request, true, "User account '{$user->name}' has been approved successfully as " . ucfirst(str_replace('_', ' ', $user->role)) . "!");
+            return $this->respond($request, true, "User account '{$user->name}' has been approved successfully as ".ucfirst(str_replace('_', ' ', $user->role)).'!');
         } catch (Throwable $e) {
-            Log::error("Failed to approve user: " . $e->getMessage());
+            Log::error('Failed to approve user: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to approve user. Please try again.');
         }
     }
@@ -252,13 +265,14 @@ class SettingsController extends Controller
             $user->is_active = ($newStatus === 'active');
             $user->save();
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Toggled user account '{$user->name}' status to " . strtoupper($newStatus));
+            AuditLogService::log('Settings', 'updated', "Toggled user account '{$user->name}' status to ".strtoupper($newStatus));
 
-            return $this->respond($request, true, "User account '{$user->name}' is now " . strtoupper($newStatus) . ".", [
-                'is_active' => (bool)$user->is_active
+            return $this->respond($request, true, "User account '{$user->name}' is now ".strtoupper($newStatus).'.', [
+                'is_active' => (bool) $user->is_active,
             ]);
         } catch (Throwable $e) {
-            Log::error("Failed to toggle user status: " . $e->getMessage());
+            Log::error('Failed to toggle user status: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update user status. Please try again.');
         }
     }
@@ -291,13 +305,13 @@ class SettingsController extends Controller
             if ($user->role === 'super_admin') {
                 $user->status = 'active';
                 $user->is_active = true;
-            } else if (!empty($validated['status'])) {
+            } elseif (! empty($validated['status'])) {
                 $user->status = $validated['status'];
                 $user->is_active = ($validated['status'] === 'active');
             }
             $user->permissions = $permissions;
 
-            if (!empty($validated['password'])) {
+            if (! empty($validated['password'])) {
                 $user->password = Hash::make($validated['password']);
             }
 
@@ -305,7 +319,8 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, "User account '{$user->name}' updated successfully!");
         } catch (Throwable $e) {
-            Log::error("Failed to update user: " . $e->getMessage());
+            Log::error('Failed to update user: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update user. Please try again.');
         }
     }
@@ -321,8 +336,8 @@ class SettingsController extends Controller
         ]);
 
         try {
-            $slug = \Illuminate\Support\Str::slug($validated['name'], '_');
-            \App\Models\Role::updateOrCreate(
+            $slug = Str::slug($validated['name'], '_');
+            Role::updateOrCreate(
                 ['slug' => $slug],
                 [
                     'name' => $validated['name'],
@@ -333,7 +348,8 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, "Role '{$validated['name']}' created successfully!");
         } catch (Throwable $e) {
-            Log::error("Failed to create role: " . $e->getMessage());
+            Log::error('Failed to create role: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to create role. Please try again.');
         }
     }
@@ -343,7 +359,7 @@ class SettingsController extends Controller
      */
     public function toggleRolePermission(Request $request)
     {
-        if (!$request->has('enabled') && $request->has('is_enabled')) {
+        if (! $request->has('enabled') && $request->has('is_enabled')) {
             $request->merge(['enabled' => $request->input('is_enabled')]);
         }
 
@@ -359,12 +375,12 @@ class SettingsController extends Controller
             $enabled = in_array($validated['enabled'], ['true', '1', 1, true], true);
 
             if ($enabled) {
-                \App\Models\RolePermission::firstOrCreate([
+                RolePermission::firstOrCreate([
                     'role_slug' => $roleSlug,
                     'permission_key' => $permKey,
                 ]);
             } else {
-                \App\Models\RolePermission::where('role_slug', $roleSlug)
+                RolePermission::where('role_slug', $roleSlug)
                     ->where('permission_key', $permKey)
                     ->delete();
             }
@@ -397,7 +413,8 @@ class SettingsController extends Controller
                 'message' => "'{$permName}' permission {$statusText} for {$roleName}!",
             ]);
         } catch (Throwable $e) {
-            Log::error("Failed to toggle permission: " . $e->getMessage());
+            Log::error('Failed to toggle permission: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update permission. Please try again.',
@@ -411,8 +428,8 @@ class SettingsController extends Controller
     public function deleteRole(Request $request, $id)
     {
         try {
-            $role = \App\Models\Role::where('id', $id)->orWhere('slug', $id)->first();
-            
+            $role = Role::where('id', $id)->orWhere('slug', $id)->first();
+
             if (($role && $role->slug === 'super_admin') || $id === 'super_admin') {
                 return $this->respond($request, false, 'Super Admin owner role cannot be deleted!');
             }
@@ -420,14 +437,15 @@ class SettingsController extends Controller
             $slug = $role ? $role->slug : $id;
             $name = $role ? $role->name : ucfirst(str_replace('_', ' ', $id));
 
-            \App\Models\RolePermission::where('role_slug', $slug)->delete();
+            RolePermission::where('role_slug', $slug)->delete();
             if ($role) {
                 $role->delete();
             }
 
             return $this->respond($request, true, "Role '{$name}' deleted successfully!");
         } catch (Throwable $e) {
-            Log::error("Failed to delete role: " . $e->getMessage());
+            Log::error('Failed to delete role: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to delete role. Please try again.');
         }
     }
@@ -442,26 +460,28 @@ class SettingsController extends Controller
         }
 
         try {
-            $role = \App\Models\Role::where('slug', $slug)->first();
-            if (!$role) {
+            $role = Role::where('slug', $slug)->first();
+            if (! $role) {
                 $rolesDict = RolePermissionService::getRoles();
                 $name = $rolesDict[$slug]['name'] ?? ucfirst(str_replace('_', ' ', $slug));
-                $role = \App\Models\Role::create([
+                $role = Role::create([
                     'name' => $name,
                     'slug' => $slug,
                     'is_active' => true,
                 ]);
             }
 
-            $role->is_active = !$role->is_active;
+            $role->is_active = ! $role->is_active;
             $role->save();
 
             $statusText = $role->is_active ? 'ACTIVATED' : 'DEACTIVATED';
+
             return $this->respond($request, true, "Role '{$role->name}' is now {$statusText}.", [
-                'is_active' => (bool)$role->is_active
+                'is_active' => (bool) $role->is_active,
             ]);
         } catch (Throwable $e) {
-            Log::error("Failed to toggle role status: " . $e->getMessage());
+            Log::error('Failed to toggle role status: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update role status. Please try again.');
         }
     }
@@ -475,11 +495,11 @@ class SettingsController extends Controller
 
         try {
             foreach ($matrix as $roleSlug => $permissionKeys) {
-                \App\Models\RolePermission::where('role_slug', $roleSlug)->delete();
+                RolePermission::where('role_slug', $roleSlug)->delete();
                 if (is_array($permissionKeys)) {
                     foreach ($permissionKeys as $permKey => $val) {
                         if ($val) {
-                            \App\Models\RolePermission::create([
+                            RolePermission::create([
                                 'role_slug' => $roleSlug,
                                 'permission_key' => $permKey,
                             ]);
@@ -490,7 +510,8 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, 'Role permissions matrix updated successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to save permissions matrix: " . $e->getMessage());
+            Log::error('Failed to save permissions matrix: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to save permissions matrix. Please try again.');
         }
     }
@@ -510,7 +531,7 @@ class SettingsController extends Controller
         ]);
 
         try {
-            \App\Models\Module::create([
+            Module::create([
                 'title' => $validated['title'],
                 'route_name' => $validated['route_name'] ?? null,
                 'icon_class' => $validated['icon_class'] ?? 'M4 6h16M4 12h16M4 18h16',
@@ -522,7 +543,8 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, "Navigation module '{$validated['title']}' created successfully!");
         } catch (Throwable $e) {
-            Log::error("Failed to create module: " . $e->getMessage());
+            Log::error('Failed to create module: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to create module. Please try again.');
         }
     }
@@ -544,7 +566,8 @@ class SettingsController extends Controller
 
             return $this->respond($req, true, "User account '{$userName}' deleted successfully.");
         } catch (Throwable $e) {
-            Log::error("Failed to delete user: " . $e->getMessage());
+            Log::error('Failed to delete user: '.$e->getMessage());
+
             return $this->respond($req, false, 'Failed to delete user. Please try again.');
         }
     }
@@ -576,29 +599,36 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'business_mobile'], ['value' => $request->business_mobile ?? '']);
             Setting::updateOrCreate(['key' => 'address_line_1'], ['value' => $request->address_line_1]);
             Setting::updateOrCreate(['key' => 'address'], ['value' => $request->address_line_1]);
-            if ($request->has('city')) Setting::updateOrCreate(['key' => 'city'], ['value' => $request->city ?? 'Rajkot']);
-            if ($request->has('state')) Setting::updateOrCreate(['key' => 'state'], ['value' => $request->state ?? 'Gujarat (24)']);
-            if ($request->has('pincode')) Setting::updateOrCreate(['key' => 'pincode'], ['value' => $request->pincode ?? '360003']);
+            if ($request->has('city')) {
+                Setting::updateOrCreate(['key' => 'city'], ['value' => $request->city ?? 'Rajkot']);
+            }
+            if ($request->has('state')) {
+                Setting::updateOrCreate(['key' => 'state'], ['value' => $request->state ?? 'Gujarat (24)']);
+            }
+            if ($request->has('pincode')) {
+                Setting::updateOrCreate(['key' => 'pincode'], ['value' => $request->pincode ?? '360003']);
+            }
             Setting::updateOrCreate(['key' => 'gstin'], ['value' => strtoupper($request->gstin ?? '')]);
             Setting::updateOrCreate(['key' => 'msme_number'], ['value' => strtoupper($request->msme_number ?? '')]);
 
             if ($request->hasFile('logo')) {
-                $filename = 'logo_' . time() . '.' . $request->file('logo')->getClientOriginalExtension();
+                $filename = 'logo_'.time().'.'.$request->file('logo')->getClientOriginalExtension();
                 $request->file('logo')->move(public_path('uploads'), $filename);
-                Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'uploads/' . $filename]);
+                Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'uploads/'.$filename]);
             }
 
             if ($request->hasFile('signature')) {
-                $filename = 'signature_' . time() . '.' . $request->file('signature')->getClientOriginalExtension();
+                $filename = 'signature_'.time().'.'.$request->file('signature')->getClientOriginalExtension();
                 $request->file('signature')->move(public_path('uploads'), $filename);
-                Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/' . $filename]);
+                Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/'.$filename]);
             }
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated business profile and company branding ('{$request->business_name}')");
+            AuditLogService::log('Settings', 'updated', "Updated business profile and company branding ('{$request->business_name}')");
 
             return $this->respond($request, true, 'Business profile & branding updated successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update business profile: " . $e->getMessage());
+            Log::error('Failed to update business profile: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update profile. Please try again.');
         }
     }
@@ -623,11 +653,12 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'bank_ifsc'], ['value' => strtoupper($request->bank_ifsc ?? '')]);
             Setting::updateOrCreate(['key' => 'terms_and_conditions'], ['value' => $request->terms_and_conditions ?? '']);
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated bank details and billing terms & conditions");
+            AuditLogService::log('Settings', 'updated', 'Updated bank details and billing terms & conditions');
 
             return $this->respond($request, true, 'Bank details & billing defaults updated successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update bank defaults: " . $e->getMessage());
+            Log::error('Failed to update bank defaults: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update bank defaults. Please try again.');
         }
     }
@@ -656,11 +687,12 @@ class SettingsController extends Controller
             Setting::set('serial_number_digits', (string) $request->serial_number_digits);
             Setting::set('serial_reset_frequency', $request->serial_reset_frequency);
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated invoice & sales order auto-increment serial settings");
+            AuditLogService::log('Settings', 'updated', 'Updated invoice & sales order auto-increment serial settings');
 
             return $this->respond($request, true, 'Document prefix & auto-increment serial settings updated successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update serial settings: " . $e->getMessage());
+            Log::error('Failed to update serial settings: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update serial settings. Please try again.');
         }
     }
@@ -671,21 +703,26 @@ class SettingsController extends Controller
     public function updateFinancialSettings(Request $request)
     {
         $request->validate([
+            'home_state' => 'nullable|string|max:100',
             'default_gst_rate' => 'required|numeric|in:0,5,12,18,28',
             'financial_year_start_month' => 'required|integer|min:1|max:12',
             'number_format_style' => 'required|string|in:indian,international',
         ]);
 
         try {
+            if ($request->filled('home_state')) {
+                Setting::set('home_state', trim($request->home_state));
+            }
             Setting::set('default_gst_rate', (string) $request->default_gst_rate);
             Setting::set('financial_year_start_month', (string) $request->financial_year_start_month);
             Setting::set('number_format_style', $request->number_format_style);
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated default GST rate ({$request->default_gst_rate}%) and financial year settings");
+            AuditLogService::log('Settings', 'updated', "Updated default GST rate ({$request->default_gst_rate}%), Home State (".($request->home_state ?? 'Gujarat').') and financial settings');
 
             return $this->respond($request, true, 'Financial & Tax configuration updated successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update financial settings: " . $e->getMessage());
+            Log::error('Failed to update financial settings: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update financial settings. Please try again.');
         }
     }
@@ -724,11 +761,12 @@ class SettingsController extends Controller
             Setting::set('mail_from_address', $fromAddress);
             Setting::set('mail_from_name', trim($request->mail_from_name));
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated SMTP email delivery settings ('{$fromAddress}')");
+            AuditLogService::log('Settings', 'updated', "Updated SMTP email delivery settings ('{$fromAddress}')");
 
             return $this->respond($request, true, 'Email (SMTP) delivery settings saved successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update email settings: " . $e->getMessage());
+            Log::error('Failed to update email settings: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update email settings. Please try again.');
         }
     }
@@ -759,7 +797,7 @@ class SettingsController extends Controller
             // Decrypt stored password (with fallback for legacy plain-text values)
             try {
                 $mailPassword = Crypt::decryptString($encryptedPassword);
-            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            } catch (DecryptException $e) {
                 // Fallback: password was stored before encryption was added
                 $mailPassword = $encryptedPassword;
             }
@@ -776,16 +814,16 @@ class SettingsController extends Controller
                 'mail.from.name' => $fromName,
             ]);
 
-            Mail::raw("Hello!\n\nThis is a test delivery email from your Praful Welding Works ERP system settings hub. If you received this email, your SMTP configuration is working correctly!\n\nSent at: " . date('Y-m-d H:i:s'), function ($message) use ($to, $fromAddr, $fromName) {
+            Mail::raw("Hello!\n\nThis is a test delivery email from your Praful Welding Works ERP system settings hub. If you received this email, your SMTP configuration is working correctly!\n\nSent at: ".date('Y-m-d H:i:s'), function ($message) use ($to, $fromAddr, $fromName) {
                 $message->to($to)
                     ->from($fromAddr, $fromName)
-                    ->subject("SMTP Diagnostic Test Email - Praful Welding Works ERP");
+                    ->subject('SMTP Diagnostic Test Email - Praful Welding Works ERP');
             });
 
             return $this->respond($request, true, "Test email sent successfully to '{$to}'! Please check your inbox.");
         } catch (Throwable $e) {
             $msg = $e->getMessage();
-            Log::error("Failed to send test email: " . $msg);
+            Log::error('Failed to send test email: '.$msg);
 
             if (str_contains($msg, 'BadCredentials') || str_contains($msg, '535')) {
                 return $this->respond($request, false, 'Google Password Rejected: Please enter your 16-character Google App Password (not your personal Gmail password) and click "Save Email Settings" first.');
@@ -795,7 +833,7 @@ class SettingsController extends Controller
                 return $this->respond($request, false, 'Authentication Required: Please enter your 16-character Google App Password and click "Save Email Settings" before sending a test email.');
             }
 
-            return $this->respond($request, false, "Failed to send email: " . (strlen($msg) > 120 ? substr($msg, 0, 120) . '...' : $msg));
+            return $this->respond($request, false, 'Failed to send email: '.(strlen($msg) > 120 ? substr($msg, 0, 120).'...' : $msg));
         }
     }
 
@@ -823,7 +861,7 @@ class SettingsController extends Controller
             if ($request->has('max_login_attempts')) {
                 Setting::set('max_login_attempts', (string) $request->max_login_attempts);
             }
-            
+
             $freq = $request->auto_backup_frequency;
             $enabled = ($freq !== 'disabled') ? 'true' : 'false';
             Setting::set('auto_backup_enabled', $enabled);
@@ -836,12 +874,64 @@ class SettingsController extends Controller
             // Run catch-up cleanup if retention rule changed
             app(BackupService::class)->cleanOldBackups();
 
-            \App\Services\AuditLogService::log('Settings', 'updated', "Updated security policies (Session Timeout: {$request->session_timeout_minutes} mins, Auto Backup: {$freq}, Retention: {$request->auto_backup_retention})");
+            AuditLogService::log('Settings', 'updated', "Updated security policies (Session Timeout: {$request->session_timeout_minutes} mins, Auto Backup: {$freq}, Retention: {$request->auto_backup_retention})");
 
             return $this->respond($request, true, 'Security & backup schedule preferences saved successfully!');
         } catch (Throwable $e) {
-            Log::error("Failed to update security settings: " . $e->getMessage());
+            Log::error('Failed to update security settings: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to update security settings. Please try again.');
+        }
+    }
+
+    /**
+     * 1-Click System Self-Healing & Cache Re-Sync.
+     */
+    public function resyncCache(Request $request)
+    {
+        try {
+            Artisan::call('optimize:clear');
+            Artisan::call('view:cache');
+
+            AuditLogService::log('System', 'maintenance', 'Performed 1-Click System Health & Cache Re-Sync');
+
+            return $this->respond($request, true, '⚡ System cache cleared & compiled successfully! All application views and routes are in sync.');
+        } catch (Throwable $e) {
+            Log::error('1-Click Re-sync failed: '.$e->getMessage());
+
+            return $this->respond($request, false, 'Failed to re-sync cache: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Auto-Prune Old Audit Logs & Storage Temp Files.
+     */
+    public function pruneSystemLogs(Request $request)
+    {
+        $days = (int) $request->input('retention_days', Setting::get('audit_log_retention_days', '90'));
+        if ($days < 7) {
+            $days = 90;
+        }
+
+        try {
+            Setting::set('audit_log_retention_days', (string) $days);
+
+            $cutoffDate = Carbon::now()->subDays($days);
+            $deletedCount = 0;
+
+            if (Schema::hasTable('activity_logs')) {
+                $deletedCount = DB::table('activity_logs')
+                    ->where('created_at', '<', $cutoffDate)
+                    ->delete();
+            }
+
+            AuditLogService::log('System', 'pruned', "Pruned {$deletedCount} activity logs older than {$days} days");
+
+            return $this->respond($request, true, "🧹 System cleaned! {$deletedCount} old audit log entries older than {$days} days were pruned.");
+        } catch (Throwable $e) {
+            Log::error('Prune system logs failed: '.$e->getMessage());
+
+            return $this->respond($request, false, 'Failed to prune system logs: '.$e->getMessage());
         }
     }
 
@@ -868,7 +958,8 @@ class SettingsController extends Controller
             }
             $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
             CategoryService::savePurchaseCategories($categories);
-            \App\Services\AuditLogService::log('Settings', 'created', "Created new purchase category '{$label}'");
+            AuditLogService::log('Settings', 'created', "Created new purchase category '{$label}'");
+
             return $this->respond($request, true, "Purchase category '{$label}' created successfully!");
         } else {
             $categories = CategoryService::getExpenseCategories();
@@ -879,7 +970,8 @@ class SettingsController extends Controller
             }
             $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
             CategoryService::saveExpenseCategories($categories);
-            \App\Services\AuditLogService::log('Settings', 'created', "Created new expense category '{$label}'");
+            AuditLogService::log('Settings', 'created', "Created new expense category '{$label}'");
+
             return $this->respond($request, true, "Expense category '{$label}' created successfully!");
         }
     }
@@ -909,7 +1001,8 @@ class SettingsController extends Controller
             }
             if ($updated) {
                 CategoryService::savePurchaseCategories($categories);
-                \App\Services\AuditLogService::log('Settings', 'updated', "Updated purchase category key '{$key}' label to '{$newLabel}'");
+                AuditLogService::log('Settings', 'updated', "Updated purchase category key '{$key}' label to '{$newLabel}'");
+
                 return $this->respond($request, true, 'Purchase category updated successfully!');
             }
         } else {
@@ -924,7 +1017,8 @@ class SettingsController extends Controller
             }
             if ($updated) {
                 CategoryService::saveExpenseCategories($categories);
-                \App\Services\AuditLogService::log('Settings', 'updated', "Updated expense category key '{$key}' label to '{$newLabel}'");
+                AuditLogService::log('Settings', 'updated', "Updated expense category key '{$key}' label to '{$newLabel}'");
+
                 return $this->respond($request, true, 'Expense category updated successfully!');
             }
         }
@@ -951,15 +1045,17 @@ class SettingsController extends Controller
 
         if ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
-            $filtered = array_values(array_filter($categories, fn($cat) => $cat['key'] !== $key));
+            $filtered = array_values(array_filter($categories, fn ($cat) => $cat['key'] !== $key));
             CategoryService::savePurchaseCategories($filtered);
-            \App\Services\AuditLogService::log('Settings', 'deleted', "Deleted purchase category key '{$key}'");
+            AuditLogService::log('Settings', 'deleted', "Deleted purchase category key '{$key}'");
+
             return $this->respond($request, true, 'Purchase category deleted successfully!');
         } else {
             $categories = CategoryService::getExpenseCategories();
-            $filtered = array_values(array_filter($categories, fn($cat) => $cat['key'] !== $key));
+            $filtered = array_values(array_filter($categories, fn ($cat) => $cat['key'] !== $key));
             CategoryService::saveExpenseCategories($filtered);
-            \App\Services\AuditLogService::log('Settings', 'deleted', "Deleted expense category key '{$key}'");
+            AuditLogService::log('Settings', 'deleted', "Deleted expense category key '{$key}'");
+
             return $this->respond($request, true, 'Expense category deleted successfully!');
         }
     }
@@ -973,14 +1069,15 @@ class SettingsController extends Controller
         try {
             $backupService = app(BackupService::class);
             $sqlContent = $backupService->generateFullSqlDump();
-            $filename = "manual_backup_" . date('Ymd_His') . ".sql";
-            $filePath = $backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . $filename;
-            
-            \Illuminate\Support\Facades\File::put($filePath, $sqlContent);
+            $filename = 'manual_backup_'.date('Ymd_His').'.sql';
+            $filePath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.$filename;
+
+            File::put($filePath, $sqlContent);
 
             return $this->respond($req, true, "Manual database backup created successfully! Saved as '{$filename}'.");
         } catch (Throwable $e) {
-            Log::error("Manual backup failed: " . $e->getMessage());
+            Log::error('Manual backup failed: '.$e->getMessage());
+
             return $this->respond($req, false, 'Failed to generate backup. Please try again.');
         }
     }
@@ -993,15 +1090,16 @@ class SettingsController extends Controller
         $req = request();
         try {
             $backupService = app(BackupService::class);
-            $filePath = $backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . basename($filename);
+            $filePath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
 
-            if (!\Illuminate\Support\Facades\File::exists($filePath)) {
+            if (! File::exists($filePath)) {
                 return $this->respond($req, false, 'Requested backup file does not exist on server.');
             }
 
             return response()->download($filePath, basename($filename));
         } catch (Throwable $e) {
-            Log::error("Backup download failed: " . $e->getMessage());
+            Log::error('Backup download failed: '.$e->getMessage());
+
             return $this->respond($req, false, 'Failed to download backup. Please try again.');
         }
     }
@@ -1023,10 +1121,10 @@ class SettingsController extends Controller
             if ($request->hasFile('backup_file')) {
                 $targetPath = $request->file('backup_file')->getRealPath();
             } elseif ($request->filled('filename')) {
-                $targetPath = $backupService->getBackupDirectory() . DIRECTORY_SEPARATOR . basename($request->filename);
+                $targetPath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($request->filename);
             }
 
-            if (!$targetPath || !\Illuminate\Support\Facades\File::exists($targetPath)) {
+            if (! $targetPath || ! File::exists($targetPath)) {
                 return $this->respond($request, false, 'Please select or upload a valid SQL backup file to restore.');
             }
 
@@ -1034,7 +1132,8 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, 'Database restored successfully! A safety snapshot was automatically recorded before restoring.');
         } catch (Throwable $e) {
-            Log::error("Restore failed: " . $e->getMessage());
+            Log::error('Restore failed: '.$e->getMessage());
+
             return $this->respond($request, false, 'Failed to restore database. Please try again.');
         }
     }

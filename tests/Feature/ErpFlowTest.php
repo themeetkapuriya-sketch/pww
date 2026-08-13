@@ -2,41 +2,52 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\RawMaterial;
-use App\Models\Product;
+use App\Exceptions\InsufficientStockException;
 use App\Models\BillOfMaterial;
 use App\Models\Client;
 use App\Models\ClientPlant;
-use App\Models\InvoiceItem;
-use App\Models\Invoice;
-use App\Models\StaffProfile;
-use App\Models\LaborLog;
 use App\Models\Expense;
-use App\Models\Purchase;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\LaborLog;
+use App\Models\Product;
 use App\Models\ProductionLog;
-use App\Services\ProductionService;
+use App\Models\Purchase;
+use App\Models\RawMaterial;
+use App\Models\SalesOrder;
+use App\Models\SalesOrderItem;
+use App\Models\Setting;
+use App\Models\StaffProfile;
+use App\Models\User;
 use App\Services\BillingService;
-use App\Services\PayrollService;
 use App\Services\FinancialService;
-use App\Exceptions\InsufficientStockException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\PayrollService;
+use App\Services\ProductionService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class ErpFlowTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $productionService;
+
     protected $billingService;
+
     protected $payrollService;
+
     protected $financialService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
+        $this->withoutMiddleware([ValidateCsrfToken::class]);
 
         $this->productionService = resolve(ProductionService::class);
         $this->billingService = resolve(BillingService::class);
@@ -102,8 +113,8 @@ class ErpFlowTest extends TestCase
             [
                 [
                     'staff_profile_id' => $staff->id,
-                    'units_completed' => 10
-                ]
+                    'units_completed' => 10,
+                ],
             ]
         );
 
@@ -168,7 +179,7 @@ class ErpFlowTest extends TestCase
 
         // 1. Test Intrastate (Gujarat) Invoice GST Calculation
         $gstGuj = $this->billingService->calculateGstBreakdown($gujaratPlant->id, [
-            ['product_id' => $rack->id, 'quantity' => 10, 'unit_price' => 1000.00]
+            ['product_id' => $rack->id, 'quantity' => 10, 'unit_price' => 1000.00],
         ]);
 
         $this->assertEquals(10000.00, $gstGuj['taxable_value']);
@@ -179,7 +190,7 @@ class ErpFlowTest extends TestCase
 
         // 2. Test Interstate (Indore, MP) Invoice GST Calculation
         $gstInd = $this->billingService->calculateGstBreakdown($indorePlant->id, [
-            ['product_id' => $rack->id, 'quantity' => 20, 'unit_price' => 1000.00]
+            ['product_id' => $rack->id, 'quantity' => 20, 'unit_price' => 1000.00],
         ]);
 
         $this->assertEquals(20000.00, $gstInd['taxable_value']);
@@ -357,7 +368,7 @@ class ErpFlowTest extends TestCase
             'expense_category' => 'gst_payment',
             'amount' => 1800.00,
             'expense_date' => Carbon::now()->toDateString(),
-            'description' => 'GSTR-3B Tax Paid via Bank Challan'
+            'description' => 'GSTR-3B Tax Paid via Bank Challan',
         ]);
 
         // After logging expense: GST reports show PAID
@@ -377,7 +388,7 @@ class ErpFlowTest extends TestCase
             'unit' => 'kg',
             'current_stock' => 100,
             'safety_threshold' => 10,
-            'average_purchase_price' => 50
+            'average_purchase_price' => 50,
         ]);
 
         // 1. Raw Material Purchase
@@ -388,7 +399,7 @@ class ErpFlowTest extends TestCase
             'quantity' => 500,
             'total_amount' => 25000,
             'gst_rate' => 18,
-            'purchase_date' => Carbon::now()->toDateString()
+            'purchase_date' => Carbon::now()->toDateString(),
         ]);
 
         $response1->assertStatus(200);
@@ -404,7 +415,7 @@ class ErpFlowTest extends TestCase
             'unit' => 'unit',
             'total_amount' => 150000,
             'gst_rate' => 18,
-            'purchase_date' => Carbon::now()->toDateString()
+            'purchase_date' => Carbon::now()->toDateString(),
         ]);
 
         $response2->assertStatus(200);
@@ -437,19 +448,19 @@ class ErpFlowTest extends TestCase
         // Successful login for valid user
         $response = $this->postJson('/login', [
             'email' => 'praful@pww.com',
-            'password' => 'admin123'
+            'password' => 'admin123',
         ]);
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'redirect' => route('overview')
+            'redirect' => route('overview'),
         ]);
 
         // Failed login attempts to test rate limiting
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/login', [
-                'email' => 'ratelimit_' . uniqid() . '@pww.com',
-                'password' => 'wrong'
+                'email' => 'ratelimit_'.uniqid().'@pww.com',
+                'password' => 'wrong',
             ]);
         }
 
@@ -459,12 +470,12 @@ class ErpFlowTest extends TestCase
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/login', [
                 'email' => $targetEmail,
-                'password' => 'wrongpassword'
+                'password' => 'wrongpassword',
             ], $headers);
         }
         $response = $this->postJson('/login', [
             'email' => $targetEmail,
-            'password' => 'wrongpassword'
+            'password' => 'wrongpassword',
         ], $headers);
         $this->assertTrue(in_array($response->status(), [429, 302]));
     }
@@ -512,7 +523,7 @@ class ErpFlowTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson([
-            'success' => true
+            'success' => true,
         ]);
 
         $invoice = Invoice::where('invoice_number', 'PWW-CUSTOM-999')->first();
@@ -530,7 +541,7 @@ class ErpFlowTest extends TestCase
     {
         $user = User::create([
             'name' => 'Patel Admin',
-            'email' => 'v_test_' . uniqid() . '@example.com',
+            'email' => 'v_test_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'status' => 'approved',
             'is_active' => true,
@@ -552,7 +563,7 @@ class ErpFlowTest extends TestCase
 
         $good = Product::create([
             'product_name' => 'Transport Item',
-            'sku' => 'TR-' . uniqid(),
+            'sku' => 'TR-'.uniqid(),
             'current_stock' => 50,
             'selling_price' => 100,
         ]);
@@ -592,7 +603,7 @@ class ErpFlowTest extends TestCase
     {
         $user = User::create([
             'name' => 'Patel Admin',
-            'email' => 'gst_test_' . uniqid() . '@example.com',
+            'email' => 'gst_test_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'status' => 'approved',
             'is_active' => true,
@@ -637,7 +648,7 @@ class ErpFlowTest extends TestCase
     {
         $user = User::create([
             'name' => 'Patel Admin',
-            'email' => 'del_inv_' . uniqid() . '@example.com',
+            'email' => 'del_inv_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'status' => 'approved',
             'is_active' => true,
@@ -693,7 +704,7 @@ class ErpFlowTest extends TestCase
     {
         $user = User::create([
             'name' => 'Patel Admin',
-            'email' => 'rep_test_' . uniqid() . '@example.com',
+            'email' => 'rep_test_'.uniqid().'@example.com',
             'password' => bcrypt('password'),
             'status' => 'approved',
             'is_active' => true,
@@ -725,7 +736,7 @@ class ErpFlowTest extends TestCase
         // 3. Test predefined period filters
         $responseMonth = $this->actingAs($user)->get(route('reports', [
             'filter_period' => 'month',
-            'filter_month' => '2026-05'
+            'filter_month' => '2026-05',
         ]));
         $responseMonth->assertStatus(200);
         $responseMonth->assertViewHas('startDate', '2026-05-01');
@@ -733,7 +744,7 @@ class ErpFlowTest extends TestCase
 
         $responseYear = $this->actingAs($user)->get(route('reports', [
             'filter_period' => 'year',
-            'filter_year' => '2025'
+            'filter_year' => '2025',
         ]));
         $responseYear->assertStatus(200);
         $responseYear->assertViewHas('startDate', '2025-04-01');
@@ -785,12 +796,12 @@ class ErpFlowTest extends TestCase
 
         $response = $this->actingAs($user)->postJson(route('profile.update'), [
             'name' => 'New Praful Name',
-            'email' => 'newemail@pww.com'
+            'email' => 'newemail@pww.com',
         ]);
 
         $response->assertStatus(200);
         $response->assertJson([
-            'success' => true
+            'success' => true,
         ]);
 
         $user->refresh();
@@ -826,11 +837,11 @@ class ErpFlowTest extends TestCase
         ]);
         $response->assertStatus(200);
         $response->assertJson([
-            'success' => true
+            'success' => true,
         ]);
 
         $user->refresh();
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $user->password));
+        $this->assertTrue(Hash::check('newpassword123', $user->password));
     }
 
     /**
@@ -861,7 +872,7 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($user)->postJson(route('invoice.pay', $invoice->id));
         $response->assertStatus(200);
         $response->assertJson([
-            'success' => true
+            'success' => true,
         ]);
 
         $invoice->refresh();
@@ -939,8 +950,8 @@ class ErpFlowTest extends TestCase
             'role' => 'admin',
         ]);
 
-        \Illuminate\Support\Facades\Storage::fake('public');
-        $file = \Illuminate\Http\UploadedFile::fake()->create('business_logo.png', 100, 'image/png');
+        Storage::fake('public');
+        $file = UploadedFile::fake()->create('business_logo.png', 100, 'image/png');
 
         $response = $this->actingAs($user)->post(route('profile.business'), [
             'business_name' => 'Custom Weld Inc',
@@ -958,15 +969,15 @@ class ErpFlowTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'message' => 'Business settings updated successfully!'
+            'message' => 'Business settings updated successfully!',
         ]);
 
-        $this->assertEquals('Custom Weld Inc', \App\Models\Setting::get('business_name'));
-        $this->assertEquals('Industrial Fabrication Division', \App\Models\Setting::get('business_subtitle'));
-        $this->assertEquals('GIDC Plot 100, Baroda, Gujarat', \App\Models\Setting::get('address'));
-        $this->assertEquals('customweld@example.com', \App\Models\Setting::get('business_email'));
-        $this->assertEquals('24CUSTO1234A1Z9', \App\Models\Setting::get('gstin'));
-        $this->assertStringContainsString('uploads/logo_', \App\Models\Setting::get('logo_path'));
+        $this->assertEquals('Custom Weld Inc', Setting::get('business_name'));
+        $this->assertEquals('Industrial Fabrication Division', Setting::get('business_subtitle'));
+        $this->assertEquals('GIDC Plot 100, Baroda, Gujarat', Setting::get('address'));
+        $this->assertEquals('customweld@example.com', Setting::get('business_email'));
+        $this->assertEquals('24CUSTO1234A1Z9', Setting::get('gstin'));
+        $this->assertStringContainsString('uploads/logo_', Setting::get('logo_path'));
     }
 
     /**
@@ -1096,7 +1107,7 @@ class ErpFlowTest extends TestCase
         ]);
 
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $order = \App\Models\SalesOrder::where('po_number', 'PO-TATA-9988')->first();
+        $order = SalesOrder::where('po_number', 'PO-TATA-9988')->first();
         $this->assertNotNull($order);
         $this->assertEquals('pending', $order->status);
         $this->assertEquals(75000.00, $order->total_amount);
@@ -1126,15 +1137,15 @@ class ErpFlowTest extends TestCase
         $this->assertEquals('dispatched', $order->fresh()->status);
 
         // 5. Test Stock Shortage Guard: create high qty order exceeding stock
-        $largeOrder = \App\Models\SalesOrder::create([
-            'order_number' => \App\Models\SalesOrder::generateNextOrderNumber(),
+        $largeOrder = SalesOrder::create([
+            'order_number' => SalesOrder::generateNextOrderNumber(),
             'client_id' => $client->id,
             'plant_id' => $plant->id,
             'order_date' => date('Y-m-d'),
             'status' => 'pending',
             'total_amount' => 7500000.00,
         ]);
-        \App\Models\SalesOrderItem::create([
+        SalesOrderItem::create([
             'sales_order_id' => $largeOrder->id,
             'product_id' => $product->id,
             'quantity' => 9999,
@@ -1151,7 +1162,7 @@ class ErpFlowTest extends TestCase
         $this->actingAs($user)->delete(route('orders.delete', $largeOrder->id));
         $response = $this->actingAs($user)->delete(route('orders.delete', $order->id));
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertNull(\App\Models\SalesOrder::find($order->id));
+        $this->assertNull(SalesOrder::find($order->id));
     }
 
     /**
@@ -1227,7 +1238,7 @@ class ErpFlowTest extends TestCase
             'unit' => 'kg',
             'current_stock' => 500.0,
             'safety_threshold' => 50.0,
-            'average_purchase_price' => 70.0
+            'average_purchase_price' => 70.0,
         ]);
 
         $product1 = Product::create([
@@ -1237,7 +1248,7 @@ class ErpFlowTest extends TestCase
             'uom' => 'pcs',
             'unit_weight_kg' => 2.0,
             'selling_price' => 350.0,
-            'current_stock' => 10
+            'current_stock' => 10,
         ]);
 
         $product2 = Product::create([
@@ -1247,19 +1258,19 @@ class ErpFlowTest extends TestCase
             'uom' => 'pcs',
             'unit_weight_kg' => 3.0,
             'selling_price' => 500.0,
-            'current_stock' => 5
+            'current_stock' => 5,
         ]);
 
         BillOfMaterial::create([
             'product_id' => $product1->id,
             'raw_material_id' => $rawMaterial1->id,
-            'required_quantity' => 2.0
+            'required_quantity' => 2.0,
         ]);
 
         BillOfMaterial::create([
             'product_id' => $product2->id,
             'raw_material_id' => $rawMaterial1->id,
-            'required_quantity' => 3.0
+            'required_quantity' => 3.0,
         ]);
 
         $response = $this->actingAs($user)->post(route('production.store'), [
@@ -1269,14 +1280,14 @@ class ErpFlowTest extends TestCase
                 [
                     'product_id' => $product1->id,
                     'quantity_manufactured' => 10,
-                    'quantity_rejected' => 1
+                    'quantity_rejected' => 1,
                 ],
                 [
                     'product_id' => $product2->id,
                     'quantity_manufactured' => 5,
-                    'quantity_rejected' => 0
-                ]
-            ]
+                    'quantity_rejected' => 0,
+                ],
+            ],
         ]);
 
         $response->assertStatus(200)->assertJson(['success' => true]);
@@ -1304,9 +1315,9 @@ class ErpFlowTest extends TestCase
         $fullResponse->assertHeader('Content-Type', 'application/octet-stream');
 
         // Clean up test generated backup files
-        foreach (\Illuminate\Support\Facades\File::files(storage_path('app/backups')) as $file) {
+        foreach (File::files(storage_path('app/backups')) as $file) {
             if (str_contains($file->getFilename(), 'pww_full_backup_')) {
-                \Illuminate\Support\Facades\File::delete($file->getPathname());
+                File::delete($file->getPathname());
             }
         }
     }
@@ -1327,7 +1338,7 @@ class ErpFlowTest extends TestCase
             'module_purchases' => 'true',
         ]);
         $toggleResponse->assertRedirect();
-        $this->assertEquals('true', \App\Models\Setting::get('module_invoices'));
+        $this->assertEquals('true', Setting::get('module_invoices'));
 
         // 3. Create User Account
         $userResponse = $this->actingAs($admin)->post(route('settings.users.store'), [
@@ -1352,20 +1363,20 @@ class ErpFlowTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $client = \App\Models\Client::create([
+        $client = Client::create([
             'company_name' => 'Gujarat Steel Corp',
             'client_email' => 'steel@gujarat.com',
             'gst_number' => '24ABCDE1234F1Z5',
         ]);
 
-        $plant = \App\Models\ClientPlant::create([
+        $plant = ClientPlant::create([
             'client_id' => $client->id,
             'plant_name' => 'Ahmedabad Works',
             'opening_balance' => 0,
             'gst_number' => '24ABCDE1234F1Z5',
         ]);
 
-        $invoice = \App\Models\Invoice::create([
+        $invoice = Invoice::create([
             'invoice_number' => 'PWW/25-26/999',
             'plant_id' => $plant->id,
             'vehicle_number' => 'GJ03AB1234',
@@ -1380,7 +1391,7 @@ class ErpFlowTest extends TestCase
         $response = $this->actingAs($admin)->get(route('invoice.exportEwayJson', $invoice->id));
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'application/json');
-        
+
         $json = $response->json();
         $this->assertEquals('1.0.1121', $json['version']);
         $this->assertCount(1, $json['billLists']);

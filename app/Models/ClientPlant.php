@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ClientPlant extends Model
 {
@@ -43,6 +43,7 @@ class ClientPlant extends Model
         $invoices = $this->invoices()->get();
         $totalInvoiced = $invoices->sum('total_amount');
         $totalPaid = $invoices->sum('paid_amount');
+
         return max(0.00, round($totalInvoiced - $totalPaid, 2));
     }
 }

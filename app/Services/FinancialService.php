@@ -2,14 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Invoice;
-use App\Models\Expense;
-use App\Models\LaborLog;
-use App\Models\Purchase;
 use App\Models\Client;
 use App\Models\ClientPlant;
+use App\Models\Expense;
+use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\ProductionLog;
+use App\Models\Purchase;
 use Carbon\Carbon;
 
 class FinancialService
@@ -23,12 +21,12 @@ class FinancialService
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         // 1. Gross Sales Revenue (Including GST tax)
-        $revenue = round(Invoice::where(function($q) use ($start, $end) {
+        $revenue = round(Invoice::where(function ($q) use ($start, $end) {
             $q->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
-              ->orWhere(function($sub) use ($start, $end) {
-                  $sub->whereNull('invoice_date')
-                      ->whereBetween('created_at', [$start, $end]);
-              });
+                ->orWhere(function ($sub) use ($start, $end) {
+                    $sub->whereNull('invoice_date')
+                        ->whereBetween('created_at', [$start, $end]);
+                });
         })->sum('total_amount'), 2);
 
         // 2. Total Purchases
@@ -45,7 +43,7 @@ class FinancialService
 
         // Outstanding Receivables
         $invoices = Invoice::all();
-        $outstandingReceivables = round($invoices->sum(fn($inv) => $inv->remaining_balance), 2);
+        $outstandingReceivables = round($invoices->sum(fn ($inv) => $inv->remaining_balance), 2);
 
         // Outstanding Payables
         $purchases = Purchase::where('payment_status', 'unpaid')->get();
@@ -56,21 +54,21 @@ class FinancialService
         $cashCollections = round(Payment::where('payment_method', 'cash')->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->sum('amount'), 2);
 
         return [
-            'revenue' => (float)$revenue,
-            'total_purchases' => (float)$totalPurchases,
-            'purchases' => (float)$totalPurchases,
-            'cogs' => (float)$totalPurchases,
-            'total_expenses' => (float)$totalExpenses,
-            'expenses' => (float)$totalExpenses,
+            'revenue' => (float) $revenue,
+            'total_purchases' => (float) $totalPurchases,
+            'purchases' => (float) $totalPurchases,
+            'cogs' => (float) $totalPurchases,
+            'total_expenses' => (float) $totalExpenses,
+            'expenses' => (float) $totalExpenses,
             'direct_wages' => 0.00,
-            'overheads' => (float)$totalExpenses,
+            'overheads' => (float) $totalExpenses,
             'depreciation' => 0.00,
-            'net_profit' => (float)$netProfit,
-            'gross_profit_margin' => (float)$margin,
-            'outstanding_receivables' => (float)$outstandingReceivables,
-            'outstanding_payables' => (float)$outstandingPayables,
-            'bank_collections' => (float)$bankCollections,
-            'cash_collections' => (float)$cashCollections,
+            'net_profit' => (float) $netProfit,
+            'gross_profit_margin' => (float) $margin,
+            'outstanding_receivables' => (float) $outstandingReceivables,
+            'outstanding_payables' => (float) $outstandingPayables,
+            'bank_collections' => (float) $bankCollections,
+            'cash_collections' => (float) $cashCollections,
         ];
     }
 
@@ -90,13 +88,13 @@ class FinancialService
             if ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id);
             } else {
-                $q->whereHas('plant', fn($p) => $p->where('client_id', $clientId));
+                $q->whereHas('plant', fn ($p) => $p->where('client_id', $clientId));
             }
-        })->where(function($q) use ($start) {
+        })->where(function ($q) use ($start) {
             $q->where('invoice_date', '<', $start->toDateString())
-              ->orWhere(function($q2) use ($start) {
-                  $q2->whereNull('invoice_date')->where('created_at', '<', $start);
-              });
+                ->orWhere(function ($q2) use ($start) {
+                    $q2->whereNull('invoice_date')->where('created_at', '<', $start);
+                });
         });
         $priorInvoicesSum = $priorInvoicesQuery->sum('total_amount');
 
@@ -105,14 +103,14 @@ class FinancialService
             ->where('payment_date', '<', $start->toDateString());
 
         if ($selectedPlant) {
-            $priorPaymentsQuery->where(function($q) use ($selectedPlant) {
+            $priorPaymentsQuery->where(function ($q) use ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id)
-                  ->orWhereHas('invoice', fn($inv) => $inv->where('plant_id', $selectedPlant->id));
+                    ->orWhereHas('invoice', fn ($inv) => $inv->where('plant_id', $selectedPlant->id));
             });
         }
         $priorPaymentsSum = $priorPaymentsQuery->sum('amount');
 
-        $baseOpening = $selectedPlant 
+        $baseOpening = $selectedPlant
             ? (float) ($selectedPlant->opening_balance ?? 0)
             : (float) ($client->plants->sum('opening_balance') + ($client->opening_balance ?? 0));
 
@@ -123,13 +121,13 @@ class FinancialService
             if ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id);
             } else {
-                $q->whereHas('plant', fn($p) => $p->where('client_id', $clientId));
+                $q->whereHas('plant', fn ($p) => $p->where('client_id', $clientId));
             }
-        })->where(function($q) use ($start, $end) {
+        })->where(function ($q) use ($start, $end) {
             $q->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
-              ->orWhere(function($q2) use ($start, $end) {
-                  $q2->whereNull('invoice_date')->whereBetween('created_at', [$start, $end]);
-              });
+                ->orWhere(function ($q2) use ($start, $end) {
+                    $q2->whereNull('invoice_date')->whereBetween('created_at', [$start, $end]);
+                });
         });
         $invoices = $invoicesQuery->get();
 
@@ -139,9 +137,9 @@ class FinancialService
             ->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()]);
 
         if ($selectedPlant) {
-            $paymentsQuery->where(function($q) use ($selectedPlant) {
+            $paymentsQuery->where(function ($q) use ($selectedPlant) {
                 $q->where('plant_id', $selectedPlant->id)
-                  ->orWhereHas('invoice', fn($inv) => $inv->where('plant_id', $selectedPlant->id));
+                    ->orWhereHas('invoice', fn ($inv) => $inv->where('plant_id', $selectedPlant->id));
             });
         }
         $payments = $paymentsQuery->get();
@@ -153,38 +151,39 @@ class FinancialService
             $invDate = $inv->invoice_date ? $inv->invoice_date->format('Y-m-d') : $inv->created_at->format('Y-m-d');
             $plantName = $inv->plant->plant_name ?? 'Main Plant';
 
-            $transactions->push((object)[
+            $transactions->push((object) [
                 'date' => $invDate,
                 'created_at' => $inv->created_at,
                 'type' => 'invoice',
                 'reference' => $inv->invoice_number,
                 'description' => "Tax Invoice #{$inv->invoice_number} ({$plantName})",
-                'debit' => (float)$inv->total_amount, // Increases amount client owes
+                'debit' => (float) $inv->total_amount, // Increases amount client owes
                 'credit' => 0.00,
                 'model' => $inv,
             ]);
         }
 
         foreach ($payments as $pay) {
-            $transactions->push((object)[
+            $transactions->push((object) [
                 'date' => $pay->payment_date,
                 'created_at' => $pay->created_at,
                 'type' => 'payment',
                 'reference' => $pay->payment_number,
-                'description' => "Payment Received (" . strtoupper(str_replace('_', ' ', $pay->payment_method)) . ($pay->reference_number ? " - Ref: {$pay->reference_number}" : "") . ")",
+                'description' => 'Payment Received ('.strtoupper(str_replace('_', ' ', $pay->payment_method)).($pay->reference_number ? " - Ref: {$pay->reference_number}" : '').')',
                 'debit' => 0.00,
-                'credit' => (float)$pay->amount, // Decreases amount client owes
+                'credit' => (float) $pay->amount, // Decreases amount client owes
                 'model' => $pay,
             ]);
         }
 
         // Sort by date ascending
-        $sortedTransactions = $transactions->sortBy(fn($t) => $t->date . '_' . $t->created_at)->values();
+        $sortedTransactions = $transactions->sortBy(fn ($t) => $t->date.'_'.$t->created_at)->values();
 
         // 5. Calculate running balances
         $runningBalance = $openingBalance;
         $processedTransactions = $sortedTransactions->map(function ($tx) use (&$runningBalance) {
             $runningBalance = round($runningBalance + $tx->debit - $tx->credit, 2);
+
             return [
                 'date' => $tx->date,
                 'created_at' => $tx->created_at,

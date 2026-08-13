@@ -41,9 +41,10 @@ class CategoryService
             $options[] = [
                 'value' => $cat['key'],
                 'label' => $cat['label'],
-                'search' => strtolower($cat['label'] . ' ' . $cat['key'])
+                'search' => strtolower($cat['label'].' '.$cat['key']),
             ];
         }
+
         return $options;
     }
 
@@ -92,9 +93,10 @@ class CategoryService
             $options[] = [
                 'value' => $cat['key'],
                 'label' => $cat['label'],
-                'search' => strtolower($cat['label'] . ' ' . $cat['key'])
+                'search' => strtolower($cat['label'].' '.$cat['key']),
             ];
         }
+
         return $options;
     }
 

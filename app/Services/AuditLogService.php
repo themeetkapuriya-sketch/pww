@@ -12,11 +12,8 @@ class AuditLogService
     /**
      * Record a system activity audit log entry.
      *
-     * @param string $module (e.g. Invoices, Purchases, Inventory, Expenses, Payroll, Clients, Settings, Auth)
-     * @param string $action (e.g. created, updated, deleted, login, logout, security)
-     * @param string $description
-     * @param array|null $changes
-     * @return ActivityLog|null
+     * @param  string  $module  (e.g. Invoices, Purchases, Inventory, Expenses, Payroll, Clients, Settings, Auth)
+     * @param  string  $action  (e.g. created, updated, deleted, login, logout, security)
      */
     public static function log(string $module, string $action, string $description, ?array $changes = null): ?ActivityLog
     {
@@ -36,7 +33,8 @@ class AuditLogService
                 'user_agent' => $req ? substr($req->userAgent() ?? '', 0, 255) : null,
             ]);
         } catch (Throwable $e) {
-            Log::error("AuditLogService failure: " . $e->getMessage());
+            Log::error('AuditLogService failure: '.$e->getMessage());
+
             return null;
         }
     }

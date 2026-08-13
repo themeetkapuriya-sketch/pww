@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('invoices', 'sales_order_id')) {
+        if (! Schema::hasColumn('invoices', 'sales_order_id')) {
             Schema::table('invoices', function (Blueprint $table) {
                 $table->foreignId('sales_order_id')->nullable()->constrained('sales_orders')->nullOnDelete();
             });

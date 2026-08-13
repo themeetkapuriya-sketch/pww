@@ -40,7 +40,24 @@
             ]
         ];
     }
+
+    $orderComboboxHtml = View::make('components.combobox', [
+        'name' => 'product_ids[]',
+        'placeholder' => 'Select product...',
+        'options' => $productOptions,
+        'required' => true,
+    ])->render();
+
+    $salesOrdersJsonMap = [];
+    if (isset($orders) && $orders->isNotEmpty()) {
+        foreach ($orders as $ordItem) {
+            $salesOrdersJsonMap[$ordItem->id] = new \App\Http\Resources\SalesOrderResource($ordItem);
+        }
+    }
 @endphp
+<script>
+window.salesOrdersDataMap = @json($salesOrdersJsonMap);
+</script>
 <div class="space-y-6">
     <x-page-header title="Sales Orders" 
                    subtitle="Book customer purchase orders, manage production pipelines, and convert to Delivery Challans."
@@ -59,7 +76,7 @@
                 <button type="button" id="salesOrderCloseBtn" onclick="toggleInlineForm('orderFormContainer', document.getElementById('toggleFormBtn'))" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
             </div>
 
-            <form id="salesOrderForm" action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4">
+            <form id="salesOrderForm" action="{{ route('orders.store') }}" method="POST" class="ajax-form space-y-4" data-redirect="/orders">
                 @csrf
                 <input type="hidden" name="_method" id="salesOrderFormMethod" value="POST">
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -242,6 +259,7 @@
                                 @php
                                     $hasStock = $ord->hasSufficientStock();
                                     $deficits = $ord->getStockDeficitDetails();
+                                    $trackStockOn = (\App\Models\Setting::get('track_stock', 'true') === 'true');
                                 @endphp
 
                                 @if ($ord->status === 'dispatched' || $ord->status === 'completed')
@@ -249,7 +267,9 @@
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                             ✓ DISPATCHED
                                         </span>
-                                        <span class="text-[9px] text-emerald-600 font-semibold mt-0.5">Stock Deducted</span>
+                                        @if($trackStockOn)
+                                            <span class="text-[9px] text-emerald-600 font-semibold mt-0.5">Stock Deducted</span>
+                                        @endif
                                     </div>
 
                                 @elseif ($ord->status === 'cancelled')
@@ -269,15 +289,15 @@
                                     </div>
 
                                 @elseif ($ord->status === 'in_production')
-                                    @if ($hasStock)
+                                    @if (!$trackStockOn || $hasStock)
                                         <div class="inline-flex flex-col items-center space-y-1">
                                             <button type="button" 
                                                     onclick="updateOrderStatus({{ $ord->id }}, 'ready_for_dispatch')"
-                                                    title="Sufficient stock available! Click to mark Ready for Dispatch"
-                                                    class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer animate-pulse">
+                                                    title="{{ $trackStockOn ? 'Sufficient stock available! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch' }}"
+                                                    class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer {{ $trackStockOn ? 'animate-pulse' : '' }}">
                                                 <span>📦 Mark Ready for Dispatch</span>
                                             </button>
-                                            <span class="text-[9.5px] text-blue-600 font-semibold">Stock Ready</span>
+                                            <span class="text-[9.5px] text-blue-600 font-semibold">{{ $trackStockOn ? 'Stock Ready' : 'Stage 2: In Production' }}</span>
                                         </div>
                                     @else
                                         <div class="inline-flex flex-col items-center space-y-1" title="{{ implode('; ', array_map(fn($d) => $d['product_name'] . ': missing ' . $d['missing_quantity'] . ' pcs', $deficits)) }}">
@@ -291,7 +311,7 @@
                                 @elseif ($ord->status === 'ready_for_dispatch')
                                     <div class="inline-flex flex-col items-center space-y-1">
                                         <a href="{{ route('invoices', ['order_id' => $ord->id]) }}" 
-                                           title="Stock is ready! Click to generate Tax Invoice & dispatch order"
+                                           title="{{ $trackStockOn ? 'Stock is ready! Click to generate Tax Invoice & dispatch order' : 'Click to generate Tax Invoice & dispatch order' }}"
                                            class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1">
                                             <span>🚀 Gen Invoice & Dispatch</span>
                                         </a>
@@ -301,19 +321,25 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
+                                    <button type="button" 
+                                            onclick="openOrderInfoModal({{ $ord->id }})"
+                                            title="Order 360° Info & MRP Hub"
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition transform hover:scale-105 cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </button>
+
                                     @if($ord->status !== 'dispatched' && $ord->status !== 'completed' && $ord->status !== 'cancelled')
                                         <button type="button" 
-                                                data-order="{{ json_encode(new \App\Http\Resources\SalesOrderResource($ord)) }}"
-                                                onclick="openEditOrderModal(this)"
+                                                onclick="openEditOrderModal({{ $ord->id }})"
                                                 title="Edit Sales Order"
-                                                class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition transform hover:scale-105">
+                                                class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition transform hover:scale-105 cursor-pointer">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                         </button>
                                     @endif
                                     <button type="button" 
                                             onclick="deleteOrder({{ $ord->id }}, '{{ addslashes($ord->order_number) }}')"
                                             title="Delete Sales Order"
-                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-2xs transition transform hover:scale-105">
+                                            class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-2xs transition transform hover:scale-105 cursor-pointer">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 </div>
@@ -355,7 +381,7 @@
     };
 
     // Direct Type-Ahead Live Search Engine for Sales Orders
-    let directOrderClientActiveIndex = -1;
+    var directOrderClientActiveIndex = -1;
 
     document.addEventListener('change', function(e) {
         if (e.target && e.target.name === 'plant_id') {
@@ -450,6 +476,7 @@
     });
 
     // Cache default clean row template for resets
+    window.rawOrderComboboxTpl = @json($orderComboboxHtml);
     window.defaultOrderRowHtml = document.getElementById('orderRowsContainer')?.innerHTML || '';
 
     function resetSalesOrderForm() {
@@ -492,17 +519,29 @@
         }
 
         form.reset();
-        if (typeof window.syncDirectOrderClientDisplay === 'function') {
-            window.syncDirectOrderClientDisplay();
+        const plantInp = document.getElementById('orderPlantSelect_hidden') || document.getElementById('orderPlantSelect');
+        if (plantInp) {
+            plantInp.value = '';
+            const wrapper = plantInp.closest('.combobox-wrapper');
+            if (wrapper && window.ERPComboboxManager) {
+                window.ERPComboboxManager.syncDisplay(wrapper);
+            }
         }
     }
 
     function openEditOrderModal(btnOrOrder) {
-        let ord = btnOrOrder;
-        if (btnOrOrder && btnOrOrder.dataset && btnOrOrder.dataset.order) {
+        let ord = null;
+        if (typeof btnOrOrder === 'number' || typeof btnOrOrder === 'string') {
+            ord = window.salesOrdersDataMap ? window.salesOrdersDataMap[btnOrOrder] : null;
+        } else if (btnOrOrder && btnOrOrder.dataset && btnOrOrder.dataset.order) {
             try { ord = JSON.parse(btnOrOrder.dataset.order); } catch(e) { console.error("Invalid order dataset", e); }
+        } else {
+            ord = btnOrOrder;
         }
-        if (!ord) return;
+        if (!ord) {
+            console.error("Order data not found for edit", btnOrOrder);
+            return;
+        }
 
         const container = document.getElementById('orderFormContainer');
         const card = document.getElementById('salesOrderFormCard');
@@ -542,11 +581,13 @@
         const clientSelect = form.querySelector('[name="client_id"]');
         if (clientSelect) clientSelect.value = ord.client_id;
 
-        const plantSelect = form.querySelector('[name="plant_id"]');
-        if (plantSelect) plantSelect.value = ord.plant_id || '';
-
-        if (typeof window.syncDirectOrderClientDisplay === 'function') {
-            window.syncDirectOrderClientDisplay();
+        const plantInp = document.getElementById('orderPlantSelect_hidden') || document.getElementById('orderPlantSelect');
+        if (plantInp) {
+            plantInp.value = ord.plant_id || '';
+            const wrapper = plantInp.closest('.combobox-wrapper');
+            if (wrapper && window.ERPComboboxManager) {
+                window.ERPComboboxManager.syncDisplay(wrapper);
+            }
         }
 
         const orderDateInput = form.querySelector('[name="order_date"]');
@@ -566,24 +607,15 @@
         const rowsContainer = document.getElementById('orderRowsContainer');
         if (rowsContainer && ord.items && ord.items.length) {
             rowsContainer.innerHTML = '';
-            const finishedGoods = @json($finishedGoods);
 
             ord.items.forEach(it => {
                 const row = document.createElement('div');
                 row.className = 'order-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
                 
-                let options = '<option value="">Select product...</option>';
-                finishedGoods.forEach(g => {
-                    const sel = g.id == it.product_id ? 'selected' : '';
-                    const kgPrice = g.price_per_kg || (g.unit_weight_kg > 0 ? (g.selling_price / g.unit_weight_kg).toFixed(2) : 0);
-                    const stockLabel = @json($trackStockEnabled) ? ` (Stock: ${g.current_stock})` : '';
-                    options += `<option value="${g.id}" data-price="${g.selling_price}" data-price-pcs="${g.selling_price}" data-price-kg="${kgPrice}" data-weight="${g.unit_weight_kg || 0}" data-uom="${g.uom || 'piece'}" ${sel}>${g.product_name}${weightLabel}${stockLabel}</option>`;
-                });
-
                 row.innerHTML = `
-                    <select name="product_ids[]" required class="flex-grow bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700" onchange="updateRowUnitPrice(this)">
-                        ${options}
-                    </select>
+                    <div class="flex-grow">
+                        ${window.rawOrderComboboxTpl}
+                    </div>
                     <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateRowUnitPrice(this)">
                         <option value="Pcs">Pcs</option>
                         <option value="Kg">Kg</option>
@@ -595,7 +627,18 @@
                 if (row.querySelector('select[name="billing_uoms[]"]')) {
                     row.querySelector('select[name="billing_uoms[]"]').value = it.billing_uom || 'Pcs';
                 }
+
+                const prodInp = row.querySelector('.combobox-hidden-input');
+                if (prodInp) {
+                    prodInp.value = it.product_id;
+                }
+
                 rowsContainer.appendChild(row);
+
+                const wrapper = row.querySelector('.combobox-wrapper');
+                if (wrapper && window.ERPComboboxManager) {
+                    window.ERPComboboxManager.syncDisplay(wrapper);
+                }
             });
         }
 
@@ -690,5 +733,276 @@
             }
         );
     }
+
+    window.updateRowUnitPrice = updateRowUnitPrice;
+    window.openEditOrderModal = openEditOrderModal;
+    window.updateOrderStatus = updateOrderStatus;
+    window.deleteOrder = deleteOrder;
+</script>
+
+<!-- 360° Order Info & MRP Hub Modal -->
+<div id="orderInfoModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all duration-300">
+        
+        <!-- Modal Header (Light Mode) -->
+        <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 text-slate-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    ℹ️
+                </div>
+                <div>
+                    <h3 id="modalOrderTitle" class="text-base font-extrabold text-slate-800 tracking-wide">Sales Order 360° Control Hub</h3>
+                    <p id="modalOrderSubtitle" class="text-xs text-slate-500 font-medium">Order Info, Finished Goods Stock Allocation & MRP Raw Material Matrix</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeOrderInfoModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition text-xl font-bold cursor-pointer">&times;</button>
+        </div>
+
+        <!-- Modal Body Container -->
+        <div id="modalOrderContent" class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            <!-- Loading State -->
+            <div id="modalOrderLoading" class="py-12 text-center text-slate-500 space-y-3">
+                <svg class="w-8 h-8 mx-auto animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <p class="text-sm font-bold">Calculating MRP Raw Material Requirements & Stock Allocations...</p>
+            </div>
+
+            <!-- Dynamic Loaded Content Container -->
+            <div id="modalOrderData" class="hidden space-y-6">
+                
+                <!-- Order Header Quick Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Order Number</span>
+                        <span id="mOrderNum" class="text-sm font-extrabold text-blue-600 font-mono">PWW-ORD-000</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Customer PO #</span>
+                        <span id="mPoNum" class="text-sm font-bold text-slate-800 font-mono">N/A</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Client Company</span>
+                        <span id="mClientName" class="text-sm font-bold text-slate-900 truncate block">Client Name</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Target Delivery Date</span>
+                        <span id="mDeliveryDate" class="text-sm font-bold text-amber-600 font-mono">Date</span>
+                    </div>
+                </div>
+
+                <!-- Finished Goods Stock Allocation Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
+                            <span class="w-2.5 h-2.5 bg-blue-600 rounded-full mr-2"></span>
+                            Finished Goods Readiness & Stock Allocation
+                        </h4>
+                        <span id="mFgOverallBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 border border-blue-200">Status</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-[#EDF4FA] text-slate-700 font-bold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Product Name</th>
+                                    <th class="p-2.5 text-center">Ordered Qty</th>
+                                    <th class="p-2.5 text-center">Live Warehouse Stock</th>
+                                    <th class="p-2.5 text-center">Stock Readiness</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mFgTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic JS Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Raw Material MRP Matrix Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
+                            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full mr-2"></span>
+                            Material Requirement Planning (MRP) Raw Material Matrix
+                        </h4>
+                        <span class="text-[10px] text-slate-400 font-medium">* Formula: (Ordered Qty × BOM Qty) + Waste %</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-[#EDF4FA] text-slate-700 font-bold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Raw Material Name</th>
+                                    <th class="p-2.5 text-center">Calculated Requirement</th>
+                                    <th class="p-2.5 text-center">Current Stock</th>
+                                    <th class="p-2.5 text-center">Deficit / Readiness</th>
+                                    <th class="p-2.5 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mMrpTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic JS Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="mMissingBomWarning" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium">
+                        ⚠️ Warning: Some products in this order do not have BOM rules defined. Click <a href="{{ route('bom') }}" class="underline font-bold text-amber-900">BOM Management</a> to configure formulas.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modal Footer Action Bar -->
+        <div class="flex flex-wrap items-center justify-end px-6 py-4 bg-slate-50 border-t border-slate-200 gap-2">
+            <div class="flex items-center space-x-2">
+                <a href="{{ route('production') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-2xs transition">
+                    ⚙️ Log Production
+                </a>
+                <div id="mOrderStatusBadge" class="px-3.5 py-2 text-xs font-bold rounded-xl border shadow-2xs transition"></div>
+                <button type="button" onclick="closeOrderInfoModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function openOrderInfoModal(orderId) {
+        const modal = document.getElementById('orderInfoModal');
+        const loading = document.getElementById('modalOrderLoading');
+        const dataBox = document.getElementById('modalOrderData');
+
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        dataBox.classList.add('hidden');
+
+        $.ajax({
+            url: `/orders/${orderId}/details`,
+            method: 'GET',
+            success: function(res) {
+                const data = res.data || res;
+                renderOrderInfoModalData(data);
+            },
+            error: function(xhr) {
+                alert('Failed to load order details.');
+                closeOrderInfoModal();
+            }
+        });
+    }
+
+    function closeOrderInfoModal() {
+        const modal = document.getElementById('orderInfoModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function renderOrderInfoModalData(data) {
+        document.getElementById('modalOrderLoading').classList.add('hidden');
+        document.getElementById('modalOrderData').classList.remove('hidden');
+
+        // Header info
+        document.getElementById('mOrderNum').textContent = data.order_number || 'N/A';
+        document.getElementById('mPoNum').textContent = data.po_number || 'N/A';
+        document.getElementById('mClientName').textContent = (data.client_name || 'N/A') + (data.plant_name ? ' (' + data.plant_name + ')' : '');
+        document.getElementById('mDeliveryDate').textContent = data.delivery_date || data.order_date || 'N/A';
+
+        // Status Badge
+        const statusBadge = document.getElementById('mOrderStatusBadge');
+        if (statusBadge) {
+            statusBadge.className = 'px-3.5 py-2 text-xs font-bold rounded-xl border shadow-2xs transition';
+            const status = data.status || 'pending';
+            if (status === 'pending') {
+                statusBadge.classList.add('bg-amber-50', 'text-amber-700', 'border-amber-200');
+                statusBadge.innerHTML = '⏳ Pending';
+            } else if (status === 'in_production') {
+                statusBadge.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
+                statusBadge.innerHTML = '⚙️ In Production';
+            } else if (status === 'ready_for_dispatch') {
+                statusBadge.classList.add('bg-indigo-50', 'text-indigo-700', 'border-indigo-200');
+                statusBadge.innerHTML = '📦 Ready for Dispatch';
+            } else if (status === 'dispatched' || status === 'completed') {
+                statusBadge.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+                statusBadge.innerHTML = '✓ Dispatched';
+            } else if (status === 'cancelled') {
+                statusBadge.classList.add('bg-rose-50', 'text-rose-700', 'border-rose-200');
+                statusBadge.innerHTML = '✕ Cancelled';
+            } else {
+                statusBadge.classList.add('bg-slate-50', 'text-slate-700', 'border-slate-200');
+                statusBadge.innerHTML = data.formatted_status || 'N/A';
+            }
+        }
+
+        // Finished Goods Table
+        const fg = data.finished_goods_status || {};
+        const fgBadge = document.getElementById('mFgOverallBadge');
+        if (fg.is_fully_stocked) {
+            fgBadge.textContent = '✓ Ready to Dispatch';
+            fgBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300';
+        } else {
+            fgBadge.textContent = '⚡ Production Needed';
+            fgBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 border border-amber-300';
+        }
+
+        const fgTbody = document.getElementById('mFgTableBody');
+        fgTbody.innerHTML = '';
+        (fg.items || []).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50';
+            const statusHtml = item.is_sufficient 
+                ? `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ Fully Stocked</span>`
+                : `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">Short by ${item.missing_quantity} ${item.billing_uom}</span>`;
+            
+            tr.innerHTML = `
+                <td class="p-2.5 font-bold text-slate-800">${item.product_name}</td>
+                <td class="p-2.5 text-center font-bold text-slate-900">${item.ordered_quantity} ${item.billing_uom}</td>
+                <td class="p-2.5 text-center text-slate-700 font-semibold">${item.available_stock}</td>
+                <td class="p-2.5 text-center">${statusHtml}</td>
+            `;
+            fgTbody.appendChild(tr);
+        });
+
+        // MRP Raw Material Table
+        const mrp = data.raw_material_mrp || {};
+        const mrpTbody = document.getElementById('mMrpTableBody');
+        mrpTbody.innerHTML = '';
+
+        if (!mrp.mrp_list || mrp.mrp_list.length === 0) {
+            mrpTbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">No raw material calculations available.</td></tr>`;
+        } else {
+            mrp.mrp_list.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                
+                const readinessHtml = item.is_sufficient
+                    ? `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">✓ Stock Sufficient</span>`
+                    : `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]">Short by ${item.shortage} ${item.unit}</span>`;
+
+                const actionHtml = item.is_sufficient
+                    ? `<span class="text-emerald-600 font-bold text-[10px]">Ready</span>`
+                    : `<a href="/purchases?raw_material_id=${item.raw_material_id}&quantity=${item.shortage}" class="inline-flex items-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded text-[10px] shadow-2xs transition">+ Order Missing Stock</a>`;
+
+                tr.innerHTML = `
+                    <td class="p-2.5 font-bold text-slate-900">${item.material_name}</td>
+                    <td class="p-2.5 text-center font-bold text-blue-600 font-mono">${item.total_required} ${item.unit}</td>
+                    <td class="p-2.5 text-center text-slate-700 font-semibold">${item.current_stock} ${item.unit}</td>
+                    <td class="p-2.5 text-center">${readinessHtml}</td>
+                    <td class="p-2.5 text-center">${actionHtml}</td>
+                `;
+                mrpTbody.appendChild(tr);
+            });
+        }
+
+        // Missing BOM Warning
+        const warningBox = document.getElementById('mMissingBomWarning');
+        if (mrp.missing_boms && mrp.missing_boms.length > 0) {
+            warningBox.classList.remove('hidden');
+        } else {
+            warningBox.classList.add('hidden');
+        }
+    }
+
+    window.openOrderInfoModal = openOrderInfoModal;
+    window.closeOrderInfoModal = closeOrderInfoModal;
 </script>
 @endsection

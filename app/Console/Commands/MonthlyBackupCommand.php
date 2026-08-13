@@ -34,10 +34,12 @@ class MonthlyBackupCommand extends Command
             $filePath = $backupService->ensureAutomaticBackupExists();
             $this->info("Automatic backup verified and created successfully at: {$filePath}");
             Log::info("Monthly backup command executed successfully: {$filePath}");
+
             return Command::SUCCESS;
         } catch (Throwable $e) {
-            $this->error("Monthly backup command failed: " . $e->getMessage());
-            Log::error("Monthly backup command failed: " . $e->getMessage());
+            $this->error('Monthly backup command failed: '.$e->getMessage());
+            Log::error('Monthly backup command failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

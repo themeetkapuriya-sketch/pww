@@ -20,12 +20,18 @@ graph TD
 ```
 
 ### Key Service Abstractions (`app/Services/`):
-- `InvoiceService.php`: Custom invoice calculations, GST item tax breakdown, sequential document numbering, payment processing.
+- `BillingService.php`: Custom invoice calculations, GST item tax breakdown, sequential document numbering, payment processing.
+- `InvoicePdfService.php`: PDF rendering configuration, tax breakdowns, styling wrappers, and layout compilers for professional invoice printouts.
 - `ProductionService.php`: Batch production output logging, BOM raw material inventory auto-deduction, labor cost calculation.
-- `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary disbursals.
-- `ReportService.php`: Financial P&L calculations, GST GSTR-1 & GSTR-3B tax aggregations, CSV/PDF compilations with caching (`Cache::remember`).
+- `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary disbursals, salary advance deductions.
+- `FinancialService.php`: Financial P&L calculations, monthly turnover, net profit margins, GST liability, and eligible input tax credit (ITC) reconciliation.
 - `BackupService.php`: Database SQL dumps, database restores, local snapshot management, safety file rotations.
 - `RolePermissionService.php`: Role-based access control (RBAC), permission matrix resolution.
+- `ActiveOrderAlertService.php`: Real-time tracking of active orders, in-production batches, and ready-for-dispatch items for top header widgets.
+- `InventoryAlertService.php`: Stock safety threshold monitoring and low-stock alert notifications for raw materials and finished goods.
+- `AuditLogService.php`: System-wide audit trail logs tracking actions like invoice deletions, settings modifications, security events, etc.
+- `EwayBillService.php`: JSON generation and export of standard Indian GSTR-compliant eway bill payloads for transportation dispatch.
+- `CategoryService.php`: Manages categories for purchases and expenses including system-protected constraints.
 
 ---
 

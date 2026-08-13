@@ -9,7 +9,7 @@
             <button onclick="closeDisburseModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
         </div>
 
-        <form action="{{ route('employees.salary.disburse') }}" method="POST" class="ajax-form space-y-4" id="disburseForm" novalidate>
+        <form action="{{ route('employees.salary.disburse') }}" method="POST" class="ajax-form space-y-4" id="disburseForm" data-redirect="/employees?tab=disbursal" data-close-modal="#disburseSalaryModal" novalidate>
             @csrf
             <input type="hidden" name="staff_profile_id" id="disburseStaffId">
             <input type="hidden" name="month_year" id="disburseMonthYear">
@@ -33,10 +33,25 @@
                 <input type="number" name="days_present" id="disburseDaysInput" step="0.5" min="0" max="31" oninput="calculateModalSalary()" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
-            <!-- Editable Total Salary Amount Input -->
+            <!-- Outstanding Advance & Deduction Section -->
+            <div id="disburseAdvanceContainer" class="p-3 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-2">
+                <div class="flex items-center justify-between text-xs font-bold text-amber-900">
+                    <span>Outstanding Advance:</span>
+                    <span id="disbursePendingAdvanceBadge" class="font-mono text-sm text-amber-700 font-black">₹0.00</span>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Advance Amount to Deduct (₹)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-xs font-bold text-slate-400">₹</span>
+                        <input type="number" name="advance_deduction" id="disburseAdvanceDeductionInput" step="0.01" min="0" value="0.00" oninput="calculateModalSalary()" class="w-full bg-white border border-amber-300 rounded-xl py-1.5 pl-7 pr-3 text-sm font-bold text-amber-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editable Net Salary Amount Input -->
             <div class="space-y-1">
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
-                    Total Salary Amount (₹) <span class="text-slate-400 font-normal lowercase">(editable for bonus/deduction)</span>
+                    Net Salary Payable (₹) <span class="text-slate-400 font-normal lowercase">(after advance deduction)</span>
                 </label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm font-bold text-slate-500">₹</span>

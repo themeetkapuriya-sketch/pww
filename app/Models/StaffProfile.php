@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class StaffProfile extends Model
 {
@@ -52,5 +52,21 @@ class StaffProfile extends Model
     public function salaryDisbursals()
     {
         return $this->hasMany(SalaryDisbursal::class, 'staff_profile_id');
+    }
+
+    /**
+     * Get salary advances given to the staff member.
+     */
+    public function advances()
+    {
+        return $this->hasMany(SalaryAdvance::class, 'staff_profile_id');
+    }
+
+    /**
+     * Total pending advance amount for the staff member.
+     */
+    public function pendingAdvanceTotal(): float
+    {
+        return (float) $this->advances()->where('status', 'pending')->sum('amount');
     }
 }

@@ -11,6 +11,10 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <button type="button" onclick="openAdvanceModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    <span>Give Salary Advance</span>
+                </button>
                 <label class="text-xs font-bold text-slate-600 uppercase">Selected Month:</label>
                 <input type="month" id="disbursalMonthInput" value="{{ $selectedMonth }}" onchange="filterDisbursalMonth(this.value)" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
@@ -27,6 +31,7 @@
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Present Days (Month)</th>
                         <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Calculated Salary</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Payment Status</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Payment Date</th>
                         <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-32">Action</th>
                     </tr>
                 </thead>
@@ -36,20 +41,28 @@
                             $disbursal = $salaryDisbursals->get($staff->id);
                             $mPresent = $monthlyAttendance->get($staff->id, 0);
                             $daysPresent = $disbursal ? $disbursal->days_present : $mPresent;
+                            $pAdvance = isset($pendingAdvances) ? ($pendingAdvances[$staff->id] ?? 0) : 0;
                             
                             if ($staff->wage_type === 'per-day') {
                                 $rate = $staff->piece_rate_per_unit;
-                                $totalSalary = $disbursal ? $disbursal->total_salary : ($daysPresent * $rate);
+                                $totalSalary = $disbursal ? $disbursal->total_salary : max(0, ($daysPresent * $rate) - $pAdvance);
                             } else {
                                 $rate = $staff->monthly_salary;
-                                $totalSalary = $disbursal ? $disbursal->total_salary : $rate;
+                                $totalSalary = $disbursal ? $disbursal->total_salary : max(0, $rate - $pAdvance);
                             }
 
                             $isPaid = $disbursal && $disbursal->status === 'paid';
                         @endphp
                         <tr class="hover:bg-slate-50 transition" id="row-disbursal-{{ $staff->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                            <td class="px-6 py-4 font-bold text-slate-800">{{ $staff->full_name }}</td>
+                            <td class="px-6 py-4 font-bold text-slate-800">
+                                <span>{{ $staff->full_name }}</span>
+                                @if($pAdvance > 0)
+                                    <span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px] font-bold block mt-1 w-fit" title="Pending advance to deduct">
+                                        Advance: ₹{{ number_format($pAdvance, 2) }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 font-medium text-slate-600">
                                 <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase
                                     {{ $staff->wage_type === 'per-day' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-slate-100 border border-slate-200 text-slate-700' }}">
@@ -70,17 +83,15 @@
                             </td>
                             <td class="px-6 py-4 text-right font-mono font-black text-slate-900 text-base">
                                 ₹{{ number_format($totalSalary, 2) }}
+                                @if($disbursal && $disbursal->advance_deduction > 0)
+                                    <span class="block text-[10px] text-amber-700 font-normal">(Deducted: ₹{{ number_format($disbursal->advance_deduction, 2) }})</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
                                 @if ($isPaid)
-                                    <div class="inline-flex flex-col items-center">
-                                        <span class="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold shadow-2xs">
-                                            🟢 PAID
-                                        </span>
-                                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">
-                                            {{ $disbursal->payment_date ? $disbursal->payment_date->format('d M') : 'Paid' }} ({{ $disbursal->payment_method }})
-                                        </span>
-                                    </div>
+                                    <span class="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold shadow-2xs">
+                                        🟢 PAID
+                                    </span>
                                 @else
                                     <span class="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold shadow-2xs">
                                         🟡 PENDING / UNPAID
@@ -88,9 +99,20 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
+                                @if ($isPaid && $disbursal && $disbursal->payment_date)
+                                    <span class="font-bold text-slate-800 text-xs block">{{ $disbursal->payment_date->format('d M Y') }}</span>
+                                    <span class="text-[10px] text-slate-500 font-medium">via {{ $disbursal->payment_method ?? 'Cash' }}</span>
+                                @elseif ($isPaid)
+                                    <span class="text-xs font-semibold text-slate-700">Paid</span>
+                                @else
+                                    <span class="text-xs text-slate-400 font-medium italic">-</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
                                 <button type="button" 
                                         data-staff="{{ json_encode(new \App\Http\Resources\StaffProfileResource($staff)) }}"
                                         data-disbursal="{{ json_encode($disbursal) }}"
+                                        data-pending-advance="{{ $pAdvance }}"
                                         onclick='openDisburseModal(this, "{{ $selectedMonth }}", {{ $daysPresent }}, {{ $totalSalary }})'
                                         class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
