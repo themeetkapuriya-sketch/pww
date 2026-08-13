@@ -1,5 +1,5 @@
 <!-- TAB 2: DAILY ATTENDANCE SHEET -->
-<div id="empTab-attendance" class="emp-tab-content hidden space-y-6">
+<div id="empTab-attendance" class="emp-tab-content {{ ($activeTab ?? request('tab', 'directory')) === 'attendance' ? '' : 'hidden' }} space-y-6">
     <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
@@ -16,7 +16,7 @@
             </div>
         </div>
 
-        <form action="{{ route('employees.attendance.store') }}" method="POST" class="ajax-form space-y-4" id="attendanceForm" data-redirect="/employees?tab=attendance" novalidate>
+        <form action="{{ route('employees.attendance.store') }}" method="POST" class="ajax-form space-y-4" id="attendanceForm" novalidate>
             @csrf
             <input type="hidden" name="date" id="attendanceFormDate" value="{{ $selectedDate }}">
 
@@ -31,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach ($staffProfiles as $staff)
+                        @forelse ($activeStaffProfiles as $staff)
                             @php
                                 $currentStatus = $attendanceForDate[$staff->id] ?? 'present';
                             @endphp
@@ -60,7 +60,19 @@
                                     </div>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-slate-400">
+                                    <div class="flex flex-col items-center justify-center space-y-2">
+                                        <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                        </svg>
+                                        <p class="text-sm font-bold text-slate-600">No Active Employees Found</p>
+                                        <p class="text-xs text-slate-400">There are no active employee profiles available to record daily attendance.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

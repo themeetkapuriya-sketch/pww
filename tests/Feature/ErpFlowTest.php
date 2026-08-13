@@ -1175,6 +1175,7 @@ class ErpFlowTest extends TestCase
         // 1. Store Employee
         $response = $this->actingAs($user)->post(route('employees.store'), [
             'full_name' => 'Ramesh Kumar',
+            'mobile_number' => '9876543210',
             'wage_type' => 'per-day',
             'piece_rate_per_unit' => 600.00,
         ]);
@@ -1184,14 +1185,46 @@ class ErpFlowTest extends TestCase
         // 2. Update Employee
         $response = $this->actingAs($user)->put(route('employees.update', $staffId), [
             'full_name' => 'Ramesh Kumar Updated',
+            'mobile_number' => '9876543211',
             'wage_type' => 'fixed',
             'monthly_salary' => 25000.00,
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertEquals('Ramesh Kumar Updated', StaffProfile::find($staffId)->full_name);
+        $this->assertEquals('9876543211', StaffProfile::find($staffId)->mobile_number);
         $this->assertEquals('fixed', StaffProfile::find($staffId)->wage_type);
 
-        // 3. Delete Employee
+        // 3. Toggle Employee Active/Inactive Status
+        $this->assertTrue(StaffProfile::find($staffId)->is_active);
+        $response = $this->actingAs($user)->postJson(route('employees.toggle-status', $staffId));
+        $response->assertStatus(200)->assertJson(['success' => true, 'is_active' => false]);
+        $this->assertFalse(StaffProfile::find($staffId)->is_active);
+
+        // Toggle back to active
+        $response = $this->actingAs($user)->postJson(route('employees.toggle-status', $staffId));
+        $response->assertStatus(200)->assertJson(['success' => true, 'is_active' => true]);
+        $this->assertTrue(StaffProfile::find($staffId)->is_active);
+
+        // 4. Test Employee Statement JSON Endpoint & Advance Date Filtering
+        // Store an advance issued in August 2026
+        \App\Models\SalaryAdvance::create([
+            'staff_profile_id' => $staffId,
+            'amount' => 5000.00,
+            'advance_date' => '2026-08-15',
+            'status' => 'pending',
+        ]);
+
+        // When viewing July 2026 (2026-07), advance issued in Aug 2026 must NOT be included in pending total
+        $julyResp = $this->actingAs($user)->getJson(route('employees.statement', ['id' => $staffId, 'month' => '2026-07']));
+        $julyResp->assertStatus(200);
+        $this->assertEquals(0, $julyResp->json('pending_advances_total'));
+
+        // When viewing August 2026 (2026-08), advance issued in Aug 2026 IS included
+        $augResp = $this->actingAs($user)->getJson(route('employees.statement', ['id' => $staffId, 'month' => '2026-08']));
+        $augResp->assertStatus(200);
+        $this->assertEquals(5000.00, $augResp->json('pending_advances_total'));
+
+        // 5. Delete Employee
         $response = $this->actingAs($user)->delete(route('employees.delete', $staffId));
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertNull(StaffProfile::find($staffId));

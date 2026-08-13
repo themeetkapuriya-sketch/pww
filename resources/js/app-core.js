@@ -375,7 +375,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof window.closeDisburseModal === 'function') {
                     window.closeDisburseModal();
                 }
-                document.querySelectorAll('#categoryModal, #clearAuditLogsModal, #giveAdvanceModal, #disburseSalaryModal').forEach(m => m.classList.add('hidden'));
+                if (typeof window.closePaymentModal === 'function') {
+                    window.closePaymentModal();
+                }
+                document.querySelectorAll('#categoryModal, #clearAuditLogsModal, #giveAdvanceModal, #disburseSalaryModal, #paymentSalaryModal').forEach(m => m.classList.add('hidden'));
 
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);

@@ -9,13 +9,13 @@
             <button onclick="closeAdvanceModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
         </div>
 
-        <form action="{{ route('employees.advance.store') }}" method="POST" class="ajax-form space-y-4" id="advanceForm" data-redirect="/employees?tab=disbursal" data-close-modal="#giveAdvanceModal" novalidate>
+        <form action="{{ route('employees.advance.store') }}" method="POST" class="ajax-form space-y-4" id="advanceForm" data-close-modal="#giveAdvanceModal" novalidate>
             @csrf
             <div>
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Employee <span class="text-rose-500">*</span></label>
                 <select name="staff_profile_id" id="advanceStaffSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500" required>
                     <option value="">Select Employee...</option>
-                    @foreach($staffProfiles as $sp)
+                    @foreach(($activeStaffProfiles ?? $staffProfiles->where('is_active', true)) as $sp)
                         <option value="{{ $sp->id }}">{{ $sp->full_name }} ({{ $sp->wage_type === 'per-day' ? 'Per Day' : 'Fixed' }})</option>
                     @endforeach
                 </select>

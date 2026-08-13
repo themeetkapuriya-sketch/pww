@@ -26,7 +26,7 @@ class OverviewController extends Controller
 
         // Today's Attendance Quick Data
         $todayDate = $now->toDateString();
-        $allStaff = StaffProfile::all();
+        $allStaff = StaffProfile::where('is_active', true)->get();
         $todayAttendance = AttendanceRecord::where('date', $todayDate)->get()->keyBy('staff_profile_id');
 
         // 1. Financial Year Range (April 1 to March 31)

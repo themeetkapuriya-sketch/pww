@@ -23,7 +23,7 @@ graph TD
 - `BillingService.php`: Custom invoice calculations, GST item tax breakdown, sequential document numbering, payment processing.
 - `InvoicePdfService.php`: PDF rendering configuration, tax breakdowns, styling wrappers, and layout compilers for professional invoice printouts.
 - `ProductionService.php`: Batch production output logging, BOM raw material inventory auto-deduction, labor cost calculation.
-- `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary disbursals, salary advance deductions.
+- `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary payment tracking, salary advance deductions, and active profile status scoping.
 - `FinancialService.php`: Financial P&L calculations, monthly turnover, net profit margins, GST liability, and eligible input tax credit (ITC) reconciliation.
 - `BackupService.php`: Database SQL dumps, database restores, local snapshot management, safety file rotations.
 - `RolePermissionService.php`: Role-based access control (RBAC), permission matrix resolution.
@@ -116,6 +116,20 @@ The system is built to operate **100% offline without internet** on local client
 6. **Hotkeys & Visual Dark Theme Engine**:
    - `app-core.js` intercepts global keyboard events (`Alt+I`, `Alt+P`, `Alt+E`, `Alt+R`, `Alt+S`, `Alt+H`) for rapid SPA navigation.
    - Inline theme script in `app.blade.php` reads `localStorage.getItem('theme')` before DOM paint to prevent light flashes, applying `.dark` classes for high-contrast dark slate styling (`#0f172a` & `#1e293b`).
+
+---
+
+### 5. Employee Profile Status Scoping & Individual Passbook Statement Engine
+`EmployeeController.php` & `StaffProfile.php` enforce active profile scoping and real-time passbook ledger calculations:
+
+1. **Active/Inactive Status Scoping**:
+   - Inactive employee records (`is_active = 0`) are filtered out from Daily Attendance, Salary Advance creation, Piece-Rate production logging, and Payroll computations.
+   - Deactivated employees with historical payment records remain preserved in the Monthly Salary Ledger with an `INACTIVE` status badge.
+2. **Date-Filtered Salary Advance Deductions**:
+   - Salary advances are filtered strictly against the selected month end date (`advance_date <= selectedMonthEnd`).
+   - Advances issued in future months are excluded from earlier monthly ledger views.
+3. **Passbook Statement Computation**:
+   $$\text{Net Due Amount} = \max\left(0, \text{Gross Monthly Earnings} - \text{Pending Advances Issued } (\le \text{Month End})\right)$$
 
 ---
 

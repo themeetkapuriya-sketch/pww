@@ -119,32 +119,58 @@ Logs daily rack manufacturing output and triggers raw material stock deduction.
 
 ---
 
-### 6. `staff_profiles` & `labor_logs`
+### 6. `staff_profiles`, `salary_payments`, & `salary_advances`
 
 #### `staff_profiles` (Model: `App\Models\StaffProfile`)
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | BigInt | Primary Key | Staff ID |
-| `worker_id` | Varchar(50) | Unique | Employee Badge/ID Code |
-| `name` | Varchar(255) | Not Null | Staff Full Name |
-| `phone` | Varchar(50) | Nullable | Contact Phone Number |
-| `designation` | Varchar(100) | Default: 'Welder' | Staff Designation |
-| `wage_type` | Varchar(50) | Default: 'per-day' | Compensation Model (`per-day`, `piece-rate`) |
-| `daily_rate` | Decimal(10,2) | Default: 0.00 | Fixed Daily Salary (₹) |
-| `piece_rate_per_unit` | Decimal(10,2) | Default: 0.00 | Per-Piece Rate Payout (₹) |
-| `overtime_rate_per_hour` | Decimal(10,2) | Default: 0.00 | Overtime Rate (₹/hr) |
-| `joining_date` | Date | Nullable | Date of Joining |
-| `status` | Varchar(50) | Default: 'active' | Employment Status (`active`, `inactive`) |
+| `id` | BigInt | Primary Key | Unique Staff ID |
+| `user_id` | BigInt | FK -> `users.id` (Nullable) | User Account Link |
+| `full_name` | Varchar(255) | Not Null | Employee Full Name |
+| `mobile_number` | Varchar(50) | Nullable | Primary Contact Mobile Number |
+| `wage_type` | Varchar(50) | Default: 'per-day' | Wage Contract Model (`per-day`, `fixed`) |
+| `monthly_salary` | Decimal(10,2) | Default: 0.00 | Monthly Base Fixed Salary (₹) |
+| `piece_rate_per_unit` | Decimal(10,2) | Default: 0.00 | Daily Rate / Per Piece Rate (₹) |
+| `is_active` | Boolean | Default: true | Active/Inactive Account Status |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
 
-#### `labor_logs` (Model: `App\Models\LaborLog`)
+- **Local Scopes**: `scopeActive($query)`
+
+#### `salary_payments` (Model: `App\Models\SalaryPayment`)
+Stores monthly salary payouts and expense integration records.
+
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | BigInt | Primary Key | Log ID |
-| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` | Employee Assigned |
-| `production_log_id` | BigInt | FK -> `production_logs.id` | Associated Production Log |
-| `units_completed` | Integer | Not Null | Units Welded / Assembled |
-| `calculated_payout` | Decimal(10,2) | Not Null | Total Calculated Wage Payout (₹) |
-| `status` | Varchar(50) | Default: 'pending' | Payout Status (`pending`, `paid`) |
+| `id` | BigInt | Primary Key | Unique Salary Payment ID |
+| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` (Cascade) | Recipient Staff Member |
+| `month_year` | Varchar(7) | Not Null | Target Payroll Month (`YYYY-MM`) |
+| `days_present` | Decimal(5,2) | Default: 0.00 | Total Days Present in Month |
+| `advance_deduction` | Decimal(10,2) | Default: 0.00 | Advance Salary Amount Deducted (₹) |
+| `total_salary` | Decimal(10,2) | Not Null | Net Salary Disbursed (₹) |
+| `payment_date` | Date | Nullable | Disbursal Transaction Date |
+| `payment_method` | Varchar(50) | Default: 'Cash' | Disbursal Method (`Cash`, `Bank Transfer`, `UPI`, `Cheque`) |
+| `status` | Varchar(20) | Default: 'paid' | Payment Status (`paid`, `pending`) |
+| `notes` | Text | Nullable | Payment Remarks / Ref Numbers |
+| `expense_id` | BigInt | FK -> `expenses.id` (Set Null) | Auto-logged Expense Record Link |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
+
+#### `salary_advances` (Model: `App\Models\SalaryAdvance`)
+Stores mid-month salary advances issued to staff.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInt | Primary Key | Unique Salary Advance ID |
+| `staff_profile_id` | BigInt | FK -> `staff_profiles.id` (Cascade) | Recipient Staff Member |
+| `amount` | Decimal(10,2) | Not Null | Advance Salary Amount Issued (₹) |
+| `advance_date` | Date | Not Null | Advance Issuance Date |
+| `payment_method` | Varchar(50) | Default: 'Cash' | Issuance Method (`Cash`, `Bank Transfer`, `UPI`, `Cheque`) |
+| `status` | Varchar(20) | Default: 'pending' | Advance Status (`pending`, `deducted`) |
+| `notes` | Text | Nullable | Remarks / Purpose |
+| `expense_id` | BigInt | FK -> `expenses.id` (Set Null) | Auto-logged Expense Record Link |
+| `created_at` | Timestamp | Nullable | Creation Timestamp |
+| `updated_at` | Timestamp | Nullable | Update Timestamp |
 
 ---
 

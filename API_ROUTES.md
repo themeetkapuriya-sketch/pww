@@ -106,7 +106,11 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/employees` | `POST` | `EmployeeController@storeEmployee` | Inline | `employees.store` | JSON (200 / 422) |
 | `/employees/{id}` | `PUT` | `EmployeeController@updateEmployee` | Inline | `employees.update` | JSON (200 / 422) |
+| `/employees/{id}/toggle-status` | `POST` | `EmployeeController@toggleStatus` | - | `employees.toggle-status` | JSON (200) |
+| `/employees/{id}/statement` | `GET` | `EmployeeController@getEmployeeStatement` | - | `employees.statement` | JSON (200) |
 | `/employees/{id}` | `DELETE` | `EmployeeController@deleteEmployee` | - | `employees.delete` | JSON (200) |
+| `/employees/salary/payment` | `POST` | `EmployeeController@paySalary` | Inline | `employees.salary.payment` | JSON (200 / 422) |
+| `/employees/salary/payment/{id}` | `DELETE` | `EmployeeController@deletePayment` | - | `employees.salary.delete` | JSON (200) |
 | `/employees/advance` | `POST` | `EmployeeController@storeAdvance` | Inline | `employees.advance.store` | JSON (200 / 422) |
 | `/employees/advance/{id}` | `DELETE` | `EmployeeController@deleteAdvance` | - | `employees.advance.delete` | JSON (200) |
 

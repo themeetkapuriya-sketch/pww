@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SalaryDisbursal extends Model
+class SalaryPayment extends Model
 {
     use HasFactory;
+
+    protected $table = 'salary_payments';
 
     protected $fillable = [
         'staff_profile_id',

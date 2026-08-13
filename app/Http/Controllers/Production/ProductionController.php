@@ -31,7 +31,7 @@ class ProductionController extends Controller
     {
         $productionLogs = ProductionLog::with('product', 'recordedByUser')->orderBy('production_date', 'desc')->paginate(20);
         $finishedGoods = Product::all();
-        $staffProfiles = StaffProfile::all();
+        $staffProfiles = StaffProfile::where('is_active', true)->orderBy('full_name')->get();
         $users = User::all();
 
         return view('pages.production', compact('productionLogs', 'finishedGoods', 'staffProfiles', 'users'));

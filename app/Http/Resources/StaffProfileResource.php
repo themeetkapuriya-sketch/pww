@@ -19,6 +19,7 @@ class StaffProfileResource extends JsonResource
             'user_id' => $this->user_id,
             'full_name' => $this->full_name,
             'wage_type' => $this->wage_type,
+            'mobile_number' => $this->mobile_number,
             'monthly_salary' => (float) $this->monthly_salary,
             'piece_rate_per_unit' => (float) $this->piece_rate_per_unit,
         ];

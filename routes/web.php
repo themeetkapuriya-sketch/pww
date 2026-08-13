@@ -106,12 +106,14 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     // 8. Employees Directory & Attendance / Payroll
     Route::get('/employees', [EmployeeController::class, 'employees'])->name('employees');
     Route::post('/employees', [EmployeeController::class, 'storeEmployee'])->name('employees.store');
+    Route::get('/employees/{id}/statement', [EmployeeController::class, 'getEmployeeStatement'])->name('employees.statement');
     Route::put('/employees/{id}', [EmployeeController::class, 'updateEmployee'])->name('employees.update');
+    Route::post('/employees/{id}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
     Route::delete('/employees/{id}', [EmployeeController::class, 'deleteEmployee'])->name('employees.delete');
     Route::post('/employees/attendance', [EmployeeController::class, 'storeAttendance'])->name('employees.attendance.store');
     Route::get('/employees/attendance/summary', [EmployeeController::class, 'getMonthlySummary'])->name('employees.attendance.summary');
-    Route::post('/employees/salary/disburse', [EmployeeController::class, 'disburseSalary'])->name('employees.salary.disburse');
-    Route::delete('/employees/salary/disburse/{id}', [EmployeeController::class, 'deleteDisbursal'])->name('employees.salary.delete');
+    Route::post('/employees/salary/payment', [EmployeeController::class, 'paySalary'])->name('employees.salary.payment');
+    Route::delete('/employees/salary/payment/{id}', [EmployeeController::class, 'deletePayment'])->name('employees.salary.delete');
     Route::post('/employees/advance', [EmployeeController::class, 'storeAdvance'])->name('employees.advance.store');
     Route::delete('/employees/advance/{id}', [EmployeeController::class, 'deleteAdvance'])->name('employees.advance.delete');
     Route::post('/employees/payroll/pay', [EmployeeController::class, 'payPayroll'])->name('payroll.pay');

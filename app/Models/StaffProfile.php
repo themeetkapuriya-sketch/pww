@@ -12,15 +12,26 @@ class StaffProfile extends Model
     protected $fillable = [
         'user_id',
         'full_name',
+        'mobile_number',
         'wage_type',
         'monthly_salary',
         'piece_rate_per_unit',
+        'is_active',
     ];
 
     protected $casts = [
         'monthly_salary' => 'decimal:2',
         'piece_rate_per_unit' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
+
+    /**
+     * Scope a query to only include active staff.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     /**
      * Get the user account associated with the staff member.
@@ -47,11 +58,11 @@ class StaffProfile extends Model
     }
 
     /**
-     * Get the monthly salary disbursals for the staff member.
+     * Get the monthly salary payments for the staff member.
      */
-    public function salaryDisbursals()
+    public function salaryPayments()
     {
-        return $this->hasMany(SalaryDisbursal::class, 'staff_profile_id');
+        return $this->hasMany(SalaryPayment::class, 'staff_profile_id');
     }
 
     /**
@@ -63,10 +74,14 @@ class StaffProfile extends Model
     }
 
     /**
-     * Total pending advance amount for the staff member.
+     * Total pending advance amount for the staff member up to a specific date.
      */
-    public function pendingAdvanceTotal(): float
+    public function pendingAdvanceTotal(?string $beforeDate = null): float
     {
-        return (float) $this->advances()->where('status', 'pending')->sum('amount');
+        $query = $this->advances()->where('status', 'pending');
+        if ($beforeDate) {
+            $query->where('advance_date', '<=', $beforeDate);
+        }
+        return (float) $query->sum('amount');
     }
 }

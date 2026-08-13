@@ -3,7 +3,7 @@
 ![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=flat-square&logo=php)
 ![Laravel Version](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.x-38B2AC?style=flat-square&logo=tailwind-css)
-![Test Status](https://img.shields.io/badge/Tests-28%20Passed%20(202%20Assertions)-brightgreen?style=flat-square)
+![Test Status](https://img.shields.io/badge/Tests-29%20Passed%20(222%20Assertions)-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-Proprietary-blue?style=flat-square)
 
 **Praful Welding Works ERP** is a custom-engineered Enterprise Resource Planning platform built for industrial welding, metal fabrication, and rack manufacturing operations. The platform integrates real-time inventory tracking, Bill of Materials (BOM) auto-deduction engines, regional Indian GST compliance, piece-rate employee payroll, and financial audit reporting into a modern Single-Page Application (SPA) experience.
@@ -24,7 +24,7 @@
 - 💵 **Salary Advances & Payroll Deductions**: Worker salary advance payouts with payment methods (Cash, Bank, UPI) and automatic deduction against monthly salary disbursals.
 - 🔍 **Stock Audit & Physical Variance Adjustments**: Physical inventory stock reconciliation, variance logging (+/-), and audit trail tracking for raw materials.
 - 🔔 **Header Alert Widgets**: Live header badge widgets for real-time tracking of active production pipeline orders and low-stock safety threshold alerts.
-- 👥 **Staff & Piece-Rate Payroll**: Employee directory, daily/piece-rate wage calculation matrix, and labor payout logs.
+- 👥 **Staff, Piece-Rate Payroll & Employee Passbooks**: Employee directory with Active/Inactive status toggling, daily/piece-rate wage calculation matrix, monthly salary disbursal tracking, and individual financial passbook statement modals with period filtering (Current Month, Last 3 Months, This Year, All Time).
 - 🏢 **Clients & Multi-Plant Destinations**: Client master directory with regional GSTIN verification and multiple factory plant delivery addresses.
 - 📈 **Audit & GST Tax Returns**: GSTR-1, GSTR-3B tax liability calculators, net tax payable insights, and CSV/PDF exportable reports.
 - 🛡️ **Super-Admin Activity Audit Logs**: Real-time audit trail capturing all user actions (Invoices, Purchases, Inventory, Expenses, Payroll, Settings, Logins) with CSV export (`/activity-logs`). Restricted exclusively to Super Admin.
@@ -45,7 +45,7 @@
 - **Frontend Architecture**: Blade Templates, Tailwind CSS v4, jQuery SPA Navigation, SweetAlert2, DataTables (with Royal Blue Pill Pagination), TomSelect
 - **Offline Assets**: Pre-bundled local vendor libraries (`public/vendor/`) and Vite compiled CSS bundle
 - **PDF Engine**: Dompdf / Custom HTML Canvas PDF rendering
-- **Testing Suite**: Automated Test Suite (28 Test Suites, 202 Assertions 100% Green)
+- **Testing Suite**: Automated Test Suite (29 Test Suites, 222 Assertions 100% Green)
 
 ---
 

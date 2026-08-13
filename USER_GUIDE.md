@@ -116,13 +116,33 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 ---
 
-### 4.5. Salary Advances & Stock Audit Variance
+### 4.5. Employees Directory, Payroll Ledger & Salary Advances
 
-#### Pay Salary Advance (Page: `Employees`)
-1. Go to **Employees** in the sidebar.
-2. Click **+ Record Salary Advance**.
-3. Select Employee, enter **Advance Amount (₹)**, Payment Method (`Cash`, `Bank Transfer`, `UPI`), and Date.
-4. Click **Save Advance**. The advance amount will be automatically deducted when disbursing monthly salaries.
+#### Employee Status Toggle (Active / Inactive) (Page: `Employees`)
+1. Go to **Employees Directory & Payroll Hub** in the sidebar.
+2. In the **Employees Catalog** table, click the **Eye Icon** next to any employee profile to toggle between **Active (Green)** and **Inactive (Red)** status.
+3. Inactive employees are automatically hidden from attendance sheets, advance issuing, and production logging while keeping historical salary records preserved.
+
+#### View Individual Employee Ledger Passbook & Statement (Page: `Employees`)
+1. Click the **Passbook Statement Icon (Blue File Button)** next to any employee.
+2. The **Employee Financial Passbook Modal** opens displaying:
+   - 💳 **Current Salary Rate**
+   - 💸 **Pending Advance Paid**
+   - 📊 **Selected Month Gross Earnings**
+   - 🚨 **Net Due Amount** (`Gross Earnings - Pending Advance`)
+3. Use the **Period Filter** dropdown to view **Current Month (Default)**, **Last 3 Months**, **This Year**, or **All Time Records**.
+4. Click **Issue Advance** or **Pay Due Salary** directly from inside the statement modal.
+
+#### Pay Monthly Salary & Auto-Log Expense (Page: `Employees`)
+1. Go to the **Monthly Salary Ledger** tab.
+2. Select the target **Month** (e.g. `2026-08`).
+3. Click **Pay Salary** next to an employee.
+4. Enter payment mode (`Cash`, `Bank Transfer`, `UPI`) and notes. The payment automatically reconciles pending advances and logs the net payout to the **Expenses Ledger**.
+
+#### Issue Salary Advance (Page: `Employees`)
+1. Click **+ Issue Salary Advance**.
+2. Select Employee, enter **Advance Amount (₹)**, Payment Method (`Cash`, `Bank Transfer`, `UPI`), and Date.
+3. Click **Save Advance**. Pending advances are date-filtered and automatically deducted when paying monthly salaries.
 
 #### Physical Stock Audit & Variance Adjustment (Page: `Raw Materials`)
 1. Go to **Raw Materials** in the sidebar.

@@ -20,14 +20,14 @@ return new class extends Migration
                 $table->string('payment_method')->default('Cash'); // Cash, Bank Transfer, UPI, Cheque
                 $table->enum('status', ['pending', 'deducted'])->default('pending');
                 $table->unsignedBigInteger('expense_id')->nullable();
-                $table->unsignedBigInteger('salary_disbursal_id')->nullable();
+                $table->unsignedBigInteger('salary_payment_id')->nullable();
                 $table->text('notes')->nullable();
                 $table->timestamps();
             });
         }
 
-        Schema::table('salary_disbursals', function (Blueprint $table) {
-            if (! Schema::hasColumn('salary_disbursals', 'advance_deduction')) {
+        Schema::table('salary_payments', function (Blueprint $table) {
+            if (! Schema::hasColumn('salary_payments', 'advance_deduction')) {
                 $table->decimal('advance_deduction', 12, 2)->default(0)->after('total_salary');
             }
         });
@@ -38,8 +38,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('salary_disbursals', function (Blueprint $table) {
-            if (Schema::hasColumn('salary_disbursals', 'advance_deduction')) {
+        Schema::table('salary_payments', function (Blueprint $table) {
+            if (Schema::hasColumn('salary_payments', 'advance_deduction')) {
                 $table->dropColumn('advance_deduction');
             }
         });

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('salary_disbursals', function (Blueprint $table) {
+        Schema::create('salary_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_profile_id')->constrained('staff_profiles')->onDelete('cascade');
             $table->string('month_year', 7); // e.g. "2026-07"
@@ -35,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('salary_disbursals');
+        Schema::dropIfExists('salary_payments');
     }
 };

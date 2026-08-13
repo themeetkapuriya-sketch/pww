@@ -16,7 +16,7 @@ class SalaryAdvance extends Model
         'payment_method',
         'status',
         'expense_id',
-        'salary_disbursal_id',
+        'salary_payment_id',
         'notes',
     ];
 
@@ -35,8 +35,8 @@ class SalaryAdvance extends Model
         return $this->belongsTo(Expense::class, 'expense_id');
     }
 
-    public function salaryDisbursal()
+    public function salaryPayment()
     {
-        return $this->belongsTo(SalaryDisbursal::class, 'salary_disbursal_id');
+        return $this->belongsTo(SalaryPayment::class, 'salary_payment_id');
     }
 }
