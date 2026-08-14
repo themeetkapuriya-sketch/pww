@@ -113,3 +113,30 @@ Access the portal in your browser at: **`http://127.0.0.1:8000`**
 - Automatic database snapshots are generated upon login and stored locally at:
   `C:\laravel project\pww\storage\app\backups\`
 - You can also navigate to **Backup & Restore Hub** (`/backup`) inside the app to download `.sql` backups directly to your local computer.
+
+---
+
+## 🔄 How to Update / Sync Code on an Existing Client PC
+
+When deploying new code or updates to a client's device where the database is already in use:
+
+### 🛑 3 Safety Rules for Client Updates:
+1. ❌ **Do NOT overwrite `.env`** on the client PC *(preserves their database credentials & secret key)*.
+2. ❌ **Do NOT overwrite `storage/`** on the client PC *(preserves generated PDF invoices, uploads, and local backups)*.
+3. ❌ **NEVER run `migrate:fresh`** on the client PC *(this wipes live data!)*.
+
+### 📋 3-Step Update Procedure:
+1. **Copy Updated Folders**:
+   Copy `app/`, `resources/`, `routes/`, `public/build/`, and `database/migrations/` to the client's PC.
+2. **Run Safe Migrations & Clear Cache**:
+   Open terminal in the project folder on the client's PC and run:
+   ```powershell
+   php artisan migrate --force
+   php artisan view:clear
+   php artisan route:clear
+   php artisan config:clear
+   php artisan cache:clear
+   ```
+3. **Launch**:
+   Double-click **`START_ERP.bat`** to start the updated ERP seamlessly.
+
