@@ -597,9 +597,41 @@
         table.erp-datatable thead,
         table.erp-datatable thead tr,
         table.erp-datatable thead th,
-        table.dataTable thead th {
+        table.dataTable thead th,
+        thead.bg-\[\#EDF4FA\],
+        .bg-\[\#EDF4FA\] {
             background-color: #EDF4FA !important;
             color: #000000 !important;
+        }
+
+        html.dark table.erp-datatable thead,
+        html.dark table.erp-datatable thead tr,
+        html.dark table.erp-datatable thead th,
+        html.dark table.dataTable thead th,
+        html.dark thead.bg-\[\#EDF4FA\],
+        html.dark table thead,
+        html.dark table thead tr,
+        html.dark table thead th,
+        html.dark .bg-\[\#EDF4FA\],
+        html.dark [class*="bg-[#EDF4FA]"] {
+            background-color: #0f172a !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+
+        html.dark table.erp-datatable,
+        html.dark table.dataTable,
+        html.dark table {
+            border-color: #334155 !important;
+        }
+
+        html.dark table.erp-datatable th,
+        html.dark table.erp-datatable td,
+        html.dark table.dataTable th,
+        html.dark table.dataTable td,
+        html.dark table th,
+        html.dark table td {
+            border-color: #334155 !important;
         }
 
         /* Vertical & Outer Border Lines for all tables (Start to End) */

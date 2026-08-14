@@ -15,8 +15,8 @@
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Select Employee <span class="text-rose-500">*</span></label>
                 <select name="staff_profile_id" id="advanceStaffSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500" required>
                     <option value="">Select Employee...</option>
-                    @foreach(($activeStaffProfiles ?? $staffProfiles->where('is_active', true)) as $sp)
-                        <option value="{{ $sp->id }}">{{ $sp->full_name }} ({{ $sp->wage_type === 'per-day' ? 'Per Day' : 'Fixed' }})</option>
+                    @foreach($staffProfiles as $sp)
+                        <option value="{{ $sp->id }}" class="{{ $sp->is_active ? '' : 'hidden' }}" {{ $sp->is_active ? '' : 'disabled' }}>{{ $sp->full_name }} ({{ $sp->wage_type === 'per-day' ? 'Per Day' : 'Fixed' }})</option>
                     @endforeach
                 </select>
             </div>

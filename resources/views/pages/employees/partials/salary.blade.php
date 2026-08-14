@@ -21,7 +21,7 @@
         </div>
 
         <div class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm" id="salaryLedgerTable">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
@@ -36,7 +36,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
-                    @forelse (($salaryStaffProfiles ?? $activeStaffProfiles) as $staff)
+                    @forelse ($salaryStaffProfiles as $staff)
                         @php
                             $payment = $salaryPayments->get($staff->id);
                             $mPresent = $monthlyAttendance->get($staff->id, 0);
@@ -58,8 +58,8 @@
                             <td class="px-6 py-4 font-bold text-slate-800">
                                 <div class="flex items-center gap-2">
                                     <span>{{ $staff->full_name }}</span>
-                                    @if(!$staff->is_active)
-                                        <span class="px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded text-[9px] font-bold uppercase" title="Employee profile is inactive">
+                                    @if(! $staff->is_active)
+                                        <span class="px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded text-[9px] font-bold uppercase" title="Employee is inactive (Showing because current month salary is unpaid)">
                                             Inactive
                                         </span>
                                     @endif

@@ -55,9 +55,6 @@
         }
     }
 @endphp
-<script>
-window.salesOrdersDataMap = @json($salesOrdersJsonMap);
-</script>
 <div class="space-y-6">
     <x-page-header title="Sales Orders" 
                    subtitle="Book customer purchase orders, manage production pipelines, and convert to Delivery Challans."
@@ -225,7 +222,7 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white text-xs">
                     @forelse ($orders as $ord)
-                        <tr class="hover:bg-slate-50/60 transition">
+                        <tr class="hover:bg-slate-50/60 transition" id="order-row-{{ $ord->id }}">
                             <td class="px-3 py-3 text-center font-medium text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-4 py-3 font-mono font-bold text-blue-600">
                                 {{ $ord->order_number }}
@@ -351,10 +348,136 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
                 </tbody>
             </table>
         </div>
+<!-- 360° Order Info & MRP Hub Modal -->
+<div id="orderInfoModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all duration-300">
+        
+        <!-- Modal Header (Light Mode) -->
+        <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 text-slate-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    ℹ️
+                </div>
+                <div>
+                    <h3 id="modalOrderTitle" class="text-base font-extrabold text-slate-800 tracking-wide">Sales Order 360° Control Hub</h3>
+                    <p id="modalOrderSubtitle" class="text-xs text-slate-500 font-medium">Order Info, Finished Goods Stock Allocation & MRP Raw Material Matrix</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeOrderInfoModal()" data-modal-close="orderInfoModal" class="modal-close-btn text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition text-xl font-bold cursor-pointer" title="Close modal">&times;</button>
+        </div>
+
+        <!-- Modal Body Container -->
+        <div id="modalOrderContent" class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            <!-- Loading State -->
+            <div id="modalOrderLoading" class="py-12 text-center text-slate-500 space-y-3">
+                <svg class="w-8 h-8 mx-auto animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <p class="text-sm font-bold">Calculating MRP Raw Material Requirements & Stock Allocations...</p>
+            </div>
+
+            <!-- Dynamic Loaded Content Container -->
+            <div id="modalOrderData" class="hidden space-y-6">
+                
+                <!-- Order Header Quick Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Order Number</span>
+                        <span id="mOrderNum" class="text-sm font-extrabold text-blue-600 font-mono">PWW-ORD-000</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Customer PO #</span>
+                        <span id="mPoNum" class="text-sm font-bold text-slate-800 font-mono">N/A</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Client Company</span>
+                        <span id="mClientName" class="text-sm font-bold text-slate-900 truncate block">Client Name</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black uppercase text-slate-400">Target Delivery Date</span>
+                        <span id="mDeliveryDate" class="text-sm font-bold text-amber-600 font-mono">Date</span>
+                    </div>
+                </div>
+
+                <!-- Finished Goods Stock Allocation Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
+                            <span class="w-2.5 h-2.5 bg-blue-600 rounded-full mr-2"></span>
+                            Finished Goods Readiness & Stock Allocation
+                        </h4>
+                        <span id="mFgOverallBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 border border-blue-200">Status</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-[#EDF4FA] dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Product Name</th>
+                                    <th class="p-2.5 text-center">Ordered Qty</th>
+                                    <th class="p-2.5 text-center">Live Warehouse Stock</th>
+                                    <th class="p-2.5 text-center">Stock Readiness</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mFgTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic JS Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Raw Material MRP Matrix Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
+                            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full mr-2"></span>
+                            Material Requirement Planning (MRP) Raw Material Matrix
+                        </h4>
+                        <span class="text-[10px] text-slate-400 font-medium">* Formula: (Ordered Qty × BOM Qty) + Waste %</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-[#EDF4FA] dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold uppercase">
+                                <tr>
+                                    <th class="p-2.5">Raw Material Name</th>
+                                    <th class="p-2.5 text-center">Calculated Requirement</th>
+                                    <th class="p-2.5 text-center">Current Stock</th>
+                                    <th class="p-2.5 text-center">Deficit / Readiness</th>
+                                    <th class="p-2.5 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mMrpTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic JS Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="mMissingBomWarning" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium">
+                        ⚠️ Warning: Some products in this order do not have BOM rules defined. Click <a href="{{ route('bom') }}" class="underline font-bold text-amber-900">BOM Management</a> to configure formulas.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Modal Footer Action Bar -->
+        <div class="flex flex-wrap items-center justify-end px-6 py-4 bg-slate-50 border-t border-slate-200 gap-2">
+            <div class="flex items-center space-x-2">
+                <a href="{{ route('production') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-2xs transition">
+                    ⚙️ Log Production
+                </a>
+                <div id="mOrderStatusBadge" class="px-3.5 py-2 text-xs font-bold rounded-xl border shadow-2xs transition"></div>
+                <button type="button" onclick="closeOrderInfoModal()" data-modal-close="orderInfoModal" class="modal-close-btn px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script>
+    window.salesOrdersDataMap = @json($salesOrdersJsonMap);
+
     window.toggleInlineForm = function(containerId, btn) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -722,9 +845,10 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
                     url: `/orders/${id}`,
                     method: 'DELETE',
                     data: { _token: token },
-                    success: async function(res) {
+                    success: function(res) {
                         if (window.showToast) window.showToast('success', res.message);
-                        await window.loadPage(window.location.href);
+                        $(`#order-row-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        if (window.clearPageCache) window.clearPageCache();
                     },
                     error: function(xhr) {
                         alert(xhr.responseJSON?.message || 'Failed to delete order.');
@@ -738,136 +862,17 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
     window.openEditOrderModal = openEditOrderModal;
     window.updateOrderStatus = updateOrderStatus;
     window.deleteOrder = deleteOrder;
-</script>
 
-<!-- 360° Order Info & MRP Hub Modal -->
-<div id="orderInfoModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all duration-300">
-        
-        <!-- Modal Header (Light Mode) -->
-        <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 text-slate-800">
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
-                    ℹ️
-                </div>
-                <div>
-                    <h3 id="modalOrderTitle" class="text-base font-extrabold text-slate-800 tracking-wide">Sales Order 360° Control Hub</h3>
-                    <p id="modalOrderSubtitle" class="text-xs text-slate-500 font-medium">Order Info, Finished Goods Stock Allocation & MRP Raw Material Matrix</p>
-                </div>
-            </div>
-            <button type="button" onclick="closeOrderInfoModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition text-xl font-bold cursor-pointer">&times;</button>
-        </div>
+    window.closeOrderInfoModal = function() {
+        const modal = document.getElementById('orderInfoModal');
+        if (modal) modal.classList.add('hidden');
+    };
+    function closeOrderInfoModal() {
+        window.closeOrderInfoModal();
+    }
 
-        <!-- Modal Body Container -->
-        <div id="modalOrderContent" class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-            <!-- Loading State -->
-            <div id="modalOrderLoading" class="py-12 text-center text-slate-500 space-y-3">
-                <svg class="w-8 h-8 mx-auto animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <p class="text-sm font-bold">Calculating MRP Raw Material Requirements & Stock Allocations...</p>
-            </div>
+    window.orderCache = window.orderCache || new Map();
 
-            <!-- Dynamic Loaded Content Container -->
-            <div id="modalOrderData" class="hidden space-y-6">
-                
-                <!-- Order Header Quick Stats Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <div>
-                        <span class="block text-[10px] font-black uppercase text-slate-400">Order Number</span>
-                        <span id="mOrderNum" class="text-sm font-extrabold text-blue-600 font-mono">PWW-ORD-000</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] font-black uppercase text-slate-400">Customer PO #</span>
-                        <span id="mPoNum" class="text-sm font-bold text-slate-800 font-mono">N/A</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] font-black uppercase text-slate-400">Client Company</span>
-                        <span id="mClientName" class="text-sm font-bold text-slate-900 truncate block">Client Name</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] font-black uppercase text-slate-400">Target Delivery Date</span>
-                        <span id="mDeliveryDate" class="text-sm font-bold text-amber-600 font-mono">Date</span>
-                    </div>
-                </div>
-
-                <!-- Finished Goods Stock Allocation Section -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
-                            <span class="w-2.5 h-2.5 bg-blue-600 rounded-full mr-2"></span>
-                            Finished Goods Readiness & Stock Allocation
-                        </h4>
-                        <span id="mFgOverallBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 border border-blue-200">Status</span>
-                    </div>
-
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-[#EDF4FA] text-slate-700 font-bold uppercase">
-                                <tr>
-                                    <th class="p-2.5">Product Name</th>
-                                    <th class="p-2.5 text-center">Ordered Qty</th>
-                                    <th class="p-2.5 text-center">Live Warehouse Stock</th>
-                                    <th class="p-2.5 text-center">Stock Readiness</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mFgTableBody" class="divide-y divide-slate-100">
-                                <!-- Dynamic JS Injection -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Raw Material MRP Matrix Section -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h4 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center">
-                            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full mr-2"></span>
-                            Material Requirement Planning (MRP) Raw Material Matrix
-                        </h4>
-                        <span class="text-[10px] text-slate-400 font-medium">* Formula: (Ordered Qty × BOM Qty) + Waste %</span>
-                    </div>
-
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-[#EDF4FA] text-slate-700 font-bold uppercase">
-                                <tr>
-                                    <th class="p-2.5">Raw Material Name</th>
-                                    <th class="p-2.5 text-center">Calculated Requirement</th>
-                                    <th class="p-2.5 text-center">Current Stock</th>
-                                    <th class="p-2.5 text-center">Deficit / Readiness</th>
-                                    <th class="p-2.5 text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mMrpTableBody" class="divide-y divide-slate-100">
-                                <!-- Dynamic JS Injection -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div id="mMissingBomWarning" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium">
-                        ⚠️ Warning: Some products in this order do not have BOM rules defined. Click <a href="{{ route('bom') }}" class="underline font-bold text-amber-900">BOM Management</a> to configure formulas.
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Modal Footer Action Bar -->
-        <div class="flex flex-wrap items-center justify-end px-6 py-4 bg-slate-50 border-t border-slate-200 gap-2">
-            <div class="flex items-center space-x-2">
-                <a href="{{ route('production') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-2xs transition">
-                    ⚙️ Log Production
-                </a>
-                <div id="mOrderStatusBadge" class="px-3.5 py-2 text-xs font-bold rounded-xl border shadow-2xs transition"></div>
-                <button type="button" onclick="closeOrderInfoModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
-                    Close
-                </button>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<script>
     function openOrderInfoModal(orderId) {
         const modal = document.getElementById('orderInfoModal');
         const loading = document.getElementById('modalOrderLoading');
@@ -875,6 +880,14 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
 
         if (!modal) return;
         modal.classList.remove('hidden');
+
+        // Instant 0ms render from cache if available
+        if (window.orderCache.has(orderId)) {
+            loading.classList.add('hidden');
+            renderOrderInfoModalData(window.orderCache.get(orderId));
+            return;
+        }
+
         loading.classList.remove('hidden');
         dataBox.classList.add('hidden');
 
@@ -883,6 +896,7 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
             method: 'GET',
             success: function(res) {
                 const data = res.data || res;
+                window.orderCache.set(orderId, data);
                 renderOrderInfoModalData(data);
             },
             error: function(xhr) {
@@ -892,10 +906,27 @@ window.salesOrdersDataMap = @json($salesOrdersJsonMap);
         });
     }
 
-    function closeOrderInfoModal() {
-        const modal = document.getElementById('orderInfoModal');
-        if (modal) modal.classList.add('hidden');
-    }
+    // Background hover & touch pre-fetch for instant 0ms open
+    $(document).on('mouseenter touchstart', 'button[onclick*="openOrderInfoModal"]', function() {
+        try {
+            const onclickAttr = $(this).attr('onclick') || '';
+            const match = onclickAttr.match(/openOrderInfoModal\((\d+)\)/);
+            if (match && match[1]) {
+                const id = parseInt(match[1]);
+                if (!window.orderCache.has(id)) {
+                    fetch(`/orders/${id}/details`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(r => r.ok ? r.json() : null)
+                        .then(res => {
+                            if (res) {
+                                const data = res.data || res;
+                                window.orderCache.set(id, data);
+                            }
+                        })
+                        .catch(() => {});
+                }
+            }
+        } catch(e) {}
+    });
 
     function renderOrderInfoModalData(data) {
         document.getElementById('modalOrderLoading').classList.add('hidden');

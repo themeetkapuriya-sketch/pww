@@ -820,14 +820,18 @@ function submitDashboardPayForm(e) {
         url: `/invoices/${id}/record-payment`,
         method: 'POST',
         data: Object.fromEntries(formData),
-        success: async function(res) {
+        success: function(res) {
             closeDashboardPayModal();
             if (window.showToast) window.showToast('success', res.message || 'Payment recorded successfully!');
-            if (window.loadPage) {
-                await window.loadPage(window.location.href);
-            } else {
-                window.location.reload();
+            const $payBtn = $(`#dash-pay-btn-${id}`);
+            if ($payBtn.length) {
+                $payBtn.replaceWith(`
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Paid
+                    </span>
+                `);
             }
+            if (window.clearPageCache) window.clearPageCache();
         },
         error: function(xhr) {
             const msg = xhr.responseJSON?.message || xhr.responseJSON?.errors?.[0] || 'Failed to record payment.';
@@ -908,13 +912,17 @@ function submitDashboardPayForm(e) {
             url: `/orders/${id}/status`,
             method: 'PATCH',
             data: { status: status, _token: token },
-            success: async function(res) {
+            success: function(res) {
                 if (window.showToast) window.showToast('success', res.message || 'Status updated!');
-                if (window.loadPage) {
-                    await window.loadPage(window.location.href);
-                } else {
-                    window.location.reload();
+                const $orderCard = $(`#dash-order-card-${id}`);
+                if ($orderCard.length) {
+                    $orderCard.find('.order-status-badge').html(`
+                        <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 mt-1">
+                            ✓ ${status.toUpperCase().replace('_', ' ')}
+                        </span>
+                    `);
                 }
+                if (window.clearPageCache) window.clearPageCache();
             },
             error: function(xhr) {
                 const msg = xhr.responseJSON?.message || 'Failed to update order status.';

@@ -119,3 +119,141 @@ html.dark .erp-toggle-input:checked + .erp-toggle-slider {
     background-color: #2563eb !important;
 }
 
+/* Header Active Orders & Alert Badges in Dark Mode */
+html.dark .text-blue-950,
+html.dark .text-blue-900,
+html.dark .text-blue-800 {
+    color: #e2e8f0 !important;
+}
+
+html.dark #activeOrdersAlertBtn {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark #activeOrdersAlertBtn svg {
+    color: #60a5fa !important;
+}
+
+html.dark #activeOrdersAlertBtn .bg-amber-100 {
+    background-color: rgba(120, 53, 15, 0.45) !important;
+    border-color: rgba(180, 83, 9, 0.6) !important;
+    color: #fcd34d !important;
+}
+
+/* =========================================================
+   Dark Mode Edit Forms, Drawers & Modal Container Overrides
+   ========================================================= */
+
+/* Any element with inline or class #FFFDF5 / amber background in Dark Mode */
+html.dark .bg-\[\#FFFDF5\],
+html.dark [class*="bg-[#FFFDF5]"],
+html.dark #invoiceFormCard,
+html.dark #salesOrderFormCard,
+html.dark #productCard,
+html.dark #rawMaterialCard,
+html.dark #productionCard,
+html.dark #editBomCardContainer,
+html.dark #editPurchaseCardContainer > div,
+html.dark #editExpenseCardContainer > div,
+html.dark [id^="inlineEditClientForm-"],
+html.dark [id^="inlineEditPlantForm-"] {
+    background-color: #1e293b !important;
+    border-color: #d97706 !important;
+    color: #f8fafc !important;
+}
+
+/* Edit Mode Amber Borders & Backgrounds in Dark Mode */
+html.dark .border-amber-300,
+html.dark .border-amber-200,
+html.dark .border-amber-200\/80,
+html.dark .border-amber-200\/70,
+html.dark .border-amber-200\/60,
+html.dark .border-amber-200\/50 {
+    border-color: rgba(217, 119, 6, 0.6) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/50,
+html.dark .bg-amber-50\/60,
+html.dark .bg-amber-50\/70,
+html.dark .bg-amber-50\/80,
+html.dark .bg-amber-50\/40,
+html.dark .bg-amber-50\/30 {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+/* Edit Form Titles, Headers & Close Buttons */
+html.dark .text-amber-950,
+html.dark .text-amber-900,
+html.dark .text-amber-800,
+html.dark .text-amber-700,
+html.dark #invoiceFormTitle,
+html.dark #salesOrderFormTitle,
+html.dark #productTitle,
+html.dark #rawMaterialTitle,
+html.dark #productionTitle {
+    color: #fbbf24 !important;
+}
+
+html.dark #invoiceFormCloseBtn,
+html.dark #salesOrderCloseBtn,
+html.dark #productCloseBtn,
+html.dark #rawMaterialCloseBtn,
+html.dark #productionCloseBtn,
+html.dark .text-amber-700.hover\:text-amber-900 {
+    color: #fcd34d !important;
+}
+
+/* Edit Mode Dynamic Item Rows (Billing rows, Order rows, BOM rows) */
+html.dark .billing-row,
+html.dark .order-row,
+html.dark .bom-row {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+html.dark .billing-row input,
+html.dark .billing-row select,
+html.dark .order-row input,
+html.dark .order-row select,
+html.dark .bom-row input,
+html.dark .bom-row select {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #f8fafc !important;
+}
+
+/* All Table Headers in Dark Mode (DataTables, Modals & Custom Tables) */
+html.dark thead,
+html.dark thead tr,
+html.dark thead th,
+html.dark table thead,
+html.dark table thead th,
+html.dark table.erp-datatable thead,
+html.dark table.erp-datatable thead tr,
+html.dark table.erp-datatable thead th,
+html.dark table.dataTable thead th,
+html.dark .bg-\[\#EDF4FA\],
+html.dark [class*="bg-[#EDF4FA]"],
+html.dark thead.bg-\[\#EDF4FA\] {
+    background-color: #0f172a !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+html.dark thead th {
+    color: #cbd5e1 !important;
+}
+
+/* Form Section Labels & Uppercase Headings in Dark Mode */
+html.dark label,
+html.dark .text-slate-400,
+html.dark .text-slate-500 {
+    color: #94a3b8 !important;
+}
+
+
+

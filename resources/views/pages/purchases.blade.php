@@ -305,7 +305,7 @@
                                 <div class="text-[10px] text-slate-400">₹{{ number_format($pur->gst_amount, 2) }}</div>
                             </td>
                             <td class="px-6 py-4 text-right font-bold text-slate-900">₹{{ number_format($pur->total_amount, 2) }}</td>
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4 text-center pur-payment-cell">
                                 @if(($pur->payment_status ?? 'paid') === 'paid')
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                         PAID
@@ -843,16 +843,20 @@ window.closeVendorPaymentModal = function() {
             }
         })
         .then(res => res.json())
-        .then(async response => {
+        .then(response => {
             closeVendorPaymentModal();
             if (window.showToast) {
                 window.showToast('success', response.message || 'Vendor payment recorded successfully!');
             }
-            if (window.loadPage) {
-                await window.loadPage(window.location.href);
-            } else {
-                window.location.reload();
+            const $row = $(`#row-pur-${purId}`);
+            if ($row.length) {
+                $row.find('.pur-payment-cell').html(`
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                        PAID
+                    </span>
+                `);
             }
+            if (window.clearPageCache) window.clearPageCache();
         })
         .catch(err => {
             alert('Failed to record vendor payment.');

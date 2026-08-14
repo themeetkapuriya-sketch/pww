@@ -361,7 +361,7 @@
                         @php
                             $pName = $inv->plant ? $inv->plant->plant_name : ($inv->custom_client_name ?? 'HQ / Custom');
                         @endphp
-                        <tr class="hover:bg-slate-50 transition">
+                        <tr class="hover:bg-slate-50 transition" id="row-inv-{{ $inv->id }}">
                             <td class="px-2 py-2 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-2.5 py-2 font-semibold text-slate-800">
                                 <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline">
@@ -489,7 +489,7 @@
                             $itemsText = implode(', ', $itemsSummary);
                             $gstRate = ($rmInv->custom_gst_rate !== null) ? $rmInv->custom_gst_rate : 18;
                         @endphp
-                        <tr class="hover:bg-amber-50/40 transition">
+                        <tr class="hover:bg-amber-50/40 transition" id="row-inv-{{ $rmInv->id }}">
                             <td class="px-2 py-2 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-2.5 py-2 text-slate-600 font-medium whitespace-nowrap">
                                 {{ $rmInv->invoice_date ? $rmInv->invoice_date->format('d M Y') : \Carbon\Carbon::parse($rmInv->created_at)->format('d M Y') }}
@@ -1284,11 +1284,12 @@
                         'X-CSRF-TOKEN': token,
                         'Accept': 'application/json'
                     },
-                    success: async function(response) {
+                    success: function(response) {
                         if (window.showToast) {
                             window.showToast('success', response.message || 'Invoice deleted successfully!');
                         }
-                        await window.loadPage(window.location.href);
+                        $(`#row-inv-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        if (window.clearPageCache) window.clearPageCache();
                     },
                     error: function(xhr) {
                         const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';

@@ -1409,6 +1409,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Universal Modal Close Event Listeners (Backdrop click, Close buttons, ESC key)
+        $(document).on('click', '[data-modal-close], .modal-close-btn', function(e) {
+            e.preventDefault();
+            const modalId = $(this).attr('data-modal-close');
+            if (modalId) {
+                $(`#${modalId}`).addClass('hidden');
+            }
+            $(this).closest('.fixed.inset-0, [id$="Modal"], [id$="modal"]').addClass('hidden');
+        });
+
+        $(document).on('click', '.fixed.inset-0', function(e) {
+            if (e.target === this) {
+                $(this).addClass('hidden');
+            }
+        });
+
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                $('.fixed.inset-0:not(.hidden), [id$="Modal"]:not(.hidden), [id$="modal"]:not(.hidden)').addClass('hidden');
+            }
+        });
+
         // Global Keyboard Hotkeys Listener
         $(document).on('keydown', function(e) {
             // Ignore hotkeys when typing in form fields

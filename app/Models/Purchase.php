@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin \Illuminate\Database\Eloquent\Builder
+ */
 class Purchase extends Model
 {
     protected $fillable = [
@@ -17,7 +20,6 @@ class Purchase extends Model
         'total_amount',
         'gst_rate',
         'gst_amount',
-        'total_amount',
         'payment_status',
         'paid_amount',
         'due_date',

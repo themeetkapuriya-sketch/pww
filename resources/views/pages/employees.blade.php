@@ -53,8 +53,20 @@
 let currentStaffRate = 0;
 let currentWageType = 'per-day';
 let currentStatementData = null;
+let employeeStatusChanged = false;
 
 function switchEmpTab(tabName) {
+    if (employeeStatusChanged && (tabName === 'payment' || tabName === 'attendance')) {
+        employeeStatusChanged = false;
+        if (window.clearPageCache) window.clearPageCache();
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabName);
+        if (window.loadPage) {
+            window.loadPage(url.href, true);
+            return;
+        }
+    }
+
     document.querySelectorAll('.emp-tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.emp-tab-btn').forEach(el => {
         el.classList.remove('active-emp-tab', 'bg-blue-50', 'text-blue-700');
@@ -94,29 +106,90 @@ function toggleEmployeeStatusAjax(empId, empName, btnEl) {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
+                    employeeStatusChanged = true;
                     if (window.showToast) {
                         window.showToast(data.is_active ? 'success' : 'danger', data.message);
                     }
+                    
+                    const isNowActive = !!data.is_active;
+                    btn.setAttribute('data-active', isNowActive ? '1' : '0');
+                    if (isNowActive) {
+                        btn.classList.remove('bg-rose-500', 'hover:bg-rose-600');
+                        btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+                        btn.setAttribute('title', 'Deactivate Employee Profile');
+                        btn.innerHTML = `
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                            </svg>
+                        `;
+                    } else {
+                        btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+                        btn.classList.add('bg-rose-500', 'hover:bg-rose-600');
+                        btn.setAttribute('title', 'Activate Employee Profile');
+                        btn.innerHTML = `
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd" />
+                                <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 1.002 0 1.97-.146 2.883-.404z" />
+                            </svg>
+                        `;
+                    }
+
+                    // 1. Update Directory Tab Row
+                    const tr = btn.closest('tr');
+                    if (tr) {
+                        const statusCell = tr.querySelector('.emp-status-cell');
+                        if (statusCell) {
+                            if (isNowActive) {
+                                statusCell.innerHTML = `
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        Active
+                                    </span>
+                                `;
+                            } else {
+                                statusCell.innerHTML = `
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                        Inactive
+                                    </span>
+                                `;
+                            }
+                        }
+                    }
+
+                    // 2. Sync with Daily Attendance Tab
+                    const attRow = document.getElementById(`att-row-emp-${empId}`);
+                    if (attRow) {
+                        if (isNowActive) {
+                            $(attRow).removeClass('hidden').fadeIn(200);
+                        } else {
+                            $(attRow).fadeOut(200, function() { $(this).addClass('hidden'); });
+                        }
+                    }
+
+                    // 3. Sync with Monthly Salary Ledger Tab (Instantly show/hide via DataTables filter)
+                    const $salRow = $(`#row-payment-${empId}`);
+                    if ($salRow.length) {
+                        $salRow.attr('data-emp-active', isNowActive ? '1' : '0');
+                        const $salTable = $salRow.closest('table');
+                        if ($.fn.DataTable && $.fn.DataTable.isDataTable($salTable)) {
+                            $salTable.DataTable().draw(false);
+                        }
+                    }
+
+                    // 4. Sync with Advance Modal Select Dropdown
+                    const advanceOpt = document.querySelector(`#advanceStaffSelect option[value="${empId}"]`);
+                    if (advanceOpt) {
+                        if (isNowActive) {
+                            advanceOpt.disabled = false;
+                            advanceOpt.classList.remove('hidden');
+                        } else {
+                            advanceOpt.disabled = true;
+                            advanceOpt.classList.add('hidden');
+                        }
+                    }
+
                     if (window.clearPageCache) {
                         window.clearPageCache();
-                    }
-                    if (window.loadPage) {
-                        const activeTabBtn = document.querySelector('.emp-tab-btn.active-emp-tab');
-                        const tabKey = activeTabBtn ? activeTabBtn.id.replace('tabBtn-', '') : 'directory';
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('tab', tabKey);
-                        window.loadPage(url.href, true, true);
-                    } else {
-                        btn.setAttribute('data-active', data.is_active ? '1' : '0');
-                        if (data.is_active) {
-                            btn.classList.remove('bg-rose-500', 'hover:bg-rose-600');
-                            btn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
-                            btn.setAttribute('title', 'Deactivate Employee Profile');
-                        } else {
-                            btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
-                            btn.classList.add('bg-rose-500', 'hover:bg-rose-600');
-                            btn.setAttribute('title', 'Activate Employee Profile');
-                        }
                     }
                 }
             })
@@ -179,17 +252,32 @@ function deleteEmployeeAjax(empId, empName, btnEl) {
             .then(data => {
                 if (data.success) {
                     if (window.showToast) window.showToast('danger', data.message);
-                    if (window.clearPageCache) window.clearPageCache();
-                    if (window.loadPage) {
-                        const activeTabBtn = document.querySelector('.emp-tab-btn.active-emp-tab');
-                        const tabKey = activeTabBtn ? activeTabBtn.id.replace('tabBtn-', '') : 'directory';
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('tab', tabKey);
-                        window.loadPage(url.href, true, true);
-                    } else {
-                        const tr = document.getElementById(`row-emp-${empId}`);
-                        if (tr) tr.remove();
+                    
+                    // 1. Remove from Directory Tab
+                    const tr = document.getElementById(`row-emp-${empId}`) || (btnEl ? btnEl.closest('tr') : null);
+                    if (tr) {
+                        $(tr).fadeOut(300, function() { $(this).remove(); });
                     }
+
+                    // 2. Remove from Attendance Tab
+                    const attRow = document.getElementById(`att-row-emp-${empId}`);
+                    if (attRow) {
+                        $(attRow).fadeOut(300, function() { $(this).remove(); });
+                    }
+
+                    // 3. Remove from Salary Ledger Tab
+                    const salaryRow = document.getElementById(`row-payment-${empId}`);
+                    if (salaryRow) {
+                        $(salaryRow).fadeOut(300, function() { $(this).remove(); });
+                    }
+
+                    // 4. Remove from Advance Modal Select Dropdown
+                    const advanceOpt = document.querySelector(`#advanceStaffSelect option[value="${empId}"]`);
+                    if (advanceOpt) {
+                        advanceOpt.remove();
+                    }
+
+                    if (window.clearPageCache) window.clearPageCache();
                 }
             });
         }
@@ -206,10 +294,15 @@ function loadAttendanceForDate(dateVal) {
 }
 
 function filterPaymentMonth(monthVal) {
+    const $container = $('#empTab-payment');
+    if ($container.length) {
+        $container.css('opacity', '0.5');
+    }
+    const targetUrl = `/employees?month=${monthVal}&tab=payment`;
     if (window.loadPage) {
-        window.loadPage(`/employees?month=${monthVal}&tab=payment`);
+        window.loadPage(targetUrl, true);
     } else {
-        window.location.href = `/employees?month=${monthVal}`;
+        window.location.href = targetUrl;
     }
 }
 
@@ -532,6 +625,20 @@ function closeEditEmployeeForm() {
 }
 
 
+
+if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable && !window.salaryFilterRegistered) {
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        const tableNode = settings.nTable;
+        if ($(tableNode).hasClass('salary-datatable')) {
+            const rowNode = settings.aoData[dataIndex]?.nTr;
+            if (rowNode) {
+                return $(rowNode).attr('data-emp-active') === '1';
+            }
+        }
+        return true;
+    });
+    window.salaryFilterRegistered = true;
+}
 
 (function() {
     const urlParams = new URLSearchParams(window.location.search);

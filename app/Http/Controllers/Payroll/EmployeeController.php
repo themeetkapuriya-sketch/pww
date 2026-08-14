@@ -11,14 +11,15 @@ use App\Models\StaffProfile;
 use App\Services\PayrollService;
 use App\Services\RolePermissionService;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class EmployeeController extends Controller
 {
-    protected $payrollService;
+    protected PayrollService $payrollService;
 
     public function __construct(PayrollService $payrollService)
     {
@@ -28,32 +29,26 @@ class EmployeeController extends Controller
     /**
      * 8. Employees Directory, Daily Attendance & Monthly Salary Payment Hub.
      */
-    public function employees(Request $request)
+    public function employees(Request $request): View
     {
         $staffProfiles = StaffProfile::orderBy('full_name')->get();
         $activeStaffProfiles = $staffProfiles->where('is_active', true);
-        $selectedDate = $request->input('date', now()->toDateString());
-        $selectedMonth = $request->input('month', now()->format('Y-m'));
+        $selectedDate = (string) $request->input('date', now()->toDateString());
+        $selectedMonth = (string) $request->input('month', now()->format('Y-m'));
 
         // Attendance for selected date
         $attendanceForDate = AttendanceRecord::where('date', $selectedDate)
             ->pluck('status', 'staff_profile_id')
             ->toArray();
 
-        // Monthly Attendance summary (Calculates total present days per employee, treating missing/unrecorded dates as present)
-        $carbonMonth = \Carbon\Carbon::parse($selectedMonth . '-01');
+        // Monthly Attendance summary (Calculates total present days per employee from recorded attendance records)
+        $carbonMonth = Carbon::parse($selectedMonth . '-01');
         $daysInMonth = $carbonMonth->daysInMonth;
-        
-        $now = \Carbon\Carbon::now();
-        if ($carbonMonth->format('Y-m') === $now->format('Y-m')) {
-            $limitDay = $now->day;
-        } elseif ($carbonMonth->isPast()) {
-            $limitDay = $daysInMonth;
-        } else {
-            $limitDay = 0;
-        }
 
-        $allAttendance = AttendanceRecord::where('date', 'like', "{$selectedMonth}%")
+        $selectedMonthStart = $selectedMonth . '-01';
+        $selectedMonthEnd = sprintf('%s-%02d', $selectedMonth, $daysInMonth);
+
+        $allAttendance = AttendanceRecord::whereBetween('date', [$selectedMonthStart, $selectedMonthEnd])
             ->get()
             ->groupBy('staff_profile_id');
 
@@ -61,31 +56,19 @@ class EmployeeController extends Controller
         $missingAttendanceDates = collect();
 
         foreach ($staffProfiles as $staff) {
-            $staffRecords = $allAttendance->get($staff->id, collect())->keyBy(function($r) {
-                return $r->date instanceof \Carbon\Carbon ? $r->date->format('Y-m-d') : substr($r->date, 0, 10);
-            });
+            $staffRecords = $allAttendance->get($staff->id, collect());
 
             $payableDays = 0.00;
-            $missingDates = [];
-
-            for ($d = 1; $d <= $limitDay; $d++) {
-                $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
-                if ($staffRecords->has($dateStr)) {
-                    $status = $staffRecords->get($dateStr)->status;
-                    if ($status === 'present') {
-                        $payableDays += 1.0;
-                    } elseif ($status === 'half_day') {
-                        $payableDays += 0.5;
-                    }
-                } else {
-                    // Treat missing attendance as present
+            foreach ($staffRecords as $rec) {
+                if ($rec->status === 'present') {
                     $payableDays += 1.0;
-                    $missingDates[] = \Carbon\Carbon::parse($dateStr)->format('d M');
+                } elseif ($rec->status === 'half_day') {
+                    $payableDays += 0.5;
                 }
             }
 
             $monthlyAttendance->put($staff->id, $payableDays);
-            $missingAttendanceDates->put($staff->id, $missingDates);
+            $missingAttendanceDates->put($staff->id, []);
         }
 
         // Salary payments for selected month
@@ -94,22 +77,32 @@ class EmployeeController extends Controller
             ->get()
             ->keyBy('staff_profile_id');
 
-        // Staff profiles for salary table: active ones + inactive ones that have a payment record for selected month
-        $salaryStaffProfiles = $staffProfiles->filter(function ($s) use ($salaryPayments) {
-            return $s->is_active || $salaryPayments->has($s->id);
+        // Salary table displays:
+        // 1. All Active employees
+        // 2. Inactive employees ONLY IF their salary for the current month is UNPAID (hidden once paid)
+        $nowMonth = now()->format('Y-m');
+        $salaryStaffProfiles = $staffProfiles->filter(function ($staff) use ($salaryPayments, $selectedMonth, $nowMonth) {
+            if ($staff->is_active) {
+                return true;
+            }
+
+            // Inactive employee logic: show for current month only if salary is UNPAID
+            $payment = $salaryPayments->get($staff->id);
+            $isPaid = ($payment && $payment->status === 'paid');
+
+            return ($selectedMonth === $nowMonth && ! $isPaid);
         });
 
-        // Pending salary advances for each staff member up to the selected month (advances issued on/before end of selected month)
-        $selectedMonthEnd = \Carbon\Carbon::parse($selectedMonth . '-01')->endOfMonth()->format('Y-m-d');
+        // Fast SQL aggregation for pending advances up to the selected month
+        $selectedMonthEnd = Carbon::parse($selectedMonth . '-01')->endOfMonth()->format('Y-m-d');
         $pendingAdvances = SalaryAdvance::where('status', 'pending')
             ->where('advance_date', '<=', $selectedMonthEnd)
-            ->get()
             ->groupBy('staff_profile_id')
-            ->map(function ($advances) {
-                return $advances->sum('amount');
-            });
+            ->selectRaw('staff_profile_id, SUM(amount) as total_amount')
+            ->pluck('total_amount', 'staff_profile_id')
+            ->toArray();
 
-        $activeTab = $request->input('tab', 'directory');
+        $activeTab = (string) $request->input('tab', 'directory');
 
         return view('pages.employees', compact(
             'staffProfiles',
@@ -129,7 +122,7 @@ class EmployeeController extends Controller
     /**
      * Create Employee Profile (AJAX).
      */
-    public function storeEmployee(Request $request)
+    public function storeEmployee(Request $request): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
             return $res;
@@ -164,7 +157,7 @@ class EmployeeController extends Controller
     /**
      * Update employee profile (AJAX).
      */
-    public function updateEmployee(Request $request, $id)
+    public function updateEmployee(Request $request, $id): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
             return $res;
@@ -198,7 +191,7 @@ class EmployeeController extends Controller
     /**
      * Toggle active/inactive status of employee profile (AJAX).
      */
-    public function toggleStatus(Request $request, $id)
+    public function toggleStatus(Request $request, $id): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
             return $res;
@@ -220,44 +213,25 @@ class EmployeeController extends Controller
     /**
      * Get individual employee financial statement & passbook ledger (JSON).
      */
-    public function getEmployeeStatement(Request $request, $id)
+    public function getEmployeeStatement(Request $request, $id): Response
     {
         $staff = StaffProfile::findOrFail($id);
-        $range = $request->input('range', 'current_month');
-        $selectedMonth = $request->input('month', now()->format('Y-m'));
-
-        // Attendance & Gross Earnings for selected month
-        $carbonMonth = \Carbon\Carbon::parse($selectedMonth . '-01');
-        $daysInMonth = $carbonMonth->daysInMonth;
-        
-        $now = \Carbon\Carbon::now();
-        if ($carbonMonth->format('Y-m') === $now->format('Y-m')) {
-            $limitDay = $now->day;
-        } elseif ($carbonMonth->isPast()) {
-            $limitDay = $daysInMonth;
-        } else {
-            $limitDay = 0;
-        }
+        $range = (string) $request->input('range', 'current_month');
+        $selectedMonth = (string) $request->input('month', now()->format('Y-m'));
 
         $staffAttendanceRecords = AttendanceRecord::where('staff_profile_id', $staff->id)
             ->where('date', 'like', "{$selectedMonth}%")
             ->get()
             ->keyBy(function($r) {
-                return $r->date instanceof \Carbon\Carbon ? $r->date->format('Y-m-d') : substr($r->date, 0, 10);
+                return $r->date instanceof Carbon ? $r->date->format('Y-m-d') : substr((string) $r->date, 0, 10);
             });
 
         $daysPresent = 0.00;
-        for ($d = 1; $d <= $limitDay; $d++) {
-            $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
-            if ($staffAttendanceRecords->has($dateStr)) {
-                $status = $staffAttendanceRecords->get($dateStr)->status;
-                if ($status === 'present') {
-                    $daysPresent += 1.0;
-                } elseif ($status === 'half_day') {
-                    $daysPresent += 0.5;
-                }
-            } else {
+        foreach ($staffAttendanceRecords as $rec) {
+            if ($rec->status === 'present') {
                 $daysPresent += 1.0;
+            } elseif ($rec->status === 'half_day') {
+                $daysPresent += 0.5;
             }
         }
 
@@ -268,7 +242,7 @@ class EmployeeController extends Controller
             $grossEarnings = round($rateAmount, 2);
         }
 
-        $selectedMonthEnd = \Carbon\Carbon::parse($selectedMonth . '-01')->endOfMonth()->format('Y-m-d');
+        $selectedMonthEnd = Carbon::parse($selectedMonth . '-01')->endOfMonth()->format('Y-m-d');
         $pendingAdvanceTotal = (float) $staff->pendingAdvanceTotal($selectedMonthEnd);
 
         $existingPayment = SalaryPayment::where('staff_profile_id', $staff->id)
@@ -367,9 +341,9 @@ class EmployeeController extends Controller
     /**
      * Delete employee profile (AJAX).
      */
-    public function deleteEmployee($id)
+    public function deleteEmployee(Request $request, $id): Response
     {
-        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_delete')) {
             return $res;
         }
 
@@ -386,7 +360,7 @@ class EmployeeController extends Controller
     /**
      * Store Daily Attendance Sheet (Method 1).
      */
-    public function storeAttendance(Request $request)
+    public function storeAttendance(Request $request): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
             return $res;
@@ -428,9 +402,9 @@ class EmployeeController extends Controller
     /**
      * Get monthly attendance summary (JSON endpoint for Method 1 calculation).
      */
-    public function getMonthlySummary(Request $request)
+    public function getMonthlySummary(Request $request): Response
     {
-        $month = $request->input('month', now()->format('Y-m'));
+        $month = (string) $request->input('month', now()->format('Y-m'));
 
         $summary = AttendanceRecord::where('date', 'like', "{$month}%")
             ->get()
@@ -452,7 +426,7 @@ class EmployeeController extends Controller
     /**
      * Pay Salary & Auto-Log Expense (Method 1 & Method 2).
      */
-    public function paySalary(Request $request)
+    public function paySalary(Request $request): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
             return $res;
@@ -508,6 +482,7 @@ class EmployeeController extends Controller
                 }
 
                 if ($expenseId) {
+                    /** @var Expense|null $expense */
                     $expense = Expense::find($expenseId);
                     if ($expense) {
                         $expense->update([
@@ -578,9 +553,9 @@ class EmployeeController extends Controller
     /**
      * Delete Salary Payment Record.
      */
-    public function deletePayment($id)
+    public function deletePayment(Request $request, $id): Response
     {
-        if ($res = RolePermissionService::authorizeAction(request(), 'action_delete')) {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_delete')) {
             return $res;
         }
 
@@ -608,7 +583,7 @@ class EmployeeController extends Controller
     /**
      * Issue Salary Advance & Auto-Log Expense.
      */
-    public function storeAdvance(Request $request)
+    public function storeAdvance(Request $request): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
             return $res;
@@ -665,7 +640,7 @@ class EmployeeController extends Controller
     /**
      * Delete Salary Advance Record.
      */
-    public function deleteAdvance(Request $request, $id)
+    public function deleteAdvance(Request $request, $id): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_delete')) {
             return $res;
@@ -693,7 +668,7 @@ class EmployeeController extends Controller
     /**
      * Disburse payroll (AJAX legacy endpoint).
      */
-    public function payPayroll(Request $request)
+    public function payPayroll(Request $request): Response
     {
         if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
             return $res;
@@ -711,7 +686,7 @@ class EmployeeController extends Controller
                 'success' => true,
                 'message' => "Successfully paid compiled wages for {$count} logged runs!",
             ]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Failed to pay payroll: '.$e->getMessage());
 
             return response()->json([

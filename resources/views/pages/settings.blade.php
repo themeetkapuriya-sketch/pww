@@ -839,12 +839,11 @@ window.deleteCategorySetting = function(type, key, label) {
                 url: "{{ route('settings.categories.delete') }}",
                 type: 'POST',
                 data: { _token: '{{ csrf_token() }}', type: type, key: key },
-                success: async function(res) {
+                success: function(res) {
                     if (res.success) {
                         if (window.showToast) window.showToast('success', res.message);
-                        const targetUrl = "{{ route('settings.index') }}?tab=other&sub=categories";
-                        if (window.loadPage) await window.loadPage(targetUrl);
-                        else window.location.href = targetUrl;
+                        $(`#cat-item-${type}-${key}`).fadeOut(300, function() { $(this).remove(); });
+                        if (window.clearPageCache) window.clearPageCache();
                     }
                 }
             });

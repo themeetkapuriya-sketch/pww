@@ -10,7 +10,7 @@
     <button type="button" 
             id="activeOrdersAlertBtn"
             onclick="toggleActiveOrdersDropdown(event)"
-            class="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50/90 hover:from-blue-100 hover:to-indigo-100/90 border border-blue-200/80 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-950 shadow-2xs transition cursor-pointer"
+            class="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50/90 hover:from-blue-100 hover:to-indigo-100/90 dark:from-slate-800 dark:to-slate-800/90 dark:hover:from-slate-700 dark:hover:to-slate-700 border border-blue-200/80 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-950 dark:text-slate-100 shadow-2xs transition cursor-pointer"
             title="{{ $activeOrderCount }} Active Orders in Pipeline">
         <span class="flex h-2 w-2 relative">
             @if($inProdCount > 0)
@@ -23,15 +23,15 @@
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-slate-400"></span>
             @endif
         </span>
-        <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-blue-700 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
-        <span class="hidden sm:inline">Active Orders</span>
+        <span class="hidden sm:inline text-blue-950 dark:text-slate-100">Active Orders</span>
         <span class="px-1.5 py-0.5 bg-blue-600 text-white font-black text-[10px] rounded-full shadow-2xs">
             {{ $activeOrderCount }}
         </span>
         @if($inProdCount > 0)
-            <span class="hidden lg:inline-block px-1.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold rounded-md">
+            <span class="hidden lg:inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/80 text-amber-800 dark:text-amber-300 text-[10px] font-bold rounded-md">
                 {{ $inProdCount }} in Prod
             </span>
         @endif

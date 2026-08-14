@@ -115,8 +115,8 @@
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">{{ $mat->material_name }}</td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                                <td class="px-6 py-4 text-right font-medium text-slate-700">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
-                                <td class="px-6 py-4 text-right text-slate-500">{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
+                                <td class="px-6 py-4 text-right font-medium text-slate-700 mat-stock-cell">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
+                                <td class="px-6 py-4 text-right text-slate-500"><span class="mat-threshold-val hidden">{{ (float)$mat->safety_threshold }}</span>{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
                             @endif
                             <td class="px-6 py-4 text-center">
                                 @if($mat->latestPurchase && $mat->latestPurchase->purchase_date)
@@ -129,7 +129,7 @@
                                 @endif
                             </td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-6 py-4 text-center mat-status-cell">
                                     @if ($isLow)
                                         <span class="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] rounded font-bold uppercase tracking-wider animate-pulse">Low Stock</span>
                                     @else
@@ -418,7 +418,7 @@ function submitStockAdjustment(e) {
             reason: reason,
             notes: notes
         },
-        success: async function(res) {
+        success: function(res) {
             btn.disabled = false;
             btn.innerHTML = '<span>Apply Stock Adjustment</span>';
             closeStockAdjustmentModal();
@@ -426,14 +426,26 @@ function submitStockAdjustment(e) {
             if (window.showToast) {
                 window.showToast('success', res.message);
             }
+
+            const parsedStock = parseFloat(newStock);
+            const $row = $(`#row-mat-${matId}`);
+            if ($row.length) {
+                const threshold = parseFloat($row.find('.mat-threshold-val').text()) || 0;
+                $row.find('.mat-stock-cell').text(`${parsedStock.toFixed(2)} ${currentAdjUnit}`);
+                
+                const isLow = parsedStock < threshold;
+                const $statusCell = $row.find('.mat-status-cell');
+                if ($statusCell.length) {
+                    if (isLow) {
+                        $statusCell.html(`<span class="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] rounded font-bold uppercase tracking-wider animate-pulse">Low Stock</span>`);
+                    } else {
+                        $statusCell.html(`<span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">OK</span>`);
+                    }
+                }
+            }
             
             if (window.clearPageCache) {
                 window.clearPageCache();
-            }
-            if (window.loadPage) {
-                await window.loadPage(window.location.href, true);
-            } else {
-                window.location.reload();
             }
         },
         error: function(xhr) {

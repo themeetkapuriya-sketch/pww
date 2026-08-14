@@ -31,11 +31,11 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
-                        @forelse ($activeStaffProfiles as $staff)
+                        @forelse ($staffProfiles as $staff)
                             @php
                                 $currentStatus = $attendanceForDate[$staff->id] ?? 'present';
                             @endphp
-                            <tr class="hover:bg-slate-50 transition">
+                            <tr class="hover:bg-slate-50 transition {{ $staff->is_active ? '' : 'hidden' }}" id="att-row-emp-{{ $staff->id }}">
                                 <td class="px-4 py-3.5 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
                                 <td class="px-6 py-3.5 font-bold text-slate-800">{{ $staff->full_name }}</td>
                                 <td class="px-6 py-3.5 font-medium text-slate-600">
