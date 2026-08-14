@@ -33,6 +33,8 @@
 - ⌨️ **Global Keyboard Hotkeys**: Ultra-fast hotkey shortcuts (`Alt+I` Invoices, `Alt+P` Purchases, `Alt+E` Expenses, `Alt+R` Reports, `Alt+S` Settings, `Alt+H` Cheat Sheet).
 - ☀️/🌙 **Visual Light & Dark Theme Switcher**: Instant theme toggle button in the header (`☀️ / 🌙`) with dark slate palette (`#0f172a` & `#1e293b`) and session persistence.
 - 🔐 **Super Admin Security & Role Management**: Public registration disabled. User accounts are created strictly by Super Admin. Super Admin (`pww@gmail.com`) is permanently protected from deactivation. Deactivated users redirect to a unified `/account-deactivated` page.
+- ⏳ **Seamless Session Timeout & 419 CSRF Protection**: Automatic full-browser redirection to the styled login portal upon session expiration, preventing unstyled HTML or broken stylesheets.
+- ⚡ **0ms Anticipatory Modal Pre-fetching**: Instant zero-latency 360° Order Control Hub modal opening via anticipatory background hover prefetching with in-memory caching.
 - 🌐 **100% Offline Capability**: All vendor assets (jQuery v3.7.1, DataTables v1.13.11, SweetAlert2 v11.17.2, TomSelect v2.4.1, Chart.js v4.4.7, Tailwind JS engine, and local Outfit fonts) are stored locally in `public/vendor/` and `public/fonts/`.
 
 ---

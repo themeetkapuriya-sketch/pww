@@ -363,6 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
                 const newContent = doc.getElementById('page-content');
                 
+                if (!newContent) {
+                    window.location.replace('/login');
+                    return;
+                }
+                
                 if (typeof window.closeCategoryModal === 'function') {
                     window.closeCategoryModal();
                 }

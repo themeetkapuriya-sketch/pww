@@ -16,5 +16,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->header('X-PWW-SPA') === '1') {
+                return response()->json([
+                    'message' => 'Session expired. Redirecting to login...',
+                    'redirect' => route('login'),
+                ], 419);
+            }
+
+            return redirect()->route('login')->with('error', 'Your session has expired. Please login again.');
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->header('X-PWW-SPA') === '1') {
+                return response()->json([
+                    'message' => 'Unauthenticated. Redirecting to login...',
+                    'redirect' => route('login'),
+                ], 401);
+            }
+
+            return redirect()->route('login');
+        });
     })->create();
