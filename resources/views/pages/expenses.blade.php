@@ -325,13 +325,17 @@
                     },
                     success: function(res) {
                         if (res.success) {
-                            $('#row-exp-' + id).fadeOut(300, function() { $(this).remove(); });
+                            if (window.ERPTableHelper) {
+                                window.ERPTableHelper.removeRow('#row-exp-' + id);
+                            } else {
+                                $('#row-exp-' + id).fadeOut(300, function() { $(this).remove(); });
+                            }
                             if (window.showToast) window.showToast('success', res.message);
                         }
                     },
                     error: function(err) {
                         const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete expense record.';
-                        if (window.showToast) window.showToast('danger', msg);
+                        if (window.showToast) window.showToast('error', msg);
                     }
                 });
             }

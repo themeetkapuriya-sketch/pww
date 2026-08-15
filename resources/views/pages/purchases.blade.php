@@ -9,10 +9,11 @@
     $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
     $rawMaterialOptions = [];
     foreach ($rawMaterials as $mat) {
+        $specText = $mat->specification ? " [{$mat->specification}]" : '';
         $rawMaterialOptions[] = [
             'value' => (string)$mat->id,
-            'label' => $mat->material_name . ($trackStockEnabled ? ' (Stock: ' . number_format($mat->current_stock, 1) . ' ' . $mat->unit . ')' : ''),
-            'search' => strtolower($mat->material_name . ' ' . $mat->unit),
+            'label' => $mat->material_name . $specText . ($trackStockEnabled ? ' (Stock: ' . number_format($mat->current_stock, 1) . ' ' . $mat->unit . ')' : ''),
+            'search' => strtolower($mat->material_name . ' ' . $mat->specification . ' ' . $mat->material_category . ' ' . $mat->unit),
             'data' => [
                 'name' => $mat->material_name,
                 'unit' => $mat->unit,
@@ -365,24 +366,6 @@
         </div>
     </div>
 </div>
-
-
-
-window.openVendorPaymentModal = function(id, vendorName, remainingBalance) {
-    document.getElementById('modalPurchaseId').value = id;
-    document.getElementById('modalVendorName').innerText = vendorName;
-    document.getElementById('modalVendorRemainingText').innerText = parseFloat(remainingBalance).toFixed(2);
-    document.getElementById('modalVendorPayAmount').value = parseFloat(remainingBalance).toFixed(2);
-    document.getElementById('modalVendorPayAmount').max = parseFloat(remainingBalance);
-    document.getElementById('modalVendorPayDate').value = new Date().toISOString().split('T')[0];
-    
-    document.getElementById('recordVendorPaymentModal').classList.remove('hidden');
-};
-
-window.closeVendorPaymentModal = function() {
-    document.getElementById('recordVendorPaymentModal').classList.add('hidden');
-};
-</script>
 
 <!-- Record Vendor Payment Modal -->
 <div id="recordVendorPaymentModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -737,13 +720,17 @@ window.closeVendorPaymentModal = function() {
                         },
                         success: function(res) {
                             if (res.success) {
-                                $('#row-pur-' + id).fadeOut(300, function() { $(this).remove(); });
+                                if (window.ERPTableHelper) {
+                                    window.ERPTableHelper.removeRow('#row-pur-' + id);
+                                } else {
+                                    $('#row-pur-' + id).fadeOut(300, function() { $(this).remove(); });
+                                }
                                 if (window.showToast) window.showToast('success', res.message);
                             }
                         },
                         error: function(err) {
                             const msg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : 'Failed to delete purchase record.';
-                            if (window.showToast) window.showToast('danger', msg);
+                            if (window.showToast) window.showToast('error', msg);
                         }
                     });
                 }
@@ -782,7 +769,9 @@ window.closeVendorPaymentModal = function() {
             }
 
             const urlParams = new URLSearchParams(window.location.search);
-            const matId = urlParams.get('material_id') || urlParams.get('prefill_raw_material');
+            const matId = urlParams.get('material_id') || urlParams.get('prefill_raw_material') || "{{ $prefillMaterialId ?? '' }}";
+            const prefillQty = urlParams.get('qty') || urlParams.get('prefill_qty') || "{{ $prefillQty ?? '' }}";
+            const prefillPrice = urlParams.get('price') || urlParams.get('prefill_price') || "{{ $prefillPrice ?? '' }}";
 
             if (urlParams.has('open') || matId) {
                 const formContainer = document.getElementById('purchaseFormContainer');
@@ -818,6 +807,20 @@ window.closeVendorPaymentModal = function() {
                     }
                 }
 
+                if (prefillQty && parseFloat(prefillQty) > 0) {
+                    const qtyInput = document.getElementById('quantityInput');
+                    if (qtyInput) {
+                        qtyInput.value = prefillQty;
+                    }
+                }
+
+                if (prefillQty && prefillPrice && parseFloat(prefillQty) > 0 && parseFloat(prefillPrice) > 0) {
+                    const totalInput = document.querySelector('input[name="total_amount"]');
+                    if (totalInput && (!totalInput.value || parseFloat(totalInput.value) <= 0)) {
+                        totalInput.value = (parseFloat(prefillQty) * parseFloat(prefillPrice)).toFixed(2);
+                    }
+                }
+
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
@@ -828,9 +831,27 @@ window.closeVendorPaymentModal = function() {
         document.addEventListener('DOMContentLoaded', runPrefill);
     })();
 
+    window.openVendorPaymentModal = function(id, vendorName, remainingBalance) {
+        document.getElementById('modalPurchaseId').value = id;
+        document.getElementById('modalVendorName').innerText = vendorName;
+        document.getElementById('modalVendorRemainingText').innerText = parseFloat(remainingBalance).toFixed(2);
+        document.getElementById('modalVendorPayAmount').value = parseFloat(remainingBalance).toFixed(2);
+        document.getElementById('modalVendorPayAmount').max = parseFloat(remainingBalance);
+        document.getElementById('modalVendorPayDate').value = new Date().toISOString().split('T')[0];
+        
+        document.getElementById('recordVendorPaymentModal').classList.remove('hidden');
+    };
+
+    window.closeVendorPaymentModal = function() {
+        document.getElementById('recordVendorPaymentModal').classList.add('hidden');
+    };
+
     window.submitVendorPayment = function(e) {
         e.preventDefault();
         const purId = document.getElementById('modalPurchaseId').value;
+        const $submitBtn = $(e.target).find('button[type="submit"]');
+        if (window.setButtonLoading) window.setButtonLoading($submitBtn, true, 'Recording...');
+
         const formData = new FormData(e.target);
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
@@ -844,6 +865,7 @@ window.closeVendorPaymentModal = function() {
         })
         .then(res => res.json())
         .then(response => {
+            if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
             closeVendorPaymentModal();
             if (window.showToast) {
                 window.showToast('success', response.message || 'Vendor payment recorded successfully!');
@@ -855,11 +877,14 @@ window.closeVendorPaymentModal = function() {
                         PAID
                     </span>
                 `);
+                if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
             }
             if (window.clearPageCache) window.clearPageCache();
         })
         .catch(err => {
-            alert('Failed to record vendor payment.');
+            if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
+            if (window.showToast) window.showToast('error', 'Failed to record vendor payment.');
+            else alert('Failed to record vendor payment.');
         });
     };
 </script>

@@ -39,8 +39,8 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">SKU Code (Unique)</label>
-                    <input type="text" id="good_sku" name="sku" placeholder="e.g. WR-3T-BALAJI" required
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">SKU Code <span class="text-slate-400 font-normal lowercase">(optional)</span></label>
+                    <input type="text" id="good_sku" name="sku" placeholder="e.g. WR-3T-BALAJI (Optional)"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono">
                 </div>
                 <div>
@@ -151,7 +151,7 @@
                                     <span class="ml-1.5 px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold text-[10px] rounded">Low Stock</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku }}</td>
+                            <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku ?: '-' }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ $good->hsn_code ?? '-' }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 capitalize text-xs font-semibold">{{ $good->uom }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ number_format($good->unit_weight_kg, 3) }} kg</td>
@@ -176,7 +176,7 @@
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <button type="button" 
-                                            onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ $good->sku }}', '{{ $good->hsn_code ?? '' }}', '{{ $good->uom }}', {{ $good->current_stock }}, {{ $good->selling_price }}, {{ $good->gst_rate }}, {{ $good->unit_weight_kg }}, {{ $good->price_per_kg ?? 'null' }}, {{ $good->safety_threshold ?? 10 }})"
+                                            onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku ?? '') }}', '{{ $good->hsn_code ?? '' }}', '{{ $good->uom }}', {{ $good->current_stock }}, {{ $good->selling_price }}, {{ $good->gst_rate }}, {{ $good->unit_weight_kg }}, {{ $good->price_per_kg ?? 'null' }}, {{ $good->safety_threshold ?? 10 }})"
                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                             title="Edit Product Details">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -281,7 +281,7 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 1
     });
 
     document.getElementById('good_name').value = name;
-    document.getElementById('good_sku').value = sku;
+    document.getElementById('good_sku').value = sku || '';
     document.getElementById('good_hsn').value = hsn;
     document.getElementById('good_uom').value = uom;
     if (document.getElementById('good_unit_weight_kg')) document.getElementById('good_unit_weight_kg').value = parseFloat(unitWeight).toFixed(3);
@@ -310,10 +310,16 @@ function deleteProduct(id, name) {
                 data: { _token: token },
                 success: function(res) {
                     if (window.showToast) window.showToast('success', res.message);
-                    $(`#row-good-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    if (window.ERPTableHelper) {
+                        window.ERPTableHelper.removeRow(`#row-good-${id}`);
+                    } else {
+                        $(`#row-good-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    }
                 },
                 error: function(xhr) {
-                    alert(xhr.responseJSON?.message || 'Failed to delete product.');
+                    const msg = xhr.responseJSON?.message || 'Failed to delete product.';
+                    if (window.showToast) window.showToast('error', msg);
+                    else alert(msg);
                 }
             });
         }

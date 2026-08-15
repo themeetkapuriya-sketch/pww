@@ -77,4 +77,84 @@ class Product extends Model
     {
         return $this->hasMany(InvoiceItem::class, 'product_id');
     }
+
+    /**
+     * Calculate estimated raw material cost per product unit from BOM.
+     */
+    public function getEstimatedManufacturingCostAttribute(): float
+    {
+        $boms = $this->relationLoaded('billOfMaterials') ? $this->billOfMaterials : $this->billOfMaterials()->with('rawMaterial')->get();
+        $totalCost = 0.0;
+
+        foreach ($boms as $bom) {
+            $material = $bom->rawMaterial;
+            if ($material) {
+                $price = (! is_null($bom->unit_rate) && (float) $bom->unit_rate > 0)
+                    ? (float) $bom->unit_rate
+                    : (float) ($material->average_purchase_price ?? 0);
+                $qty = (float) ($bom->required_quantity ?? 0);
+                $waste = (float) ($bom->waste_percentage ?? 0);
+                $effectiveQty = $qty * (1 + ($waste / 100));
+                $totalCost += ($effectiveQty * $price);
+            }
+        }
+
+        return round($totalCost, 2);
+    }
+
+    /**
+     * Calculate base raw material cost without waste allowance.
+     */
+    public function getBaseMaterialCostAttribute(): float
+    {
+        $boms = $this->relationLoaded('billOfMaterials') ? $this->billOfMaterials : $this->billOfMaterials()->with('rawMaterial')->get();
+        $baseCost = 0.0;
+
+        foreach ($boms as $bom) {
+            $material = $bom->rawMaterial;
+            if ($material) {
+                $price = (! is_null($bom->unit_rate) && (float) $bom->unit_rate > 0)
+                    ? (float) $bom->unit_rate
+                    : (float) ($material->average_purchase_price ?? 0);
+                $qty = (float) ($bom->required_quantity ?? 0);
+                $baseCost += ($qty * $price);
+            }
+        }
+
+        return round($baseCost, 2);
+    }
+
+    /**
+     * Calculate waste / scrap buffer cost.
+     */
+    public function getWasteAllowanceCostAttribute(): float
+    {
+        return round(max(0, $this->estimated_manufacturing_cost - $this->base_material_cost), 2);
+    }
+
+    /**
+     * Calculate gross profit per unit (Selling Price - Manufacturing Cost).
+     */
+    public function getGrossProfitAttribute(): float
+    {
+        $sellingPrice = (float) ($this->selling_price ?? 0);
+        $cost = $this->estimated_manufacturing_cost;
+
+        return round($sellingPrice - $cost, 2);
+    }
+
+    /**
+     * Calculate gross profit margin percentage.
+     */
+    public function getProfitMarginPercentageAttribute(): float
+    {
+        $sellingPrice = (float) ($this->selling_price ?? 0);
+        if ($sellingPrice <= 0) {
+            return 0.0;
+        }
+
+        $margin = ($this->gross_profit / $sellingPrice) * 100;
+
+        return round($margin, 1);
+    }
 }

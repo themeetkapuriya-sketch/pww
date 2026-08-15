@@ -23,13 +23,13 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sales Order Prefix</label>
-                    <input type="text" name="order_prefix" value="{{ \App\Models\Setting::get('order_prefix', 'PWW-ORD-') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 font-mono uppercase focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                    <input type="text" name="order_prefix" id="order_prefix_input" oninput="updateSerialPreview()" value="{{ \App\Models\Setting::get('order_prefix', 'PWW-ORD-') }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 font-mono uppercase focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
                     <span class="text-[11px] text-slate-400">e.g. PWW-ORD- (Leave empty for pure serial number)</span>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Next Order Serial Number <span class="text-rose-500">*</span></label>
-                    <input type="number" name="order_next_sequence" value="{{ \App\Models\Setting::get('order_next_sequence', '1') }}" min="1" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 font-mono focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                    <input type="number" name="order_next_sequence" id="order_seq_input" oninput="updateSerialPreview()" value="{{ \App\Models\Setting::get('order_next_sequence', '1') }}" min="1" required class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 font-mono focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
                     <span class="text-[11px] text-slate-400">Current Next Sales Order Sequence</span>
                 </div>
 
@@ -67,17 +67,36 @@
                 </div>
 
                 <!-- Live Sample Preview Card -->
-                <div class="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            #
+                @php
+                    $initInvPrefix = \App\Models\Setting::get('invoice_prefix', '');
+                    $initInvSeq = (int) \App\Models\Setting::get('invoice_next_sequence', 1);
+                    $initOrdPrefix = \App\Models\Setting::get('order_prefix', 'PWW-ORD-');
+                    $initOrdSeq = (int) \App\Models\Setting::get('order_next_sequence', 1);
+                    $initInvPreview = \App\Models\Setting::formatDocumentNumber($initInvPrefix, $initInvSeq);
+                    $initOrdPreview = \App\Models\Setting::formatDocumentNumber($initOrdPrefix, $initOrdSeq);
+                @endphp
+                <div class="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-100 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full sm:w-auto">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                🧾
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">Sample Next Invoice Number:</span>
+                                <span id="invoice_sample_preview" class="text-base font-black text-blue-700 font-mono tracking-wide">{{ $initInvPreview }}</span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-xs font-bold text-slate-700 block">Generated Invoice Number Sample Preview:</span>
-                            <span id="invoice_sample_preview" class="text-base font-black text-blue-700 font-mono tracking-wide">PWW-20260731-0001</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                📦
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block">Sample Next Order Number:</span>
+                                <span id="order_sample_preview" class="text-base font-black text-indigo-700 font-mono tracking-wide">{{ $initOrdPreview }}</span>
+                            </div>
                         </div>
                     </div>
-                    <span class="text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 px-3 py-1 rounded-lg shadow-2xs">Real-Time Pattern Preview</span>
+                    <span class="text-[11px] font-semibold text-blue-600 bg-white border border-blue-200 px-3 py-1 rounded-lg shadow-2xs shrink-0">Real-Time Live Preview</span>
                 </div>
             </div>
 

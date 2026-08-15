@@ -16,8 +16,8 @@ class BomController extends Controller
      */
     public function bom()
     {
-        $finishedGoods = Product::with('billOfMaterials.rawMaterial')->get();
-        $rawMaterials = RawMaterial::all();
+        $finishedGoods = Product::with('billOfMaterials.rawMaterial')->orderByDesc('id')->get();
+        $rawMaterials = RawMaterial::orderByDesc('id')->get();
 
         return view('pages.bom', compact('finishedGoods', 'rawMaterials'));
     }
@@ -44,6 +44,8 @@ class BomController extends Controller
                 'required_quantities.*' => 'required|numeric|min:0.0001',
                 'waste_percentages' => 'required|array|min:1',
                 'waste_percentages.*' => 'required|numeric|min:0',
+                'unit_rates' => 'nullable|array',
+                'unit_rates.*' => 'nullable|numeric|min:0',
             ]);
 
             // If full formula edit mode, remove components that were deleted from the form
@@ -60,6 +62,10 @@ class BomController extends Controller
                 }
                 $reqQty = (float) ($validated['required_quantities'][$idx] ?? 0);
                 $waste = (float) ($validated['waste_percentages'][$idx] ?? 0);
+                $rate = isset($validated['unit_rates'][$idx]) && $validated['unit_rates'][$idx] !== '' && $validated['unit_rates'][$idx] !== null
+                    ? (float) $validated['unit_rates'][$idx]
+                    : null;
+
                 if ($reqQty <= 0) {
                     continue;
                 }
@@ -72,6 +78,7 @@ class BomController extends Controller
                     [
                         'required_quantity' => $reqQty,
                         'waste_percentage' => $waste,
+                        'unit_rate' => $rate,
                     ]
                 );
                 $savedCount++;
@@ -89,6 +96,7 @@ class BomController extends Controller
             'raw_material_id' => 'required|exists:raw_materials,id',
             'required_quantity' => 'required|numeric|min:0.0001',
             'waste_percentage' => 'required|numeric|min:0',
+            'unit_rate' => 'nullable|numeric|min:0',
         ]);
 
         $bom = BillOfMaterial::updateOrCreate(
@@ -99,6 +107,7 @@ class BomController extends Controller
             [
                 'required_quantity' => $validated['required_quantity'],
                 'waste_percentage' => $validated['waste_percentage'],
+                'unit_rate' => ! empty($validated['unit_rate']) ? (float) $validated['unit_rate'] : null,
             ]
         );
 
@@ -123,11 +132,13 @@ class BomController extends Controller
         $validated = $request->validate([
             'required_quantity' => 'required|numeric|min:0.0001',
             'waste_percentage' => 'required|numeric|min:0',
+            'unit_rate' => 'nullable|numeric|min:0',
         ]);
 
         $bom->update([
             'required_quantity' => $validated['required_quantity'],
             'waste_percentage' => $validated['waste_percentage'],
+            'unit_rate' => ! empty($validated['unit_rate']) ? (float) $validated['unit_rate'] : null,
         ]);
 
         return response()->json([

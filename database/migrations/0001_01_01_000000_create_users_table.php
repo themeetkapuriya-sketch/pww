@@ -15,10 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role')->default('staff');
-            $table->string('status')->default('active');
+            $table->string('role', 100)->default('staff');
+            $table->string('status', 50)->default('active');
+            $table->boolean('is_active')->default(true);
+            $table->decimal('salary', 10, 2)->nullable();
+            $table->string('avatar_path')->nullable();
             $table->json('permissions')->nullable();
             $table->rememberToken();
             $table->timestamps();
@@ -45,8 +49,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

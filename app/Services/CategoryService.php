@@ -107,4 +107,54 @@ class CategoryService
     {
         Setting::set('expense_categories', json_encode(array_values($categories)));
     }
+
+    /**
+     * Get Raw Material Categories.
+     */
+    public static function getMaterialCategories(): array
+    {
+        $json = Setting::get('material_categories');
+        if ($json) {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                return $decoded;
+            }
+        }
+
+        return [
+            ['key' => 'pipes', 'label' => 'Pipes & Tubes', 'icon' => '🔩', 'color' => 'blue', 'protected' => false],
+            ['key' => 'powders', 'label' => 'Powder Coating Powders', 'icon' => '🎨', 'color' => 'purple', 'protected' => false],
+            ['key' => 'sheets', 'label' => 'Sheet Metal & Plates', 'icon' => '📐', 'color' => 'indigo', 'protected' => false],
+            ['key' => 'welding', 'label' => 'Welding Wire, Rods & Gas', 'icon' => '⚡', 'color' => 'amber', 'protected' => false],
+            ['key' => 'hardware', 'label' => 'Fasteners & Hardware', 'icon' => '🔧', 'color' => 'teal', 'protected' => false],
+            ['key' => 'other', 'label' => 'Other Consumables', 'icon' => '📦', 'color' => 'slate', 'protected' => false],
+        ];
+    }
+
+    /**
+     * Get Combobox options for Material Categories.
+     */
+    public static function getMaterialComboboxOptions(): array
+    {
+        $cats = self::getMaterialCategories();
+        $options = [];
+        foreach ($cats as $cat) {
+            $icon = $cat['icon'] ?? '📦';
+            $options[] = [
+                'value' => $cat['key'],
+                'label' => "{$icon} {$cat['label']}",
+                'search' => strtolower($cat['label'].' '.$cat['key']),
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Save Material Categories.
+     */
+    public static function saveMaterialCategories(array $categories): void
+    {
+        Setting::set('material_categories', json_encode(array_values($categories)));
+    }
 }

@@ -54,19 +54,33 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 2. Click **+ Add Product**.
 3. Fill in:
    - **Product Model Name**: e.g., *Heavy Duty Industrial Storage Rack (2000x1000x500mm)*
-   - **HSN Code**: GST HSN classification (e.g., `7308`).
+   - **SKU Code**: *(Optional)* Unique Stock Keeping Unit (e.g. `WR-3T-BALAJI` or leave blank).
+   - **HSN Code**: GST HSN classification (e.g., `73089090`).
+   - **UOM (Unit)**: Measurement unit (`piece`, `nos`, `set`, `kg`, etc.).
    - **Selling Price / Piece**: Price per rack (e.g., `₹4500.00`).
+   - **Price / Kg**: *(Optional)* Dynamic per-kg rate.
    - **GST Rate**: Select `18%`, `12%`, `5%`, `28%`, or `0%`.
+   - **Min Stock Alert**: Low stock alert warning threshold (e.g., `10`). Set `0` to disable alerts.
 4. Click **Save Product**.
 
-#### Step 2.3: Define Product BOM Formula (Page: `Bill of Materials (BOM)`)
-*This links finished products to raw materials so stock auto-deducts when production is logged.*
+#### Step 2.3: Define Product BOM Formula & Cost Simulator (Page: `Bill of Materials (BOM)`)
+*This links finished products to raw materials so stock auto-deducts when production is logged and computes live manufacturing costs.*
 1. Click **Bill of Materials (BOM)** in the sidebar.
-2. Click **+ Configure New Product Composition**.
-3. Select the **Finished Product** (e.g., *Heavy Duty Industrial Storage Rack*).
-4. Select the **Raw Material Needed** (e.g., *MS Angle 50x50x5mm*).
-5. Enter **Quantity Required Per 1 Piece** (e.g., `12.5 KG`) and **Waste Allowance %**.
-6. Click **Save Composition Link**.
+2. Click **+ Add BOM Formula** or click **Edit Formula** on any product card.
+3. Add raw material ingredients, required quantities per unit, and waste scrap allowance percentages.
+4. **💰 Auto-Calculated & Editable Avg Rate (₹)**:
+   - Selecting a raw material automatically fills its live **Weighted Average Purchase Rate (₹)** calculated from your historical purchase bills.
+   - You can manually edit or override this rate for quotes and cost simulations, or leave it blank to automatically track live purchase prices.
+5. **📊 Manufacturing Cost & Profit Margin Simulator**:
+   - The system automatically calculates **Line Cost**, **Est. Material Unit Cost (₹)**, **Waste Scrap Allowance (₹)**, **List Price (₹)**, and **Gross Profit (₹)** in real-time as you type.
+   - Live color margin health indicator:
+     - 🟢 **Green** ($\ge 25\%$): Strong / High Profit (Safe and healthy).
+     - 🟡 **Yellow** ($10\% - 24.9\%$): Normal / Standard (Acceptable for volume manufacturing).
+     - 🔴 **Red** ($< 10\%$): Low / Risk (Tight margin; review material costs or selling price).
+
+#### ⚡ Low-Stock Smart Auto-Purchase Reorder Assistant
+1. When any raw material falls below its safety alert limit, a **Smart Reorder Assistant** banner appears at the top of **Raw Materials Audit** (`/rawmaterial`) and on the **Dashboard Overview** (`/dashboard`).
+2. Click **⚡ Reorder**: The system automatically calculates the replenishment deficit, launches the **Purchase Ledger**, and pre-fills the Category, Material, Quantity, and Rate!
 
 ---
 
@@ -176,24 +190,41 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 1. Go to **Settings Hub** (`/settings`) → **Security & System Backups** tab.
 2. Set your schedule preference:
    - **Schedule**: `Daily`, `Weekly`, or `Monthly`.
-   - **Preferred Execution Time**: Use the **Alarm-Style Time Picker** (select exact Hour, Minute, and AM/PM).
+   - **Preferred Execution Time**: Select exact time of day when automatic backups generate.
+   - **Auto-Delete Old Backups**: Choose when to remove old backup files (`After 3 Months (Recommended)`, `After 6 Months`, `After 1 Year`, or `Never`).
    - **Email Backup Attachment**: Enable to automatically send a copy of the `.sql` backup file to your email inbox for off-site data safety.
 3. **Automated Catch-Up & Auto-Download**:
    - The moment the scheduled time arrives, the system generates the backup, emails it to your inbox, and **automatically downloads the `.sql` file directly into your PC `Downloads` folder** with a green toast notification!
 
-#### ⚡ Global Keyboard Hotkeys
-Speed up daily operations with keyboard shortcuts from anywhere in the portal:
-* **`Alt + O`** — Open Overview Dashboard
-* **`Alt + I`** — Open Sales Invoice Ledger
-* **`Alt + P`** — Open Purchase Ledger
-* **`Alt + E`** — Open Expense Ledger
-* **`Alt + R`** — Open Reports & CA Exports
-* **`Alt + S`** — Open Settings Hub
-* **`Alt + H`** — Show Hotkey Cheat-Sheet Notification
+#### 🧹 Auto-Clean Old Activity Logs & Free Up Storage
+1. Go to **Settings Hub** (`/settings`) → **Security & System Backups** tab.
+2. Select **Keep Logs For** (`30 Days`, `90 Days - Recommended`, `180 Days`, or `1 Year`).
+3. Click **Clean Old Logs Now** to remove historical activity records and keep system search queries lightning-fast.
 
-#### ☀️ / 🌙 Light & Dark Mode Visual Theme Switcher
-* Click the theme toggle icon (`☀️ / 🌙`) in the top navigation header next to the date.
-* Instantly switches between Crisp Light Mode and High-Contrast Dark Slate Mode (`#0f172a` & `#1e293b`), preserving your choice across browser sessions!
+#### 🔒 Financial Year Period Lock (Audit Protection)
+1. Go to **Settings Hub** (`/settings`) → **Tax & Financial** tab.
+2. View active and closed financial periods starting from **FY 2026–27** onwards.
+3. Click **🔒 Lock Period** next to any audited or closed financial year to prevent accidental edits, deletions, or retroactive back-dating of invoices, purchases, payroll, or expenses.
+
+#### 🏷️ Dynamic Purchase, Expense & Raw Material Categories
+1. Go to **Settings Hub** (`/settings`) → **Other Settings** → **Categories** tab.
+2. Manage categories across three dedicated managers:
+   - **Purchase Categories**: Add/edit purchase bill types (e.g. machinery, factory consumables, office assets).
+   - **Expense Categories**: Add/edit daily expense voucher types with system protection for core accounting entries.
+   - **Raw Material Categories**: Add custom raw material groups with custom icons (e.g. `🎨 Powder Coating`, `🔩 Pipes & Tubes`, `📐 Sheet Metal`, `⚡ Welding & Gas`, `🔧 Hardware`, `📦 Other Consumables`, `Packaging & Pallets`).
+3. Added categories instantly update the **Raw Materials Ledger**, top filter pills, and drop-down selectors across the ERP!
+
+---
+
+### 7. Backup & Database Maintenance (Page: `Backup & System Restore`)
+
+#### ⚡ 1-Click Database Optimization (`Optimize Database`)
+* **What it does**: 100% safe maintenance tool that defragments MySQL tables, rebuilds search indexes, prunes expired login sessions, and frees up wasted disk space without affecting any business records.
+
+#### 🛡️ Danger Zone: Factory Reset / Fresh System Start (`Reset to Fresh System`)
+* **What it does**: Clears all test invoices, sample sales orders, production logs, attendance records, and expenses to start completely fresh for live business operations.
+* **Master Data Kept 100% Intact**: Preserves your Products catalog, Raw Materials, BOM formulas, Clients, Plants, Staff profiles, User accounts, and Company settings.
+* **Triple-Layer Safety**: Requires Admin Password, typing `"RESET"`, and **automatically saves a full emergency backup snapshot (`pre_reset_safety_...sql`)** before performing the reset.
 
 ---
 

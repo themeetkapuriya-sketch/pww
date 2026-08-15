@@ -78,6 +78,74 @@
         </div>
     @endif
 
+    <!-- System Health & Storage Overview Card -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        System Health & Database Storage Monitor
+                        <span id="dbHealthBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ● {{ $systemHealth['health_status'] ?? 'Optimal' }}
+                        </span>
+                    </h2>
+                    <p class="text-slate-500 text-xs mt-0.5">Real-time database footprint, table record counters, and instant index defragmentation</p>
+                </div>
+            </div>
+
+            <button type="button" id="optimizeDbBtn" onclick="runDatabaseOptimization()" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition shadow-xs cursor-pointer">
+                <svg id="optimizeSpinIcon" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span id="optimizeBtnText">Optimize Database</span>
+            </button>
+        </div>
+
+        <!-- Metric Counters Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Database Size</span>
+                <span id="dbSizeText" class="text-base font-black font-mono text-slate-800">{{ $systemHealth['size_formatted'] ?? '0 KB' }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">{{ $systemHealth['driver'] ?? 'MySQL' }} ({{ $systemHealth['tables_count'] ?? 0 }} Tables)</span>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">1. Sales / Invoices</span>
+                <span class="text-base font-black font-mono text-blue-700">{{ number_format($tableCounts['invoices'] ?? 0) }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">{{ number_format($tableCounts['orders'] ?? 0) }} Sales Orders</span>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">2. Purchases / Expenses</span>
+                <span class="text-base font-black font-mono text-indigo-700">{{ number_format($tableCounts['purchases'] ?? 0) }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">{{ number_format($tableCounts['expenses'] ?? 0) }} Expenses Logged</span>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">3. Stock / Salary</span>
+                <span class="text-base font-black font-mono text-emerald-700">{{ number_format($tableCounts['salaries'] ?? 0) }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">{{ number_format(($tableCounts['materials'] ?? 0) + ($tableCounts['products'] ?? 0)) }} Stock Catalog Items</span>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">4. Daily Attendance</span>
+                <span class="text-base font-black font-mono text-amber-700">{{ number_format($tableCounts['attendance'] ?? 0) }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">6-Mo Auto Retention</span>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
+                <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">5. Audits / Others</span>
+                <span class="text-base font-black font-mono text-slate-700">{{ number_format($tableCounts['audit_logs'] ?? 0) }}</span>
+                <span class="text-[9px] font-semibold text-slate-500 block mt-0.5">{{ number_format(($tableCounts['clients'] ?? 0) + ($tableCounts['production'] ?? 0)) }} Clients & Masters</span>
+            </div>
+        </div>
+    </div>
+
     <!-- 2 Top Cards: Backup & Restore -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -239,6 +307,94 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Danger Zone: Factory Reset & Fresh System Start -->
+    <div class="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/50 rounded-2xl p-6 shadow-xs space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                        Danger Zone: Factory Reset / Fresh System Start
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200/80 dark:bg-rose-900/70 text-rose-800 dark:text-rose-200 border border-rose-300/80 dark:border-rose-700/60">Admin Protected</span>
+                    </h3>
+                    <p class="text-xs text-rose-700 dark:text-rose-300/80 mt-0.5">
+                        Wipe all test transactions, sales orders, invoices, purchases, payroll logs, and expenses to start completely fresh. Automatically takes an emergency backup snapshot first.
+                    </p>
+                </div>
+            </div>
+
+            <button type="button" onclick="openFactoryResetModal()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-xs flex items-center gap-2 cursor-pointer shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Reset to Fresh System</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Factory Reset Authentication -->
+<div id="factoryResetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-rose-200 dark:border-slate-700 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center gap-3 border-b border-rose-100 dark:border-slate-700 pb-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-rose-900 dark:text-rose-200">Authorize Factory Reset</h3>
+                <p class="text-xs text-rose-600 dark:text-rose-400 font-medium">Clear transactional data to start fresh</p>
+            </div>
+        </div>
+
+        <div class="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+            <p class="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                <span>🛡️</span> Zero-Risk Safety Net:
+            </p>
+            <p class="text-[11px] leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+                The system will <strong>automatically create an emergency backup snapshot</strong> before wiping. Your Admin account, business profile, and roles will be preserved.
+            </p>
+        </div>
+
+        <form id="factoryResetForm" action="{{ route('backup.reset') }}" method="POST" class="space-y-4" onsubmit="return handleFactoryResetSubmit(event);">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Enter Admin Account Password <span class="text-rose-500">*</span>
+                </label>
+                <input type="password" name="admin_password" id="resetAdminPassword" required placeholder="••••••••" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 dark:text-white focus:bg-white focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/50 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Type <span class="text-rose-600 dark:text-rose-400 font-mono">RESET</span> to confirm <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" name="confirm_phrase" id="resetConfirmPhrase" required placeholder="RESET" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-2.5 px-3.5 text-sm font-bold text-rose-700 dark:text-rose-400 font-mono uppercase focus:bg-white focus:border-rose-500 focus:ring-2 focus:ring-rose-200 dark:focus:ring-rose-900/50 transition">
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" name="keep_masters" id="resetKeepMasters" value="1" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500">
+                <label for="resetKeepMasters" class="text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                    Keep Products, Materials & Clients Master Catalog
+                </label>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
+                <button type="button" onclick="closeFactoryResetModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" id="resetSubmitBtn" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer flex items-center gap-2">
+                    <span id="resetBtnText">Wipe & Reset System</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -588,6 +744,133 @@ function confirmRestore(e) {
     }
 
     performRestoreAjax();
+    return false;
+}
+
+function runDatabaseOptimization() {
+    const btn = document.getElementById('optimizeDbBtn');
+    const spin = document.getElementById('optimizeSpinIcon');
+    const text = document.getElementById('optimizeBtnText');
+
+    if (btn) btn.disabled = true;
+    if (spin) spin.classList.add('animate-spin');
+    if (text) text.innerText = 'Optimizing...';
+
+    $.ajax({
+        url: "{{ route('backup.optimize') }}",
+        type: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '',
+            'Accept': 'application/json'
+        },
+        success: function(res) {
+            if (btn) btn.disabled = false;
+            if (spin) spin.classList.remove('animate-spin');
+            if (text) text.innerText = 'Optimize Database';
+
+            if (res.success) {
+                if (res.metrics && document.getElementById('dbSizeText')) {
+                    document.getElementById('dbSizeText').innerText = res.metrics.size_formatted;
+                }
+                showDownloadToast('⚡ ' + (res.message || 'Database optimized successfully!'));
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Database Optimized!',
+                        text: res.message || 'Defragmented and search indexes rebuilt successfully.',
+                        icon: 'success',
+                        timer: 2500,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-2xl shadow-2xl p-6 border border-slate-100' }
+                    });
+                }
+            } else {
+                showDownloadToast('❌ ' + (res.message || 'Optimization failed.'), 'error');
+            }
+        },
+        error: function(xhr) {
+            if (btn) btn.disabled = false;
+            if (spin) spin.classList.remove('animate-spin');
+            if (text) text.innerText = 'Optimize Database';
+            const msg = xhr.responseJSON ? xhr.responseJSON.message : 'Database optimization failed.';
+            showDownloadToast('❌ ' + msg, 'error');
+        }
+    });
+}
+
+function openFactoryResetModal() {
+    document.getElementById('factoryResetModal')?.classList.remove('hidden');
+    document.getElementById('resetAdminPassword')?.focus();
+}
+
+function closeFactoryResetModal() {
+    document.getElementById('factoryResetModal')?.classList.add('hidden');
+    document.getElementById('factoryResetForm')?.reset();
+}
+
+function handleFactoryResetSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const pwd = document.getElementById('resetAdminPassword').value;
+    const phrase = document.getElementById('resetConfirmPhrase').value.trim().toUpperCase();
+
+    if (phrase !== 'RESET') {
+        alert("Please type 'RESET' exactly in the confirmation box.");
+        return false;
+    }
+
+    const btn = document.getElementById('resetSubmitBtn');
+    const text = document.getElementById('resetBtnText');
+    if (btn) btn.disabled = true;
+    if (text) text.innerText = 'Resetting System...';
+
+    $.ajax({
+        url: form.action,
+        type: 'POST',
+        data: $(form).serialize(),
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') || '',
+            'Accept': 'application/json'
+        },
+        success: function(res) {
+            closeFactoryResetModal();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'System Reset Complete!',
+                    text: res.message || 'System has been reset to a fresh state. An emergency backup was saved.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'Continue to Dashboard',
+                    customClass: {
+                        popup: 'rounded-2xl',
+                        confirmButton: 'rounded-xl font-bold px-6 py-2.5'
+                    }
+                }).then(() => {
+                    window.location.href = res.redirect || "{{ route('overview') }}";
+                });
+            } else {
+                alert(res.message);
+                window.location.href = res.redirect || "{{ route('overview') }}";
+            }
+        },
+        error: function(xhr) {
+            if (btn) btn.disabled = false;
+            if (text) text.innerText = 'Wipe & Reset System';
+            const err = xhr.responseJSON ? xhr.responseJSON.message : 'Factory reset failed.';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Reset Authorization Failed',
+                    text: err,
+                    icon: 'error',
+                    confirmButtonColor: '#EF4444',
+                    customClass: { popup: 'rounded-2xl' }
+                });
+            } else {
+                alert(err);
+            }
+        }
+    });
+
     return false;
 }
 </script>

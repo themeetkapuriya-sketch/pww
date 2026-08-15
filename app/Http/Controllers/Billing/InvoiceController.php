@@ -120,6 +120,17 @@ class InvoiceController extends Controller
             'custom_client_name.required' => 'Please enter the Buyer / Client Name',
         ]);
 
+        $targetDate = ! empty($validated['invoice_date']) ? $validated['invoice_date'] : date('Y-m-d');
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($targetDate)) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($targetDate);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Creating or editing invoices in locked periods is disabled.",
+                'errors' => ["Financial Year {$fy} is locked."],
+            ], 422);
+        }
+
         try {
             $invoice = DB::transaction(function () use ($validated, $request, $invoiceId, $invMode) {
                 $plantId = ! empty($validated['plant_id']) ? $validated['plant_id'] : null;
@@ -511,6 +522,17 @@ class InvoiceController extends Controller
         try {
             $invoice = Invoice::with('items')->findOrFail($id);
             $invNum = $invoice->invoice_number;
+
+            $invDate = $invoice->invoice_date ? $invoice->invoice_date->format('Y-m-d') : $invoice->created_at->format('Y-m-d');
+            if (\App\Services\FinancialYearService::isFinancialYearLocked($invDate)) {
+                $fy = \App\Services\FinancialYearService::getFinancialYearForDate($invDate);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Deleting invoices from locked periods is disabled.",
+                    'errors' => ["Financial Year {$fy} is locked."],
+                ], 422);
+            }
 
             DB::transaction(function () use ($invoice, $invNum) {
                 Payment::where('invoice_id', $invoice->id)->delete();

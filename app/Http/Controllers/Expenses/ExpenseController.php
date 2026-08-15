@@ -15,7 +15,7 @@ class ExpenseController extends Controller
      */
     public function expenses()
     {
-        $expenses = Expense::orderBy('expense_date', 'desc')->paginate(20);
+        $expenses = Expense::orderBy('expense_date', 'desc')->orderBy('id', 'desc')->paginate(20);
 
         return view('pages.expenses', compact('expenses'));
     }
@@ -35,6 +35,16 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'description' => 'nullable|string',
         ]);
+
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['expense_date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['expense_date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Creating expenses in locked periods is disabled.",
+                'errors' => ["Financial Year {$fy} is locked."],
+            ], 422);
+        }
 
         $duplicateExists = Expense::where('expense_category', $validated['expense_category'])
             ->where('amount', $validated['amount'])
@@ -83,6 +93,16 @@ class ExpenseController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['expense_date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['expense_date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Updating expenses in locked periods is disabled.",
+                'errors' => ["Financial Year {$fy} is locked."],
+            ], 422);
+        }
+
         try {
             $expense = Expense::findOrFail($id);
             $expense->update($validated);
@@ -113,6 +133,18 @@ class ExpenseController extends Controller
 
         try {
             $expense = Expense::findOrFail($id);
+
+            $expDate = $expense->expense_date ? $expense->expense_date->format('Y-m-d') : $expense->created_at->format('Y-m-d');
+            if (\App\Services\FinancialYearService::isFinancialYearLocked($expDate)) {
+                $fy = \App\Services\FinancialYearService::getFinancialYearForDate($expDate);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Deleting expenses from locked periods is disabled.",
+                    'errors' => ["Financial Year {$fy} is locked."],
+                ], 422);
+            }
+
             $cat = str_replace('_', ' ', $expense->expense_category);
             $amt = $expense->amount;
             $expense->delete();

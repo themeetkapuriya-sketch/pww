@@ -428,6 +428,7 @@ class SettingsController extends Controller
     public function deleteRole(Request $request, $id)
     {
         try {
+            /** @var Role|null $role */
             $role = Role::where('id', $id)->orWhere('slug', $id)->first();
 
             if (($role && $role->slug === 'super_admin') || $id === 'super_admin') {
@@ -460,6 +461,7 @@ class SettingsController extends Controller
         }
 
         try {
+            /** @var Role|null $role */
             $role = Role::where('slug', $slug)->first();
             if (! $role) {
                 $rolesDict = RolePermissionService::getRoles();
@@ -728,6 +730,42 @@ class SettingsController extends Controller
     }
 
     /**
+     * Lock or Unlock a Financial Year Period.
+     */
+    public function toggleFinancialYearLock(Request $request)
+    {
+        $request->validate([
+            'year_key' => 'required|string|max:20',
+            'lock_action' => 'required|string|in:lock,unlock',
+        ]);
+
+        try {
+            $yearKey = trim($request->year_key);
+            $isLocking = ($request->lock_action === 'lock');
+
+            if ($isLocking) {
+                \App\Services\FinancialYearService::lockFinancialYear($yearKey);
+                AuditLogService::log('Settings', 'updated', "LOCKED Financial Year '{$yearKey}' for tax audit compliance");
+                $msg = "Financial Year '{$yearKey}' has been LOCKED. Historical records are now protected from edits and deletions.";
+            } else {
+                \App\Services\FinancialYearService::unlockFinancialYear($yearKey);
+                AuditLogService::log('Settings', 'updated', "UNLOCKED Financial Year '{$yearKey}'");
+                $msg = "Financial Year '{$yearKey}' has been UNLOCKED. Editing is temporarily re-enabled.";
+            }
+
+            return $this->respond($request, true, $msg, [
+                'year_key' => $yearKey,
+                'is_locked' => $isLocking,
+                'redirect' => route('settings.index', ['tab' => 'other', 'sub' => 'financial']),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Failed to toggle financial year lock: '.$e->getMessage());
+
+            return $this->respond($request, false, 'Failed to update period lock status. Please try again.');
+        }
+    }
+
+    /**
      * Update Email / SMTP Configuration Settings.
      */
     public function updateEmailSettings(Request $request)
@@ -918,30 +956,30 @@ class SettingsController extends Controller
 
             $cutoffDate = Carbon::now()->subDays($days);
             $deletedCount = 0;
-
             if (Schema::hasTable('activity_logs')) {
                 $deletedCount = DB::table('activity_logs')
                     ->where('created_at', '<', $cutoffDate)
                     ->delete();
             }
 
-            AuditLogService::log('System', 'pruned', "Pruned {$deletedCount} activity logs older than {$days} days");
+            AuditLogService::log('System', 'cleaned', "Cleaned {$deletedCount} activity logs older than {$days} days");
 
-            return $this->respond($request, true, "🧹 System cleaned! {$deletedCount} old audit log entries older than {$days} days were pruned.");
+            return $this->respond($request, true, "🧹 Storage cleaned! {$deletedCount} old activity log entries older than {$days} days were removed.");
         } catch (Throwable $e) {
-            Log::error('Prune system logs failed: '.$e->getMessage());
+            Log::error('Clean system logs failed: '.$e->getMessage());
 
-            return $this->respond($request, false, 'Failed to prune system logs: '.$e->getMessage());
+            return $this->respond($request, false, 'Failed to clean system logs: '.$e->getMessage());
         }
     }
 
     /**
-     * Add Purchase / Expense Category.
+     * Add Purchase / Expense / Material Category.
      */
     public function storeCategory(Request $request)
     {
-        $type = $request->input('type', 'purchase'); // purchase or expense
+        $type = $request->input('type', 'purchase'); // purchase, expense, or material
         $label = trim($request->input('label'));
+        $icon = trim($request->input('icon', '📦')) ?: '📦';
 
         if (empty($label)) {
             return $this->respond($request, false, 'Category label cannot be empty!');
@@ -949,7 +987,19 @@ class SettingsController extends Controller
 
         $key = Str::slug($label, '_');
 
-        if ($type === 'purchase') {
+        if ($type === 'material') {
+            $categories = CategoryService::getMaterialCategories();
+            foreach ($categories as $cat) {
+                if (strtolower($cat['label']) === strtolower($label) || $cat['key'] === $key) {
+                    return $this->respond($request, false, "Material category '{$label}' already exists!");
+                }
+            }
+            $categories[] = ['key' => $key, 'label' => $label, 'icon' => $icon, 'color' => 'blue', 'protected' => false];
+            CategoryService::saveMaterialCategories($categories);
+            AuditLogService::log('Settings', 'created', "Created new material category '{$label}'");
+
+            return $this->respond($request, true, "Material category '{$label}' created successfully!");
+        } elseif ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
             foreach ($categories as $cat) {
                 if (strtolower($cat['label']) === strtolower($label) || $cat['key'] === $key) {
@@ -977,19 +1027,39 @@ class SettingsController extends Controller
     }
 
     /**
-     * Update Purchase / Expense Category Label.
+     * Update Purchase / Expense / Material Category Label.
      */
     public function updateCategory(Request $request)
     {
         $type = $request->input('type', 'purchase');
         $key = $request->input('key');
         $newLabel = trim($request->input('label'));
+        $icon = $request->input('icon');
 
         if (empty($newLabel)) {
             return $this->respond($request, false, 'Category label cannot be empty!');
         }
 
-        if ($type === 'purchase') {
+        if ($type === 'material') {
+            $categories = CategoryService::getMaterialCategories();
+            $updated = false;
+            foreach ($categories as &$cat) {
+                if ($cat['key'] === $key) {
+                    $cat['label'] = $newLabel;
+                    if ($icon !== null && !empty(trim($icon))) {
+                        $cat['icon'] = trim($icon);
+                    }
+                    $updated = true;
+                    break;
+                }
+            }
+            if ($updated) {
+                CategoryService::saveMaterialCategories($categories);
+                AuditLogService::log('Settings', 'updated', "Updated material category key '{$key}' label to '{$newLabel}'");
+
+                return $this->respond($request, true, 'Material category updated successfully!');
+            }
+        } elseif ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
             $updated = false;
             foreach ($categories as &$cat) {
@@ -1027,7 +1097,7 @@ class SettingsController extends Controller
     }
 
     /**
-     * Delete Purchase / Expense Category (Enforces System Protection Rules).
+     * Delete Purchase / Expense / Material Category (Enforces System Protection Rules).
      */
     public function deleteCategory(Request $request)
     {
@@ -1043,7 +1113,14 @@ class SettingsController extends Controller
             return $this->respond($request, false, "Cannot delete 'Salary' or 'GST Payment' categories! They are mandatory system categories required for payroll and tax ledgers.");
         }
 
-        if ($type === 'purchase') {
+        if ($type === 'material') {
+            $categories = CategoryService::getMaterialCategories();
+            $filtered = array_values(array_filter($categories, fn ($cat) => $cat['key'] !== $key));
+            CategoryService::saveMaterialCategories($filtered);
+            AuditLogService::log('Settings', 'deleted', "Deleted material category key '{$key}'");
+
+            return $this->respond($request, true, 'Material category deleted successfully!');
+        } elseif ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
             $filtered = array_values(array_filter($categories, fn ($cat) => $cat['key'] !== $key));
             CategoryService::savePurchaseCategories($filtered);

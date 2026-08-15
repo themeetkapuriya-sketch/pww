@@ -154,23 +154,23 @@
     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Booked</span>
-            <span class="text-2xl font-black text-slate-800 block mt-1">{{ $stats['total'] }}</span>
+            <span id="statOrdersTotal" class="text-2xl font-black text-slate-800 block mt-1">{{ $stats['total'] }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wider block">Pending</span>
-            <span class="text-2xl font-black text-amber-600 block mt-1">{{ $stats['pending'] }}</span>
+            <span id="statOrdersPending" class="text-2xl font-black text-amber-600 block mt-1">{{ $stats['pending'] }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-blue-500 uppercase tracking-wider block">In Production</span>
-            <span class="text-2xl font-black text-blue-600 block mt-1">{{ $stats['in_production'] }}</span>
+            <span id="statOrdersInProduction" class="text-2xl font-black text-blue-600 block mt-1">{{ $stats['in_production'] }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Ready For Dispatch</span>
-            <span class="text-2xl font-black text-indigo-600 block mt-1">{{ $stats['ready'] }}</span>
+            <span id="statOrdersReady" class="text-2xl font-black text-indigo-600 block mt-1">{{ $stats['ready'] }}</span>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
             <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider block">Dispatched / Done</span>
-            <span class="text-2xl font-black text-emerald-600 block mt-1">{{ $stats['completed'] }}</span>
+            <span id="statOrdersCompleted" class="text-2xl font-black text-emerald-600 block mt-1">{{ $stats['completed'] }}</span>
         </div>
     </div>
 
@@ -769,21 +769,73 @@
         container.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function updateOrderStatus(id, status) {
+    function updateOrderStatus(id, status, btnEl) {
+        const $btn = btnEl ? $(btnEl) : null;
+        if ($btn && window.setButtonLoading) window.setButtonLoading($btn, true, 'Updating...');
+
         const token = $('meta[name="csrf-token"]').attr('content') || '';
         $.ajax({
             url: `/orders/${id}/status`,
             method: 'PATCH',
             data: { status: status, _token: token },
             success: async function(res) {
+                if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
                 if (window.showToast) window.showToast('success', res.message || 'Status updated!');
-                if (window.loadPage) {
+
+                const $row = $(`#order-row-${id}`);
+                if ($row.length) {
+                    const $statusCell = $row.find('td:nth-child(6)');
+                    if (status === 'in_production') {
+                        $statusCell.html(`
+                            <div class="inline-flex flex-col items-center space-y-1">
+                                <button type="button" 
+                                        onclick="updateOrderStatus(${id}, 'ready_for_dispatch', this)"
+                                        title="Click to mark Ready for Dispatch"
+                                        class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer">
+                                    <span>📦 Mark Ready for Dispatch</span>
+                                </button>
+                                <span class="text-[9.5px] text-blue-600 font-semibold">Stage 2: In Production</span>
+                            </div>
+                        `);
+                        window.updateStatCounter('#statOrdersPending', -1);
+                        window.updateStatCounter('#statOrdersInProduction', +1);
+                    } else if (status === 'ready_for_dispatch') {
+                        $statusCell.html(`
+                            <div class="inline-flex flex-col items-center space-y-1">
+                                <a href="/invoices?order_id=${id}" 
+                                   title="Stock is ready! Click to generate Tax Invoice & dispatch order"
+                                   class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1">
+                                    <span>🚀 Gen Invoice & Dispatch</span>
+                                </a>
+                                <span class="text-[9.5px] text-indigo-600 font-semibold">Stage 3: Ready for Dispatch</span>
+                            </div>
+                        `);
+                        window.updateStatCounter('#statOrdersInProduction', -1);
+                        window.updateStatCounter('#statOrdersReady', +1);
+                    } else if (status === 'dispatched' || status === 'completed') {
+                        $statusCell.html(`
+                            <div class="inline-flex flex-col items-center">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                    ✓ DISPATCHED
+                                </span>
+                            </div>
+                        `);
+                        window.updateStatCounter('#statOrdersReady', -1);
+                        window.updateStatCounter('#statOrdersCompleted', +1);
+                    } else if (status === 'cancelled') {
+                        $statusCell.html(`
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                ✕ CANCELLED
+                            </span>
+                        `);
+                    }
+                    if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
+                } else if (window.loadPage) {
                     await window.loadPage(window.location.href);
-                } else {
-                    window.location.reload();
                 }
             },
             error: function(xhr) {
+                if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
                 const msg = xhr.responseJSON?.message || 'Failed to update order status.';
                 if (window.showToast) {
                     window.showToast('error', msg);
@@ -818,21 +870,32 @@
         }
     }
 
-    function convertOrderToChallan(id, orderNumber) {
-        if (!confirm(`Generate Delivery Challan from Sales Order '${orderNumber}'?`)) return;
-        const token = $('meta[name="csrf-token"]').attr('content') || '';
-        $.ajax({
-            url: `/orders/${id}/convert-to-challan`,
-            method: 'POST',
-            data: { _token: token },
-            success: async function(res) {
-                if (window.showToast) window.showToast('success', res.message);
-                await window.loadPage(window.location.href);
-            },
-            error: function(xhr) {
-                alert(xhr.responseJSON?.message || 'Failed to convert order to Delivery Challan.');
+    function convertOrderToChallan(id, orderNumber, btn) {
+        window.confirmDelete(
+            'Generate Delivery Challan?',
+            `Are you sure you want to generate a Delivery Challan for Sales Order '${orderNumber}'?`,
+            function() {
+                const $btn = btn ? $(btn) : null;
+                if ($btn && window.setButtonLoading) window.setButtonLoading($btn, true, 'Converting...');
+                const token = $('meta[name="csrf-token"]').attr('content') || '';
+                $.ajax({
+                    url: `/orders/${id}/convert-to-challan`,
+                    method: 'POST',
+                    data: { _token: token },
+                    success: async function(res) {
+                        if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
+                        if (window.showToast) window.showToast('success', res.message);
+                        if (window.loadPage) await window.loadPage(window.location.href);
+                    },
+                    error: function(xhr) {
+                        if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
+                        const msg = xhr.responseJSON?.message || 'Failed to convert order to Delivery Challan.';
+                        if (window.showToast) window.showToast('error', msg);
+                        else alert(msg);
+                    }
+                });
             }
-        });
+        );
     }
 
     function deleteOrder(id, orderNumber) {
@@ -847,11 +910,19 @@
                     data: { _token: token },
                     success: function(res) {
                         if (window.showToast) window.showToast('success', res.message);
-                        $(`#order-row-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        if (window.ERPTableHelper) {
+                            window.ERPTableHelper.removeRow(`#order-row-${id}`, function() {
+                                window.updateStatCounter('#statOrdersTotal', -1);
+                            });
+                        } else {
+                            $(`#order-row-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        }
                         if (window.clearPageCache) window.clearPageCache();
                     },
                     error: function(xhr) {
-                        alert(xhr.responseJSON?.message || 'Failed to delete order.');
+                        const msg = xhr.responseJSON?.message || 'Failed to delete order.';
+                        if (window.showToast) window.showToast('error', msg);
+                        else alert(msg);
                     }
                 });
             }

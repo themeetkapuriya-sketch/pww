@@ -407,10 +407,16 @@ function deleteProductionLog(id) {
                 data: { _token: token },
                 success: function(res) {
                     if (window.showToast) window.showToast('success', res.message);
-                    $(`#row-prod-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    if (window.ERPTableHelper) {
+                        window.ERPTableHelper.removeRow(`#row-prod-${id}`);
+                    } else {
+                        $(`#row-prod-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    }
                 },
                 error: function(xhr) {
-                    alert(xhr.responseJSON?.message || 'Failed to delete production log.');
+                    const msg = xhr.responseJSON?.message || 'Failed to delete production log.';
+                    if (window.showToast) window.showToast('error', msg);
+                    else alert(msg);
                 }
             });
         }

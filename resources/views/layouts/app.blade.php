@@ -727,6 +727,47 @@
             color: #0f172a !important;
         }
 
+        /* Smooth In-Place Animations & Transitions */
+        @keyframes fadeInRow {
+            0% { opacity: 0; transform: translateY(-6px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .row-fade-in {
+            animation: fadeInRow 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .row-updated-glow {
+            transition: background-color 0.8s ease !important;
+            background-color: rgba(59, 130, 246, 0.15) !important;
+        }
+        .tab-pane-transition {
+            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-pane-transition.hidden {
+            display: none !important;
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        .tab-pane-transition:not(.hidden) {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Universal Spinner Utility */
+        @keyframes erpSpinner {
+            to { transform: rotate(360deg); }
+        }
+        .erp-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: -0.125em;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: erpSpinner 0.75s linear infinite;
+        }
+
         /* Project-wide Modal Rules */
         div[id*="Modal"].hidden, div[id*="modal"].hidden {
             display: none !important;
@@ -1042,6 +1083,9 @@
         window.submitGlobalInvoicePayment = function(e) {
             e.preventDefault();
             const invId = document.getElementById('globalModalInvoiceId').value;
+            const $submitBtn = $(e.target).find('button[type="submit"]');
+            if (window.setButtonLoading) window.setButtonLoading($submitBtn, true, 'Recording...');
+
             const formData = new FormData(e.target);
             
             // Clean comma-formatted amount string before sending to backend
@@ -1062,17 +1106,45 @@
                     'Accept': 'application/json'
                 },
                 success: async function(response) {
+                    if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
                     closeGlobalInvoicePaymentModal();
                     if (window.showToast) {
                         window.showToast('success', response.message || 'Payment recorded successfully!');
                     }
-                    if (window.loadPage) {
+
+                    const $row = $(`#row-inv-${invId}, #invoice-row-${invId}`);
+                    if ($row.length) {
+                        const paidAmount = parseFloat(rawAmount) || 0;
+                        const currentBalText = document.getElementById('globalModalRemainingText') ? document.getElementById('globalModalRemainingText').innerText.replace(/,/g, '') : '0';
+                        const prevBal = parseFloat(currentBalText) || 0;
+                        const newBal = Math.max(0, prevBal - paidAmount);
+
+                        $row.find('.inv-balance-cell').text('₹' + (window.formatIndianCurrency ? window.formatIndianCurrency(newBal.toFixed(2)) : newBal.toFixed(2)));
+                        if (newBal <= 0) {
+                            $row.find('.inv-status-cell, .status-badge-cell').html(`
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Paid
+                                </span>
+                            `);
+                            $row.find('.pay-btn, button[onclick*="payInvoiceRecord"], button[onclick*="openInvoicePaymentModal"]').remove();
+                            if (window.updateStatCounter) {
+                                window.updateStatCounter('#statUnpaidInvoices', -1);
+                                window.updateStatCounter('#statPaidInvoices', +1);
+                            }
+                        } else {
+                            $row.find('.inv-status-cell, .status-badge-cell').html(`
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                                    Partial
+                                </span>
+                            `);
+                        }
+                        if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
+                    } else if (window.loadPage) {
                         await window.loadPage(window.location.href);
-                    } else {
-                        window.location.reload();
                     }
                 },
                 error: function(xhr) {
+                    if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
                     let msg = 'Failed to record payment.';
                     if (xhr.responseJSON) {
                         if (xhr.responseJSON.errors && typeof xhr.responseJSON.errors === 'object') {

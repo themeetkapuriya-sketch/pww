@@ -19,12 +19,26 @@ class BillOfMaterial extends Model
         'raw_material_id',
         'required_quantity',
         'waste_percentage',
+        'unit_rate',
     ];
 
     protected $casts = [
         'required_quantity' => 'decimal:4',
         'waste_percentage' => 'decimal:2',
+        'unit_rate' => 'decimal:2',
     ];
+
+    /**
+     * Get the effective rate (custom BOM rate or raw material average purchase rate).
+     */
+    public function getEffectiveRateAttribute(): float
+    {
+        if (! is_null($this->unit_rate) && (float) $this->unit_rate > 0) {
+            return (float) $this->unit_rate;
+        }
+
+        return (float) ($this->rawMaterial->average_purchase_price ?? 0);
+    }
 
     /**
      * Get the product for this BOM item.

@@ -222,7 +222,7 @@
                     @if(isset($rawMaterials) && $rawMaterials->isNotEmpty())
                         @foreach ($rawMaterials as $rm)
                             <option value="raw_material_{{ $rm->id }}" data-type="raw_material" data-price="0.00" data-price-pcs="0.00" data-price-kg="0.00" data-weight="1.000" data-uom="{{ $rm->unit ?? 'kg' }}">
-                                {{ $rm->material_name }}@if(\App\Models\Setting::get('track_stock', 'true') === 'true') (Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})@endif
+                                {{ $rm->material_name }}@if($rm->specification) [{{ $rm->specification }}]@endif @if(\App\Models\Setting::get('track_stock', 'true') === 'true')(Stock: {{ number_format($rm->current_stock, 1) }} {{ $rm->unit }})@endif
                             </option>
                         @endforeach
                     @endif

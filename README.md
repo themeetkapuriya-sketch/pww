@@ -14,9 +14,9 @@
 
 - 📊 **Dashboard & Financial Intelligence**: Real-time KPI metrics, monthly turnover, net profit margins, and low-stock alerts.
 - ⚙️ **Production Logging & Auto-Stock Deduction**: Log daily rack/product manufacturing output with automated Bill of Materials (BOM) raw material deduction.
-- 🧱 **Raw Material Audit**: Live stock level tracking, purchase cost averaging, and automated safety threshold alert limits.
-- 📦 **Products Catalog**: SKU management, HSN classification, per-piece/per-kg pricing structures, and customizable GST tax brackets.
-- 📐 **Bill of Materials (BOM) Engine**: Dynamic product composition mapping connecting finished goods to exact raw material quantities (e.g. wire coils, gas, welding rods).
+- 🧱 **Raw Material Audit**: Live stock level tracking, automated weighted-average purchase cost recalculation upon procurement, material categorization, specifications, and safety threshold alerts.
+- 📦 **Products Catalog**: Optional SKU management, HSN classification, dual-UOM per-piece/per-kg pricing structures, customizable GST tax brackets, and minimum stock safety alert thresholds.
+- 📐 **Bill of Materials (BOM) & Real-Time Cost Simulator**: Dynamic product composition mapping connecting finished goods to exact raw material quantities, auto-populating weighted average material rates with manual override capability, and live Gross Margin % indicators (🟢 Healthy $\ge 25\%$, 🟡 Normal $10-24.9\%$, 🔴 Risk $<10\%$).
 - 🛒 **Sales Orders & Dispatch**: Client order tracking, multi-plant shipping destinations, and status lifecycle management.
 - 🧾 **Tax Invoice Ledger**: Multi-state Indian GST invoicing (CGST + SGST vs IGST), transport vehicle logging, PDF invoice generation, and thermal/A4 printing.
 - 🛍️ **Purchase Ledger**: Raw material procurement logging with auto-replenishment of stock levels.
@@ -27,8 +27,10 @@
 - 👥 **Staff, Piece-Rate Payroll & Employee Passbooks**: Employee directory with Active/Inactive status toggling, daily/piece-rate wage calculation matrix, monthly salary disbursal tracking, and individual financial passbook statement modals with period filtering (Current Month, Last 3 Months, This Year, All Time).
 - 🏢 **Clients & Multi-Plant Destinations**: Client master directory with regional GSTIN verification and multiple factory plant delivery addresses.
 - 📈 **Audit & GST Tax Returns**: GSTR-1, GSTR-3B tax liability calculators, net tax payable insights, and CSV/PDF exportable reports.
-- 🛡️ **Super-Admin Activity Audit Logs**: Real-time audit trail capturing all user actions (Invoices, Purchases, Inventory, Expenses, Payroll, Settings, Logins) with CSV export (`/activity-logs`). Restricted exclusively to Super Admin.
-- ⚙️ **Category Management & Backup Scheduling**: Dynamic Purchase & Expense category management with mandatory system protections, plus alarm-style execution time pickers, automatic PC Downloads folder saving, and email attachments for off-site backups.
+- 🔒 **Financial Year Period Lock**: Tax audit & CA filing protection locking closed financial years (starting from FY 2026–27) against accidental edits or deletions.
+- ⚡ **1-Click Database Optimization & Health Maintenance**: Safe defragmentation (`OPTIMIZE TABLE`), search index rebuilding, session pruning, and live space reclaiming.
+- 🛡️ **Super-Admin Activity Audit Logs**: Real-time audit trail capturing all user actions with auto-cleaning retention policies and CSV exports (`/activity-logs`).
+- ⚙️ **Category Management & Auto-Backup System**: Dynamic Purchase & Expense category management with mandatory system protections, auto-delete policies for old backups, and auto-downloading directly to local PC Downloads folders.
 - ⚡ **1-Click Simplified Billing & Accounting Mode**: Master toggle to simplify the portal for billing-only usage (Invoices, Purchases, Expenses, Clients, Reports), automatically suppressing manufacturing tabs and locking stock deductions.
 - ⌨️ **Global Keyboard Hotkeys**: Ultra-fast hotkey shortcuts (`Alt+I` Invoices, `Alt+P` Purchases, `Alt+E` Expenses, `Alt+R` Reports, `Alt+S` Settings, `Alt+H` Cheat Sheet).
 - ☀️/🌙 **Visual Light & Dark Theme Switcher**: Instant theme toggle button in the header (`☀️ / 🌙`) with dark slate palette (`#0f172a` & `#1e293b`) and session persistence.

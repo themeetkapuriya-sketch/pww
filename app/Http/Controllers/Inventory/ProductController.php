@@ -15,7 +15,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $finishedGoods = Product::orderBy('product_name')->paginate(20);
+        $finishedGoods = Product::orderByDesc('id')->paginate(20);
 
         return view('pages.product', compact('finishedGoods'));
     }
@@ -31,7 +31,7 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
-            'sku' => 'required|string|unique:products,sku|max:100',
+            'sku' => 'nullable|string|unique:products,sku|max:100',
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|max:50',
             'unit_weight_kg' => 'nullable|numeric|min:0',
@@ -42,6 +42,7 @@ class ProductController extends Controller
             'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
+        $validated['sku'] = $request->filled('sku') ? trim($request->input('sku')) : null;
         $validated['current_stock'] = $request->input('current_stock', 0);
         $validated['safety_threshold'] = (int) $request->input('safety_threshold', 10);
         $validated['alerts_enabled'] = $validated['safety_threshold'] > 0;
@@ -61,7 +62,8 @@ class ProductController extends Controller
 
         $good = Product::create($validated);
 
-        AuditLogService::log('Inventory', 'created', "Cataloged new product '{$good->product_name}' (SKU: {$good->sku}) at ₹".number_format($good->selling_price, 2));
+        $skuText = $good->sku ? " (SKU: {$good->sku})" : '';
+        AuditLogService::log('Inventory', 'created', "Cataloged new product '{$good->product_name}'{$skuText} at ₹".number_format($good->selling_price, 2));
 
         return response()->json([
             'success' => true,
@@ -83,7 +85,7 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'product_name' => 'required|string|max:255',
-            'sku' => 'required|string|max:100|unique:products,sku,'.$id,
+            'sku' => 'nullable|string|max:100|unique:products,sku,'.$id,
             'hsn_code' => 'required|string|max:50',
             'uom' => 'required|string|max:50',
             'unit_weight_kg' => 'nullable|numeric|min:0',
@@ -93,6 +95,8 @@ class ProductController extends Controller
             'price_per_kg' => 'nullable|numeric|min:0',
             'gst_rate' => 'nullable|numeric|min:0|max:100',
         ]);
+
+        $validated['sku'] = $request->filled('sku') ? trim($request->input('sku')) : null;
 
         if (! array_key_exists('current_stock', $validated) || is_null($validated['current_stock'])) {
             unset($validated['current_stock']);

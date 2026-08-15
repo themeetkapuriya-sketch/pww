@@ -19,12 +19,15 @@ class PurchaseController extends Controller
     /**
      * Purchase Ledger Page.
      */
-    public function purchases()
+    public function purchases(Request $request)
     {
-        $purchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->paginate(20);
+        $purchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->orderBy('id', 'desc')->paginate(20);
         $rawMaterials = RawMaterial::orderBy('material_name')->get();
+        $prefillMaterialId = $request->query('prefill_raw_material');
+        $prefillQty = $request->query('prefill_qty');
+        $prefillPrice = $request->query('prefill_price');
 
-        return view('pages.purchases', compact('purchases', 'rawMaterials'));
+        return view('pages.purchases', compact('purchases', 'rawMaterials', 'prefillMaterialId', 'prefillQty', 'prefillPrice'));
     }
 
     /**
@@ -49,6 +52,16 @@ class PurchaseController extends Controller
             'purchase_date' => 'required|date',
             'payment_status' => 'nullable|string|in:paid,unpaid,partially_paid',
         ]);
+
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['purchase_date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['purchase_date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Creating purchases in locked periods is disabled.",
+                'errors' => ["Financial Year {$fy} is locked."],
+            ], 422);
+        }
 
         $gstRate = (float) $validated['gst_rate'];
         $totalAmt = (float) $validated['total_amount'];
@@ -122,11 +135,15 @@ class PurchaseController extends Controller
             $pur = Purchase::create($validated);
 
             $trackStock = Setting::isStockEnabled();
-            if ($trackStock && $validated['purchase_type'] === 'raw_material' && ! empty($validated['raw_material_id'])) {
+            if ($validated['purchase_type'] === 'raw_material' && ! empty($validated['raw_material_id'])) {
+                /** @var RawMaterial|null $material */
                 $material = RawMaterial::find($validated['raw_material_id']);
                 if ($material) {
-                    $material->current_stock += (float) $validated['quantity'];
-                    $material->save();
+                    if ($trackStock) {
+                        $material->current_stock += (float) $validated['quantity'];
+                        $material->save();
+                    }
+                    $material->recalculateAveragePurchasePrice();
                 }
             }
 
@@ -167,6 +184,16 @@ class PurchaseController extends Controller
             'purchase_date' => 'required|date',
             'payment_status' => 'nullable|string|in:paid,unpaid,partially_paid',
         ]);
+
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['purchase_date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['purchase_date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Updating purchases in locked periods is disabled.",
+                'errors' => ["Financial Year {$fy} is locked."],
+            ], 422);
+        }
 
         $gstRate = (float) $validated['gst_rate'];
         $totalAmt = (float) $validated['total_amount'];
@@ -225,6 +252,14 @@ class PurchaseController extends Controller
             $purchase = Purchase::findOrFail($id);
             $purchase->update($validated);
 
+            if ($purchase->purchase_type === 'raw_material' && $purchase->raw_material_id) {
+                /** @var RawMaterial|null $material */
+                $material = RawMaterial::find($purchase->raw_material_id);
+                if ($material) {
+                    $material->recalculateAveragePurchasePrice();
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase entry updated successfully!',
@@ -251,8 +286,18 @@ class PurchaseController extends Controller
 
         try {
             $purchase = Purchase::findOrFail($id);
+            $matId = $purchase->raw_material_id;
+            $isRm = $purchase->purchase_type === 'raw_material';
             $item = $purchase->item_name ?? 'Purchase Bill';
             $purchase->delete();
+
+            if ($isRm && $matId) {
+                /** @var RawMaterial|null $material */
+                $material = RawMaterial::find($matId);
+                if ($material) {
+                    $material->recalculateAveragePurchasePrice();
+                }
+            }
 
             return response()->json([
                 'success' => true,

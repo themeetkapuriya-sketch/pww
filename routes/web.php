@@ -143,6 +143,8 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
     Route::get('/backup/download/{filename}', [BackupController::class, 'downloadFile'])->name('backup.downloadFile');
     Route::delete('/backup/delete/{filename}', [BackupController::class, 'deleteFile'])->name('backup.deleteFile');
+    Route::post('/backup/optimize', [BackupController::class, 'optimizeDatabase'])->name('backup.optimize');
+    Route::post('/backup/reset-system', [BackupController::class, 'resetSystem'])->name('backup.reset');
 
     // 13. Unified System Settings & User Access Hub
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
@@ -164,6 +166,7 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::post('/settings/bank', [SettingsController::class, 'updateBankDefaults'])->name('settings.bank');
     Route::post('/settings/serials', [SettingsController::class, 'updateSerialSettings'])->name('settings.serials');
     Route::post('/settings/financial', [SettingsController::class, 'updateFinancialSettings'])->name('settings.financial');
+    Route::post('/settings/financial/toggle-lock', [SettingsController::class, 'toggleFinancialYearLock'])->name('settings.financial.toggle_lock');
     Route::post('/settings/email', [SettingsController::class, 'updateEmailSettings'])->name('settings.email');
     Route::post('/settings/email/test', [SettingsController::class, 'sendTestEmail'])->name('settings.email.test');
     Route::post('/settings/security', [SettingsController::class, 'updateSecuritySettings'])->name('settings.security');

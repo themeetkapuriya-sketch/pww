@@ -55,7 +55,7 @@ let currentWageType = 'per-day';
 let currentStatementData = null;
 let employeeStatusChanged = false;
 
-function switchEmpTab(tabName) {
+function switchEmpTab(tabName, isImmediate = false) {
     if (employeeStatusChanged && (tabName === 'payment' || tabName === 'attendance')) {
         employeeStatusChanged = false;
         if (window.clearPageCache) window.clearPageCache();
@@ -67,21 +67,61 @@ function switchEmpTab(tabName) {
         }
     }
 
-    document.querySelectorAll('.emp-tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.emp-tab-btn').forEach(el => {
-        el.classList.remove('active-emp-tab', 'bg-blue-50', 'text-blue-700');
-        el.classList.add('text-slate-600');
-    });
+    if (isImmediate) {
+        document.querySelectorAll('.emp-tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.style.opacity = '1';
+        });
+        document.querySelectorAll('.emp-tab-btn').forEach(el => {
+            el.classList.remove('active-emp-tab', 'bg-blue-50', 'text-blue-700');
+            el.classList.add('text-slate-600');
+        });
+        const targetTab = document.getElementById('empTab-' + tabName);
+        if (targetTab) {
+            targetTab.classList.remove('hidden');
+            targetTab.style.opacity = '1';
+        }
+        const activeBtn = document.getElementById('tabBtn-' + tabName);
+        if (activeBtn) activeBtn.classList.add('active-emp-tab', 'bg-blue-50', 'text-blue-700');
+    } else {
+        document.querySelectorAll('.emp-tab-content').forEach(el => {
+            if (!el.classList.contains('hidden')) {
+                el.style.opacity = '0';
+                setTimeout(() => el.classList.add('hidden'), 120);
+            }
+        });
 
-    const targetTab = document.getElementById('empTab-' + tabName);
-    if (targetTab) targetTab.classList.remove('hidden');
+        document.querySelectorAll('.emp-tab-btn').forEach(el => {
+            el.classList.remove('active-emp-tab', 'bg-blue-50', 'text-blue-700');
+            el.classList.add('text-slate-600');
+        });
 
-    const activeBtn = document.getElementById('tabBtn-' + tabName);
-    if (activeBtn) activeBtn.classList.add('active-emp-tab', 'bg-blue-50', 'text-blue-700');
+        setTimeout(() => {
+            const targetTab = document.getElementById('empTab-' + tabName);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.style.opacity = '0';
+                setTimeout(() => {
+                    targetTab.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                    targetTab.style.opacity = '1';
+                }, 20);
+            }
+        }, 130);
+
+        const activeBtn = document.getElementById('tabBtn-' + tabName);
+        if (activeBtn) activeBtn.classList.add('active-emp-tab', 'bg-blue-50', 'text-blue-700');
+    }
 
     try {
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
+        if (tabName === 'payment') {
+            const pMonth = document.getElementById('paymentMonthInput')?.value;
+            if (pMonth) url.searchParams.set('month', pMonth);
+        } else if (tabName === 'attendance') {
+            const aDate = document.getElementById('attendanceDateInput')?.value;
+            if (aDate) url.searchParams.set('date', aDate);
+        }
         window.history.replaceState({}, '', url);
     } catch(e) {}
 }
@@ -251,12 +291,16 @@ function deleteEmployeeAjax(empId, empName, btnEl) {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    if (window.showToast) window.showToast('danger', data.message);
+                    if (window.showToast) window.showToast('success', data.message);
                     
                     // 1. Remove from Directory Tab
                     const tr = document.getElementById(`row-emp-${empId}`) || (btnEl ? btnEl.closest('tr') : null);
                     if (tr) {
-                        $(tr).fadeOut(300, function() { $(this).remove(); });
+                        if (window.ERPTableHelper) {
+                            window.ERPTableHelper.removeRow(tr);
+                        } else {
+                            $(tr).fadeOut(300, function() { $(this).remove(); });
+                        }
                     }
 
                     // 2. Remove from Attendance Tab
@@ -286,10 +330,14 @@ function deleteEmployeeAjax(empId, empName, btnEl) {
 
 function loadAttendanceForDate(dateVal) {
     document.getElementById('attendanceFormDate').value = dateVal;
+    const attForm = document.getElementById('attendanceForm');
+    if (attForm) {
+        attForm.setAttribute('data-redirect', `/employees?date=${dateVal}&tab=attendance`);
+    }
     if (window.loadPage) {
         window.loadPage(`/employees?date=${dateVal}&tab=attendance`);
     } else {
-        window.location.href = `/employees?date=${dateVal}`;
+        window.location.href = `/employees?date=${dateVal}&tab=attendance`;
     }
 }
 
@@ -309,6 +357,11 @@ function filterPaymentMonth(monthVal) {
 function openAdvanceModal(staffId) {
     if (staffId && document.getElementById('advanceStaffSelect')) {
         document.getElementById('advanceStaffSelect').value = staffId;
+    }
+    const currentMonth = document.getElementById('paymentMonthInput')?.value || '';
+    const advanceForm = document.getElementById('advanceForm');
+    if (advanceForm && currentMonth) {
+        advanceForm.setAttribute('data-redirect', `/employees?month=${currentMonth}&tab=payment`);
     }
     const modal = document.getElementById('giveAdvanceModal');
     if (modal) modal.classList.remove('hidden');
@@ -390,6 +443,15 @@ function openEmployeeStatementModal(staffId, overrideRange = null, overrideMonth
                 netDueCard.className = 'p-4 rounded-2xl bg-rose-50/70 border border-rose-200/80 space-y-1';
             } else {
                 netDueCard.className = 'p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-1';
+            }
+        }
+
+        const payDueBtn = document.getElementById('stmtPaySalaryBtn');
+        if (payDueBtn) {
+            if (dueVal > 0) {
+                payDueBtn.classList.remove('hidden');
+            } else {
+                payDueBtn.classList.add('hidden');
             }
         }
 
@@ -487,6 +549,9 @@ function openPaymentModal(btnOrStaff, monthYear, daysPresent, calculatedSalary, 
         if (btnOrStaff.dataset.pendingAdvance) {
             pendingAdvance = parseFloat(btnOrStaff.dataset.pendingAdvance) || 0;
         }
+        if (btnOrStaff.dataset.advanceDetails) {
+            try { advanceDetails = JSON.parse(btnOrStaff.dataset.advanceDetails) || []; } catch(e) {}
+        }
         if (btnOrStaff.dataset.missingDates) {
             try { missingDates = JSON.parse(btnOrStaff.dataset.missingDates) || []; } catch(e) {}
         }
@@ -501,6 +566,23 @@ function openPaymentModal(btnOrStaff, monthYear, daysPresent, calculatedSalary, 
     document.getElementById('paymentMonthYear').value = monthYear;
     document.getElementById('paymentEmployeeName').innerText = staff.full_name;
     document.getElementById('paymentMonthBadge').innerText = monthYear;
+
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.setAttribute('data-redirect', `/employees?month=${monthYear}&tab=payment`);
+    }
+
+    const advDatesEl = document.getElementById('paymentAdvanceDatesText');
+    if (advDatesEl) {
+        if (advanceDetails && advanceDetails.length > 0) {
+            const dStr = advanceDetails.map(a => `${a.date_short || a.date} (₹${(a.amount || 0).toLocaleString('en-IN')})`).join(', ');
+            advDatesEl.innerText = `Given on: ${dStr}`;
+            advDatesEl.classList.remove('hidden');
+        } else {
+            advDatesEl.innerText = '';
+            advDatesEl.classList.add('hidden');
+        }
+    }
 
     const missingAlert = document.getElementById('paymentMissingDatesAlert');
     const missingList = document.getElementById('paymentMissingDatesList');
@@ -525,12 +607,21 @@ function openPaymentModal(btnOrStaff, monthYear, daysPresent, calculatedSalary, 
     const advBadge = document.getElementById('paymentPendingAdvanceBadge');
     if (advBadge) advBadge.innerText = `₹${pendingAdvance.toFixed(2)}`;
 
+    let initialGross = 0;
+    if (currentWageType === 'per-day') {
+        const days = parseFloat(document.getElementById('paymentDaysInput').value) || 0;
+        initialGross = days * currentStaffRate;
+    } else {
+        initialGross = currentStaffRate;
+    }
+
     const advDeductInput = document.getElementById('paymentAdvanceDeductionInput');
     if (advDeductInput) {
         if (payment && payment.advance_deduction !== undefined && payment.advance_deduction !== null) {
             advDeductInput.value = parseFloat(payment.advance_deduction).toFixed(2);
         } else {
-            advDeductInput.value = pendingAdvance.toFixed(2);
+            const defaultDeduction = Math.min(pendingAdvance, initialGross);
+            advDeductInput.value = defaultDeduction.toFixed(2);
         }
     }
 
@@ -575,6 +666,20 @@ function calculateModalSalary() {
     const salaryInput = document.getElementById('paymentTotalSalaryInput');
     if (salaryInput) {
         salaryInput.value = net.toFixed(2);
+    }
+
+    const modalPendingAdvance = parseFloat(document.getElementById('paymentPendingAdvanceBadge')?.innerText?.replace(/[₹,]/g, '')) || 0;
+    const carryoverNotice = document.getElementById('paymentAdvanceCarryoverNotice');
+    const carryoverAmount = document.getElementById('paymentCarryoverAmount');
+
+    if (carryoverNotice && carryoverAmount) {
+        const carryover = modalPendingAdvance - advanceDeduction;
+        if (carryover > 0 && modalPendingAdvance > 0) {
+            carryoverAmount.innerText = '₹' + carryover.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            carryoverNotice.classList.remove('hidden');
+        } else {
+            carryoverNotice.classList.add('hidden');
+        }
     }
 }
 
@@ -643,7 +748,7 @@ if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable && !window.salaryFilterRe
 (function() {
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab') || "{{ $currentEmpTab ?? 'directory' }}";
-    switchEmpTab(activeTab);
+    switchEmpTab(activeTab, true);
 
     const wageSelect = document.getElementById('wageTypeSelect');
     if (wageSelect) {

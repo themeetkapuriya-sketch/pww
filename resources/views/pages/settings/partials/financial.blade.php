@@ -93,4 +93,122 @@
             </div>
         </form>
     </div>
+
+    <!-- Financial Year Period Lock Card -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Financial Year Period Lock (Audit Protection)
+                </h3>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">
+                    Lock closed financial years after tax filing or CA audit. Locked periods remain 100% viewable & printable, but accidental edits or deletions are blocked.
+                </p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg w-fit">
+                🔒 Tamper Prevention
+            </span>
+        </div>
+
+        @php
+            $fyList = \App\Services\FinancialYearService::getFinancialYearsList(5);
+        @endphp
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold">
+                    <tr>
+                        <th class="py-3 px-4">Financial Period</th>
+                        <th class="py-3 px-4 text-center">Period Status</th>
+                        <th class="py-3 px-4 text-center">Audit Lock State</th>
+                        <th class="py-3 px-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach($fyList as $fy)
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-4 font-bold text-slate-800">
+                                {{ $fy['label'] }}
+                                @if($fy['is_current'])
+                                    <span class="ml-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[10px] font-bold">Active Year</span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                @if($fy['is_current'])
+                                    <span class="text-slate-600 font-medium">Ongoing FY</span>
+                                @else
+                                    <span class="text-slate-500 font-medium">Closed FY</span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                @if($fy['is_locked'])
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 rounded-full text-xs font-bold shadow-2xs">
+                                        🔒 Locked (Protected)
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold shadow-2xs">
+                                        🟢 Open for Editing
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <form action="{{ route('settings.financial.toggle_lock') }}" method="POST" class="inline" onsubmit="return handlePeriodLockSubmit(event, '{{ $fy['key'] }}', {{ $fy['is_locked'] ? 'false' : 'true' }})">
+                                    @csrf
+                                    <input type="hidden" name="year_key" value="{{ $fy['key'] }}">
+                                    <input type="hidden" name="lock_action" value="{{ $fy['is_locked'] ? 'unlock' : 'lock' }}">
+                                    @if($fy['is_locked'])
+                                        <button type="submit" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-300 cursor-pointer">
+                                            🔓 Unlock Period
+                                        </button>
+                                    @else
+                                        <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shadow-2xs cursor-pointer">
+                                            🔒 Lock Period
+                                        </button>
+                                    @endif
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+<script>
+function handlePeriodLockSubmit(e, yearKey, isLocking) {
+    e.preventDefault();
+    const form = e.target;
+    const actionText = isLocking ? 'LOCK' : 'UNLOCK';
+    const confirmMsg = isLocking 
+        ? `Are you sure you want to LOCK Financial Year ${yearKey}? All invoices, purchases, expenses, and salary records dated in this year will be protected from edits and deletions.`
+        : `Are you sure you want to UNLOCK Financial Year ${yearKey}? Editing and modifications will be temporarily re-enabled.`;
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: `${actionText} Financial Year ${yearKey}?`,
+            text: confirmMsg,
+            icon: isLocking ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonColor: isLocking ? '#D97706' : '#2563EB',
+            cancelButtonColor: '#64748B',
+            confirmButtonText: `Yes, ${actionText} FY`,
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-xl font-bold px-6 py-2.5',
+                cancelButton: 'rounded-xl font-bold px-6 py-2.5'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    } else {
+        if (confirm(confirmMsg)) form.submit();
+    }
+    return false;
+}
+</script>

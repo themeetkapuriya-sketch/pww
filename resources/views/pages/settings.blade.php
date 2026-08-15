@@ -152,6 +152,53 @@
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Category Label / Name <span class="text-rose-500">*</span></label>
                 <input type="text" name="label" id="categoryLabelInput" required placeholder="e.g. Factory Repairs" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
             </div>
+            <div id="categoryIconWrapper" class="hidden space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-600 uppercase">Category Icon / Emoji</label>
+                    <span class="text-[10px] text-slate-400 font-medium">Click icon or press <kbd class="px-1 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-[9px] font-bold text-slate-600">Win + .</kbd></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl shrink-0" id="categoryIconPreview">📦</div>
+                    <input type="text" name="icon" id="categoryIconInput" placeholder="e.g. 🎨 or 🔩 or 📦"
+                           oninput="document.getElementById('categoryIconPreview').innerText = this.value || '📦'"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition">
+                </div>
+                
+                <!-- Quick Emoji Chips Grid -->
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Quick Select Popular Material Icons:</span>
+                    <div class="grid grid-cols-8 gap-1.5 p-2 bg-slate-50 border border-slate-200/80 rounded-xl">
+                        @php
+                            $quickEmojis = [
+                                ['icon' => '🔩', 'title' => 'Pipes / Metal / Screws'],
+                                ['icon' => '🎨', 'title' => 'Powder / Paints'],
+                                ['icon' => '📐', 'title' => 'Sheets / Plates'],
+                                ['icon' => '⚡', 'title' => 'Welding & Gas'],
+                                ['icon' => '🔧', 'title' => 'Hardware & Tools'],
+                                ['icon' => '📦', 'title' => 'Packages & Cartons'],
+                                ['icon' => '🧪', 'title' => 'Chemicals & Liquids'],
+                                ['icon' => '🪵', 'title' => 'Wood & Pallets'],
+                                ['icon' => '🔲', 'title' => 'Rubber & Seals'],
+                                ['icon' => '⚙️', 'title' => 'Gears & Machinery'],
+                                ['icon' => '🪚', 'title' => 'Blades & Cutting'],
+                                ['icon' => '🧲', 'title' => 'Magnets & Alloys'],
+                                ['icon' => '🛡️', 'title' => 'Safety & Protective'],
+                                ['icon' => '🏷️', 'title' => 'Labels & Tags'],
+                                ['icon' => '🛢️', 'title' => 'Oil & Drums'],
+                                ['icon' => '🧵', 'title' => 'Threads & Ropes'],
+                            ];
+                        @endphp
+                        @foreach($quickEmojis as $qEmoji)
+                            <button type="button" 
+                                    onclick="selectQuickCategoryEmoji('{{ $qEmoji['icon'] }}')"
+                                    title="{{ $qEmoji['title'] }}"
+                                    class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 hover:scale-110 transition flex items-center justify-center text-base cursor-pointer shadow-2xs">
+                                {{ $qEmoji['icon'] }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
             <div class="pt-2 flex justify-end gap-2">
                 <button type="button" onclick="closeCategoryModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-5 rounded-xl transition shadow-xs cursor-pointer">Save Category</button>
@@ -163,7 +210,12 @@
 <script>
 // --- Navigation Tab Switching ---
 window.switchSettingsTab = function(tabKey) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-content').forEach(el => {
+        if (!el.classList.contains('hidden')) {
+            el.style.opacity = '0';
+            setTimeout(() => el.classList.add('hidden'), 120);
+        }
+    });
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active-tab-btn');
         btn.classList.add('text-slate-600');
@@ -172,7 +224,17 @@ window.switchSettingsTab = function(tabKey) {
     const targetTab = document.getElementById(`settingsTab-${tabKey}`);
     const targetBtn = document.getElementById(`tabBtn-${tabKey}`);
 
-    if (targetTab) targetTab.classList.remove('hidden');
+    setTimeout(() => {
+        if (targetTab) {
+            targetTab.classList.remove('hidden');
+            targetTab.style.opacity = '0';
+            setTimeout(() => {
+                targetTab.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                targetTab.style.opacity = '1';
+            }, 20);
+        }
+    }, 130);
+
     if (targetBtn) {
         targetBtn.classList.add('active-tab-btn');
         targetBtn.classList.remove('text-slate-600');
@@ -199,9 +261,24 @@ window.toggleOtherSettingsDropdown = function(e) {
 };
 
 window.selectOtherSettingsSub = function(subKey) {
-    document.querySelectorAll('.sub-tab-content').forEach(el => el.classList.add('hidden'));
-    const targetSub = document.getElementById(`subTab-${subKey}`);
-    if (targetSub) targetSub.classList.remove('hidden');
+    document.querySelectorAll('.sub-tab-content').forEach(el => {
+        if (!el.classList.contains('hidden')) {
+            el.style.opacity = '0';
+            setTimeout(() => el.classList.add('hidden'), 120);
+        }
+    });
+
+    setTimeout(() => {
+        const targetSub = document.getElementById(`subTab-${subKey}`);
+        if (targetSub) {
+            targetSub.classList.remove('hidden');
+            targetSub.style.opacity = '0';
+            setTimeout(() => {
+                targetSub.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                targetSub.style.opacity = '1';
+            }, 20);
+        }
+    }, 130);
 
     const menu = document.getElementById('otherSettingsDropdownMenu');
     if (menu) menu.classList.add('hidden');
@@ -218,6 +295,9 @@ window.selectOtherSettingsSub = function(subKey) {
     if (labelEl && subLabels[subKey]) labelEl.innerText = subLabels[subKey];
 
     switchSettingsTab('other');
+    if (subKey === 'serials') {
+        setTimeout(window.updateSerialPreview, 50);
+    }
 
     try {
         const url = new URL(window.location);
@@ -230,10 +310,12 @@ window.selectOtherSettingsSub = function(subKey) {
 
 // --- Live Serial Pattern Preview ---
 window.updateSerialPreview = function() {
-    const prefix = $('#invoice_prefix_input').val() || '';
-    const seq = parseInt($('#invoice_seq_input').val()) || 1;
-    const dateFormat = $('#serial_date_format_select').val() || 'Ymd';
-    const digits = parseInt($('#serial_number_digits_select').val()) || 4;
+    const invPrefix = $('#invoice_prefix_input').val() ?? '';
+    const invSeq = parseInt($('#invoice_seq_input').val()) || 1;
+    const ordPrefix = $('#order_prefix_input').val() ?? '';
+    const ordSeq = parseInt($('#order_seq_input').val()) || 1;
+    const dateFormat = $('#serial_date_format_select').val() || 'none';
+    const digits = parseInt($('#serial_number_digits_select').val()) || 1;
 
     const today = new Date();
     const YYYY = today.getFullYear();
@@ -242,13 +324,28 @@ window.updateSerialPreview = function() {
     const YY = String(YYYY).slice(-2);
 
     let dateStr = '';
-    if (dateFormat === 'Ymd') dateStr = `${YYYY}${MM}${DD}-`;
-    else if (dateFormat === 'Ym') dateStr = `${YYYY}${MM}-`;
-    else if (dateFormat === 'ym') dateStr = `${YY}${MM}-`;
-    else if (dateFormat === 'FY') dateStr = `${YY}${parseInt(YY)+1}-`;
+    if (dateFormat === 'Ymd') dateStr = `${YYYY}${MM}${DD}`;
+    else if (dateFormat === 'Ym') dateStr = `${YYYY}${MM}`;
+    else if (dateFormat === 'ym') dateStr = `${YY}${MM}`;
+    else if (dateFormat === 'FY') {
+        const month = today.getMonth() + 1;
+        const fyStart = month >= 4 ? YY : String(parseInt(YY) - 1).padStart(2, '0');
+        const fyEnd = month >= 4 ? String(parseInt(YY) + 1).padStart(2, '0') : YY;
+        dateStr = `${fyStart}${fyEnd}`;
+    }
 
-    const formattedSeq = String(seq).padStart(digits, '0');
-    $('#invoice_sample_preview').text(`${prefix}${dateStr}${formattedSeq}`);
+    function formatNumber(prefix, seq) {
+        const formattedSeq = digits > 1 ? String(seq).padStart(digits, '0') : String(seq);
+        if (dateStr) {
+            if (!prefix) return `${dateStr}-${formattedSeq}`;
+            const sep = (prefix.endsWith('-') || prefix.endsWith('/')) ? '' : '-';
+            return `${prefix}${sep}${dateStr}-${formattedSeq}`;
+        }
+        return `${prefix}${formattedSeq}`;
+    }
+
+    $('#invoice_sample_preview').text(formatNumber(invPrefix, invSeq));
+    $('#order_sample_preview').text(formatNumber(ordPrefix, ordSeq));
 };
 
 // --- Generic Inline Error Helpers ---
@@ -343,12 +440,12 @@ function submitFormWithAjax($form, successMsg, customValidate, onSuccess) {
         return false;
     }
 
-    if (!$btn.data('orig-text')) {
-        $btn.data('orig-text', $btn.html());
+    if (window.setButtonLoading) {
+        window.setButtonLoading($btn, true, 'Saving...');
+    } else {
+        $btn.prop('disabled', true).html('Saving...');
     }
-    const origHtml = $btn.data('orig-text');
-
-    $btn.data('is-submitting', true).prop('disabled', true).html('Saving...');
+    $btn.data('is-submitting', true);
 
     const formData = new FormData($form[0]);
 
@@ -360,7 +457,12 @@ function submitFormWithAjax($form, successMsg, customValidate, onSuccess) {
         contentType: false,
         headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'), 'Accept': 'application/json' },
         success: function(res) {
-            $btn.prop('disabled', false).html(origHtml).removeData('is-submitting');
+            $btn.removeData('is-submitting');
+            if (window.setButtonLoading) {
+                window.setButtonLoading($btn, false);
+            } else {
+                $btn.prop('disabled', false).html('Save');
+            }
             if (res.success) {
                 if (window.showToast) {
                     window.showToast('success', res.message || successMsg);
@@ -369,11 +471,16 @@ function submitFormWithAjax($form, successMsg, customValidate, onSuccess) {
                     onSuccess($form, res);
                 }
             } else {
-                if (window.showToast) window.showToast('danger', res.message || 'Action failed.');
+                if (window.showToast) window.showToast('error', res.message || 'Action failed.');
             }
         },
         error: function(xhr) {
-            $btn.prop('disabled', false).html(origHtml).removeData('is-submitting');
+            $btn.removeData('is-submitting');
+            if (window.setButtonLoading) {
+                window.setButtonLoading($btn, false);
+            } else {
+                $btn.prop('disabled', false).html('Save');
+            }
             let globalMsg = 'Please correct the highlighted fields.';
             if (xhr.responseJSON) {
                 if (xhr.responseJSON.errors && typeof xhr.responseJSON.errors === 'object') {
@@ -641,7 +748,11 @@ window.deleteUserAjax = function(id, name, btn) {
                 success: function(res) {
                     if (res.success) {
                         if (window.showToast) window.showToast('success', res.message);
-                        $(btn).closest('tr').fadeOut(400, function() { $(this).remove(); });
+                        if (window.ERPTableHelper) {
+                            window.ERPTableHelper.removeRow($(btn).closest('tr'));
+                        } else {
+                            $(btn).closest('tr').fadeOut(400, function() { $(this).remove(); });
+                        }
                     }
                 }
             });
@@ -781,12 +892,22 @@ window.closeAddRoleModal = function() {
     document.getElementById('addRoleModal').classList.add('hidden');
 };
 
+window.selectQuickCategoryEmoji = function(emoji) {
+    const input = document.getElementById('categoryIconInput');
+    const preview = document.getElementById('categoryIconPreview');
+    if (input) input.value = emoji;
+    if (preview) preview.innerText = emoji;
+};
+
 window.openAddCategoryModal = function(type) {
     const modal = document.getElementById('categoryModal');
     const title = document.getElementById('categoryModalTitle');
     const typeInput = document.getElementById('categoryTypeInput');
     const keyInput = document.getElementById('categoryKeyInput');
     const labelInput = document.getElementById('categoryLabelInput');
+    const iconInput = document.getElementById('categoryIconInput');
+    const iconPreview = document.getElementById('categoryIconPreview');
+    const iconWrapper = document.getElementById('categoryIconWrapper');
     const form = document.getElementById('categoryForm');
 
     if (modal && form) {
@@ -794,17 +915,29 @@ window.openAddCategoryModal = function(type) {
         if (typeInput) typeInput.value = type;
         if (keyInput) keyInput.value = '';
         if (labelInput) labelInput.value = '';
-        if (title) title.innerText = type === 'purchase' ? 'Add Purchase Category' : 'Add Expense Category';
+        if (iconInput) iconInput.value = type === 'material' ? '📦' : '';
+        if (iconPreview) iconPreview.innerText = type === 'material' ? '📦' : '📦';
+        if (iconWrapper) {
+            iconWrapper.style.display = type === 'material' ? 'block' : 'none';
+        }
+        if (title) {
+            if (type === 'purchase') title.innerText = 'Add Purchase Category';
+            else if (type === 'expense') title.innerText = 'Add Expense Category';
+            else title.innerText = 'Add Raw Material Category';
+        }
         modal.classList.remove('hidden');
     }
 };
 
-window.openEditCategoryModal = function(type, key, currentLabel) {
+window.openEditCategoryModal = function(type, key, currentLabel, currentIcon = '') {
     const modal = document.getElementById('categoryModal');
     const title = document.getElementById('categoryModalTitle');
     const typeInput = document.getElementById('categoryTypeInput');
     const keyInput = document.getElementById('categoryKeyInput');
     const labelInput = document.getElementById('categoryLabelInput');
+    const iconInput = document.getElementById('categoryIconInput');
+    const iconPreview = document.getElementById('categoryIconPreview');
+    const iconWrapper = document.getElementById('categoryIconWrapper');
     const form = document.getElementById('categoryForm');
 
     if (modal && form) {
@@ -812,7 +945,17 @@ window.openEditCategoryModal = function(type, key, currentLabel) {
         if (typeInput) typeInput.value = type;
         if (keyInput) keyInput.value = key;
         if (labelInput) labelInput.value = currentLabel;
-        if (title) title.innerText = type === 'purchase' ? 'Edit Purchase Category' : 'Edit Expense Category';
+        const finalIcon = currentIcon || (type === 'material' ? '📦' : '');
+        if (iconInput) iconInput.value = finalIcon;
+        if (iconPreview) iconPreview.innerText = finalIcon || '📦';
+        if (iconWrapper) {
+            iconWrapper.style.display = type === 'material' ? 'block' : 'none';
+        }
+        if (title) {
+            if (type === 'purchase') title.innerText = 'Edit Purchase Category';
+            else if (type === 'expense') title.innerText = 'Edit Expense Category';
+            else title.innerText = 'Edit Raw Material Category';
+        }
         modal.classList.remove('hidden');
     }
 };
@@ -1002,6 +1145,12 @@ window.togglePasswordVisibility = function(inputId, eyeId, eyeOffId) {
     } else {
         switchSettingsTab(activeTab);
     }
+
+    setTimeout(function() {
+        if (typeof window.updateSerialPreview === 'function') {
+            window.updateSerialPreview();
+        }
+    }, 100);
 
     // Dropdown toggle for mobile/desktop settings nav
     $(document).off('click', '#otherSettingsDropdownBtn').on('click', '#otherSettingsDropdownBtn', function(e) {

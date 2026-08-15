@@ -59,6 +59,7 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/bom` | `POST` | `BomController@storeBom` | `StoreBomRequest` | `bom.store` | JSON (200 / 422) |
+| `/bom/{id}` | `PUT` | `BomController@updateBom` | Inline | `bom.update` | JSON (200 / 422) |
 | `/bom/{id}` | `DELETE` | `BomController@deleteBom` | - | `bom.delete` | JSON (200) |
 
 #### ⚙️ Production & Labor Logs (`ProductionController`)

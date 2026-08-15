@@ -554,14 +554,25 @@
             </div>
             <div class="space-y-2">
                 @forelse($lowStockMaterials as $mat)
-                    <div class="p-3 bg-rose-50/50 rounded-xl border border-rose-100 flex items-center justify-between">
-                        <div>
-                            <div class="text-xs font-bold text-slate-800">{{ $mat->material_name }}</div>
-                            <div class="text-[11px] font-medium text-slate-500">Avg Rate: ₹{{ format_indian($mat->average_purchase_price, 2) }} / {{ $mat->unit }}</div>
+                    @php
+                        $suggestedQty = $mat->suggested_reorder_quantity;
+                        $rate = (float)($mat->average_purchase_price ?? 0);
+                    @endphp
+                    <div class="p-2.5 bg-rose-50/60 rounded-xl border border-rose-100 flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-slate-800 truncate">{{ $mat->material_name }}</div>
+                            <div class="text-[10.5px] font-medium text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                <span class="font-bold text-rose-700 font-mono">{{ format_indian($mat->current_stock, 1) }}</span>
+                                <span class="text-slate-400">/ Min: {{ format_indian($mat->safety_threshold, 1) }} {{ $mat->unit }}</span>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-xs font-black text-rose-700">{{ format_indian($mat->current_stock, 2) }} {{ $mat->unit }}</div>
-                            <div class="text-[10px] font-bold text-slate-400">Min: {{ format_indian($mat->safety_threshold, 2) }} {{ $mat->unit }}</div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <a href="{{ route('purchases', ['prefill_raw_material' => $mat->id, 'prefill_qty' => $suggestedQty, 'prefill_price' => $rate]) }}"
+                               title="1-Click Launch Purchase Bill"
+                               class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer">
+                                <span>⚡ Restock</span>
+                                <span class="font-mono text-[9px]">({{ number_format($suggestedQty, 0) }})</span>
+                            </a>
                         </div>
                     </div>
                 @empty

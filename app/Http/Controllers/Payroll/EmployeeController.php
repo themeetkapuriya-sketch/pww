@@ -31,7 +31,7 @@ class EmployeeController extends Controller
      */
     public function employees(Request $request): View
     {
-        $staffProfiles = StaffProfile::orderBy('full_name')->get();
+        $staffProfiles = StaffProfile::orderByDesc('id')->get();
         $activeStaffProfiles = $staffProfiles->where('is_active', true);
         $selectedDate = (string) $request->input('date', now()->toDateString());
         $selectedMonth = (string) $request->input('month', now()->format('Y-m'));
@@ -41,35 +41,25 @@ class EmployeeController extends Controller
             ->pluck('status', 'staff_profile_id')
             ->toArray();
 
-        // Monthly Attendance summary (Calculates total present days per employee from recorded attendance records)
+        // Monthly Attendance summary (Calculates total present days per employee)
         $carbonMonth = Carbon::parse($selectedMonth . '-01');
         $daysInMonth = $carbonMonth->daysInMonth;
+        $now = Carbon::now();
 
-        $selectedMonthStart = $selectedMonth . '-01';
-        $selectedMonthEnd = sprintf('%s-%02d', $selectedMonth, $daysInMonth);
-
-        $allAttendance = AttendanceRecord::whereBetween('date', [$selectedMonthStart, $selectedMonthEnd])
-            ->get()
-            ->groupBy('staff_profile_id');
-
-        $monthlyAttendance = collect();
-        $missingAttendanceDates = collect();
-
-        foreach ($staffProfiles as $staff) {
-            $staffRecords = $allAttendance->get($staff->id, collect());
-
-            $payableDays = 0.00;
-            foreach ($staffRecords as $rec) {
-                if ($rec->status === 'present') {
-                    $payableDays += 1.0;
-                } elseif ($rec->status === 'half_day') {
-                    $payableDays += 0.5;
-                }
-            }
-
-            $monthlyAttendance->put($staff->id, $payableDays);
-            $missingAttendanceDates->put($staff->id, []);
+        if ($carbonMonth->format('Y-m') === $now->format('Y-m')) {
+            $limitDay = $now->day;
+        } elseif ($carbonMonth->isPast()) {
+            $limitDay = $daysInMonth;
+        } else {
+            $limitDay = 0;
         }
+
+        [$monthlyAttendance, $missingAttendanceDates] = $this->computeMonthlyAttendance(
+            $staffProfiles,
+            $selectedMonth,
+            $limitDay,
+            $daysInMonth
+        );
 
         // Salary payments for selected month
         $salaryPayments = SalaryPayment::where('month_year', $selectedMonth)
@@ -93,14 +83,28 @@ class EmployeeController extends Controller
             return ($selectedMonth === $nowMonth && ! $isPaid);
         });
 
-        // Fast SQL aggregation for pending advances up to the selected month
+        // Fast SQL aggregation and date tracking for pending advances up to the selected month
         $selectedMonthEnd = Carbon::parse($selectedMonth . '-01')->endOfMonth()->format('Y-m-d');
-        $pendingAdvances = SalaryAdvance::where('status', 'pending')
+        $pendingAdvancesRecords = SalaryAdvance::where('status', 'pending')
             ->where('advance_date', '<=', $selectedMonthEnd)
-            ->groupBy('staff_profile_id')
-            ->selectRaw('staff_profile_id, SUM(amount) as total_amount')
-            ->pluck('total_amount', 'staff_profile_id')
-            ->toArray();
+            ->orderBy('advance_date', 'asc')
+            ->get()
+            ->groupBy('staff_profile_id');
+
+        $pendingAdvances = [];
+        $pendingAdvanceDetails = [];
+
+        foreach ($pendingAdvancesRecords as $staffId => $advList) {
+            $pendingAdvances[$staffId] = (float) $advList->sum('amount');
+            $pendingAdvanceDetails[$staffId] = $advList->map(function ($adv) {
+                return [
+                    'amount' => (float) $adv->amount,
+                    'date' => $adv->advance_date ? Carbon::parse($adv->advance_date)->format('d M Y') : '',
+                    'date_short' => $adv->advance_date ? Carbon::parse($adv->advance_date)->format('d M') : '',
+                    'notes' => $adv->notes,
+                ];
+            })->values()->toArray();
+        }
 
         $activeTab = (string) $request->input('tab', 'directory');
 
@@ -115,7 +119,8 @@ class EmployeeController extends Controller
             'monthlyAttendance',
             'missingAttendanceDates',
             'salaryPayments',
-            'pendingAdvances'
+            'pendingAdvances',
+            'pendingAdvanceDetails'
         ));
     }
 
@@ -227,11 +232,46 @@ class EmployeeController extends Controller
             });
 
         $daysPresent = 0.00;
-        foreach ($staffAttendanceRecords as $rec) {
-            if ($rec->status === 'present') {
-                $daysPresent += 1.0;
-            } elseif ($rec->status === 'half_day') {
-                $daysPresent += 0.5;
+        if ($staff->is_active) {
+            $carbonMonth = Carbon::parse($selectedMonth . '-01');
+            $daysInMonth = $carbonMonth->daysInMonth;
+            $now = Carbon::now();
+
+            if ($carbonMonth->format('Y-m') === $now->format('Y-m')) {
+                $limitDay = $now->day;
+            } elseif ($carbonMonth->isPast()) {
+                $limitDay = $daysInMonth;
+            } else {
+                $limitDay = 0;
+            }
+
+            $staffCreatedDate = $staff->created_at ? $staff->created_at->format('Y-m-d') : null;
+
+            for ($d = 1; $d <= $limitDay; $d++) {
+                $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
+
+                if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
+                    continue;
+                }
+
+                if ($staffAttendanceRecords->has($dateStr)) {
+                    $status = $staffAttendanceRecords->get($dateStr)->status;
+                    if ($status === 'present') {
+                        $daysPresent += 1.0;
+                    } elseif ($status === 'half_day') {
+                        $daysPresent += 0.5;
+                    }
+                } else {
+                    $daysPresent += 1.0;
+                }
+            }
+        } else {
+            foreach ($staffAttendanceRecords as $rec) {
+                if ($rec->status === 'present') {
+                    $daysPresent += 1.0;
+                } elseif ($rec->status === 'half_day') {
+                    $daysPresent += 0.5;
+                }
             }
         }
 
@@ -372,6 +412,15 @@ class EmployeeController extends Controller
             'attendance.*' => 'required|in:present,half_day,absent',
         ]);
 
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Modifying attendance in locked periods is disabled.",
+            ], 422);
+        }
+
         try {
             foreach ($validated['attendance'] as $staffId => $status) {
                 AttendanceRecord::updateOrCreate(
@@ -388,6 +437,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Daily attendance for '.Carbon::parse($validated['date'])->format('d M, Y').' saved successfully!',
+                'redirect' => route('employees', ['date' => $validated['date'], 'tab' => 'attendance']),
             ]);
         } catch (Throwable $e) {
             Log::error('Failed to save attendance: '.$e->getMessage());
@@ -405,16 +455,63 @@ class EmployeeController extends Controller
     public function getMonthlySummary(Request $request): Response
     {
         $month = (string) $request->input('month', now()->format('Y-m'));
+        $carbonMonth = Carbon::parse($month . '-01');
+        $daysInMonth = $carbonMonth->daysInMonth;
+        $now = Carbon::now();
 
-        $summary = AttendanceRecord::where('date', 'like', "{$month}%")
+        if ($carbonMonth->format('Y-m') === $now->format('Y-m')) {
+            $limitDay = $now->day;
+        } elseif ($carbonMonth->isPast()) {
+            $limitDay = $daysInMonth;
+        } else {
+            $limitDay = 0;
+        }
+
+        $allStaff = StaffProfile::all();
+        $allAttendance = AttendanceRecord::where('date', 'like', "{$month}%")
             ->get()
-            ->groupBy('staff_profile_id')
-            ->map(function ($records) {
-                $presentCount = $records->where('status', 'present')->count();
-                $halfDayCount = $records->where('status', 'half_day')->count();
+            ->groupBy('staff_profile_id');
 
-                return $presentCount + ($halfDayCount * 0.5);
+        $summary = collect();
+        foreach ($allStaff as $staff) {
+            $staffRecords = $allAttendance->get($staff->id, collect())->keyBy(function ($r) {
+                return $r->date instanceof Carbon ? $r->date->format('Y-m-d') : substr((string) $r->date, 0, 10);
             });
+
+            $payableDays = 0.00;
+            if ($staff->is_active) {
+                $staffCreatedDate = $staff->created_at ? $staff->created_at->format('Y-m-d') : null;
+
+                for ($d = 1; $d <= $limitDay; $d++) {
+                    $dateStr = sprintf('%s-%02d', $month, $d);
+
+                    if ($staffCreatedDate && $dateStr < $staffCreatedDate && $month === substr($staffCreatedDate, 0, 7)) {
+                        continue;
+                    }
+
+                    if ($staffRecords->has($dateStr)) {
+                        $status = $staffRecords->get($dateStr)->status;
+                        if ($status === 'present') {
+                            $payableDays += 1.0;
+                        } elseif ($status === 'half_day') {
+                            $payableDays += 0.5;
+                        }
+                    } else {
+                        $payableDays += 1.0;
+                    }
+                }
+            } else {
+                foreach ($staffRecords as $rec) {
+                    if ($rec->status === 'present') {
+                        $payableDays += 1.0;
+                    } elseif ($rec->status === 'half_day') {
+                        $payableDays += 0.5;
+                    }
+                }
+            }
+
+            $summary->put($staff->id, $payableDays);
+        }
 
         return response()->json([
             'success' => true,
@@ -443,6 +540,16 @@ class EmployeeController extends Controller
             'payment_method' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
+
+        $targetMonthDate = $validated['month_year'].'-01';
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($targetMonthDate)) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($targetMonthDate);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Settling salary in locked periods is disabled.",
+            ], 422);
+        }
 
         try {
             $staff = StaffProfile::findOrFail($validated['staff_profile_id']);
@@ -523,14 +630,56 @@ class EmployeeController extends Controller
                 ]
             );
 
-            // Reconcile pending advances if paid and advance deduction applied
+            // Reconcile pending advances with Carry Forward support
             if ($paymentStatus === 'paid' && $advanceDeduction > 0) {
-                SalaryAdvance::where('staff_profile_id', $staff->id)
+                $remainingDeduction = $advanceDeduction;
+
+                /** @var \Illuminate\Database\Eloquent\Collection<int, SalaryAdvance> $pendingAdvancesToDeduct */
+                $pendingAdvancesToDeduct = SalaryAdvance::where('staff_profile_id', $staff->id)
                     ->where('status', 'pending')
-                    ->update([
-                        'status' => 'deducted',
-                        'salary_payment_id' => $paymentRecord->id,
-                    ]);
+                    ->orderBy('advance_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                /** @var SalaryAdvance $adv */
+                foreach ($pendingAdvancesToDeduct as $adv) {
+                    if ($remainingDeduction <= 0) {
+                        break;
+                    }
+
+                    $advAmount = (float) $adv->amount;
+
+                    if ($remainingDeduction >= $advAmount) {
+                        $adv->update([
+                            'status' => 'deducted',
+                            'salary_payment_id' => $paymentRecord->id,
+                        ]);
+                        $remainingDeduction -= $advAmount;
+                    } else {
+                        // Partial deduction from this advance record:
+                        $unpaidCarryover = round($advAmount - $remainingDeduction, 2);
+
+                        $adv->update([
+                            'amount' => $remainingDeduction,
+                            'status' => 'deducted',
+                            'salary_payment_id' => $paymentRecord->id,
+                            'notes' => trim(($adv->notes ? $adv->notes . ' | ' : '') . "Deducted ₹{$remainingDeduction} in {$validated['month_year']}"),
+                        ]);
+
+                        // Create carry forward pending advance balance for next month
+                        SalaryAdvance::create([
+                            'staff_profile_id' => $staff->id,
+                            'advance_date' => $adv->advance_date,
+                            'amount' => $unpaidCarryover,
+                            'payment_method' => $adv->payment_method ?? 'Cash',
+                            'status' => 'pending',
+                            'expense_id' => null, // Expense was already logged when advance cash was disbursed
+                            'notes' => "Carry forward advance balance from {$adv->advance_date} ({$validated['month_year']})",
+                        ]);
+
+                        $remainingDeduction = 0;
+                    }
+                }
             }
 
             return response()->json([
@@ -539,6 +688,7 @@ class EmployeeController extends Controller
                     ? 'Salary of ₹'.number_format($totalSalary, 2)." paid for '{$staff->full_name}' and posted to Expenses Ledger!"
                     : "Salary payment record updated as PENDING for '{$staff->full_name}'.",
                 'data' => $paymentRecord,
+                'redirect' => route('employees', ['month' => $validated['month_year'], 'tab' => 'payment']),
             ]);
         } catch (Throwable $e) {
             Log::error('Failed to process salary payment: '.$e->getMessage());
@@ -561,6 +711,18 @@ class EmployeeController extends Controller
 
         try {
             $payment = SalaryPayment::findOrFail($id);
+            $month = $payment->month_year;
+
+            $targetDate = $month.'-01';
+            if (\App\Services\FinancialYearService::isFinancialYearLocked($targetDate)) {
+                $fy = \App\Services\FinancialYearService::getFinancialYearForDate($targetDate);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Deleting salary records from locked periods is disabled.",
+                ], 422);
+            }
+
             if ($payment->expense_id) {
                 Expense::where('id', $payment->expense_id)->delete();
             }
@@ -569,6 +731,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Salary payment record and linked expense deleted successfully!',
+                'redirect' => route('employees', ['month' => $month, 'tab' => 'payment']),
             ]);
         } catch (Throwable $e) {
             Log::error('Failed to delete salary payment: '.$e->getMessage());
@@ -597,6 +760,15 @@ class EmployeeController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
+        if (\App\Services\FinancialYearService::isFinancialYearLocked($validated['advance_date'])) {
+            $fy = \App\Services\FinancialYearService::getFinancialYearForDate($validated['advance_date']);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Giving advances in locked periods is disabled.",
+            ], 422);
+        }
+
         try {
             $staff = StaffProfile::findOrFail($validated['staff_profile_id']);
             $amount = (float) $validated['amount'];
@@ -622,10 +794,13 @@ class EmployeeController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
+            $advMonth = Carbon::parse($advanceDate)->format('Y-m');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Salary advance of ₹'.number_format($amount, 2)." issued to '{$staff->full_name}' and posted to Expenses Ledger!",
                 'data' => $advance,
+                'redirect' => route('employees', ['month' => $advMonth, 'tab' => 'payment']),
             ]);
         } catch (Throwable $e) {
             Log::error('Failed to record salary advance: '.$e->getMessage());
@@ -648,6 +823,18 @@ class EmployeeController extends Controller
 
         try {
             $advance = SalaryAdvance::findOrFail($id);
+            $advDate = $advance->advance_date ? Carbon::parse($advance->advance_date)->format('Y-m-d') : now()->format('Y-m-d');
+
+            if (\App\Services\FinancialYearService::isFinancialYearLocked($advDate)) {
+                $fy = \App\Services\FinancialYearService::getFinancialYearForDate($advDate);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Deleting advances from locked periods is disabled.",
+                ], 422);
+            }
+
+            $advMonth = Carbon::parse($advDate)->format('Y-m');
             if ($advance->expense_id) {
                 Expense::where('id', $advance->expense_id)->delete();
             }
@@ -656,6 +843,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Salary advance record deleted successfully.',
+                'redirect' => route('employees', ['month' => $advMonth, 'tab' => 'payment']),
             ]);
         } catch (Throwable $e) {
             return response()->json([
@@ -694,5 +882,70 @@ class EmployeeController extends Controller
                 'errors' => ['Failed to process payroll payment. Please try again.'],
             ], 500);
         }
+    }
+
+    /**
+     * Helper to compute monthly attendance summary for staff profiles.
+     */
+    private function computeMonthlyAttendance($staffProfiles, string $selectedMonth, int $limitDay, int $daysInMonth): array
+    {
+        $selectedMonthStart = $selectedMonth . '-01';
+        $selectedMonthEnd = sprintf('%s-%02d', $selectedMonth, $daysInMonth);
+
+        $allAttendance = AttendanceRecord::whereBetween('date', [$selectedMonthStart, $selectedMonthEnd])
+            ->get()
+            ->groupBy('staff_profile_id');
+
+        $monthlyAttendance = collect();
+        $missingAttendanceDates = collect();
+
+        foreach ($staffProfiles as $staff) {
+            $staffRecords = $allAttendance->get($staff->id, collect())->keyBy(function ($r) {
+                return $r->date instanceof Carbon ? $r->date->format('Y-m-d') : substr((string) $r->date, 0, 10);
+            });
+
+            $payableDays = 0.00;
+            $missingDates = [];
+
+            if ($staff->is_active) {
+                $staffCreatedDate = $staff->created_at ? $staff->created_at->format('Y-m-d') : null;
+
+                for ($d = 1; $d <= $limitDay; $d++) {
+                    $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
+
+                    // Skip days prior to employee profile creation if created in the selected month
+                    if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
+                        continue;
+                    }
+
+                    if ($staffRecords->has($dateStr)) {
+                        $status = $staffRecords->get($dateStr)->status;
+                        if ($status === 'present') {
+                            $payableDays += 1.0;
+                        } elseif ($status === 'half_day') {
+                            $payableDays += 0.5;
+                        }
+                    } else {
+                        // Unrecorded day -> Auto-count as Present (1.0) & track missing date
+                        $payableDays += 1.0;
+                        $missingDates[] = Carbon::parse($dateStr)->format('d M');
+                    }
+                }
+            } else {
+                // Inactive / Suspended employees: only count what was explicitly recorded
+                foreach ($staffRecords as $rec) {
+                    if ($rec->status === 'present') {
+                        $payableDays += 1.0;
+                    } elseif ($rec->status === 'half_day') {
+                        $payableDays += 0.5;
+                    }
+                }
+            }
+
+            $monthlyAttendance->put($staff->id, $payableDays);
+            $missingAttendanceDates->put($staff->id, $missingDates);
+        }
+
+        return [$monthlyAttendance, $missingAttendanceDates];
     }
 }

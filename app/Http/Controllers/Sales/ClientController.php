@@ -92,7 +92,7 @@ class ClientController extends Controller
      */
     public function clients()
     {
-        $clients = Client::with('plants')->orderBy('company_name')->get();
+        $clients = Client::with('plants')->orderByDesc('id')->get();
 
         return view('pages.clients', compact('clients'));
     }

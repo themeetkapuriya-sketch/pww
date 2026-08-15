@@ -32,6 +32,259 @@ window.formatIndianCurrency = function(amount, decimals = 2) {
 };
 window.formatINR = window.formatIndianCurrency;
 
+// 1. Universal Button Loading Spinner State Manager (Prevents double submits & adds smooth spinner)
+window.setButtonLoading = function(btn, isLoading, loadingText = 'Processing...') {
+    if (!btn) return;
+    const $btn = $(btn);
+    if (!$btn.length) return;
+
+    if (isLoading) {
+        if ($btn.data('is-loading')) return;
+        $btn.data('is-loading', true);
+        $btn.data('original-html', $btn.html());
+        $btn.prop('disabled', true).addClass('opacity-75 cursor-not-allowed pointer-events-none');
+        
+        $btn.html(`
+            <span class="inline-flex items-center justify-center gap-2">
+                <svg class="animate-spin h-3.5 w-3.5 text-current shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>${loadingText}</span>
+            </span>
+        `);
+    } else {
+        $btn.data('is-loading', false);
+        const originalHtml = $btn.data('original-html');
+        if (originalHtml !== undefined && originalHtml !== null) {
+            $btn.html(originalHtml);
+        }
+        $btn.prop('disabled', false).removeClass('opacity-75 opacity-50 cursor-not-allowed pointer-events-none');
+    }
+};
+
+let toastTimer = null;
+
+// 2. Universal Top-Right Corner Toast Notification Engine (Red for Delete/Error, Yellow for Update, Emerald/White for Success)
+window.showToast = function(type, message) {
+    const $toast = $('#globalToast');
+    const $icon = $('#toastIcon');
+    const $msgText = $('#toastMessage');
+    if (!$toast.length || !$icon.length || !$msgText.length) return;
+    
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+    }
+    
+    $msgText.text(message);
+
+    const typeLower = (type || '').toLowerCase();
+    const msgLower = (message || '').toLowerCase();
+    
+    const isDeleteOrError = (
+        typeLower === 'error' || 
+        typeLower === 'danger' || 
+        typeLower === 'delete' ||
+        msgLower.includes('delete') || 
+        msgLower.includes('deleted') ||
+        msgLower.includes('remove') ||
+        msgLower.includes('removed') ||
+        msgLower.includes('failed') ||
+        msgLower.includes('error')
+    );
+
+    const isWarning = (
+        typeLower === 'warning' ||
+        typeLower === 'warn' ||
+        msgLower.includes('warning') ||
+        msgLower.includes('required') ||
+        msgLower.includes('at least') ||
+        msgLower.includes('please select') ||
+        msgLower.includes('invalid')
+    );
+
+    const isInfo = (typeLower === 'info');
+
+    const $innerCard = $toast.find('> div');
+
+    if (isDeleteOrError) {
+        $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600 shrink-0')
+             .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
+        $innerCard.attr('class', 'bg-[#F43F5E] text-white shadow-2xl rounded-2xl p-4 flex items-center space-x-3 max-w-sm border border-rose-500 cursor-pointer transition-all duration-300');
+        $msgText.attr('class', 'text-sm font-bold text-white');
+    } else if (isWarning) {
+        $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 shrink-0')
+             .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>');
+        $innerCard.attr('class', 'bg-amber-500 text-white shadow-2xl rounded-2xl p-4 flex items-center space-x-3 max-w-sm border border-amber-600 cursor-pointer transition-all duration-300');
+        $msgText.attr('class', 'text-sm font-bold text-white');
+    } else if (isInfo) {
+        $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 shrink-0')
+             .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>');
+        $innerCard.attr('class', 'bg-blue-600 text-white shadow-2xl rounded-2xl p-4 flex items-center space-x-3 max-w-sm border border-blue-500 cursor-pointer transition-all duration-300');
+        $msgText.attr('class', 'text-sm font-bold text-white');
+    } else {
+        $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 shrink-0')
+             .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>');
+        $innerCard.attr('class', 'bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex items-center space-x-3 max-w-sm cursor-pointer transition-all duration-300');
+        $msgText.attr('class', 'text-sm font-semibold text-slate-800');
+    }
+    
+    $toast.removeClass('translate-y-[-100px] opacity-0 pointer-events-none').addClass('translate-y-0 opacity-100 pointer-events-auto');
+    
+    toastTimer = setTimeout(() => {
+        $toast.removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
+    }, 3000);
+};
+
+$(document).on('click', '#globalToast', function() {
+    if (toastTimer) clearTimeout(toastTimer);
+    $(this).removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
+});
+
+// 3. DataTable-Aware In-Place Row & DOM Helper (Smooth animations + DataTables sync)
+window.ERPTableHelper = {
+    reindexTable: function($table) {
+        if (!$table || !$table.length) return;
+        const dt = (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable($table[0]))
+            ? $table.DataTable()
+            : null;
+
+        if (dt) {
+            dt.draw(false);
+        } else {
+            $table.find('tbody tr:visible').each(function(index) {
+                const $firstTd = $(this).find('td').first();
+                if (!$firstTd.attr('colspan') && !$firstTd.closest('tr').hasClass('empty-row')) {
+                    $firstTd.text(index + 1);
+                }
+            });
+        }
+    },
+
+    removeRow: function(rowSelectorOrEl, onComplete) {
+        const $row = $(rowSelectorOrEl);
+        if (!$row.length) return;
+
+        const $table = $row.closest('table');
+        const dt = (typeof $.fn.DataTable !== 'undefined' && $table.length && $.fn.DataTable.isDataTable($table[0]))
+            ? $table.DataTable()
+            : null;
+
+        $row.css({
+            'transition': 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            'opacity': '0',
+            'transform': 'scale(0.97) translateY(-4px)'
+        });
+
+        setTimeout(function() {
+            if (dt) {
+                dt.row($row[0]).remove().draw(false);
+            } else {
+                $row.remove();
+            }
+            if ($table && $table.length) {
+                window.ERPTableHelper.reindexTable($table);
+            }
+            if (typeof onComplete === 'function') onComplete();
+        }, 300);
+    },
+
+    highlightRow: function(rowSelectorOrEl) {
+        const $row = $(rowSelectorOrEl);
+        if (!$row.length) return;
+        $row.addClass('row-updated-glow');
+        setTimeout(() => $row.removeClass('row-updated-glow'), 1200);
+    },
+
+    prependRow: function(tableSelectorOrEl, newRowHtml, onComplete) {
+        const $table = $(tableSelectorOrEl);
+        if (!$table.length) return;
+        
+        const $newRow = $(newRowHtml).addClass('row-fade-in');
+        const dt = (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable($table[0]))
+            ? $table.DataTable()
+            : null;
+
+        if (dt) {
+            const rowNode = dt.row.add($newRow[0]).draw(false).node();
+            $(rowNode).addClass('row-fade-in');
+        } else {
+            const $tbody = $table.find('tbody');
+            if ($tbody.length) {
+                $tbody.prepend($newRow);
+            } else {
+                $table.prepend($newRow);
+            }
+            window.ERPTableHelper.reindexTable($table);
+        }
+        if (typeof onComplete === 'function') onComplete($newRow);
+    }
+};
+
+// 4. Dynamic Stat Counter Engine (Increments/Decrements/Formats counters in-place with micro-interaction)
+window.updateStatCounter = function(selectorOrEl, deltaOrValue, isCurrency = false) {
+    const $el = $(selectorOrEl);
+    if (!$el.length) return;
+
+    let newVal;
+    if (typeof deltaOrValue === 'number' && (deltaOrValue === 1 || deltaOrValue === -1 || deltaOrValue > 0 || deltaOrValue < 0)) {
+        let currentText = $el.text().replace(/[₹,\s]/g, '').trim();
+        let currentNum = parseFloat(currentText) || 0;
+        newVal = Math.max(0, currentNum + deltaOrValue);
+    } else {
+        newVal = deltaOrValue;
+    }
+
+    if (isCurrency && typeof window.formatIndianCurrency === 'function') {
+        $el.text((isCurrency === true ? '₹' : '') + window.formatIndianCurrency(newVal));
+    } else {
+        $el.text(typeof newVal === 'number' ? Math.round(newVal) : newVal);
+    }
+
+    // Bounce pulse micro-interaction
+    $el.addClass('scale-110 text-blue-600 transition-transform duration-200');
+    setTimeout(() => {
+        $el.removeClass('scale-110 text-blue-600');
+    }, 250);
+};
+
+// 5. Smooth Tab Switching Engine with State Persistence
+window.switchTabWithFade = function(tabName, tabBtnSelector, paneSelectorPrefix = 'empTab-') {
+    $(`[id^="${paneSelectorPrefix}"]`).each(function() {
+        if (!$(this).hasClass('hidden')) {
+            $(this).css('opacity', '0');
+            const $self = $(this);
+            setTimeout(() => {
+                $self.addClass('hidden');
+            }, 120);
+        }
+    });
+
+    setTimeout(() => {
+        const $target = $(`#${paneSelectorPrefix}${tabName}`);
+        if ($target.length) {
+            $target.removeClass('hidden').css('opacity', '0');
+            setTimeout(() => {
+                $target.css({
+                    'opacity': '1',
+                    'transition': 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                });
+            }, 20);
+        }
+    }, 130);
+
+    if (tabBtnSelector) {
+        $('.emp-tab-btn, .tab-btn').removeClass('active-emp-tab active-tab-btn bg-blue-50 text-blue-700');
+        $(tabBtnSelector).addClass('active-emp-tab active-tab-btn bg-blue-50 text-blue-700 font-bold');
+    }
+
+    try {
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url);
+    } catch(e) {}
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // jQuery Check
     if (typeof jQuery === 'undefined') {
@@ -363,6 +616,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = new DOMParser().parseFromString(htmlText, 'text/html');
                 const newContent = doc.getElementById('page-content');
                 
+                if (!newContent) {
+                    window.location.replace('/login');
+                    return;
+                }
+                
                 if (typeof window.closeCategoryModal === 'function') {
                     window.closeCategoryModal();
                 }
@@ -375,7 +633,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof window.closeDisburseModal === 'function') {
                     window.closeDisburseModal();
                 }
-                document.querySelectorAll('#categoryModal, #clearAuditLogsModal, #giveAdvanceModal, #disburseSalaryModal').forEach(m => m.classList.add('hidden'));
+                if (typeof window.closePaymentModal === 'function') {
+                    window.closePaymentModal();
+                }
+                document.querySelectorAll('#categoryModal, #clearAuditLogsModal, #giveAdvanceModal, #disburseSalaryModal, #paymentSalaryModal').forEach(m => m.classList.add('hidden'));
 
                 if (newContent) {
                     $('#page-content').html(newContent.innerHTML);
@@ -617,11 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const $submitBtn = $form.find('button[type="submit"]');
-            const originalBtnHtml = $submitBtn.length ? $submitBtn.html() : '';
-            
-            if ($submitBtn.length) {
-                $submitBtn.prop('disabled', true).addClass('opacity-50 pointer-events-none');
-            }
+            window.setButtonLoading($submitBtn, true, 'Saving...');
             
             // Abort previous pending request on same form to prevent double-submit race conditions
             if ($form.data('activeXhr')) {
@@ -652,9 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 success: async function(response) {
                     $form.removeData('activeXhr');
-                    if ($submitBtn.length) {
-                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
-                    }
+                    window.setButtonLoading($submitBtn, false);
                     window.showToast('success', response.message || 'Operation completed successfully!');
 
                     // Trigger custom DOM event for modular component handlers
@@ -670,15 +925,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         $parentModal.addClass('hidden');
                     }
 
-                    if ($form.hasClass('no-reload') || $form.hasClass('no-refresh') || ($form.attr('action') && $form.attr('action').includes('/settings/security'))) {
+                    if ($form.hasClass('no-reload') || $form.hasClass('no-refresh') || $form.hasClass('inplace-form') || $form.data('inplace') === true || ($form.attr('action') && $form.attr('action').includes('/settings/security'))) {
+                        if (!$form.hasClass('no-reset')) {
+                            $form[0].reset();
+                        }
                         return;
                     }
 
                     if (!$form.hasClass('no-reset')) {
                         $form[0].reset();
-                    }
-                    if (window.history && window.history.replaceState) {
-                        window.history.replaceState({}, document.title, window.location.pathname);
                     }
 
                     const inlineFormCard = $form.closest('#productionFormCard, #purchaseFormContainer, #invoiceFormContainer');
@@ -703,9 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 error: function(xhr) {
                     $form.removeData('activeXhr');
-                    if ($submitBtn.length) {
-                        $submitBtn.prop('disabled', false).removeClass('opacity-50 opacity-75 pointer-events-none').html(originalBtnHtml);
-                    }
+                    window.setButtonLoading($submitBtn, false);
 
                     // Handle 419 CSRF Token Expiration
                     if (xhr.status === 419) {
@@ -1085,60 +1338,46 @@ document.addEventListener('DOMContentLoaded', () => {
             $form.find('.form-alert').addClass('hidden').html('');
         };
 
-        // Expose deleteInvoiceRecord globally
+        // Expose deleteInvoiceRecord globally with in-place DataTable removal
         window.deleteInvoiceRecord = function(id, invoiceNumber) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Delete Invoice?',
-                    text: `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#f43f5e',
-                    cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Yes, Delete Invoice',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/invoices/${id}`,
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': getCsrfToken(),
-                                'Accept': 'application/json'
-                            },
-                            success: async function(response) {
-                                window.showToast('success', response.message || 'Invoice deleted successfully!');
+            window.confirmDelete(
+                'Delete Invoice?',
+                `Are you sure you want to permanently delete Invoice '${invoiceNumber}'? This action cannot be undone!`,
+                function() {
+                    const token = getCsrfToken();
+                    $.ajax({
+                        url: `/invoices/${id}`,
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        },
+                        success: async function(response) {
+                            window.showToast('success', response.message || 'Invoice deleted successfully!');
+                            const $row = $(`#row-inv-${id}, #invoice-row-${id}`);
+                            if ($row.length && window.ERPTableHelper) {
+                                window.ERPTableHelper.removeRow($row);
+                                window.updateStatCounter('#statTotalInvoices, #totalInvoicesCounter', -1);
+                            } else if (typeof window.loadPage === 'function') {
                                 await window.loadPage(window.location.href);
-                            },
-                            error: function(xhr) {
-                                const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
-                                window.showToast('error', msg);
                             }
-                        });
-                    }
-                });
-            } else if (confirm(`Are you sure you want to delete Invoice '${invoiceNumber}'?`)) {
-                $.ajax({
-                    url: `/invoices/${id}`,
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': getCsrfToken(),
-                        'Accept': 'application/json'
-                    },
-                    success: async function(response) {
-                        window.showToast('success', response.message || 'Invoice deleted successfully!');
-                        await window.loadPage(window.location.href);
-                    },
-                    error: function(xhr) {
-                        const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
-                        alert(msg);
-                    }
-                });
-            }
+                        },
+                        error: function(xhr) {
+                            const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to delete invoice.';
+                            window.showToast('error', msg);
+                        }
+                    });
+                }
+            );
         };
 
-        // Expose payInvoiceRecord globally
+        // Expose payInvoiceRecord globally with in-place status update
         window.payInvoiceRecord = function(id, invoiceNumber) {
+            if (typeof window.openInvoicePaymentModal === 'function') {
+                window.openInvoicePaymentModal(id, invoiceNumber, 0);
+                return;
+            }
+
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Mark Invoice as Paid?',
@@ -1159,22 +1398,26 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'Accept': 'application/json'
                             },
                             success: async function(response) {
-                                if (window.showToast) {
-                                    window.showToast('success', response.message || 'Invoice marked as paid!');
-                                }
-                                if (typeof window.loadPage === 'function') {
+                                window.showToast('success', response.message || 'Invoice marked as paid!');
+                                const $row = $(`#row-inv-${id}, #invoice-row-${id}`);
+                                if ($row.length) {
+                                    $row.find('.inv-status-badge, .status-badge').html(`
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Paid
+                                        </span>
+                                    `);
+                                    $row.find('.inv-balance-cell').text('₹0.00');
+                                    $row.find('.pay-btn, button:contains("Pay")').remove();
+                                    if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
+                                    window.updateStatCounter('#statUnpaidInvoices', -1);
+                                    window.updateStatCounter('#statPaidInvoices', +1);
+                                } else if (typeof window.loadPage === 'function') {
                                     await window.loadPage(window.location.href);
-                                } else {
-                                    window.location.reload();
                                 }
                             },
                             error: function(xhr) {
                                 const msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to update payment status.';
-                                if (window.showToast) {
-                                    window.showToast('error', msg);
-                                } else {
-                                    alert(msg);
-                                }
+                                window.showToast('error', msg);
                             }
                         });
                     }
@@ -1188,13 +1431,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Accept': 'application/json'
                     },
                     success: async function(response) {
-                        if (window.showToast) {
-                            window.showToast('success', response.message || 'Invoice marked as paid!');
-                        }
-                        if (typeof window.loadPage === 'function') {
+                        window.showToast('success', response.message || 'Invoice marked as paid!');
+                        const $row = $(`#row-inv-${id}, #invoice-row-${id}`);
+                        if ($row.length) {
+                            $row.find('.inv-status-badge, .status-badge').html(`
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Paid
+                                </span>
+                            `);
+                            $row.find('.inv-balance-cell').text('₹0.00');
+                            $row.find('.pay-btn, button:contains("Pay")').remove();
+                            if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
+                        } else if (typeof window.loadPage === 'function') {
                             await window.loadPage(window.location.href);
-                        } else {
-                            window.location.reload();
                         }
                     },
                     error: function(xhr) {
@@ -1217,78 +1466,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             }
-        });
-
-        let toastTimer = null;
-
-        // Expose showToast globally
-        window.showToast = function(type, message) {
-            const $toast = $('#globalToast');
-            const $icon = $('#toastIcon');
-            const $msgText = $('#toastMessage');
-            if (!$toast.length || !$icon.length || !$msgText.length) return;
-            
-            if (toastTimer) {
-                clearTimeout(toastTimer);
-            }
-            
-            $msgText.text(message);
-
-            const typeLower = (type || '').toLowerCase();
-            const msgLower = (message || '').toLowerCase();
-            
-            const isError = (
-                typeLower === 'error' || 
-                typeLower === 'danger' || 
-                typeLower === 'delete' ||
-                msgLower.includes('delete') || 
-                msgLower.includes('deleted') ||
-                msgLower.includes('failed') ||
-                msgLower.includes('error')
-            );
-
-            const isInfo = (typeLower === 'info');
-
-            const isWarning = (
-                typeLower === 'warning' ||
-                msgLower.includes('required') ||
-                msgLower.includes('at least')
-            );
-
-            const $innerCard = $toast.find('> div');
-
-            if (isError) {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-600 shrink-0')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>');
-                $innerCard.attr('class', 'bg-[#F43F5E] text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-rose-500');
-                $msgText.attr('class', 'text-sm font-bold text-white');
-            } else if (isInfo) {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 shrink-0')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>');
-                $innerCard.attr('class', 'bg-blue-600 text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-blue-500');
-                $msgText.attr('class', 'text-sm font-bold text-white');
-            } else if (isWarning) {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 shrink-0')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>');
-                $innerCard.attr('class', 'bg-amber-500 text-white shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm border border-amber-600');
-                $msgText.attr('class', 'text-sm font-bold text-white');
-            } else {
-                $icon.attr('class', 'w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 shrink-0')
-                     .html('<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>');
-                $innerCard.attr('class', 'bg-white border border-slate-200 shadow-xl rounded-xl p-4 flex items-center space-x-3 max-w-sm');
-                $msgText.attr('class', 'text-sm font-semibold text-slate-800');
-            }
-            
-            $toast.removeClass('translate-y-[-100px] opacity-0 pointer-events-none').addClass('translate-y-0 opacity-100 pointer-events-auto');
-            
-            toastTimer = setTimeout(() => {
-                $toast.removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
-            }, 3000);
-        };
-
-        $(document).on('click', '#globalToast', function() {
-            if (toastTimer) clearTimeout(toastTimer);
-            $(this).removeClass('translate-y-0 opacity-100 pointer-events-auto').addClass('translate-y-[-100px] opacity-0 pointer-events-none');
         });
 
         // Expose SweetAlert2 confirmDelete globally
@@ -1344,6 +1521,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     $table.DataTable().destroy();
                 }
 
+                const isResponsive = !$table.hasClass('no-responsive') && $table.attr('data-responsive') !== 'false';
+
                 $table.DataTable({
                     dom: '<"flex flex-wrap items-center justify-between gap-4 mb-4"lf><"erp-datatable-scroll-container overflow-x-auto w-full my-2"t><"flex flex-wrap items-center justify-between gap-4 mt-4"ip>',
                     pageLength: 10,
@@ -1353,9 +1532,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     searching: true,
                     ordering: true,
                     info: true,
-                    responsive: true,
+                    responsive: isResponsive,
                     autoWidth: false,
                     order: [], // Preserve original server row order
+                    columnDefs: [
+                        {
+                            targets: 0,
+                            orderable: false
+                        }
+                    ],
                     language: {
                         search: "_INPUT_",
                         searchPlaceholder: "Search records...",
@@ -1386,6 +1571,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         const api = this.api();
                         const $paginate = $(api.table().container()).find('.dataTables_paginate');
                         $paginate.addClass('inline-flex items-center gap-2');
+
+                        // Automatically keep the # serial column sequentially numbered without gaps
+                        const $firstTh = $(api.table().header()).find('th').first();
+                        const headerText = $firstTh.text().trim();
+                        if (headerText === '#' || headerText.toLowerCase() === 'sr.' || headerText.toLowerCase() === 'sr no' || headerText.toLowerCase() === 'no.') {
+                            const pageInfo = api.page.info();
+                            const start = pageInfo ? pageInfo.start : 0;
+                            api.column(0, { search: 'applied', order: 'applied' }).nodes().each(function(cell, i) {
+                                $(cell).text(start + i + 1);
+                            });
+                        }
                     }
                 });
             });
@@ -1405,6 +1601,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // Universal Modal Close Event Listeners (Backdrop click, Close buttons, ESC key)
+        $(document).on('click', '[data-modal-close], .modal-close-btn', function(e) {
+            e.preventDefault();
+            const modalId = $(this).attr('data-modal-close');
+            if (modalId) {
+                $(`#${modalId}`).addClass('hidden');
+            }
+            $(this).closest('.fixed.inset-0, [id$="Modal"], [id$="modal"]').addClass('hidden');
+        });
+
+        $(document).on('click', '.fixed.inset-0', function(e) {
+            if (e.target === this) {
+                $(this).addClass('hidden');
+            }
+        });
+
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                $('.fixed.inset-0:not(.hidden), [id$="Modal"]:not(.hidden), [id$="modal"]:not(.hidden)').addClass('hidden');
+            }
+        });
 
         // Global Keyboard Hotkeys Listener
         $(document).on('keydown', function(e) {

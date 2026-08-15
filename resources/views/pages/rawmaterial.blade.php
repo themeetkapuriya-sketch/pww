@@ -32,14 +32,26 @@
             @csrf
             <input type="hidden" name="_method" id="material_form_method" value="POST">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Material Name</label>
-                    <input type="text" id="mat_name" name="material_name" placeholder="e.g. Iron Wire Coils (5mm)" required
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Material Name <span class="text-rose-500">*</span></label>
+                    <input type="text" id="mat_name" name="material_name" placeholder="e.g. MS Round Pipe or Powder Coating" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
+
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit (UOM)</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Material Category / Type</label>
+                    <select id="mat_category" name="material_category" onchange="updateSpecPlaceholder(this.value)"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        <option value="">Select Category (Optional)...</option>
+                        @foreach($materialCategories as $cat)
+                            <option value="{{ $cat['key'] }}">{{ $cat['icon'] ?? '📦' }} {{ $cat['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit (UOM) <span class="text-rose-500">*</span></label>
                     <input type="text" id="mat_unit" name="unit" list="raw_material_uom_list" placeholder="e.g. kg, meter, piece, roll, sq ft" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                     <datalist id="raw_material_uom_list">
@@ -62,14 +74,20 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Specification / Shade / Size</label>
+                    <input type="text" id="mat_spec" name="specification" placeholder="e.g. 12mm OD x 1.5mm or RAL 7035 Grey"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    <span class="text-[10px] text-slate-400 font-medium" id="mat_spec_hint">Enter pipe size, powder shade code, or gauge thickness</span>
+                </div>
                 <div id="material_stock_wrapper">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Initial Quantity / Stock</label>
                     <input type="number" id="mat_stock" name="current_stock" step="0.0001" min="0" placeholder="e.g. 15000"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Safety Threshold Alert Limit</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Safety Threshold Alert Limit <span class="text-rose-500">*</span></label>
                     <input type="number" id="mat_threshold" name="safety_threshold" step="0.0001" min="0" placeholder="e.g. 2000" required
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                 </div>
@@ -84,19 +102,63 @@
         </form>
     </div>
 
+    @if(\App\Models\Setting::get('track_stock', 'true') === 'true' && isset($lowStockMaterials) && $lowStockMaterials->isNotEmpty())
+        <!-- ⚡ Low Stock Auto-Purchase Reorder Hub -->
+        <div class="bg-gradient-to-r from-rose-50 to-amber-50 rounded-2xl shadow-xs border border-rose-200 p-4 transition-all">
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-base font-bold shadow-xs">⚡</span>
+                    <div>
+                        <h4 class="text-sm font-bold text-rose-900 flex items-center gap-2">
+                            <span>Smart Reorder Assistant</span>
+                            <span class="px-2 py-0.5 bg-rose-200/80 text-rose-800 rounded-md text-[10px] font-extrabold">{{ $lowStockMaterials->count() }} Critical</span>
+                        </h4>
+                        <p class="text-xs text-rose-700">These raw materials are running below safety threshold. 1-click launch pre-filled purchase bills.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($lowStockMaterials as $lowMat)
+                    @php
+                        $suggestedQty = $lowMat->suggested_reorder_quantity;
+                        $rate = (float)($lowMat->average_purchase_price ?? 0);
+                    @endphp
+                    <div class="bg-white rounded-xl border border-rose-200/80 p-3 flex items-center justify-between gap-3 shadow-2xs hover:border-rose-300 transition">
+                        <div class="min-w-0">
+                            <div class="font-bold text-xs text-slate-800 truncate">{{ $lowMat->material_name }}</div>
+                            <div class="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                <span class="font-mono text-rose-600 font-bold">{{ number_format($lowMat->current_stock, 2) }}</span>
+                                <span>/ {{ number_format($lowMat->safety_threshold, 2) }} {{ $lowMat->unit }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ route('purchases', ['prefill_raw_material' => $lowMat->id, 'prefill_qty' => $suggestedQty, 'prefill_price' => $rate]) }}"
+                           class="shrink-0 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer">
+                            <span>⚡ Reorder</span>
+                            <span class="font-mono text-[11px]">({{ number_format($suggestedQty, 0) }})</span>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <!-- 2. RECORDS LIST UNDERNEATH -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Raw Materials Ledger
-        </h3>
-        
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
+            <h3 class="text-base font-bold text-slate-800 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-theme-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Raw Materials Ledger
+            </h3>
+        </div>
+
         <div class="overflow-x-auto w-full max-w-full">
             <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name & Specification</th>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase">Category</th>
                         @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
                             <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
@@ -110,10 +172,27 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($rawMaterials as $mat)
-                        @php $isLow = $mat->current_stock < $mat->safety_threshold; @endphp
-                        <tr class="hover:bg-slate-50 transition" id="row-mat-{{ $mat->id }}">
+                        @php 
+                            $isLow = $mat->current_stock < $mat->safety_threshold; 
+                            $catInfo = $mat->category_info;
+                        @endphp
+                        <tr class="hover:bg-slate-50 transition mat-row" id="row-mat-{{ $mat->id }}" data-category="{{ $mat->material_category ?: 'other' }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">{{ $mat->material_name }}</td>
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-slate-800">{{ $mat->material_name }}</div>
+                                @if($mat->specification)
+                                    <div class="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                                        <span class="text-blue-500 text-[10px]">🔹</span>
+                                        <span>{{ $mat->specification }}</span>
+                                    </div>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border bg-slate-50 text-slate-700 border-slate-200">
+                                    <span>{{ $catInfo['icon'] ?? '📦' }}</span>
+                                    <span>{{ $catInfo['label'] }}</span>
+                                </span>
+                            </td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
                                 <td class="px-6 py-4 text-right font-medium text-slate-700 mat-stock-cell">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
                                 <td class="px-6 py-4 text-right text-slate-500"><span class="mat-threshold-val hidden">{{ (float)$mat->safety_threshold }}</span>{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
@@ -139,7 +218,7 @@
                             @endif
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
-                                    <a href="{{ route('purchases', ['prefill_raw_material' => $mat->id]) }}"
+                                    <a href="{{ route('purchases', ['prefill_raw_material' => $mat->id, 'prefill_qty' => $mat->suggested_reorder_quantity, 'prefill_price' => $mat->average_purchase_price]) }}"
                                        title="Restock Material (Record Purchase Bill)"
                                        class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +235,7 @@
                                         </button>
                                     @endif
                                     <button type="button" 
-                                            onclick="openEditMaterialModal({{ $mat->id }}, '{{ addslashes($mat->material_name) }}', '{{ $mat->unit }}', {{ $mat->safety_threshold }})"
+                                            onclick="openEditMaterialModal({{ $mat->id }}, '{{ addslashes($mat->material_name) }}', '{{ $mat->material_category }}', '{{ addslashes($mat->specification ?? '') }}', '{{ $mat->unit }}', {{ $mat->safety_threshold }})"
                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                             title="Edit Raw Material">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -262,6 +341,67 @@
 let currentAdjPreviousStock = 0;
 let currentAdjUnit = 'kg';
 
+function updateSpecPlaceholder(cat) {
+    const specInput = document.getElementById('mat_spec');
+    const hint = document.getElementById('mat_spec_hint');
+    if (!specInput) return;
+
+    if (cat === 'powders') {
+        specInput.placeholder = 'e.g. RAL 7035 Light Grey Structure / Glossy';
+        if (hint) hint.innerText = 'Enter RAL shade code, color name, or texture finish (e.g. RAL 9005 Glossy)';
+    } else if (cat === 'pipes') {
+        specInput.placeholder = 'e.g. 12mm OD x 1.5mm Thickness (16 Gauge)';
+        if (hint) hint.innerText = 'Enter outer diameter (OD), wall thickness, or schedule';
+    } else if (cat === 'sheets') {
+        specInput.placeholder = 'e.g. 2.0mm Thickness (14 Gauge CRCA)';
+        if (hint) hint.innerText = 'Enter sheet thickness, gauge, or steel grade';
+    } else if (cat === 'welding') {
+        specInput.placeholder = 'e.g. 1.2mm ER70S-6 Wire / Pure Argon';
+        if (hint) hint.innerText = 'Enter wire diameter, AWS grade, or gas cylinder volume';
+    } else if (cat === 'hardware') {
+        specInput.placeholder = 'e.g. M10 x 25mm High Tensile 8.8';
+        if (hint) hint.innerText = 'Enter fastener size, thread, and grade';
+    } else {
+        specInput.placeholder = 'e.g. Dimensions, shade, or model specifications';
+        if (hint) hint.innerText = 'Enter material dimensions or specifications';
+    }
+}
+
+window.filterRawMaterialCategory = function(catKey) {
+    $('.mat-category-filter-btn').removeClass('bg-blue-600 text-white shadow-xs').addClass('bg-slate-100 text-slate-700 hover:bg-slate-200');
+    $(`#mat_filter_btn_${catKey}`).removeClass('bg-slate-100 text-slate-700 hover:bg-slate-200').addClass('bg-blue-600 text-white shadow-xs');
+    
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable('.erp-datatable')) {
+        const table = $('.erp-datatable').DataTable();
+        if (catKey === 'all') {
+            $.fn.dataTable.ext.search = [];
+            table.draw();
+        } else {
+            $.fn.dataTable.ext.search = [
+                function(settings, data, dataIndex) {
+                    const row = table.row(dataIndex).node();
+                    const rowCat = $(row).attr('data-category');
+                    return rowCat === catKey;
+                }
+            ];
+            table.draw();
+        }
+    } else {
+        if (catKey === 'all') {
+            $('.mat-row').show();
+        } else {
+            $('.mat-row').each(function() {
+                const rowCat = $(this).attr('data-category');
+                if (rowCat === catKey) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    }
+};
+
 function resetMaterialForm() {
     const form = document.getElementById('rawMaterialForm');
     if (!form) return;
@@ -285,12 +425,15 @@ function resetMaterialForm() {
     });
 
     document.getElementById('mat_name').value = '';
+    document.getElementById('mat_category').value = '';
+    document.getElementById('mat_spec').value = '';
     document.getElementById('mat_unit').value = 'kg';
     document.getElementById('mat_threshold').value = '';
     if (document.getElementById('mat_price')) document.getElementById('mat_price').value = '';
     if (document.getElementById('mat_stock')) document.getElementById('mat_stock').value = '';
     if (document.getElementById('material_stock_wrapper')) document.getElementById('material_stock_wrapper').style.display = 'block';
     if (document.getElementById('material_price_wrapper')) document.getElementById('material_price_wrapper').style.display = 'block';
+    updateSpecPlaceholder('');
     
     const btn = document.getElementById('materialSubmitBtn');
     btn.innerText = 'Create Raw Material';
@@ -312,7 +455,7 @@ function toggleMaterialForm(showExplicit = null) {
     }
 }
 
-function openEditMaterialModal(id, name, unit, threshold) {
+function openEditMaterialModal(id, name, category, spec, unit, threshold) {
     const card = document.getElementById('rawMaterialCard');
     if (!card) return;
     
@@ -331,10 +474,13 @@ function openEditMaterialModal(id, name, unit, threshold) {
     });
 
     document.getElementById('mat_name').value = name;
+    document.getElementById('mat_category').value = category || '';
+    document.getElementById('mat_spec').value = spec || '';
     document.getElementById('mat_unit').value = unit;
     document.getElementById('mat_threshold').value = threshold;
     if (document.getElementById('material_stock_wrapper')) document.getElementById('material_stock_wrapper').style.display = 'none';
     if (document.getElementById('material_price_wrapper')) document.getElementById('material_price_wrapper').style.display = 'none';
+    updateSpecPlaceholder(category || '');
     
     const btn = document.getElementById('materialSubmitBtn');
     btn.innerText = 'Update Material';
@@ -407,7 +553,7 @@ function submitStockAdjustment(e) {
     }
     
     btn.disabled = true;
-    btn.innerText = 'Applying...';
+    if (window.setButtonLoading) window.setButtonLoading(btn, true, 'Applying...');
     
     $.ajax({
         url: `/inventory/materials/${matId}/adjust`,
@@ -419,8 +565,7 @@ function submitStockAdjustment(e) {
             notes: notes
         },
         success: function(res) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Apply Stock Adjustment</span>';
+            if (window.setButtonLoading) window.setButtonLoading(btn, false);
             closeStockAdjustmentModal();
             
             if (window.showToast) {
@@ -442,6 +587,7 @@ function submitStockAdjustment(e) {
                         $statusCell.html(`<span class="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] rounded font-bold uppercase tracking-wider">OK</span>`);
                     }
                 }
+                if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
             }
             
             if (window.clearPageCache) {
@@ -449,11 +595,10 @@ function submitStockAdjustment(e) {
             }
         },
         error: function(xhr) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Apply Stock Adjustment</span>';
+            if (window.setButtonLoading) window.setButtonLoading(btn, false);
             const msg = xhr.responseJSON?.message || 'Failed to apply stock adjustment.';
             if (window.showToast) {
-                window.showToast('danger', msg);
+                window.showToast('error', msg);
             } else {
                 alert(msg);
             }
@@ -475,12 +620,16 @@ function deleteMaterial(id, name) {
                 data: { _token: token },
                 success: function(res) {
                     if (window.showToast) window.showToast('success', res.message);
-                    $(`#row-mat-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    if (window.ERPTableHelper) {
+                        window.ERPTableHelper.removeRow(`#row-mat-${id}`);
+                    } else {
+                        $(`#row-mat-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    }
                 },
                 error: function(xhr) {
                     const msg = xhr.responseJSON?.message || 'Failed to delete raw material.';
                     if (window.showToast) {
-                        window.showToast('danger', msg);
+                        window.showToast('error', msg);
                     } else {
                         alert(msg);
                     }

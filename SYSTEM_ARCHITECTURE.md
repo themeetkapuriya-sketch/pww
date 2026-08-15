@@ -25,6 +25,9 @@ graph TD
 - `ProductionService.php`: Batch production output logging, BOM raw material inventory auto-deduction, labor cost calculation.
 - `PayrollService.php`: Attendance record processing, daily rate & piece-rate wage matrix computations, monthly salary payment tracking, salary advance deductions, and active profile status scoping.
 - `FinancialService.php`: Financial P&L calculations, monthly turnover, net profit margins, GST liability, and eligible input tax credit (ITC) reconciliation.
+- `FinancialYearService.php`: Financial year lock status tracking, audit protection gates, and historical period boundaries (starting from FY 2026–27).
+- `SystemHealthService.php`: Real-time database storage metrics, table defragmentation (`OPTIMIZE TABLE` / `VACUUM`), expired session pruning, and cache clearing.
+- `SystemResetService.php`: Factory reset data wiper with automatic emergency safety snapshot generation (`pre_reset_safety_...sql`).
 - `BackupService.php`: Database SQL dumps, database restores, local snapshot management, safety file rotations.
 - `RolePermissionService.php`: Role-based access control (RBAC), permission matrix resolution.
 - `ActiveOrderAlertService.php`: Real-time tracking of active orders, in-production batches, and ready-for-dispatch items for top header widgets.
@@ -37,11 +40,22 @@ graph TD
 
 ## ⚙️ Core Computational Engines
 
-### 1. Bill of Materials (BOM) Auto-Deduction Engine
+### 1. Bill of Materials (BOM) & Inventory Valuation Engine
 When factory output is logged on the **Production Logs** page, the system calculates and auto-deducts raw materials from inventory stock via `ProductionService.php`.
 
 #### Mathematical Formulation:
 $$\text{Raw Material Consumed} = \text{Quantity Produced} \times \text{BOM Required Qty} \times \left(1 + \frac{\text{Waste } \%}{100}\right)$$
+
+#### Weighted Average Purchase Price Calculation:
+Whenever a raw material purchase bill is logged, edited, or removed, `RawMaterial::recalculateAveragePurchasePrice()` recalculates the true weighted average procurement cost:
+$$\text{Average Purchase Price} = \frac{\sum (\text{Purchase Quantity} \times \text{Unit Price})}{\sum \text{Purchase Quantity}}$$
+
+#### BOM Component Cost & Gross Margin Simulation:
+$$\text{Effective Unit Rate} = \begin{cases} \text{BOM Custom unit\_rate}, & \text{if } \text{unit\_rate} > 0 \\ \text{Raw Material Average Purchase Price}, & \text{otherwise} \end{cases}$$
+$$\text{Component Line Cost} = \text{Required Qty} \times \left(1 + \frac{\text{Waste } \%}{100}\right) \times \text{Effective Unit Rate}$$
+$$\text{Est. Unit Manufacturing Cost} = \sum \text{Component Line Costs}$$
+$$\text{Gross Profit} = \text{List Selling Price} - \text{Est. Unit Manufacturing Cost}$$
+$$\text{Gross Margin } \% = \left(\frac{\text{Gross Profit}}{\text{List Selling Price}}\right) \times 100$$
 
 ```mermaid
 flowchart TD
@@ -50,10 +64,11 @@ flowchart TD
     C -- No --> D[Log Production Output Only]
     C -- Yes --> E[Loop Through Each Raw Material Requirement]
     E --> F[Calculate: Qty Produced * Required Qty * Waste Multiplier]
-    F --> G[Deduct Stock: current_stock - Consumed Qty]
-    G --> H[Check: current_stock < safety_threshold]
-    H -- Low Stock --> I[Trigger Low Stock Alert Badge]
-    H -- Stock OK --> J[Save Log Record & Auto-Promote Eligible Orders]
+    E --> G[Calculate Component Cost: Effective Rate * Effective Qty]
+    F --> H[Deduct Stock: current_stock - Consumed Qty]
+    H --> I[Check: current_stock < safety_threshold]
+    I -- Low Stock --> J[Trigger Low Stock Alert Badge]
+    I -- Stock OK --> K[Save Log Record & Auto-Promote Eligible Orders]
 ```
 
 ---

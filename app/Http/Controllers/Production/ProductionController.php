@@ -29,8 +29,8 @@ class ProductionController extends Controller
      */
     public function production()
     {
-        $productionLogs = ProductionLog::with('product', 'recordedByUser')->orderBy('production_date', 'desc')->paginate(20);
-        $finishedGoods = Product::all();
+        $productionLogs = ProductionLog::with('product', 'recordedByUser')->orderBy('production_date', 'desc')->orderBy('id', 'desc')->paginate(20);
+        $finishedGoods = Product::orderByDesc('id')->get();
         $staffProfiles = StaffProfile::where('is_active', true)->orderBy('full_name')->get();
         $users = User::all();
 
@@ -237,6 +237,7 @@ class ProductionController extends Controller
         if ($trackStock && $log->product_id == $validated['product_id']) {
             $diff = $validated['quantity_manufactured'] - $log->quantity_manufactured;
             if ($diff != 0) {
+                /** @var Product|null $product */
                 $product = Product::find($validated['product_id']);
                 if ($product) {
                     $product->current_stock = max(0, $product->current_stock + $diff);
@@ -269,6 +270,7 @@ class ProductionController extends Controller
         // Deduct manufactured qty from product stock upon deletion (only if stock management is enabled)
         $trackStock = Setting::isStockEnabled();
         if ($trackStock) {
+            /** @var Product|null $product */
             $product = Product::find($log->product_id);
             if ($product) {
                 $product->current_stock = max(0, $product->current_stock - $log->quantity_manufactured);

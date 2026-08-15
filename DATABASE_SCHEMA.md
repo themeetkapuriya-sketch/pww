@@ -51,16 +51,17 @@ Stores authenticated ERP portal users, administrators, and role permissions.
 ---
 
 ### 2. `raw_materials` (Model: `App\Models\RawMaterial`)
-Stores raw material stock levels, measurement units, purchase price averages, and safety threshold alert limits.
+Stores raw material stock levels, measurement units, purchase price averages, material categories, specifications, and safety threshold alert limits.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | BigInt | Primary Key, Auto Increment | Unique Raw Material ID |
-| `material_name` | Varchar(255) | Unique, Not Null | Material Title (e.g. MS Angle 50x50x5mm) |
-| `hsn_code` | Varchar(50) | Nullable | HSN Harmonized System Code |
-| `unit` | Varchar(50) | Not Null | Unit of Measure (`KG`, `NOS`, `MTR`, `LTR`) |
-| `unit_price` | Decimal(10,2) | Default: 0.00 | Average Purchase Cost Per Unit (₹) |
-| `reorder_level` | Decimal(12,4) | Default: 0.0000 | Minimum Safety Threshold Alert Limit |
+| `material_name` | Varchar(255) | Unique, Not Null | Material Title (e.g. MS Round Pipe or Powder Coating) |
+| `material_category` | Varchar(50) | Nullable, Indexed | Classification (`pipes`, `powders`, `sheets`, `welding`, `hardware`, `other`) |
+| `specification` | Varchar(255) | Nullable | Shade / Dimensions / Grade (e.g. `RAL 7035 Light Grey`, `12mm OD x 1.5mm`) |
+| `unit` | Varchar(50) | Not Null | Unit of Measure (`kg`, `meter`, `piece`, `nos`, etc.) |
+| `average_purchase_price` | Decimal(10,2) | Default: 0.00 | Average Purchase Cost Per Unit (₹) |
+| `safety_threshold` | Decimal(12,4) | Default: 0.0000 | Minimum Safety Threshold Alert Limit |
 | `current_stock` | Decimal(12,4) | Default: 0.0000 | Live Available Stock Quantity |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
@@ -74,15 +75,16 @@ Catalog of manufactured finished goods (welded racks, pallets, structures).
 | :--- | :--- | :--- | :--- |
 | `id` | BigInt | Primary Key, Auto Increment | Unique Product ID |
 | `product_name` | Varchar(255) | Not Null | Product Model Name |
+| `sku` | Varchar(100) | Unique, Nullable | Stock Keeping Unit Code (Optional) |
 | `hsn_code` | Varchar(50) | Nullable | HSN Harmonized System Code |
-| `unit` | Varchar(50) | Default: 'NOS' | Unit of Measure (`NOS`, `SET`, `KG`) |
-| `unit_price` | Decimal(10,2) | Not Null | Unit Price Per Piece (₹) |
-| `gst_rate` | Decimal(5,2) | Default: 18.00 | Tax Percentage (`18.00`, `12.00`, `5.00`) |
+| `uom` | Varchar(50) | Default: 'piece' | Unit of Measure (`piece`, `nos`, `set`, `kg`, etc.) |
 | `unit_weight_kg` | Decimal(10,3) | Default: 0.000 | Net Weight Per Unit (Kg) |
-| `price_per_kg` | Decimal(10,2) | Nullable | Unit Price Per Kg (₹) |
-| `reorder_level` | Integer | Default: 0 | Safety Reorder Threshold |
 | `current_stock` | Integer | Default: 0 | Finished Goods Available Stock |
+| `selling_price` | Decimal(10,2) | Not Null | Selling Price Per Piece/Unit (₹) |
+| `price_per_kg` | Decimal(10,2) | Nullable | Price Per Kg (₹) |
+| `gst_rate` | Decimal(5,2) | Default: 18.00 | Tax Percentage (`18.00`, `12.00`, `5.00`, `28.00`, `0.00`) |
 | `safety_threshold` | Integer | Default: 10 | Minimum Stock Safety Alert Level |
+| `alerts_enabled` | Boolean | Default: true | Enable Low Stock Alert Badge |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
 
@@ -98,6 +100,7 @@ Composition formula mapping finished products to exact quantities of raw materia
 | `raw_material_id` | BigInt | FK -> `raw_materials.id` (Cascade) | Component Raw Material |
 | `required_quantity` | Decimal(12,4) | Not Null | Quantity Needed Per 1 Unit Output |
 | `waste_percentage` | Decimal(5,2) | Default: 0.00 | Scrap/Waste Allowance Percentage |
+| `unit_rate` | Decimal(12,2) | Nullable | Custom Material Rate Override (₹); falls back to weighted avg purchase price if null |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
 

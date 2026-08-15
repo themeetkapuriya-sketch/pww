@@ -76,6 +76,52 @@ html.dark .bg-slate-200 {
     border-color: #334155 !important;
 }
 
+html.dark .bg-rose-50,
+html.dark .bg-rose-50\/50,
+html.dark .bg-rose-50\/80 {
+    background-color: rgba(225, 29, 72, 0.12) !important;
+    border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+html.dark .bg-rose-100 {
+    background-color: rgba(225, 29, 72, 0.22) !important;
+}
+
+html.dark .bg-rose-200 {
+    background-color: rgba(225, 29, 72, 0.35) !important;
+}
+
+html.dark .text-rose-900,
+html.dark .text-rose-800 {
+    color: #fecdd3 !important;
+}
+
+html.dark .text-rose-700,
+html.dark .text-rose-600 {
+    color: #fda4af !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/50,
+html.dark .bg-amber-50\/80 {
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+html.dark .bg-amber-100 {
+    background-color: rgba(217, 119, 6, 0.22) !important;
+}
+
+html.dark .text-amber-900,
+html.dark .text-amber-800 {
+    color: #fde68a !important;
+}
+
+html.dark .text-amber-700,
+html.dark .text-amber-600 {
+    color: #fcd34d !important;
+}
+
 html.dark .from-indigo-50\/90,
 html.dark .from-indigo-50,
 html.dark .bg-gradient-to-r {
@@ -255,5 +301,55 @@ html.dark .text-slate-500 {
     color: #94a3b8 !important;
 }
 
+/* =========================================================
+   Payroll & Salary Modals Dark Mode Overrides
+   ========================================================= */
 
+html.dark #paymentSalaryModal > div,
+html.dark #giveAdvanceModal > div,
+html.dark #empStatementModal > div,
+html.dark #factoryResetModal > div {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
 
+html.dark #paymentMissingDatesAlert {
+    background-color: rgba(120, 53, 15, 0.25) !important;
+    border-color: rgba(217, 119, 6, 0.5) !important;
+    color: #fef3c7 !important;
+}
+
+html.dark #paymentMissingDatesAlert p#paymentMissingDatesList {
+    background-color: #0f172a !important;
+    border-color: rgba(217, 119, 6, 0.4) !important;
+    color: #fcd34d !important;
+}
+
+html.dark #paymentMissingDatesAlert svg {
+    color: #f59e0b !important;
+}
+
+html.dark #paymentSalaryModal .bg-blue-50\/70,
+html.dark #paymentSalaryModal .bg-blue-50 {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+html.dark #paymentMonthBadge {
+    background-color: #1e293b !important;
+    border-color: #3b82f6 !important;
+    color: #60a5fa !important;
+}
+
+html.dark #paymentEmployeeName {
+    color: #f8fafc !important;
+}
+
+html.dark #paymentWageDetails {
+    color: #94a3b8 !important;
+}
+
+html.dark #paymentPendingAdvanceBadge {
+    color: #fbbf24 !important;
+}

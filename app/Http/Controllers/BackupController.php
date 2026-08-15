@@ -44,7 +44,10 @@ class BackupController extends Controller
             ];
         }
 
-        return view('pages.backup', compact('backups', 'financialYears'));
+        $systemHealth = \App\Services\SystemHealthService::getDatabaseMetrics();
+        $tableCounts = \App\Services\SystemHealthService::getTableRecordCounts();
+
+        return view('pages.backup', compact('backups', 'financialYears', 'systemHealth', 'tableCounts'));
     }
 
     /**
@@ -190,5 +193,76 @@ class BackupController extends Controller
         }
 
         return back()->with('error', 'Backup file not found.');
+    }
+
+    /**
+     * One-Click Database Optimization (Vacuum & Index Defrag).
+     */
+    public function optimizeDatabase(Request $request)
+    {
+        $user = auth()->user();
+        if (! $user || ! in_array(strtolower($user->role ?? ''), ['super_admin', 'admin', 'administrator', 'owner'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Admin access required to optimize database.',
+            ], 403);
+        }
+
+        $res = \App\Services\SystemHealthService::optimizeDatabase();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json($res);
+        }
+
+        return back()->with($res['success'] ? 'success' : 'error', $res['message']);
+    }
+
+    /**
+     * Factory Reset / Fresh System Wipe with Admin Password Authentication.
+     */
+    public function resetSystem(Request $request)
+    {
+        $user = auth()->user();
+        if (! $user || ! in_array(strtolower($user->role ?? ''), ['super_admin', 'admin', 'administrator', 'owner'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Only Super Admin can perform a factory reset.',
+            ], 403);
+        }
+
+        $request->validate([
+            'admin_password' => 'required|string',
+            'confirm_phrase' => 'required|string|in:RESET,reset',
+            'keep_masters' => 'nullable|boolean',
+        ], [
+            'admin_password.required' => 'Admin password is required to authorize factory reset.',
+            'confirm_phrase.in' => "Please type 'RESET' exactly to confirm system wipe.",
+        ]);
+
+        if (! \Illuminate\Support\Facades\Hash::check($request->admin_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Incorrect Admin Password. Factory Reset authorization failed.',
+                'errors' => ['admin_password' => ['Incorrect Admin password.']],
+            ], 422);
+        }
+
+        try {
+            $keepMasters = $request->boolean('keep_masters', true);
+            $result = \App\Services\SystemResetService::resetSystemData($keepMasters);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'redirect' => route('overview'),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Factory Reset Failed: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Factory Reset failed: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }

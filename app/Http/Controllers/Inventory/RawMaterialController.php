@@ -17,9 +17,35 @@ class RawMaterialController extends Controller
      */
     public function index(Request $request)
     {
-        $rawMaterials = RawMaterial::with('latestPurchase')->orderBy('material_name')->paginate(20);
+        $selectedCategory = $request->query('category', 'all');
+        $query = RawMaterial::with('latestPurchase')->orderByDesc('id');
 
-        return view('pages.rawmaterial', compact('rawMaterials'));
+        if ($selectedCategory && $selectedCategory !== 'all') {
+            $query->where('material_category', $selectedCategory);
+        }
+
+        $rawMaterials = $query->get();
+
+        // Calculate counts for each category
+        $countsRaw = RawMaterial::selectRaw('material_category, count(*) as count')
+            ->groupBy('material_category')
+            ->pluck('count', 'material_category')
+            ->toArray();
+
+        $materialCategories = \App\Services\CategoryService::getMaterialCategories();
+        $totalCount = RawMaterial::count();
+        $categoryCounts = ['all' => $totalCount];
+        foreach ($materialCategories as $cat) {
+            $k = $cat['key'];
+            $categoryCounts[$k] = $countsRaw[$k] ?? 0;
+        }
+        if (isset($countsRaw[''])) {
+            $categoryCounts['other'] = ($categoryCounts['other'] ?? 0) + $countsRaw[''];
+        }
+
+        $lowStockMaterials = $rawMaterials->filter(fn ($m) => (float) $m->current_stock < (float) $m->safety_threshold);
+
+        return view('pages.rawmaterial', compact('rawMaterials', 'selectedCategory', 'categoryCounts', 'materialCategories', 'lowStockMaterials'));
     }
 
     /**
@@ -33,6 +59,8 @@ class RawMaterialController extends Controller
 
         $validated = $request->validate([
             'material_name' => 'required|string|max:255',
+            'material_category' => 'nullable|string|max:50',
+            'specification' => 'nullable|string|max:255',
             'unit' => 'required|string|max:50',
             'current_stock' => 'nullable|numeric|min:0',
             'safety_threshold' => 'required|numeric|min:0',
@@ -43,11 +71,18 @@ class RawMaterialController extends Controller
         $validated['average_purchase_price'] = (float) $request->input('average_purchase_price', 0);
 
         // Auto-restock if material already exists
+        /** @var RawMaterial|null $existing */
         $existing = RawMaterial::where('material_name', $validated['material_name'])->first();
 
         if ($existing) {
             $existing->current_stock += $addedQty;
             $existing->safety_threshold = $validated['safety_threshold'];
+            if (! empty($validated['material_category'])) {
+                $existing->material_category = $validated['material_category'];
+            }
+            if (! empty($validated['specification'])) {
+                $existing->specification = $validated['specification'];
+            }
             if ($validated['average_purchase_price'] > 0) {
                 $existing->average_purchase_price = $validated['average_purchase_price'];
             }
@@ -56,7 +91,7 @@ class RawMaterialController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Restocked '.number_format($addedQty, 2)." {$existing->unit} for '{$existing->material_name}'! Updated Total Stock: ".number_format($existing->current_stock, 2)." {$existing->unit}.",
+                'message' => 'Restocked '.number_format($addedQty, 2)." {$existing->unit} for '{$existing->material_name}'! Updated Total Stock: ".number_format((float) $existing->current_stock, 2)." {$existing->unit}.",
                 'data' => $existing,
             ]);
         }
@@ -83,6 +118,8 @@ class RawMaterialController extends Controller
 
         $validated = $request->validate([
             'material_name' => 'required|string|max:255',
+            'material_category' => 'nullable|string|max:50',
+            'specification' => 'nullable|string|max:255',
             'unit' => 'required|string|max:50',
             'safety_threshold' => 'required|numeric|min:0',
         ]);

@@ -6,19 +6,25 @@
 @php
     $productOptions = [];
     foreach ($finishedGoods as $good) {
+        $skuText = $good->sku ? ' (SKU: ' . $good->sku . ')' : '';
         $productOptions[] = [
             'value' => (string)$good->id,
-            'label' => $good->product_name . ' (SKU: ' . $good->sku . ')',
-            'search' => strtolower($good->product_name . ' ' . $good->sku)
+            'label' => $good->product_name . $skuText,
+            'search' => strtolower($good->product_name . ' ' . ($good->sku ?? ''))
         ];
     }
 
     $rawMaterialOptions = [];
     foreach ($rawMaterials as $mat) {
+        $specText = $mat->specification ? " [{$mat->specification}]" : '';
         $rawMaterialOptions[] = [
             'value' => (string)$mat->id,
-            'label' => $mat->material_name . ' (' . $mat->unit . ')',
-            'search' => strtolower($mat->material_name . ' ' . $mat->unit)
+            'label' => $mat->material_name . $specText . ' (' . $mat->unit . ')',
+            'search' => strtolower($mat->material_name . ' ' . $mat->specification . ' ' . $mat->material_category . ' ' . $mat->unit),
+            'data' => [
+                'rate' => (float)($mat->average_purchase_price ?? 0),
+                'unit' => $mat->unit ?? 'kg',
+            ]
         ];
     }
 @endphp
@@ -76,8 +82,8 @@
                 </div>
 
                 <div id="bomRowsContainer" class="space-y-3">
-                    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                        <div class="flex-grow">
+                    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-end gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                        <div class="flex-grow min-w-[200px]">
                             <x-combobox name="raw_material_ids[]"
                                         id="bom_rm_0"
                                         label="Raw Material"
@@ -85,19 +91,28 @@
                                         :options="$rawMaterialOptions"
                                         required />
                         </div>
-                        <div class="w-full md:w-36">
+                        <div class="w-full md:w-28">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Avg Rate (₹)</label>
+                            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
+                                   class="bom-rate-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
+                        </div>
+                        <div class="w-full md:w-28">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Required Qty</label>
                             <input type="number" name="required_quantities[]" step="0.0001" min="0.0001" placeholder="e.g. 4.5" required
-                                   class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                                   class="bom-qty-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
                         </div>
-                        <div class="w-full md:w-32">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Waste Factor (%)</label>
+                        <div class="w-full md:w-24">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Waste (%)</label>
                             <input type="number" name="waste_percentages[]" step="0.01" min="0" value="0" placeholder="e.g. 5%" required
-                                   class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                                   class="bom-waste-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
                         </div>
-                        <div class="flex items-end pb-0.5">
-                            <button type="button" class="remove-bom-row-btn w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm transition">
-                                &times;
+                        <div class="w-full md:w-28 shrink-0">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Line Cost</label>
+                            <div class="bom-line-cost-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-extrabold text-xs text-slate-800">₹0.00</div>
+                        </div>
+                        <div class="shrink-0 flex items-center justify-center">
+                            <button type="button" title="Remove component row" class="remove-bom-row-btn w-[38px] h-[38px] rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition duration-150 cursor-pointer shadow-2xs">
+                                <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -152,23 +167,83 @@
     <!-- 3. BOM List (Products Formula Ledgers) -->
     <div class="space-y-6">
         @forelse ($finishedGoods as $good)
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            @php
+                $mfgCost = $good->estimated_manufacturing_cost;
+                $baseCost = $good->base_material_cost;
+                $wasteCost = $good->waste_allowance_cost;
+                $sellingPrice = (float)($good->selling_price ?? 0);
+                $grossProfit = $good->gross_profit;
+                $marginPercent = $good->profit_margin_percentage;
+            @endphp
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
-                        <h3 class="text-base font-bold text-slate-800">{{ $good->product_name }}</h3>
-                        <span class="text-xs text-slate-500 font-mono">SKU: {{ $good->sku }} | List Price: ₹{{ number_format($good->selling_price, 2) }}</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-base font-bold text-slate-800">{{ $good->product_name }}</h3>
+                            @if($good->sku)
+                                <span class="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold">SKU: {{ $good->sku }}</span>
+                            @endif
+                            <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200">
+                                {{ $good->billOfMaterials->count() }} ingredients
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Weight: {{ number_format($good->unit_weight_kg, 2) }} kg | UOM: {{ strtoupper($good->uom ?? 'PCS') }}</p>
                     </div>
-                    <div class="flex items-center space-x-2">
+
+                    <!-- Cost & Margin KPIs -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-center min-w-[96px]">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Est. Unit Cost</span>
+                            <span class="text-xs font-extrabold text-slate-800 leading-normal">
+                                {{ $mfgCost > 0 ? '₹' . number_format($mfgCost, 2) : '—' }}
+                            </span>
+                        </div>
+                        
+                        <div class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-center min-w-[96px]">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-tight">List Price</span>
+                            <span class="text-xs font-extrabold text-blue-600 leading-normal">
+                                {{ $sellingPrice > 0 ? '₹' . number_format($sellingPrice, 2) : '—' }}
+                            </span>
+                        </div>
+
+                        <div class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-center min-w-[115px]">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-tight">Gross Margin</span>
+                            <div class="flex items-center gap-1.5 leading-normal">
+                                @if($good->billOfMaterials->isEmpty() || $mfgCost <= 0)
+                                    <span class="text-xs font-semibold text-slate-400 italic">No BOM cost</span>
+                                @elseif($sellingPrice > 0)
+                                    @if($marginPercent >= 25)
+                                        <span class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-600">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                            {{ $marginPercent }}%
+                                        </span>
+                                        <span class="text-[10px] text-emerald-600 font-bold">(+₹{{ number_format($grossProfit, 0) }})</span>
+                                    @elseif($marginPercent >= 10)
+                                        <span class="inline-flex items-center gap-1 text-xs font-extrabold text-amber-600">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                                            {{ $marginPercent }}%
+                                        </span>
+                                        <span class="text-[10px] text-amber-600 font-bold">(+₹{{ number_format($grossProfit, 0) }})</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-xs font-extrabold text-rose-600">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                                            {{ $marginPercent }}%
+                                        </span>
+                                        <span class="text-[10px] text-rose-600 font-bold">(₹{{ number_format($grossProfit, 0) }})</span>
+                                    @endif
+                                @else
+                                    <span class="text-xs text-slate-400 font-semibold italic">No Price Set</span>
+                                @endif
+                            </div>
+                        </div>
+
                         <button type="button" 
-                                onclick="editFullProductBom({{ $good->id }}, '{{ addslashes($good->product_name) }}', {{ json_encode($good->billOfMaterials->map(fn($b) => ['raw_material_id' => (string)$b->raw_material_id, 'required_quantity' => $b->required_quantity, 'waste_percentage' => $b->waste_percentage])) }})"
-                                class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-xs transition duration-150 flex items-center gap-1.5 cursor-pointer"
+                                onclick="editFullProductBom({{ $good->id }}, '{{ addslashes($good->product_name) }}', {{ json_encode($good->billOfMaterials->map(fn($b) => ['raw_material_id' => (string)$b->raw_material_id, 'required_quantity' => $b->required_quantity, 'waste_percentage' => $b->waste_percentage, 'unit_rate' => $b->unit_rate])) }})"
+                                class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 px-3.5 rounded-xl shadow-xs transition duration-150 flex items-center gap-1.5 cursor-pointer shrink-0 ml-1"
                                 title="Edit Product Formula">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             <span>Edit Formula</span>
                         </button>
-                        <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-200">
-                            {{ $good->billOfMaterials->count() }} ingredients
-                        </span>
                     </div>
                 </div>
 
@@ -180,34 +255,55 @@
                             <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                                 <tr>
                                     <th class="px-4 py-2.5 text-left text-xs font-bold uppercase">Raw Material</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Rate (₹ / unit)</th>
                                     <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Qty Required</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Waste Allowance</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Net Consumption</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Waste Scrap</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Effective Qty</th>
+                                    <th class="px-4 py-2.5 text-right text-xs font-bold uppercase">Estimated Cost</th>
                                     <th class="px-4 py-2.5 text-center text-xs font-bold uppercase w-16">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 @foreach ($good->billOfMaterials as $bom)
                                     @php
+                                        $material = $bom->rawMaterial;
+                                        $rate = (float)($bom->effective_rate ?? 0);
+                                        $isCustomRate = !is_null($bom->unit_rate) && (float)$bom->unit_rate > 0;
                                         $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
                                         $netConsumption = $bom->required_quantity * $wasteMultiplier;
+                                        $lineCost = $netConsumption * $rate;
                                     @endphp
                                     <tr class="hover:bg-slate-50 transition" id="row-bom-{{ $bom->id }}">
-                                        <td class="px-4 py-3 font-semibold text-slate-800">{{ $bom->rawMaterial->material_name }}</td>
-                                        <td class="px-4 py-3 text-right text-slate-700 font-medium">{{ number_format($bom->required_quantity, 4) }} {{ $bom->rawMaterial->unit }}</td>
+                                        <td class="px-4 py-3 font-semibold text-slate-800">
+                                            <div>{{ $material->material_name }}</div>
+                                            @if($material->specification)
+                                                <div class="text-[11px] text-slate-400 font-mono">{{ $material->specification }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-medium">
+                                            <span class="text-slate-700 font-bold">₹{{ number_format($rate, 2) }}</span>
+                                            <span class="text-[11px] text-slate-400 font-normal">/ {{ $material->unit }}</span>
+                                            @if($isCustomRate)
+                                                <span class="text-[9px] text-blue-700 font-bold uppercase tracking-wider block bg-blue-50 border border-blue-200 rounded px-1.5 py-0.2 w-fit ml-auto mt-0.5">Custom Rate</span>
+                                            @else
+                                                <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">Auto Avg</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right text-slate-700 font-medium">{{ number_format($bom->required_quantity, 4) }} {{ $material->unit }}</td>
                                         <td class="px-4 py-3 text-right text-rose-600 font-semibold">+{{ number_format($bom->waste_percentage, 1) }}%</td>
-                                        <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($netConsumption, 4) }} {{ $bom->rawMaterial->unit }}</td>
+                                        <td class="px-4 py-3 text-right font-medium text-slate-800">{{ number_format($netConsumption, 4) }} {{ $material->unit }}</td>
+                                        <td class="px-4 py-3 text-right font-bold text-slate-900">₹{{ number_format($lineCost, 2) }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <div class="flex items-center justify-center space-x-1.5">
                                                 <button type="button" 
-                                                        title="Edit Component Quantity & Waste"
-                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($bom->rawMaterial->material_name) }}', '{{ $bom->required_quantity }}', '{{ $bom->waste_percentage }}')"
+                                                        title="Edit Component Quantity, Waste & Rate"
+                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($material->material_name) }}', '{{ $bom->required_quantity }}', '{{ $bom->waste_percentage }}', '{{ $bom->unit_rate ?? '' }}')"
                                                         class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                 </button>
                                                 <button type="button" 
                                                         title="Remove Component"
-                                                        onclick="deleteBomComponent({{ $bom->id }}, '{{ addslashes($bom->rawMaterial->material_name) }}')"
+                                                        onclick="deleteBomComponent({{ $bom->id }}, '{{ addslashes($material->material_name) }}')"
                                                         class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                 </button>
@@ -216,6 +312,17 @@
                                     </tr>
                                 @endforeach
                             </tbody>
+                            <tfoot class="bg-slate-50 font-bold text-slate-800 border-t border-slate-200">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-2.5 text-right text-xs uppercase tracking-wider text-slate-600">
+                                        Total Estimated Material Unit Cost:
+                                    </td>
+                                    <td class="px-4 py-2.5 text-right text-sm font-extrabold text-blue-600">
+                                        ₹{{ number_format($mfgCost, 2) }}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 @endif
@@ -233,50 +340,75 @@
 </div>
 
 <template id="emptyBomRowTemplate">
-    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-        <div class="flex-grow">
+    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-end gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+        <div class="flex-grow min-w-[200px]">
             <x-combobox name="raw_material_ids[]"
                         label="Raw Material"
                         placeholder="Select Raw Material..."
                         :options="$rawMaterialOptions"
                         required />
         </div>
-        <div class="w-full md:w-36">
+        <div class="w-full md:w-28">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Avg Rate (₹)</label>
+            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
+                   class="bom-rate-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
+        </div>
+        <div class="w-full md:w-28">
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Required Qty</label>
             <input type="number" name="required_quantities[]" step="0.0001" min="0.0001" placeholder="e.g. 4.5" required
-                   class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                   class="bom-qty-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
         </div>
-        <div class="w-full md:w-32">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Waste Factor (%)</label>
+        <div class="w-full md:w-24">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Waste (%)</label>
             <input type="number" name="waste_percentages[]" step="0.01" min="0" value="0" placeholder="e.g. 5%" required
-                   class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+                   class="bom-waste-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
         </div>
-        <div class="flex items-end pb-0.5">
-            <button type="button" class="remove-bom-row-btn w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm transition">
-                &times;
+        <div class="w-full md:w-28 shrink-0">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Line Cost</label>
+            <div class="bom-line-cost-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-extrabold text-xs text-slate-800">₹0.00</div>
+        </div>
+        <div class="shrink-0 flex items-center justify-center">
+            <button type="button" title="Remove component row" class="remove-bom-row-btn w-[38px] h-[38px] rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition duration-150 cursor-pointer shadow-2xs">
+                <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
     </div>
 </template>
 
 <!-- Edit BOM Component Modal Dialog -->
-<div id="editBomFormCard" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-[#FFFDF5] rounded-2xl shadow-2xl border-2 border-amber-300 p-6 max-w-lg w-full transition-all duration-300">
-        <div class="flex items-center justify-between border-b border-amber-200/60 pb-3 mb-4">
-            <h3 class="text-base font-bold text-amber-900 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                <span>Edit Component:</span>
-                <span id="edit_bom_title_text" class="ml-1.5 text-amber-800 font-extrabold"></span>
-            </h3>
-            <button type="button" onclick="closeEditBomModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition cursor-pointer">&times; Close</button>
+<div id="editBomFormCard" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onclick="if(event.target === this) closeEditBomModal()">
+    <div class="bg-[#FFFDF5] rounded-3xl shadow-2xl border-2 border-amber-300 p-6 sm:p-7 max-w-2xl w-full transition-all duration-300">
+        <div class="flex items-start justify-between border-b border-amber-200/60 pb-4 mb-5 gap-4">
+            <div class="flex items-start gap-3">
+                <span class="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </span>
+                <div>
+                    <h3 class="text-base font-extrabold text-amber-950 leading-tight">Edit Component Formula</h3>
+                    <div class="text-xs text-amber-800 font-medium flex items-center gap-1.5 flex-wrap mt-1">
+                        <span id="edit_bom_prod_name" class="font-bold text-slate-800"></span>
+                        <span class="text-amber-500 font-bold">→</span>
+                        <span id="edit_bom_mat_name" class="font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg"></span>
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditBomModal()" class="w-8 h-8 rounded-xl bg-amber-100/70 hover:bg-amber-200 text-amber-900 flex items-center justify-center text-sm font-extrabold transition cursor-pointer shrink-0 shadow-2xs" title="Close Modal">
+                ✕
+            </button>
         </div>
 
         <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4" data-redirect="/bom" data-close-modal="#editBomModal">
             @csrf
             @method('PUT')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Required Quantity</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Rate (₹ / unit)</label>
+                    <input type="number" id="edit_unit_rate" name="unit_rate" step="0.01" min="0" placeholder="Auto Avg Rate"
+                           class="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Leave empty for auto avg</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Required Qty</label>
                     <input type="number" id="edit_required_quantity" name="required_quantity" step="0.0001" min="0.0001" required
                            class="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
                 </div>
@@ -287,7 +419,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-amber-200/60">
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-amber-200/60 mt-2">
                 <button type="button" onclick="closeEditBomModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-5 rounded-xl transition cursor-pointer">Cancel</button>
                 <button type="submit" class="btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs">
                     Update Component Formula
@@ -298,27 +430,36 @@
 </div>
 
 <template id="emptyEditBomRowTemplate">
-    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-amber-50/60 p-3.5 rounded-xl border border-amber-200">
-        <div class="flex-grow">
+    <div class="bom-row flex flex-col md:flex-row items-stretch md:items-end gap-2.5 bg-amber-50/60 p-3.5 rounded-xl border border-amber-200">
+        <div class="flex-grow min-w-[200px]">
             <x-combobox name="raw_material_ids[]"
                         label="Raw Material"
                         placeholder="Select Raw Material..."
                         :options="$rawMaterialOptions"
                         required />
         </div>
-        <div class="w-full md:w-36">
+        <div class="w-full md:w-28">
+            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Avg Rate (₹)</label>
+            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
+                   class="bom-rate-input w-full bg-white border border-amber-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 h-[38px]">
+        </div>
+        <div class="w-full md:w-28">
             <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Required Qty</label>
             <input type="number" name="required_quantities[]" step="0.0001" min="0.0001" placeholder="e.g. 4.5" required
-                   class="w-full bg-white border border-amber-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold">
+                   class="bom-qty-input w-full bg-white border border-amber-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold h-[38px]">
         </div>
-        <div class="w-full md:w-32">
-            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Waste Factor (%)</label>
+        <div class="w-full md:w-24">
+            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Waste (%)</label>
             <input type="number" name="waste_percentages[]" step="0.01" min="0" value="0" placeholder="e.g. 5%" required
-                   class="w-full bg-white border border-amber-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold">
+                   class="bom-waste-input w-full bg-white border border-amber-200 rounded-lg py-2 px-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-bold h-[38px]">
         </div>
-        <div class="flex items-end pb-0.5">
-            <button type="button" class="remove-bom-row-btn w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm transition">
-                &times;
+        <div class="w-full md:w-28 shrink-0">
+            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Line Cost</label>
+            <div class="bom-line-cost-display h-[38px] px-2.5 bg-white border border-amber-200 rounded-lg flex items-center justify-end font-extrabold text-xs text-slate-800">₹0.00</div>
+        </div>
+        <div class="shrink-0 flex items-center justify-center">
+            <button type="button" title="Remove component row" class="remove-bom-row-btn w-[38px] h-[38px] rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center transition duration-150 cursor-pointer shadow-2xs">
+                <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
     </div>
@@ -335,6 +476,36 @@ function toggleAddBomForm() {
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
         card.classList.add('hidden');
+    }
+}
+
+function updateBomRowCost(row) {
+    if (!row) return;
+    const rateInp = row.querySelector('.bom-rate-input');
+    const qtyInp = row.querySelector('.bom-qty-input');
+    const wasteInp = row.querySelector('.bom-waste-input');
+    const costDisplay = row.querySelector('.bom-line-cost-display');
+    
+    // Auto-fill rate from combobox dataset if empty
+    if (rateInp && (!rateInp.value || parseFloat(rateInp.value) === 0)) {
+        const hidden = row.querySelector('.combobox-hidden-input');
+        if (hidden && hidden.value) {
+            const opt = row.querySelector(`.combobox-option[data-value="${CSS.escape(hidden.value)}"]`);
+            if (opt && opt.dataset.rate) {
+                rateInp.value = parseFloat(opt.dataset.rate).toFixed(2);
+            }
+        }
+    }
+    
+    const rate = parseFloat(rateInp ? rateInp.value : 0) || 0;
+    const qty = parseFloat(qtyInp ? qtyInp.value : 0) || 0;
+    const waste = parseFloat(wasteInp ? wasteInp.value : 0) || 0;
+    
+    const effectiveQty = qty * (1 + (waste / 100));
+    const lineCost = effectiveQty * rate;
+    
+    if (costDisplay) {
+        costDisplay.innerText = '₹' + lineCost.toFixed(2);
     }
 }
 
@@ -357,7 +528,7 @@ function editFullProductBom(productId, productName, components) {
         container.innerHTML = '';
         if (components && components.length > 0) {
             components.forEach(comp => {
-                addEditBomRowWithData(comp.raw_material_id, comp.required_quantity, comp.waste_percentage);
+                addEditBomRowWithData(comp.raw_material_id, comp.required_quantity, comp.waste_percentage, comp.unit_rate);
             });
         } else {
             addEditBomRow();
@@ -373,7 +544,7 @@ function closeEditBomCard() {
     if (editCard) editCard.classList.add('hidden');
 }
 
-function addEditBomRowWithData(matId, reqQty, waste) {
+function addEditBomRowWithData(matId, reqQty, waste, rate) {
     const container = document.getElementById('editBomRowsContainer');
     const template = document.getElementById('emptyEditBomRowTemplate');
     if (container && template) {
@@ -397,12 +568,19 @@ function addEditBomRowWithData(matId, reqQty, waste) {
             }
         }
         
-        const qtyInput = clone.querySelector('input[name="required_quantities[]"]');
-        const wasteInput = clone.querySelector('input[name="waste_percentages[]"]');
+        const rateInput = clone.querySelector('.bom-rate-input');
+        const qtyInput = clone.querySelector('.bom-qty-input');
+        const wasteInput = clone.querySelector('.bom-waste-input');
+        
         if (qtyInput) qtyInput.value = reqQty;
         if (wasteInput) wasteInput.value = waste;
+        if (rateInput && rate !== null && rate !== undefined && rate !== '') {
+            rateInput.value = parseFloat(rate).toFixed(2);
+        }
 
         container.appendChild(clone);
+        const newlyAdded = container.lastElementChild;
+        updateBomRowCost(newlyAdded);
     }
 }
 
@@ -452,18 +630,22 @@ function addBomRow() {
     }
 }
 
-function openEditBomModal(id, productName, materialName, reqQty, waste) {
+function openEditBomModal(id, productName, materialName, reqQty, waste, rate) {
     const card = document.getElementById('editBomFormCard');
     const form = document.getElementById('editBomForm');
-    const titleText = document.getElementById('edit_bom_title_text');
+    const prodText = document.getElementById('edit_bom_prod_name');
+    const matText = document.getElementById('edit_bom_mat_name');
     const inputQty = document.getElementById('edit_required_quantity');
     const inputWaste = document.getElementById('edit_waste_percentage');
+    const inputRate = document.getElementById('edit_unit_rate');
 
     if (card && form) {
         form.action = `/bom/${id}`;
-        if (titleText) titleText.innerText = `${productName} → ${materialName}`;
+        if (prodText) prodText.innerText = productName;
+        if (matText) matText.innerText = materialName;
         if (inputQty) inputQty.value = reqQty;
         if (inputWaste) inputWaste.value = waste;
+        if (inputRate) inputRate.value = (rate !== null && rate !== undefined && rate !== '') ? parseFloat(rate).toFixed(2) : '';
 
         card.classList.remove('hidden');
     }
@@ -474,15 +656,51 @@ function closeEditBomModal() {
     if (card) card.classList.add('hidden');
 }
 
+// Event Listeners for Live Cost Calculation
+document.addEventListener('input', function(e) {
+    if (e.target.matches('.bom-rate-input, .bom-qty-input, .bom-waste-input')) {
+        const row = e.target.closest('.bom-row');
+        updateBomRowCost(row);
+    }
+});
+
 document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('remove-bom-row-btn')) {
-        const container = document.getElementById('bomRowsContainer');
+    // 1. Remove Row
+    const btn = e.target.closest('.remove-bom-row-btn');
+    if (btn) {
+        const row = btn.closest('.bom-row');
+        const container = row ? row.parentElement : null;
         if (container && container.querySelectorAll('.bom-row').length > 1) {
-            e.target.closest('.bom-row').remove();
+            row.remove();
         } else {
-            alert('At least one raw material component row is required.');
+            if (window.showToast) {
+                window.showToast('error', 'At least one raw material component row is required.');
+            } else {
+                alert('At least one raw material component row is required.');
+            }
+        }
+        return;
+    }
+
+    // 2. Combobox option selected inside BOM row
+    const opt = e.target.closest('.combobox-option');
+    if (opt) {
+        const row = opt.closest('.bom-row');
+        if (row) {
+            setTimeout(() => {
+                const rateInp = row.querySelector('.bom-rate-input');
+                if (rateInp && opt.dataset.rate) {
+                    rateInp.value = parseFloat(opt.dataset.rate).toFixed(2);
+                }
+                updateBomRowCost(row);
+            }, 50);
         }
     }
+});
+
+// Initialize live costs for initial row
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.bom-row').forEach(row => updateBomRowCost(row));
 });
 
 function deleteBomComponent(id, name) {

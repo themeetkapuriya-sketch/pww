@@ -21,18 +21,18 @@
         </div>
 
         <div class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm" id="salaryLedgerTable">
+            <table class="erp-datatable min-w-[1150px] w-full divide-y divide-slate-200 text-sm whitespace-nowrap no-responsive" id="salaryLedgerTable" data-responsive="false">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
-                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Employee Name</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Wage Type</th>
-                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Rate Details</th>
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Present Days (Month)</th>
-                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Calculated Salary</th>
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Payment Status</th>
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Payment Date</th>
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-32">Action</th>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12 min-w-[48px]">#</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase min-w-[200px]">Employee Name</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase min-w-[120px]">Wage Type</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase min-w-[150px]">Rate Details</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase min-w-[160px]">Present Days (Month)</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase min-w-[160px]">Calculated Salary</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase min-w-[140px]">Payment Status</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase min-w-[140px]">Payment Date</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-32 min-w-[140px]">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -52,6 +52,8 @@
                             }
 
                             $isPaid = $payment && $payment->status === 'paid';
+                            $mDates = isset($missingAttendanceDates) ? $missingAttendanceDates->get($staff->id, []) : [];
+                            $hasMissingAttendance = count($mDates) > 0;
                         @endphp
                         <tr class="hover:bg-slate-50 transition" id="row-payment-{{ $staff->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
@@ -64,9 +66,16 @@
                                         </span>
                                     @endif
                                 </div>
+                                @php
+                                    $advList = $pendingAdvanceDetails[$staff->id] ?? [];
+                                    $advDatesStr = collect($advList)->map(fn($a) => $a['date_short'] ?: $a['date'])->filter()->join(', ');
+                                @endphp
                                 @if($pAdvance > 0)
-                                    <span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px] font-bold block mt-1 w-fit" title="Pending advance to deduct">
+                                    <span class="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700/60 rounded text-[10px] font-bold block mt-1 w-fit shadow-2xs" title="Pending advance given on: {{ $advDatesStr }}">
                                         Advance: ₹{{ number_format($pAdvance, 2) }}
+                                        @if($advDatesStr)
+                                            <span class="text-[9px] font-medium text-amber-600 dark:text-amber-400">({{ $advDatesStr }})</span>
+                                        @endif
                                     </span>
                                 @endif
                             </td>
@@ -78,17 +87,20 @@
                             </td>
                             <td class="px-6 py-4 text-right font-mono font-semibold text-slate-700">
                                 @if ($staff->wage_type === 'per-day')
-                                    ₹{{ number_format($rate, 2) }} / day
+                                    ₹{{ number_format($rate, 2) }} <span class="text-xs text-slate-500 font-sans font-normal">/ day</span>
                                 @else
-                                    ₹{{ number_format($rate, 2) }} / month
+                                    ₹{{ number_format($rate, 2) }} <span class="text-xs text-slate-500 font-sans font-normal">/ month</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-center font-mono font-bold text-slate-800">
-                                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
-                                    {{ number_format($daysPresent, 1) }} Days
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <span class="font-bold text-slate-800 font-mono text-sm">
+                                    {{ number_format($daysPresent, 1) }}
                                 </span>
+                                @if($hasMissingAttendance)
+                                    <span class="inline-flex items-center text-amber-500 hover:text-amber-600 cursor-help ml-0.5 text-xs" title="Includes {{ count($missingAttendanceDates->get($staff->id, [])) }} unrecorded day(s) automatically counted as Present. Verify before paying.">⚠️</span>
+                                @endif
                             </td>
-                            <td class="px-6 py-4 text-right font-mono font-black text-slate-900 text-base">
+                            <td class="px-6 py-4 text-right font-mono font-bold text-slate-800">
                                 ₹{{ number_format($totalSalary, 2) }}
                                 @if($payment && $payment->advance_deduction > 0)
                                     <span class="block text-[10px] text-amber-700 font-normal">(Deducted: ₹{{ number_format($payment->advance_deduction, 2) }})</span>
@@ -125,16 +137,24 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
                                     </button>
-                                    <button type="button" 
-                                            data-staff="{{ json_encode(new \App\Http\Resources\StaffProfileResource($staff)) }}"
-                                            data-payment="{{ json_encode($payment) }}"
-                                            data-pending-advance="{{ $pAdvance }}"
-                                            data-missing-dates="{{ json_encode($missingAttendanceDates->get($staff->id, [])) }}"
-                                            onclick='openPaymentModal(this, "{{ $selectedMonth }}", {{ $daysPresent }}, {{ $totalSalary }})'
-                                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                        {{ $isPaid ? 'Edit Payment' : 'Pay Salary' }}
-                                    </button>
+                                    @if (!$isPaid)
+                                        <button type="button" 
+                                                data-staff="{{ json_encode(new \App\Http\Resources\StaffProfileResource($staff)) }}"
+                                                data-payment="{{ json_encode($payment) }}"
+                                                data-pending-advance="{{ $pAdvance }}"
+                                                data-advance-details="{{ json_encode($advList) }}"
+                                                data-missing-dates="{{ json_encode($missingAttendanceDates->get($staff->id, [])) }}"
+                                                onclick='openPaymentModal(this, "{{ $selectedMonth }}", {{ $daysPresent }}, {{ $totalSalary }})'
+                                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                            Pay Salary
+                                        </button>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                                            <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Settled
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
