@@ -74,17 +74,28 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="md:col-span-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="lg:col-span-1">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Specification / Shade / Size</label>
                     <input type="text" id="mat_spec" name="specification" placeholder="e.g. 12mm OD x 1.5mm or RAL 7035 Grey"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                    <span class="text-[10px] text-slate-400 font-medium" id="mat_spec_hint">Enter pipe size, powder shade code, or gauge thickness</span>
+                    <span class="text-[10px] text-slate-400 font-medium" id="mat_spec_hint">Enter size, shade code, or gauge</span>
                 </div>
                 <div id="material_stock_wrapper">
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Initial Quantity / Stock</label>
                     <input type="number" id="mat_stock" name="current_stock" step="0.0001" min="0" placeholder="e.g. 15000"
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                </div>
+                <div id="material_price_wrapper">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase">Purchase Rate (₹ / unit)</label>
+                        <button type="button" onclick="resetMaterialRateToAuto()" title="Reset to Live Purchase Avg Rate" class="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer flex items-center gap-0.5">
+                            <span>🔄 Auto Avg</span>
+                        </button>
+                    </div>
+                    <input type="number" id="mat_price" name="average_purchase_price" step="0.01" min="0" placeholder="Auto Avg (₹)"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                    <span class="text-[10px] text-slate-400 font-medium block mt-0.5">Leave empty for auto purchase avg</span>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Safety Threshold Alert Limit <span class="text-rose-500">*</span></label>
@@ -153,21 +164,22 @@
         </div>
 
         <div class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+            <table class="erp-datatable divide-y divide-slate-200 text-sm" style="min-width: 1100px; width: 100%;">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>
-                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase">Material Name & Specification</th>
-                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase">Category</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold uppercase min-w-[200px]">Material Name & Specification</th>
+                        <th class="px-4 py-3.5 text-center text-xs font-bold uppercase whitespace-nowrap">Category</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold uppercase whitespace-nowrap">Rate (₹ / unit)</th>
                         @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Current Stock</th>
-                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase">Safety Threshold Limit</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase whitespace-nowrap">Current Stock</th>
+                            <th class="px-6 py-3.5 text-right text-xs font-bold uppercase whitespace-nowrap">Safety Threshold Limit</th>
                         @endif
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Last Restocked Date</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase whitespace-nowrap">Last Restocked Date</th>
                         @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase">Status</th>
+                            <th class="px-6 py-3.5 text-center text-xs font-bold uppercase whitespace-nowrap">Status</th>
                         @endif
-                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-36">Action</th>
+                        <th class="px-6 py-3.5 text-center text-xs font-bold uppercase w-36 whitespace-nowrap">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -175,6 +187,7 @@
                         @php 
                             $isLow = $mat->current_stock < $mat->safety_threshold; 
                             $catInfo = $mat->category_info;
+                            $hasPurchases = $mat->purchases()->where('purchase_type', 'raw_material')->exists();
                         @endphp
                         <tr class="hover:bg-slate-50 transition mat-row" id="row-mat-{{ $mat->id }}" data-category="{{ $mat->material_category ?: 'other' }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
@@ -187,17 +200,30 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center whitespace-nowrap">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border bg-slate-50 text-slate-700 border-slate-200">
                                     <span>{{ $catInfo['icon'] ?? '📦' }}</span>
                                     <span>{{ $catInfo['label'] }}</span>
                                 </span>
                             </td>
+                            <td class="px-6 py-4 text-right font-medium whitespace-nowrap">
+                                <span class="text-slate-800 font-bold">₹{{ number_format((float)($mat->average_purchase_price ?? 0), 2) }}</span>
+                                <span class="text-[11px] text-slate-400 font-normal">/ {{ $mat->unit }}</span>
+                                @if($hasPurchases)
+                                    <span class="text-[9.5px] text-emerald-700 font-bold tracking-wider inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Calculated from Purchase ledger entries">
+                                        🔄 Auto Avg
+                                    </span>
+                                @else
+                                    <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Master Standard Rate">
+                                        🔒 Master Rate
+                                    </span>
+                                @endif
+                            </td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                                <td class="px-6 py-4 text-right font-medium text-slate-700 mat-stock-cell">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
-                                <td class="px-6 py-4 text-right text-slate-500"><span class="mat-threshold-val hidden">{{ (float)$mat->safety_threshold }}</span>{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
+                                <td class="px-6 py-4 text-right font-medium text-slate-700 mat-stock-cell whitespace-nowrap">{{ number_format($mat->current_stock, 2) }} {{ $mat->unit }}</td>
+                                <td class="px-6 py-4 text-right text-slate-500 whitespace-nowrap"><span class="mat-threshold-val hidden">{{ (float)$mat->safety_threshold }}</span>{{ number_format($mat->safety_threshold, 1) }} {{ $mat->unit }}</td>
                             @endif
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
                                 @if($mat->latestPurchase && $mat->latestPurchase->purchase_date)
                                     <div class="inline-flex flex-col items-center">
                                         <span class="text-xs font-bold text-slate-800">{{ $mat->latestPurchase->purchase_date->format('d M Y') }}</span>
@@ -208,7 +234,7 @@
                                 @endif
                             </td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                                <td class="px-6 py-4 text-center mat-status-cell">
+                                <td class="px-6 py-4 text-center mat-status-cell whitespace-nowrap">
                                     @if ($isLow)
                                         <span class="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] rounded font-bold uppercase tracking-wider animate-pulse">Low Stock</span>
                                     @else
@@ -216,7 +242,7 @@
                                     @endif
                                 </td>
                             @endif
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <a href="{{ route('purchases', ['prefill_raw_material' => $mat->id, 'prefill_qty' => $mat->suggested_reorder_quantity, 'prefill_price' => $mat->average_purchase_price]) }}"
                                        title="Restock Material (Record Purchase Bill)"
@@ -235,10 +261,10 @@
                                         </button>
                                     @endif
                                     <button type="button" 
-                                            onclick="openEditMaterialModal({{ $mat->id }}, '{{ addslashes($mat->material_name) }}', '{{ $mat->material_category }}', '{{ addslashes($mat->specification ?? '') }}', '{{ $mat->unit }}', {{ $mat->safety_threshold }})"
+                                            onclick="openEditMaterialModal({{ $mat->id }}, '{{ addslashes($mat->material_name) }}', '{{ $mat->material_category }}', '{{ addslashes($mat->specification ?? '') }}', '{{ $mat->unit }}', {{ $mat->safety_threshold }}, {{ (float)($mat->average_purchase_price ?? 0) }})"
                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
                                             title="Edit Raw Material">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
                                     <button type="button" 
                                             onclick="deleteMaterial({{ $mat->id }}, '{{ addslashes($mat->material_name) }}')"
@@ -251,7 +277,7 @@
                         </tr>
                     @empty
                         <tr class="empty-row">
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="{{ \App\Models\Setting::get('track_stock', 'true') === 'true' ? 9 : 6 }}" class="px-6 py-12 text-center text-slate-400">
                                 <div class="flex flex-col items-center justify-center space-y-2">
                                     <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -455,7 +481,17 @@ function toggleMaterialForm(showExplicit = null) {
     }
 }
 
-function openEditMaterialModal(id, name, category, spec, unit, threshold) {
+window.resetMaterialRateToAuto = function() {
+    const input = document.getElementById('mat_price');
+    if (input) {
+        input.value = '';
+        if (typeof window.showToast === 'function') {
+            window.showToast('info', 'Rate reset to Auto Purchase Average!');
+        }
+    }
+};
+
+function openEditMaterialModal(id, name, category, spec, unit, threshold, price) {
     const card = document.getElementById('rawMaterialCard');
     if (!card) return;
     
@@ -478,8 +514,11 @@ function openEditMaterialModal(id, name, category, spec, unit, threshold) {
     document.getElementById('mat_spec').value = spec || '';
     document.getElementById('mat_unit').value = unit;
     document.getElementById('mat_threshold').value = threshold;
+    if (document.getElementById('mat_price')) {
+        document.getElementById('mat_price').value = (price && parseFloat(price) > 0) ? parseFloat(price).toFixed(2) : '';
+    }
     if (document.getElementById('material_stock_wrapper')) document.getElementById('material_stock_wrapper').style.display = 'none';
-    if (document.getElementById('material_price_wrapper')) document.getElementById('material_price_wrapper').style.display = 'none';
+    if (document.getElementById('material_price_wrapper')) document.getElementById('material_price_wrapper').style.display = 'block';
     updateSpecPlaceholder(category || '');
     
     const btn = document.getElementById('materialSubmitBtn');

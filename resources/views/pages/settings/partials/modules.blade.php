@@ -95,9 +95,7 @@
                     <div class="space-y-1">
                         <span class="block text-base font-extrabold text-indigo-950 dark:text-indigo-100 flex items-center gap-2">
                             ⚡ 1-Click Simplified Billing & Accounting Mode
-                            @if($modules['simplified_billing_mode'] ?? false)
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-2xs">ACTIVE</span>
-                            @endif
+                            <span id="simplified_billing_active_badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500 text-white shadow-2xs {{ ($modules['simplified_billing_mode'] ?? false) ? '' : 'hidden' }}">ACTIVE</span>
                         </span>
                         <p class="text-xs text-indigo-900/80 dark:text-indigo-200/90 font-medium leading-relaxed">
                             Turn <strong>ON</strong> to instantly configure the ERP for pure billing & accounting (Invoices, Purchases, Expenses, Clients & Reports). Automatically disables Stock Management, Production, Orders & Payroll for a clean, hassle-free layout!

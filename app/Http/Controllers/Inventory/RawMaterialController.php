@@ -68,7 +68,8 @@ class RawMaterialController extends Controller
         ]);
         $addedQty = (float) $request->input('current_stock', 0);
         $validated['current_stock'] = $addedQty;
-        $validated['average_purchase_price'] = (float) $request->input('average_purchase_price', 0);
+        $customRate = $request->filled('average_purchase_price') ? (float) $request->input('average_purchase_price') : 0.0;
+        $validated['average_purchase_price'] = $customRate;
 
         // Auto-restock if material already exists
         /** @var RawMaterial|null $existing */
@@ -83,8 +84,10 @@ class RawMaterialController extends Controller
             if (! empty($validated['specification'])) {
                 $existing->specification = $validated['specification'];
             }
-            if ($validated['average_purchase_price'] > 0) {
-                $existing->average_purchase_price = $validated['average_purchase_price'];
+            if ($customRate > 0) {
+                $existing->average_purchase_price = $customRate;
+            } elseif (! $request->filled('average_purchase_price')) {
+                $existing->recalculateAveragePurchasePrice();
             }
             $existing->unit = $validated['unit'];
             $existing->save();
@@ -97,6 +100,9 @@ class RawMaterialController extends Controller
         }
 
         $material = RawMaterial::create($validated);
+        if ($customRate <= 0) {
+            $material->recalculateAveragePurchasePrice();
+        }
 
         return response()->json([
             'success' => true,
@@ -122,7 +128,16 @@ class RawMaterialController extends Controller
             'specification' => 'nullable|string|max:255',
             'unit' => 'required|string|max:50',
             'safety_threshold' => 'required|numeric|min:0',
+            'average_purchase_price' => 'nullable|numeric|min:0',
         ]);
+
+        if ($request->filled('average_purchase_price') && (float) $request->input('average_purchase_price') > 0) {
+            $validated['average_purchase_price'] = (float) $request->input('average_purchase_price');
+        } elseif ($request->has('average_purchase_price') && ! $request->filled('average_purchase_price')) {
+            // Revert back to live calculated purchase average
+            $material->recalculateAveragePurchasePrice();
+            unset($validated['average_purchase_price']);
+        }
 
         $material->update($validated);
 

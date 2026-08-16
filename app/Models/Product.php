@@ -89,9 +89,7 @@ class Product extends Model
         foreach ($boms as $bom) {
             $material = $bom->rawMaterial;
             if ($material) {
-                $price = (! is_null($bom->unit_rate) && (float) $bom->unit_rate > 0)
-                    ? (float) $bom->unit_rate
-                    : (float) ($material->average_purchase_price ?? 0);
+                $price = (float) ($material->average_purchase_price ?? 0);
                 $qty = (float) ($bom->required_quantity ?? 0);
                 $waste = (float) ($bom->waste_percentage ?? 0);
                 $effectiveQty = $qty * (1 + ($waste / 100));
@@ -113,9 +111,7 @@ class Product extends Model
         foreach ($boms as $bom) {
             $material = $bom->rawMaterial;
             if ($material) {
-                $price = (! is_null($bom->unit_rate) && (float) $bom->unit_rate > 0)
-                    ? (float) $bom->unit_rate
-                    : (float) ($material->average_purchase_price ?? 0);
+                $price = (float) ($material->average_purchase_price ?? 0);
                 $qty = (float) ($bom->required_quantity ?? 0);
                 $baseCost += ($qty * $price);
             }

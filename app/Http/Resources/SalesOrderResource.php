@@ -30,18 +30,26 @@ class SalesOrderResource extends JsonResource
             'due_date' => $this->due_date ? $this->due_date->format('Y-m-d') : null,
             'total_amount' => (float) $this->total_amount,
             'notes' => $this->notes,
+            'track_stock_enabled' => \App\Models\Setting::isStockEnabled(),
             'finished_goods_status' => $this->getFinishedGoodsStockStatus(),
             'raw_material_mrp' => $this->calculateRawMaterialRequirements(),
+            'estimated_cost_summary' => $this->calculateEstimatedOrderCost(),
             'items' => $this->items ? $this->items->map(function ($item) {
+                $product = $item->product;
+                $unitMfgCost = $product ? (float) $product->estimated_manufacturing_cost : 0.0;
+                $lineMfgCost = round($unitMfgCost * (float) $item->quantity, 2);
+
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
-                    'product_name' => $item->product ? $item->product->product_name : 'Item #'.$item->product_id,
-                    'sku' => $item->product ? $item->product->sku : '',
+                    'product_name' => $product ? $product->product_name : 'Item #'.$item->product_id,
+                    'sku' => $product ? $product->sku : '',
                     'billing_uom' => $item->billing_uom ?? 'Pcs',
                     'quantity' => (float) $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'total_price' => (float) $item->total_price,
+                    'unit_estimated_cost' => $unitMfgCost,
+                    'total_estimated_cost' => $lineMfgCost,
                 ];
             })->values()->toArray() : [],
         ];

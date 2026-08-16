@@ -33,10 +33,6 @@ class BillOfMaterial extends Model
      */
     public function getEffectiveRateAttribute(): float
     {
-        if (! is_null($this->unit_rate) && (float) $this->unit_rate > 0) {
-            return (float) $this->unit_rate;
-        }
-
         return (float) ($this->rawMaterial->average_purchase_price ?? 0);
     }
 

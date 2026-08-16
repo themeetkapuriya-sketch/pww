@@ -5,6 +5,8 @@
     $activeOrdersList = $activeOrdersSummary['orders'] ?? collect();
     $inProdCount = $activeOrdersSummary['in_production_count'] ?? 0;
     $readyDispatchCount = $activeOrdersSummary['ready_count'] ?? 0;
+    $trackStock = \App\Models\Setting::isStockEnabled();
+    $isProdModuleActive = \App\Models\Setting::get('module_production', 'true') === 'true';
 @endphp
 <div class="relative inline-block text-left" id="activeOrdersDropdownWrapper">
     <button type="button" 
@@ -13,7 +15,7 @@
             class="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50/90 hover:from-blue-100 hover:to-indigo-100/90 dark:from-slate-800 dark:to-slate-800/90 dark:hover:from-slate-700 dark:hover:to-slate-700 border border-blue-200/80 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-950 dark:text-slate-100 shadow-2xs transition cursor-pointer"
             title="{{ $activeOrderCount }} Active Orders in Pipeline">
         <span class="flex h-2 w-2 relative">
-            @if($inProdCount > 0)
+            @if($inProdCount > 0 && $trackStock)
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
             @elseif($activeOrderCount > 0)
@@ -30,7 +32,7 @@
         <span class="px-1.5 py-0.5 bg-blue-600 text-white font-black text-[10px] rounded-full shadow-2xs">
             {{ $activeOrderCount }}
         </span>
-        @if($inProdCount > 0)
+        @if($inProdCount > 0 && $trackStock)
             <span class="hidden lg:inline-block px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/80 text-amber-800 dark:text-amber-300 text-[10px] font-bold rounded-md">
                 {{ $inProdCount }} in Prod
             </span>
@@ -112,35 +114,37 @@
                                         </span>
                                     </div>
 
-                                    <!-- Progress Bar & Status -->
-                                    <div class="flex items-center justify-between text-[10px] pt-0.5">
-                                        @if($isReady)
-                                            <span class="font-semibold text-emerald-700">
-                                                ✅ Available Stock: {{ $prodStock }} {{ $item->billing_uom ?? 'pcs' }}
-                                            </span>
-                                        @elseif($prodStock < 0)
-                                            <span class="font-semibold text-rose-600 font-mono">
-                                                ⚠️ Live Deficit: {{ $prodStock }} (Order Needs: {{ $orderQty }})
-                                            </span>
-                                        @else
-                                            <span class="font-semibold text-amber-700 font-mono">
-                                                ⚠️ Stock: {{ $prodStock }} / {{ $orderQty }} (Short: {{ $missing }})
-                                            </span>
-                                        @endif
+                                    @if($trackStock)
+                                        <!-- Progress Bar & Status -->
+                                        <div class="flex items-center justify-between text-[10px] pt-0.5">
+                                            @if($isReady)
+                                                <span class="font-semibold text-emerald-700">
+                                                    ✅ Available Stock: {{ $prodStock }} {{ $item->billing_uom ?? 'pcs' }}
+                                                </span>
+                                            @elseif($prodStock < 0)
+                                                <span class="font-semibold text-rose-600 font-mono">
+                                                    ⚠️ Live Deficit: {{ $prodStock }} (Order Needs: {{ $orderQty }})
+                                                </span>
+                                            @else
+                                                <span class="font-semibold text-amber-700 font-mono">
+                                                    ⚠️ Stock: {{ $prodStock }} / {{ $orderQty }} (Short: {{ $missing }})
+                                                </span>
+                                            @endif
 
-                                        @if(!$isReady && $item->product_id)
-                                            <a href="/production?open=1&product_id={{ $item->product_id }}" 
-                                               class="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-2xs text-[9px] transition shrink-0 ml-1">
-                                                + Produce
-                                            </a>
-                                        @endif
-                                    </div>
+                                            @if(!$isReady && $item->product_id && $isProdModuleActive)
+                                                <a href="/production?open=1&product_id={{ $item->product_id }}" 
+                                                   class="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded shadow-2xs text-[9px] transition shrink-0 ml-1">
+                                                    + Produce
+                                                </a>
+                                            @endif
+                                        </div>
 
-                                    <!-- Visual Progress Bar -->
-                                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                        <div class="h-1.5 rounded-full transition-all duration-300 {{ $isReady ? 'bg-emerald-500' : ($prodStock > 0 ? 'bg-amber-500' : 'bg-rose-500') }}"
-                                             style="width: {{ $percent }}%"></div>
-                                    </div>
+                                        <!-- Visual Progress Bar -->
+                                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                            <div class="h-1.5 rounded-full transition-all duration-300 {{ $isReady ? 'bg-emerald-500' : ($prodStock > 0 ? 'bg-amber-500' : 'bg-rose-500') }}"
+                                                 style="width: {{ $percent }}%"></div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -174,10 +178,12 @@
                 <span>All Orders</span>
                 <span>➜</span>
             </a>
-            <a href="/production" class="hover:text-blue-800 flex items-center gap-1 text-slate-600 hover:text-blue-700">
-                <span>Production Runs</span>
-                <span>➜</span>
-            </a>
+            @if($isProdModuleActive)
+                <a href="/production" class="hover:text-blue-800 flex items-center gap-1 text-slate-600 hover:text-blue-700">
+                    <span>Production Runs</span>
+                    <span>➜</span>
+                </a>
+            @endif
         </div>
     </div>
 </div>

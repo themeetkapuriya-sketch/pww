@@ -203,6 +203,9 @@ class SalesOrder extends Model
                 $unitBomQty = (float) $bom->required_quantity;
                 $effectivePerProduct = $unitBomQty * (1 + ($wastePct / 100));
                 $requiredForLineItem = (float) $item->quantity * $effectivePerProduct;
+                
+                $price = (float) ($rm->average_purchase_price ?? 0);
+                $costForLine = $requiredForLineItem * $price;
 
                 if (! isset($mrpMap[$rmId])) {
                     $mrpMap[$rmId] = [
@@ -211,10 +214,13 @@ class SalesOrder extends Model
                         'unit' => $rm->unit ?? 'Kg',
                         'total_required' => 0.0,
                         'current_stock' => (float) $rm->current_stock,
+                        'unit_rate' => $price,
+                        'total_estimated_cost' => 0.0,
                     ];
                 }
 
                 $mrpMap[$rmId]['total_required'] += $requiredForLineItem;
+                $mrpMap[$rmId]['total_estimated_cost'] += $costForLine;
             }
         }
 
@@ -224,6 +230,8 @@ class SalesOrder extends Model
             $currStock = round($data['current_stock'], 4);
             $shortage = max(0.0, round($totalReq - $currStock, 4));
             $isSufficient = $currStock >= $totalReq;
+            $estCost = round($data['total_estimated_cost'], 2);
+            $avgRate = ($totalReq > 0) ? round($estCost / $totalReq, 2) : $data['unit_rate'];
 
             $result[] = [
                 'raw_material_id' => $rmId,
@@ -234,6 +242,8 @@ class SalesOrder extends Model
                 'shortage' => $shortage,
                 'is_sufficient' => $isSufficient,
                 'status' => $isSufficient ? 'Sufficient' : 'Shortage',
+                'unit_rate' => $avgRate,
+                'estimated_cost' => $estCost,
             ];
         }
 
@@ -293,6 +303,49 @@ class SalesOrder extends Model
             'overall_status' => $overallStatus,
             'is_fully_stocked' => ($totalItems > 0 && $fullyStockedItems === $totalItems),
             'items' => $itemsStatus,
+        ];
+    }
+
+    /**
+     * Calculate total estimated manufacturing / raw material cost to fulfill this order.
+     */
+    public function calculateEstimatedOrderCost(): array
+    {
+        $this->loadMissing(['items.product.billOfMaterials.rawMaterial']);
+
+        $totalEstimatedCost = 0.0;
+        $totalSellingValue = (float) $this->total_amount;
+        $itemsBreakdown = [];
+
+        foreach ($this->items as $item) {
+            $product = $item->product;
+            $unitMfgCost = $product ? (float) $product->estimated_manufacturing_cost : 0.0;
+            $lineMfgCost = round($unitMfgCost * (float) $item->quantity, 2);
+            $totalEstimatedCost += $lineMfgCost;
+
+            $itemsBreakdown[] = [
+                'item_id' => $item->id,
+                'product_id' => $product ? $product->id : null,
+                'product_name' => $product ? $product->product_name : 'Unknown Product',
+                'quantity' => (float) $item->quantity,
+                'billing_uom' => $item->billing_uom ?? 'Pcs',
+                'unit_estimated_cost' => $unitMfgCost,
+                'total_estimated_cost' => $lineMfgCost,
+                'selling_unit_price' => (float) $item->unit_price,
+                'selling_total_price' => (float) $item->total_price,
+                'estimated_profit' => round(((float) $item->total_price) - $lineMfgCost, 2),
+            ];
+        }
+
+        $estimatedGrossProfit = round($totalSellingValue - $totalEstimatedCost, 2);
+        $marginPercentage = ($totalSellingValue > 0) ? round(($estimatedGrossProfit / $totalSellingValue) * 100, 1) : 0.0;
+
+        return [
+            'total_estimated_cost' => round($totalEstimatedCost, 2),
+            'total_selling_value' => $totalSellingValue,
+            'estimated_gross_profit' => $estimatedGrossProfit,
+            'profit_margin_percentage' => $marginPercentage,
+            'items_cost_breakdown' => $itemsBreakdown,
         ];
     }
 }

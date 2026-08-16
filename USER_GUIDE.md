@@ -38,7 +38,7 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 ### 2. Setting Up Products & Raw Materials (Initial Setup)
 
-#### Step 2.1: Add Raw Materials (Page: `Raw Materials`)
+#### Step 2.1: Add Raw Materials & Set Centralized Master Rate (Page: `Raw Materials`)
 1. Click **Raw Materials** in the sidebar.
 2. Click **+ Add Raw Material**.
 3. Fill in:
@@ -46,8 +46,9 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
    - **Unit**: Select `KG`, `NOS`, `MTR`, or `LTR`.
    - **Initial Stock**: Quantity currently in stock (e.g., `2500 KG`).
    - **Safety Threshold Alert Limit**: Minimum limit before warning (e.g., `500 KG`).
-   - **Purchase Price**: Average price per unit (e.g., `₹58.50`).
+   - **Purchase Rate (₹ / unit)**: Set a fixed master standard rate or leave blank/click **`🔄 Auto Avg`** to automatically compute the weighted average rate from all purchase entries.
 4. Click **Create Raw Material**.
+   > 💡 **Horizontal Scroll Support**: The Raw Materials ledger table includes horizontal scroll support (`style="min-width: 1100px;"`) ensuring all badges (`🔄 Auto Avg`, `🔒 Master Rate`), stock quantities, and action buttons remain clear and easily accessible on any screen resolution.
 
 #### Step 2.2: Add Finished Products (Page: `Products`)
 1. Click **Products** in the sidebar.
@@ -68,11 +69,11 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 1. Click **Bill of Materials (BOM)** in the sidebar.
 2. Click **+ Add BOM Formula** or click **Edit Formula** on any product card.
 3. Add raw material ingredients, required quantities per unit, and waste scrap allowance percentages.
-4. **💰 Auto-Calculated & Editable Avg Rate (₹)**:
-   - Selecting a raw material automatically fills its live **Weighted Average Purchase Rate (₹)** calculated from your historical purchase bills.
-   - You can manually edit or override this rate for quotes and cost simulations, or leave it blank to automatically track live purchase prices.
+4. **📦 Universal Master Rate Inheritance**:
+   - Selecting a raw material automatically displays its centralized live **Master Material Rate (₹)**.
+   - When new purchase entries are logged or material rates change in Raw Materials Inventory, **all product recipes using that material update instantly across the entire factory**.
 5. **📊 Manufacturing Cost & Profit Margin Simulator**:
-   - The system automatically calculates **Line Cost**, **Est. Material Unit Cost (₹)**, **Waste Scrap Allowance (₹)**, **List Price (₹)**, and **Gross Profit (₹)** in real-time as you type.
+   - The system automatically calculates **Line Cost**, **Est. Material Unit Cost (₹)**, **Waste Scrap Allowance (₹)**, **List Price (₹)**, and **Gross Profit (₹)** in real-time as you type: `Line Cost = Required Qty × (1 + Waste %) × Master Material Rate`.
    - Live color margin health indicator:
      - 🟢 **Green** ($\ge 25\%$): Strong / High Profit (Safe and healthy).
      - 🟡 **Yellow** ($10\% - 24.9\%$): Normal / Standard (Acceptable for volume manufacturing).
@@ -84,16 +85,21 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 
 ---
 
-### 3. Daily Factory Production Logging
+### 3. Daily Factory Production Logging & Active Order Pipeline
+
+#### Quick 1-Click `+ Produce` from Active Orders Header
+1. Click **Active Orders** in the top navigation header bar to view your open order pipeline.
+2. If finished goods warehouse stock is insufficient to fulfill an order item, a blue **`+ Produce`** button appears next to that item.
+3. Clicking **`+ Produce`** instantly redirects to `/production`, auto-expands the batch logging form, pre-selects the product, and focuses the **Manufactured Qty** field for immediate entry.
 
 #### How to Log Finished Rack Output (Page: `Production Logs`)
 1. Click **Production Logs** in the sidebar.
-2. Click **+ Log New Production Shift**.
+2. Click **Log Production Run** (or arrive via the `+ Produce` button).
 3. Select **Production Date** and the **Product Model** produced.
 4. Enter **Quantity Produced** (e.g., `20 pieces`).
 5. *(Optional)* Assign **Employees / Welders** and enter pieces completed by each worker to calculate their wage payout.
-6. Click **Save Production Output**.
-   > 💡 **Automated Stock Deduction**: The system automatically subtracts raw materials from stock and adds `20 pieces` to your finished product inventory!
+6. Click **Log Production Run**.
+   > 💡 **Automated Stock & Order Lifecycle**: The system automatically subtracts raw materials from stock, increments finished product inventory, and automatically promotes eligible sales orders from `In Production` $\rightarrow$ `Ready to Dispatch`!
 
 ---
 

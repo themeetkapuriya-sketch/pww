@@ -23,7 +23,7 @@ class OrderController extends Controller
     {
         $status = $request->get('status', 'all');
 
-        $query = SalesOrder::with(['client', 'plant', 'items.product']);
+        $query = SalesOrder::with(['client', 'plant', 'items.product.billOfMaterials.rawMaterial']);
 
         if ($status !== 'all' && ! empty($status)) {
             if ($status === 'dispatched') {
@@ -46,7 +46,12 @@ class OrderController extends Controller
             'completed' => SalesOrder::completed()->count(),
         ];
 
-        return view('pages.orders', compact('orders', 'clients', 'finishedGoods', 'stats', 'status'));
+        $salesOrders360Map = [];
+        foreach ($orders as $ord) {
+            $salesOrders360Map[$ord->id] = (new SalesOrderResource($ord))->resolve();
+        }
+
+        return view('pages.orders', compact('orders', 'clients', 'finishedGoods', 'stats', 'status', 'salesOrders360Map'));
     }
 
     /**

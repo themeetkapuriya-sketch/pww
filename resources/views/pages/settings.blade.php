@@ -566,34 +566,139 @@ window.handleSecuritySettingsSubmit = function(e) {
     return submitFormWithAjax($form, 'Security preferences saved successfully!');
 };
 
-window.handleAddRoleSubmit = function(e) {
+window.handleRoleFormSubmit = function(e) {
     e.preventDefault();
     const $form = $(e.target).closest('form');
     return submitFormWithAjax($form, 'New role created successfully!', async function() {
         closeAddRoleModal();
-        if (window.loadPage) await window.loadPage(window.location.href);
-        else window.location.reload();
+        if (window.clearPageCache) window.clearPageCache();
+        const targetUrl = "{{ route('settings.index') }}?tab=roles";
+        if (window.loadPage) await window.loadPage(targetUrl, true, true);
+        else window.location.href = targetUrl;
     });
 };
 
 window.handleCategoryFormSubmit = function(e) {
-    e.preventDefault();
-    const $form = $(e.target);
-    return submitFormWithAjax($form, 'Category saved successfully!', async function() {
+    if (e) e.preventDefault();
+    const form = document.getElementById('categoryForm');
+    if (!form) return false;
+
+    const $form = $(form);
+    const type = document.getElementById('categoryTypeInput') ? document.getElementById('categoryTypeInput').value : 'purchase';
+    const key = document.getElementById('categoryKeyInput') ? document.getElementById('categoryKeyInput').value : '';
+    const label = document.getElementById('categoryLabelInput') ? document.getElementById('categoryLabelInput').value : '';
+    const icon = document.getElementById('categoryIconInput') ? document.getElementById('categoryIconInput').value : '';
+
+    return submitFormWithAjax($form, 'Category saved successfully!', function($f, res) {
         closeCategoryModal();
-        const targetUrl = "{{ route('settings.index') }}?tab=other&sub=categories";
-        if (window.loadPage) await window.loadPage(targetUrl);
-        else window.location.href = targetUrl;
+        if (window.clearPageCache) window.clearPageCache();
+
+        const catData = (res && res.category) ? res.category : {
+            type: type,
+            key: key || label.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+            label: label,
+            icon: icon || '📦'
+        };
+
+        const itemSelector = `#cat-item-${catData.type}-${catData.key}`;
+        const $existingItem = $(itemSelector);
+
+        if ($existingItem.length) {
+            // In-place Update existing category item
+            $existingItem.find('.cat-label').text(catData.label);
+            if (catData.type === 'material' && catData.icon) {
+                $existingItem.find('.cat-icon').text(catData.icon);
+            }
+            $existingItem.find('.cat-edit-btn').attr('data-label', catData.label);
+            if (catData.icon) {
+                $existingItem.find('.cat-edit-btn').attr('data-icon', catData.icon);
+            }
+            $existingItem.find('.cat-del-btn').attr('data-label', catData.label);
+
+            // Subtle feedback highlight
+            $existingItem.addClass('ring-2 ring-blue-400');
+            setTimeout(() => $existingItem.removeClass('ring-2 ring-blue-400'), 1000);
+        } else {
+            // In-place Append new category item strictly into its specific list container
+            const listContainerId = `#${catData.type}-categories-list`;
+            let $container = $(listContainerId);
+
+            let newHtml = '';
+            const safeLabel = $('<div>').text(catData.label).html();
+            const safeKey = $('<div>').text(catData.key).html();
+            const safeIcon = $('<div>').text(catData.icon || '📦').html();
+
+            if (catData.type === 'material') {
+                newHtml = `
+                <div id="cat-item-material-${safeKey}" class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
+                    <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                        <span class="text-base cat-icon">${safeIcon}</span>
+                        <span class="font-bold text-slate-800 text-sm cat-label">${safeLabel}</span>
+                        <span class="text-[10px] font-mono bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md font-semibold">key: ${safeKey}</span>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button type="button" 
+                                onclick="openEditCategoryModal('material', '${safeKey}', this.getAttribute('data-label'), this.getAttribute('data-icon'))" 
+                                data-label="${safeLabel}"
+                                data-icon="${safeIcon}"
+                                class="cat-edit-btn w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                title="Edit Category Label & Icon">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button type="button" 
+                                onclick="deleteCategorySetting('material', '${safeKey}', this.getAttribute('data-label'))" 
+                                data-label="${safeLabel}"
+                                class="cat-del-btn w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                title="Delete Category">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>`;
+            } else {
+                newHtml = `
+                <div id="cat-item-${catData.type}-${safeKey}" class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
+                    <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                        <span class="font-bold text-slate-800 text-sm cat-label">${safeLabel}</span>
+                        <span class="text-[10px] font-mono bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md font-semibold">key: ${safeKey}</span>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button type="button" 
+                                onclick="openEditCategoryModal('${catData.type}', '${safeKey}', this.getAttribute('data-label'))" 
+                                data-label="${safeLabel}"
+                                class="cat-edit-btn w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                title="Edit Category Label">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button type="button" 
+                                onclick="deleteCategorySetting('${catData.type}', '${safeKey}', this.getAttribute('data-label'))" 
+                                data-label="${safeLabel}"
+                                class="cat-del-btn w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                title="Delete Category">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>`;
+            }
+
+            const $newEl = $(newHtml).hide();
+            $container.append($newEl);
+            $newEl.fadeIn(300);
+            $newEl.addClass('ring-2 ring-emerald-400');
+            setTimeout(() => $newEl.removeClass('ring-2 ring-emerald-400'), 1000);
+        }
     });
 };
 
 window.handleUserFormSubmit = function(e) {
     e.preventDefault();
-    const $form = $(e.target);
+    const $form = $(e.target).closest('form');
     return submitFormWithAjax($form, 'User account saved successfully!', async function() {
         closeAddUserModal();
-        if (window.loadPage) await window.loadPage(window.location.href);
-        else window.location.reload();
+        closeEditUserModal();
+        if (window.clearPageCache) window.clearPageCache();
+        const targetUrl = "{{ route('settings.index') }}?tab=roles";
+        if (window.loadPage) await window.loadPage(targetUrl, true, true);
+        else window.location.href = targetUrl;
     });
 };
 
@@ -982,12 +1087,24 @@ window.deleteCategorySetting = function(type, key, label) {
                 url: "{{ route('settings.categories.delete') }}",
                 type: 'POST',
                 data: { _token: '{{ csrf_token() }}', type: type, key: key },
+                headers: {
+                    'Accept': 'application/json'
+                },
                 success: function(res) {
                     if (res.success) {
                         if (window.showToast) window.showToast('success', res.message);
-                        $(`#cat-item-${type}-${key}`).fadeOut(300, function() { $(this).remove(); });
+                        const itemEl = document.getElementById(`cat-item-${type}-${key}`);
+                        if (itemEl) {
+                            $(itemEl).fadeOut(300, function() { $(this).remove(); });
+                        }
                         if (window.clearPageCache) window.clearPageCache();
+                    } else {
+                        if (window.showToast) window.showToast('danger', res.message || 'Failed to delete category');
                     }
+                },
+                error: function(xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Error deleting category';
+                    if (window.showToast) window.showToast('danger', msg);
                 }
             });
         }
@@ -997,6 +1114,24 @@ window.deleteCategorySetting = function(type, key, label) {
 // --- Module Toggles & User Helpers ---
 function updateUIAndSidebarModules(modules) {
     if (!modules) return;
+
+    const isSimplified = !!modules.simplified_billing_mode;
+    $('#simplified_billing_active_badge').toggleClass('hidden', !isSimplified);
+    $('#simplified_billing_mode_toggle').prop('checked', isSimplified);
+
+    const $stockCard = $('#track_stock_card');
+    const $stockInput = $stockCard.find('input[name="track_stock"]');
+    const $disabledBadge = $('#track_stock_disabled_badge');
+
+    if (isSimplified) {
+        $stockCard.addClass('opacity-60 pointer-events-none');
+        $stockInput.prop('checked', false).prop('disabled', true);
+        $disabledBadge.removeClass('hidden');
+    } else {
+        $stockCard.removeClass('opacity-60 pointer-events-none');
+        $stockInput.prop('disabled', false);
+        $disabledBadge.addClass('hidden');
+    }
 
     for (const [key, enabled] of Object.entries(modules)) {
         const $input = $(`#modulesVisibilityForm input[name="${key}"]`);
@@ -1028,6 +1163,7 @@ function updateUIAndSidebarModules(modules) {
 
     const showInvSec = (modules.module_inventory || modules.module_bom);
     $('#sidebar-section-inventory-bom').toggleClass('hidden', !showInvSec);
+    if (window.clearPageCache) window.clearPageCache();
 }
 
 window.saveModuleToggleAjax = function(elem) {

@@ -30,7 +30,10 @@
         'required' => true,
     ])->render();
 @endphp
-@php $trackStockOn = (\App\Models\Setting::get('track_stock', 'true') === 'true'); @endphp
+@php
+    $trackStockOn = (\App\Models\Setting::get('track_stock', 'true') === 'true');
+    $isPrefillOpen = (request('open') == '1' || request('product_id') || request('prefill_product'));
+@endphp
 <div class="space-y-6">
 
     @if(!$trackStockOn)
@@ -46,7 +49,7 @@
     @if($trackStockOn)
     <x-page-header title="Production Logs" 
                    subtitle="Record rack manufacturing batches and monitor stock inventory."
-                   action-text="Log Production Run" 
+                   action-text="{{ $isPrefillOpen ? 'Close Form' : 'Log Production Run' }}" 
                    action-id="btnProductionToggle"
                    action-on-click="toggleProductionForm()" />
     @else
@@ -55,7 +58,7 @@
     @endif
 
     <!-- 1. COLLAPSIBLE PRODUCTION LOG FORM -->
-    <div id="productionFormCard" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
+    <div id="productionFormCard" class="{{ $isPrefillOpen ? '' : 'hidden' }} bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all duration-300">
         <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100/60">
             <h3 id="productionFormTitle" class="text-base font-bold text-slate-800 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-[#4371D7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -309,21 +312,6 @@ function resetProductionForm() {
     btn.className = 'btn-primary py-2.5 px-6 text-sm font-bold bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs';
 }
 
-function toggleProductionForm(showExplicit = null) {
-    const card = document.getElementById('productionFormCard');
-    if (!card) return;
-    const isHidden = card.classList.contains('hidden');
-    const shouldShow = showExplicit !== null ? showExplicit : isHidden;
-    
-    if (shouldShow) {
-        if (isHidden) resetProductionForm();
-        card.classList.remove('hidden');
-        card.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        card.classList.add('hidden');
-    }
-}
-
 function openEditProductionModal(id, productId, manufactured, rejected, date) {
     const card = document.getElementById('productionFormCard');
     if (!card) return;
@@ -426,44 +414,64 @@ function deleteProductionLog(id) {
 window.toggleProductionForm = function(forceShow = null) {
     const card = document.getElementById('productionFormCard');
     const btn = document.getElementById('btnProductionToggle');
+    const btnText = document.getElementById('btnProductionToggleText');
     if (!card) return;
 
-    let show = forceShow !== null ? Boolean(forceShow) : card.classList.contains('hidden');
+    let isHidden = card.classList.contains('hidden');
+    let show = forceShow !== null ? Boolean(forceShow) : isHidden;
 
     if (show) {
         card.classList.remove('hidden');
         if (btn) {
-            btn.classList.replace('bg-blue-600', 'bg-slate-700');
-            btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-800');
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            btn.classList.add('bg-slate-700', 'hover:bg-slate-800');
+            const icon = btn.querySelector('svg');
+            if (icon) icon.style.transform = 'rotate(45deg)';
         }
+        if (btnText) btnText.innerText = 'Close Form';
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
         card.classList.add('hidden');
         if (btn) {
-            btn.classList.replace('bg-slate-700', 'bg-blue-600');
-            btn.classList.replace('hover:bg-slate-800', 'hover:bg-blue-700');
+            btn.classList.remove('bg-slate-700', 'hover:bg-slate-800');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            const icon = btn.querySelector('svg');
+            if (icon) icon.style.transform = 'rotate(0deg)';
         }
-        const form = document.getElementById('productionForm');
-        if (form) {
-            form.reset();
-            form.querySelectorAll('.combobox-wrapper').forEach(w => {
-                if (window.ERPComboboxManager) window.ERPComboboxManager.clear(w);
-            });
-        }
+        if (btnText) btnText.innerText = 'Log Production Run';
+        resetProductionForm();
     }
 };
+function toggleProductionForm(forceShow = null) {
+    window.toggleProductionForm(forceShow);
+}
 
 // Auto-open and prefill product when navigating with ?open=1&product_id=...
 (function() {
     function runProductionPrefill() {
         const urlParams = new URLSearchParams(window.location.search);
         const prefillProductId = urlParams.get('product_id') || urlParams.get('prefill_product');
+        const shouldOpen = urlParams.has('open') || Boolean(prefillProductId);
 
-        if (urlParams.has('open') || prefillProductId) {
+        if (shouldOpen) {
             const card = document.getElementById('productionFormCard');
+            const btn = document.getElementById('btnProductionToggle');
+            const btnText = document.getElementById('btnProductionToggleText');
+
             if (card) {
                 card.classList.remove('hidden');
-                card.scrollIntoView({ behavior: 'smooth' });
+                if (btn) {
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-slate-700', 'hover:bg-slate-800');
+                    const icon = btn.querySelector('svg');
+                    if (icon) icon.style.transform = 'rotate(45deg)';
+                }
+                if (btnText) btnText.innerText = 'Close Form';
+                setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
             }
+
             if (prefillProductId) {
                 const prodSelect = document.getElementById('prod_product_id_0_hidden') || document.getElementById('prod_product_id_0');
                 if (prodSelect) {
@@ -475,16 +483,16 @@ window.toggleProductionForm = function(forceShow = null) {
                     prodSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 const qtyInp = document.getElementById('prod_qty_mfg_0');
-                if (qtyInp) qtyInp.focus();
-            }
-            if (window.history && window.history.replaceState) {
-                window.history.replaceState({}, document.title, window.location.pathname);
+                if (qtyInp) {
+                    setTimeout(() => qtyInp.focus(), 150);
+                }
             }
         }
     }
 
     runProductionPrefill();
     document.addEventListener('DOMContentLoaded', runProductionPrefill);
+    window.addEventListener('load', runProductionPrefill);
 })();
 
 $(document).on('ajax:success', '#productionForm', function() {

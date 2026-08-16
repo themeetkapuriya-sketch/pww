@@ -47,11 +47,12 @@ When factory output is logged on the **Production Logs** page, the system calcul
 $$\text{Raw Material Consumed} = \text{Quantity Produced} \times \text{BOM Required Qty} \times \left(1 + \frac{\text{Waste } \%}{100}\right)$$
 
 #### Weighted Average Purchase Price Calculation:
-Whenever a raw material purchase bill is logged, edited, or removed, `RawMaterial::recalculateAveragePurchasePrice()` recalculates the true weighted average procurement cost:
+Whenever a raw material purchase bill is logged, edited, or removed (or when reset to Auto in Raw Materials Inventory), `RawMaterial::recalculateAveragePurchasePrice()` recalculates the true weighted average procurement cost:
 $$\text{Average Purchase Price} = \frac{\sum (\text{Purchase Quantity} \times \text{Unit Price})}{\sum \text{Purchase Quantity}}$$
 
-#### BOM Component Cost & Gross Margin Simulation:
-$$\text{Effective Unit Rate} = \begin{cases} \text{BOM Custom unit\_rate}, & \text{if } \text{unit\_rate} > 0 \\ \text{Raw Material Average Purchase Price}, & \text{otherwise} \end{cases}$$
+#### Centralized Material Rate & BOM Inheritance Architecture:
+The raw material's `average_purchase_price` acts as the single source of truth for plant-wide costing. All product recipes dynamically inherit this rate:
+$$\text{Effective Unit Rate} = \text{Raw Material Master Price} (\text{average\_purchase\_price})$$
 $$\text{Component Line Cost} = \text{Required Qty} \times \left(1 + \frac{\text{Waste } \%}{100}\right) \times \text{Effective Unit Rate}$$
 $$\text{Est. Unit Manufacturing Cost} = \sum \text{Component Line Costs}$$
 $$\text{Gross Profit} = \text{List Selling Price} - \text{Est. Unit Manufacturing Cost}$$

@@ -13,11 +13,11 @@
 ## 🚀 Key Modules & Capabilities
 
 - 📊 **Dashboard & Financial Intelligence**: Real-time KPI metrics, monthly turnover, net profit margins, and low-stock alerts.
-- ⚙️ **Production Logging & Auto-Stock Deduction**: Log daily rack/product manufacturing output with automated Bill of Materials (BOM) raw material deduction.
-- 🧱 **Raw Material Audit**: Live stock level tracking, automated weighted-average purchase cost recalculation upon procurement, material categorization, specifications, and safety threshold alerts.
+- ⚙️ **Production Logging & Auto-Stock Deduction**: Log daily rack/product manufacturing output with automated Bill of Materials (BOM) raw material deduction and 1-click `+ Produce` pipeline shortcuts.
+- 🧱 **Raw Materials Inventory & Centralized Master Rate**: Live stock level tracking, direct Master Purchase Rate (`₹ / unit`) configuration with automatic fallback to live **Weighted-Average Purchase Cost** (`🔄 Auto Avg`), responsive horizontal-scroll audit ledger, and safety threshold alerts.
 - 📦 **Products Catalog**: Optional SKU management, HSN classification, dual-UOM per-piece/per-kg pricing structures, customizable GST tax brackets, and minimum stock safety alert thresholds.
-- 📐 **Bill of Materials (BOM) & Real-Time Cost Simulator**: Dynamic product composition mapping connecting finished goods to exact raw material quantities, auto-populating weighted average material rates with manual override capability, and live Gross Margin % indicators (🟢 Healthy $\ge 25\%$, 🟡 Normal $10-24.9\%$, 🔴 Risk $<10\%$).
-- 🛒 **Sales Orders & Dispatch**: Client order tracking, multi-plant shipping destinations, and status lifecycle management.
+- 📐 **Bill of Materials (BOM) & Real-Time Cost Simulator**: Dynamic product composition mapping connecting finished goods to exact raw material quantities, universally inheriting the centralized raw material master rates with live line cost and gross margin indicators (🟢 Healthy $\ge 25\%$, 🟡 Normal $10-24.9\%$, 🔴 Risk $<10\%$).
+- 🛒 **Sales Orders & Dispatch**: Client order tracking, multi-plant shipping destinations, real-time warehouse deficit tracking, and automated order status lifecycle management (`In Production` $\rightarrow$ `Ready to Dispatch`).
 - 🧾 **Tax Invoice Ledger**: Multi-state Indian GST invoicing (CGST + SGST vs IGST), transport vehicle logging, PDF invoice generation, and thermal/A4 printing.
 - 🛍️ **Purchase Ledger**: Raw material procurement logging with auto-replenishment of stock levels.
 - 💸 **Expense Ledger & GST Credit (ITC)**: Operational overhead tracking, vendor GST expense logging, and Eligible Input Tax Credit (ITC) reconciliation.

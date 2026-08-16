@@ -144,14 +144,27 @@ class SettingsController extends Controller
                     }
                 }
             } else {
-                foreach ($moduleKeys as $key) {
-                    $val = $request->input($key);
-                    if ($val !== null) {
-                        $isSet = in_array(strtolower((string) $val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
-                    } else {
-                        $isSet = $request->has($key) ? 'true' : 'false';
+                // Check if this is a full form post or a single-toggle AJAX update
+                $submittedModuleKeys = array_intersect(array_keys($request->all()), $moduleKeys);
+                $isFullForm = count($submittedModuleKeys) > 1 || $request->has('_full_modules_form');
+
+                if ($isFullForm) {
+                    foreach ($moduleKeys as $key) {
+                        $val = $request->input($key);
+                        $isSet = ($val !== null)
+                            ? (in_array(strtolower((string) $val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false')
+                            : ($request->has($key) ? 'true' : 'false');
+                        Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
                     }
-                    Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
+                } else {
+                    // Single-key AJAX toggle: only update the specific module that was submitted
+                    foreach ($moduleKeys as $key) {
+                        if ($request->has($key)) {
+                            $val = $request->input($key);
+                            $isSet = in_array(strtolower((string) $val), ['true', '1', 'yes', 'on'], true) ? 'true' : 'false';
+                            Setting::updateOrCreate(['key' => $key], ['value' => $isSet]);
+                        }
+                    }
                 }
             }
 
@@ -159,7 +172,8 @@ class SettingsController extends Controller
 
             $modulesState = [];
             foreach ($moduleKeys as $key) {
-                $modulesState[$key] = Setting::get($key, 'true') === 'true';
+                $default = in_array($key, ['simplified_billing_mode'], true) ? 'false' : 'true';
+                $modulesState[$key] = Setting::get($key, $default) === 'true';
             }
 
             return $this->respond($request, true, 'Active ERP module visibility updated successfully! Sidebar navigation updated.', [
@@ -994,11 +1008,14 @@ class SettingsController extends Controller
                     return $this->respond($request, false, "Material category '{$label}' already exists!");
                 }
             }
-            $categories[] = ['key' => $key, 'label' => $label, 'icon' => $icon, 'color' => 'blue', 'protected' => false];
+            $newCat = ['key' => $key, 'label' => $label, 'icon' => $icon, 'color' => 'blue', 'protected' => false];
+            $categories[] = $newCat;
             CategoryService::saveMaterialCategories($categories);
             AuditLogService::log('Settings', 'created', "Created new material category '{$label}'");
 
-            return $this->respond($request, true, "Material category '{$label}' created successfully!");
+            return $this->respond($request, true, "Material category '{$label}' created successfully!", [
+                'category' => array_merge($newCat, ['type' => 'material']),
+            ]);
         } elseif ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
             foreach ($categories as $cat) {
@@ -1006,11 +1023,14 @@ class SettingsController extends Controller
                     return $this->respond($request, false, "Purchase category '{$label}' already exists!");
                 }
             }
-            $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
+            $newCat = ['key' => $key, 'label' => $label, 'protected' => false];
+            $categories[] = $newCat;
             CategoryService::savePurchaseCategories($categories);
             AuditLogService::log('Settings', 'created', "Created new purchase category '{$label}'");
 
-            return $this->respond($request, true, "Purchase category '{$label}' created successfully!");
+            return $this->respond($request, true, "Purchase category '{$label}' created successfully!", [
+                'category' => array_merge($newCat, ['type' => 'purchase']),
+            ]);
         } else {
             $categories = CategoryService::getExpenseCategories();
             foreach ($categories as $cat) {
@@ -1018,11 +1038,14 @@ class SettingsController extends Controller
                     return $this->respond($request, false, "Expense category '{$label}' already exists!");
                 }
             }
-            $categories[] = ['key' => $key, 'label' => $label, 'protected' => false];
+            $newCat = ['key' => $key, 'label' => $label, 'protected' => false];
+            $categories[] = $newCat;
             CategoryService::saveExpenseCategories($categories);
             AuditLogService::log('Settings', 'created', "Created new expense category '{$label}'");
 
-            return $this->respond($request, true, "Expense category '{$label}' created successfully!");
+            return $this->respond($request, true, "Expense category '{$label}' created successfully!", [
+                'category' => array_merge($newCat, ['type' => 'expense']),
+            ]);
         }
     }
 
@@ -1043,12 +1066,14 @@ class SettingsController extends Controller
         if ($type === 'material') {
             $categories = CategoryService::getMaterialCategories();
             $updated = false;
+            $finalIcon = '📦';
             foreach ($categories as &$cat) {
                 if ($cat['key'] === $key) {
                     $cat['label'] = $newLabel;
                     if ($icon !== null && !empty(trim($icon))) {
                         $cat['icon'] = trim($icon);
                     }
+                    $finalIcon = $cat['icon'] ?? '📦';
                     $updated = true;
                     break;
                 }
@@ -1057,7 +1082,14 @@ class SettingsController extends Controller
                 CategoryService::saveMaterialCategories($categories);
                 AuditLogService::log('Settings', 'updated', "Updated material category key '{$key}' label to '{$newLabel}'");
 
-                return $this->respond($request, true, 'Material category updated successfully!');
+                return $this->respond($request, true, 'Material category updated successfully!', [
+                    'category' => [
+                        'type' => 'material',
+                        'key' => $key,
+                        'label' => $newLabel,
+                        'icon' => $finalIcon,
+                    ],
+                ]);
             }
         } elseif ($type === 'purchase') {
             $categories = CategoryService::getPurchaseCategories();
@@ -1073,7 +1105,13 @@ class SettingsController extends Controller
                 CategoryService::savePurchaseCategories($categories);
                 AuditLogService::log('Settings', 'updated', "Updated purchase category key '{$key}' label to '{$newLabel}'");
 
-                return $this->respond($request, true, 'Purchase category updated successfully!');
+                return $this->respond($request, true, 'Purchase category updated successfully!', [
+                    'category' => [
+                        'type' => 'purchase',
+                        'key' => $key,
+                        'label' => $newLabel,
+                    ],
+                ]);
             }
         } else {
             $categories = CategoryService::getExpenseCategories();
@@ -1089,7 +1127,13 @@ class SettingsController extends Controller
                 CategoryService::saveExpenseCategories($categories);
                 AuditLogService::log('Settings', 'updated', "Updated expense category key '{$key}' label to '{$newLabel}'");
 
-                return $this->respond($request, true, 'Expense category updated successfully!');
+                return $this->respond($request, true, 'Expense category updated successfully!', [
+                    'category' => [
+                        'type' => 'expense',
+                        'key' => $key,
+                        'label' => $newLabel,
+                    ],
+                ]);
             }
         }
 

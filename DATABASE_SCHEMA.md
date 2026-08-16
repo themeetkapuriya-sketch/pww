@@ -91,7 +91,7 @@ Catalog of manufactured finished goods (welded racks, pallets, structures).
 ---
 
 ### 4. `bill_of_materials` (Model: `App\Models\BillOfMaterial`)
-Composition formula mapping finished products to exact quantities of raw materials.
+Composition formula mapping finished products to exact quantities of raw materials. Costing is dynamically inherited from `raw_materials.average_purchase_price`.
 
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
@@ -100,7 +100,7 @@ Composition formula mapping finished products to exact quantities of raw materia
 | `raw_material_id` | BigInt | FK -> `raw_materials.id` (Cascade) | Component Raw Material |
 | `required_quantity` | Decimal(12,4) | Not Null | Quantity Needed Per 1 Unit Output |
 | `waste_percentage` | Decimal(5,2) | Default: 0.00 | Scrap/Waste Allowance Percentage |
-| `unit_rate` | Decimal(12,2) | Nullable | Custom Material Rate Override (₹); falls back to weighted avg purchase price if null |
+| `unit_rate` | Decimal(12,2) | Nullable | Legacy override field; effective costing pulls from `raw_materials.average_purchase_price` |
 | `created_at` | Timestamp | Nullable | Creation Timestamp |
 | `updated_at` | Timestamp | Nullable | Update Timestamp |
 

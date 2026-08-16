@@ -15,14 +15,21 @@
     }
 
     $rawMaterialOptions = [];
+    $rawMaterialRatesMap = [];
     foreach ($rawMaterials as $mat) {
+        $rate = (float)($mat->average_purchase_price ?? 0);
+        $rawMaterialRatesMap[$mat->id] = [
+            'rate' => $rate,
+            'unit' => $mat->unit ?? 'kg',
+            'name' => $mat->material_name,
+        ];
         $specText = $mat->specification ? " [{$mat->specification}]" : '';
         $rawMaterialOptions[] = [
             'value' => (string)$mat->id,
             'label' => $mat->material_name . $specText . ' (' . $mat->unit . ')',
             'search' => strtolower($mat->material_name . ' ' . $mat->specification . ' ' . $mat->material_category . ' ' . $mat->unit),
             'data' => [
-                'rate' => (float)($mat->average_purchase_price ?? 0),
+                'rate' => $rate,
                 'unit' => $mat->unit ?? 'kg',
             ]
         ];
@@ -91,10 +98,9 @@
                                         :options="$rawMaterialOptions"
                                         required />
                         </div>
-                        <div class="w-full md:w-28">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Avg Rate (₹)</label>
-                            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
-                                   class="bom-rate-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
+                        <div class="w-full md:w-32 shrink-0">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Master Rate</label>
+                            <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
                         </div>
                         <div class="w-full md:w-28">
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Required Qty</label>
@@ -281,13 +287,11 @@
                                             @endif
                                         </td>
                                         <td class="px-4 py-3 text-right font-medium">
-                                            <span class="text-slate-700 font-bold">₹{{ number_format($rate, 2) }}</span>
+                                            <span class="text-slate-800 font-bold">₹{{ number_format($rate, 2) }}</span>
                                             <span class="text-[11px] text-slate-400 font-normal">/ {{ $material->unit }}</span>
-                                            @if($isCustomRate)
-                                                <span class="text-[9px] text-blue-700 font-bold uppercase tracking-wider block bg-blue-50 border border-blue-200 rounded px-1.5 py-0.2 w-fit ml-auto mt-0.5">Custom Rate</span>
-                                            @else
-                                                <span class="text-[9px] text-slate-400 font-semibold block mt-0.5">Auto Avg</span>
-                                            @endif
+                                            <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Live Master Material Price">
+                                                📦 Master Rate
+                                            </span>
                                         </td>
                                         <td class="px-4 py-3 text-right text-slate-700 font-medium">{{ number_format($bom->required_quantity, 4) }} {{ $material->unit }}</td>
                                         <td class="px-4 py-3 text-right text-rose-600 font-semibold">+{{ number_format($bom->waste_percentage, 1) }}%</td>
@@ -296,8 +300,8 @@
                                         <td class="px-4 py-3 text-center">
                                             <div class="flex items-center justify-center space-x-1.5">
                                                 <button type="button" 
-                                                        title="Edit Component Quantity, Waste & Rate"
-                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($material->material_name) }}', '{{ $bom->required_quantity }}', '{{ $bom->waste_percentage }}', '{{ $bom->unit_rate ?? '' }}')"
+                                                        title="Edit Component Quantity & Waste"
+                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($material->material_name) }}', '{{ $bom->required_quantity }}', '{{ $bom->waste_percentage }}')"
                                                         class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                 </button>
@@ -348,10 +352,9 @@
                         :options="$rawMaterialOptions"
                         required />
         </div>
-        <div class="w-full md:w-28">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Avg Rate (₹)</label>
-            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
-                   class="bom-rate-input w-full bg-white border border-slate-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 h-[38px]">
+        <div class="w-full md:w-32 shrink-0">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Master Rate</label>
+            <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
         </div>
         <div class="w-full md:w-28">
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Required Qty</label>
@@ -377,7 +380,7 @@
 
 <!-- Edit BOM Component Modal Dialog -->
 <div id="editBomFormCard" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onclick="if(event.target === this) closeEditBomModal()">
-    <div class="bg-[#FFFDF5] rounded-3xl shadow-2xl border-2 border-amber-300 p-6 sm:p-7 max-w-2xl w-full transition-all duration-300">
+    <div class="bg-[#FFFDF5] rounded-3xl shadow-2xl border-2 border-amber-300 p-6 sm:p-7 max-w-xl w-full transition-all duration-300">
         <div class="flex items-start justify-between border-b border-amber-200/60 pb-4 mb-5 gap-4">
             <div class="flex items-start gap-3">
                 <span class="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
@@ -400,13 +403,7 @@
         <form id="editBomForm" action="" method="POST" class="ajax-form space-y-4" data-redirect="/bom" data-close-modal="#editBomModal">
             @csrf
             @method('PUT')
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Rate (₹ / unit)</label>
-                    <input type="number" id="edit_unit_rate" name="unit_rate" step="0.01" min="0" placeholder="Auto Avg Rate"
-                           class="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold">
-                    <span class="text-[10px] text-slate-400 mt-1 block">Leave empty for auto avg</span>
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Required Qty</label>
                     <input type="number" id="edit_required_quantity" name="required_quantity" step="0.0001" min="0.0001" required
@@ -438,10 +435,9 @@
                         :options="$rawMaterialOptions"
                         required />
         </div>
-        <div class="w-full md:w-28">
-            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Avg Rate (₹)</label>
-            <input type="number" name="unit_rates[]" step="0.01" min="0" placeholder="Auto (₹)"
-                   class="bom-rate-input w-full bg-white border border-amber-200 rounded-lg py-2 px-2.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 h-[38px]">
+        <div class="w-full md:w-32 shrink-0">
+            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Master Rate</label>
+            <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-amber-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
         </div>
         <div class="w-full md:w-28">
             <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Required Qty</label>
@@ -466,6 +462,8 @@
 </template>
 
 <script>
+window.rawMaterialRatesMap = @json($rawMaterialRatesMap ?? []);
+
 function toggleAddBomForm() {
     closeEditBomCard();
     const card = document.getElementById('addBomFormCard');
@@ -479,30 +477,50 @@ function toggleAddBomForm() {
     }
 }
 
+window.resetBomRateToAuto = function(btn) {
+    const row = btn.closest('.bom-row') || btn.closest('form') || btn.closest('.grid');
+    if (!row) return;
+    const rateInp = row.querySelector('.bom-rate-input') || row.querySelector('input[name="unit_rate"]');
+    if (rateInp) {
+        rateInp.value = '';
+        if (row.classList.contains('bom-row')) {
+            updateBomRowCost(row);
+        }
+        if (typeof window.showToast === 'function') {
+            window.showToast('info', 'Rate reset to Live Auto Purchase Average!');
+        }
+    }
+};
+
 function updateBomRowCost(row) {
     if (!row) return;
-    const rateInp = row.querySelector('.bom-rate-input');
+    const rateDisplay = row.querySelector('.bom-rate-display');
     const qtyInp = row.querySelector('.bom-qty-input');
     const wasteInp = row.querySelector('.bom-waste-input');
     const costDisplay = row.querySelector('.bom-line-cost-display');
-    
-    // Auto-fill rate from combobox dataset if empty
-    if (rateInp && (!rateInp.value || parseFloat(rateInp.value) === 0)) {
-        const hidden = row.querySelector('.combobox-hidden-input');
-        if (hidden && hidden.value) {
-            const opt = row.querySelector(`.combobox-option[data-value="${CSS.escape(hidden.value)}"]`);
-            if (opt && opt.dataset.rate) {
-                rateInp.value = parseFloat(opt.dataset.rate).toFixed(2);
-            }
+    const hiddenMatInp = row.querySelector('.combobox-hidden-input');
+
+    const matId = hiddenMatInp ? hiddenMatInp.value : null;
+    let liveRate = 0;
+
+    if (matId && window.rawMaterialRatesMap && window.rawMaterialRatesMap[matId]) {
+        liveRate = parseFloat(window.rawMaterialRatesMap[matId].rate) || 0;
+    } else if (hiddenMatInp && hiddenMatInp.value) {
+        const opt = row.querySelector(`.combobox-option[data-value="${CSS.escape(hiddenMatInp.value)}"]`);
+        if (opt && opt.dataset.rate) {
+            liveRate = parseFloat(opt.dataset.rate) || 0;
         }
     }
-    
-    const rate = parseFloat(rateInp ? rateInp.value : 0) || 0;
+
+    if (rateDisplay) {
+        rateDisplay.innerText = liveRate > 0 ? `₹${liveRate.toFixed(2)}` : '₹0.00';
+    }
+
     const qty = parseFloat(qtyInp ? qtyInp.value : 0) || 0;
     const waste = parseFloat(wasteInp ? wasteInp.value : 0) || 0;
     
     const effectiveQty = qty * (1 + (waste / 100));
-    const lineCost = effectiveQty * rate;
+    const lineCost = effectiveQty * liveRate;
     
     if (costDisplay) {
         costDisplay.innerText = '₹' + lineCost.toFixed(2);
@@ -528,7 +546,7 @@ function editFullProductBom(productId, productName, components) {
         container.innerHTML = '';
         if (components && components.length > 0) {
             components.forEach(comp => {
-                addEditBomRowWithData(comp.raw_material_id, comp.required_quantity, comp.waste_percentage, comp.unit_rate);
+                addEditBomRowWithData(comp.raw_material_id, comp.required_quantity, comp.waste_percentage);
             });
         } else {
             addEditBomRow();
@@ -544,7 +562,7 @@ function closeEditBomCard() {
     if (editCard) editCard.classList.add('hidden');
 }
 
-function addEditBomRowWithData(matId, reqQty, waste, rate) {
+function addEditBomRowWithData(matId, reqQty, waste) {
     const container = document.getElementById('editBomRowsContainer');
     const template = document.getElementById('emptyEditBomRowTemplate');
     if (container && template) {
@@ -568,15 +586,11 @@ function addEditBomRowWithData(matId, reqQty, waste, rate) {
             }
         }
         
-        const rateInput = clone.querySelector('.bom-rate-input');
         const qtyInput = clone.querySelector('.bom-qty-input');
         const wasteInput = clone.querySelector('.bom-waste-input');
         
         if (qtyInput) qtyInput.value = reqQty;
         if (wasteInput) wasteInput.value = waste;
-        if (rateInput && rate !== null && rate !== undefined && rate !== '') {
-            rateInput.value = parseFloat(rate).toFixed(2);
-        }
 
         container.appendChild(clone);
         const newlyAdded = container.lastElementChild;
@@ -630,14 +644,13 @@ function addBomRow() {
     }
 }
 
-function openEditBomModal(id, productName, materialName, reqQty, waste, rate) {
+function openEditBomModal(id, productName, materialName, reqQty, waste) {
     const card = document.getElementById('editBomFormCard');
     const form = document.getElementById('editBomForm');
     const prodText = document.getElementById('edit_bom_prod_name');
     const matText = document.getElementById('edit_bom_mat_name');
     const inputQty = document.getElementById('edit_required_quantity');
     const inputWaste = document.getElementById('edit_waste_percentage');
-    const inputRate = document.getElementById('edit_unit_rate');
 
     if (card && form) {
         form.action = `/bom/${id}`;
@@ -645,7 +658,6 @@ function openEditBomModal(id, productName, materialName, reqQty, waste, rate) {
         if (matText) matText.innerText = materialName;
         if (inputQty) inputQty.value = reqQty;
         if (inputWaste) inputWaste.value = waste;
-        if (inputRate) inputRate.value = (rate !== null && rate !== undefined && rate !== '') ? parseFloat(rate).toFixed(2) : '';
 
         card.classList.remove('hidden');
     }
@@ -658,7 +670,7 @@ function closeEditBomModal() {
 
 // Event Listeners for Live Cost Calculation
 document.addEventListener('input', function(e) {
-    if (e.target.matches('.bom-rate-input, .bom-qty-input, .bom-waste-input')) {
+    if (e.target.matches('.bom-rate-input, .bom-qty-input, .bom-waste-input, .combobox-hidden-input')) {
         const row = e.target.closest('.bom-row');
         updateBomRowCost(row);
     }
@@ -688,10 +700,6 @@ document.addEventListener('click', function(e) {
         const row = opt.closest('.bom-row');
         if (row) {
             setTimeout(() => {
-                const rateInp = row.querySelector('.bom-rate-input');
-                if (rateInp && opt.dataset.rate) {
-                    rateInp.value = parseFloat(opt.dataset.rate).toFixed(2);
-                }
                 updateBomRowCost(row);
             }, 50);
         }

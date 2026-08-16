@@ -19,7 +19,7 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/` | `GET` | Redirect -> `/overview` | - | `auth` | Root Redirection |
 | `/overview` | `GET` | `OverviewController@overview` | `overview` | `auth` | KPI Dashboard Overview |
 | `/account-deactivated` | `GET` | `AuthController@accountDeactivated` | `account.deactivated` | - | Deactivated Account Screen |
-| `/production` | `GET` | `ProductionController@production` | `production` | `auth` | Production Output Logs |
+| `/production` | `GET` | `ProductionController@production` | `production` | `auth` | Production Output Logs (supports `?open=1&product_id={id}` prefill routing) |
 | `/orders` | `GET` | `OrderController@orders` | `orders` | `auth` | Sales Orders Directory |
 | `/invoices` | `GET` | `InvoiceController@invoices` | `invoices` | `auth` | Tax Invoices Ledger |
 | `/purchases` | `GET` | `PurchaseController@purchases` | `purchases` | `auth` | Raw Material Purchase Ledger |

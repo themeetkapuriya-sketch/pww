@@ -22,14 +22,14 @@
                 </button>
             </div>
 
-            <div class="space-y-2">
+            <div id="purchase-categories-list" class="space-y-2">
                 @foreach ($purchaseCategoriesList as $pCat)
                     @php
                         $isProtected = ($pCat['protected'] ?? false) || ($pCat['is_system'] ?? false) || in_array($pCat['key'], ['raw_material']);
                     @endphp
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
+                    <div id="cat-item-purchase-{{ $pCat['key'] }}" class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                            <span class="font-bold text-slate-800 text-sm">{{ $pCat['label'] }}</span>
+                            <span class="font-bold text-slate-800 text-sm cat-label">{{ $pCat['label'] }}</span>
                             <span class="text-[10px] font-mono bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md font-semibold">key: {{ $pCat['key'] }}</span>
                             @if($isProtected)
                                 <span class="text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
@@ -42,8 +42,9 @@
                         <div class="flex items-center space-x-2 shrink-0">
                             <!-- Edit Button (Blue) -->
                             <button type="button" 
-                                    onclick="openEditCategoryModal('purchase', '{{ $pCat['key'] }}', '{{ addslashes($pCat['label']) }}')" 
-                                    class="w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                    onclick="openEditCategoryModal('purchase', '{{ $pCat['key'] }}', this.getAttribute('data-label'))" 
+                                    data-label="{{ $pCat['label'] }}"
+                                    class="cat-edit-btn w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                     title="Edit Category Label">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -51,11 +52,12 @@
                             @if(!$isProtected)
                                 <!-- Delete Button (Red) -->
                                 <button type="button" 
-                                        onclick="deleteCategorySetting('purchase', '{{ $pCat['key'] }}', '{{ addslashes($pCat['label']) }}')" 
-                                        class="w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                        onclick="deleteCategorySetting('purchase', '{{ $pCat['key'] }}', this.getAttribute('data-label'))" 
+                                        data-label="{{ $pCat['label'] }}"
+                                        class="cat-del-btn w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                         title="Delete Category">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                             @else
                                 <!-- Lock Icon for Protected System Categories -->
                                 <span class="w-7 h-7 inline-flex items-center justify-center bg-amber-50 text-amber-600 rounded-lg border border-amber-200/80 shadow-2xs" title="Protected System Category (Cannot be deleted)">
@@ -84,14 +86,14 @@
                 </button>
             </div>
 
-            <div class="space-y-2">
+            <div id="expense-categories-list" class="space-y-2">
                 @foreach ($expenseCategoriesList as $eCat)
                     @php
                         $isProtected = ($eCat['protected'] ?? false) || ($eCat['is_system'] ?? false) || in_array($eCat['key'], ['salary', 'gst_payment']);
                     @endphp
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
+                    <div id="cat-item-expense-{{ $eCat['key'] }}" class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                            <span class="font-bold text-slate-800 text-sm">{{ $eCat['label'] }}</span>
+                            <span class="font-bold text-slate-800 text-sm cat-label">{{ $eCat['label'] }}</span>
                             <span class="text-[10px] font-mono bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md font-semibold">key: {{ $eCat['key'] }}</span>
                             @if($isProtected)
                                 <span class="text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
@@ -104,8 +106,9 @@
                         <div class="flex items-center space-x-2 shrink-0">
                             <!-- Edit Button (Blue) -->
                             <button type="button" 
-                                    onclick="openEditCategoryModal('expense', '{{ $eCat['key'] }}', '{{ addslashes($eCat['label']) }}')" 
-                                    class="w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                    onclick="openEditCategoryModal('expense', '{{ $eCat['key'] }}', this.getAttribute('data-label'))" 
+                                    data-label="{{ $eCat['label'] }}"
+                                    class="cat-edit-btn w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                     title="Edit Category Label">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -113,8 +116,9 @@
                             @if(!$isProtected)
                                 <!-- Delete Button (Red) -->
                                 <button type="button" 
-                                        onclick="deleteCategorySetting('expense', '{{ $eCat['key'] }}', '{{ addslashes($eCat['label']) }}')" 
-                                        class="w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                        onclick="deleteCategorySetting('expense', '{{ $eCat['key'] }}', this.getAttribute('data-label'))" 
+                                        data-label="{{ $eCat['label'] }}"
+                                        class="cat-del-btn w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                         title="Delete Category">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
@@ -146,31 +150,34 @@
                 </button>
             </div>
 
-            <div class="space-y-2">
+            <div id="material-categories-list" class="space-y-2">
                 @foreach ($materialCategoriesList as $mCat)
                     @php
                         $icon = $mCat['icon'] ?? '📦';
                     @endphp
-                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
+                    <div id="cat-item-material-{{ $mCat['key'] }}" class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs hover:border-slate-300 transition">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-                            <span class="text-base">{{ $icon }}</span>
-                            <span class="font-bold text-slate-800 text-sm">{{ $mCat['label'] }}</span>
+                            <span class="text-base cat-icon">{{ $icon }}</span>
+                            <span class="font-bold text-slate-800 text-sm cat-label">{{ $mCat['label'] }}</span>
                             <span class="text-[10px] font-mono bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md font-semibold">key: {{ $mCat['key'] }}</span>
                         </div>
 
                         <div class="flex items-center space-x-2 shrink-0">
                             <!-- Edit Button (Blue) -->
                             <button type="button" 
-                                    onclick="openEditCategoryModal('material', '{{ $mCat['key'] }}', '{{ addslashes($mCat['label']) }}', '{{ addslashes($icon) }}')" 
-                                    class="w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                    onclick="openEditCategoryModal('material', '{{ $mCat['key'] }}', this.getAttribute('data-label'), this.getAttribute('data-icon'))" 
+                                    data-label="{{ $mCat['label'] }}"
+                                    data-icon="{{ $icon }}"
+                                    class="cat-edit-btn w-7 h-7 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg border border-blue-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                     title="Edit Category Label & Icon">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
 
                             <!-- Delete Button (Red) -->
                             <button type="button" 
-                                    onclick="deleteCategorySetting('material', '{{ $mCat['key'] }}', '{{ addslashes($mCat['label']) }}')" 
-                                    class="w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
+                                    onclick="deleteCategorySetting('material', '{{ $mCat['key'] }}', this.getAttribute('data-label'))" 
+                                    data-label="{{ $mCat['label'] }}"
+                                    class="cat-del-btn w-7 h-7 inline-flex items-center justify-center bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-lg border border-rose-200/80 transition duration-150 transform hover:scale-105 cursor-pointer shadow-2xs" 
                                     title="Delete Category">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>

@@ -78,7 +78,7 @@ class BomController extends Controller
                     [
                         'required_quantity' => $reqQty,
                         'waste_percentage' => $waste,
-                        'unit_rate' => $rate,
+                        'unit_rate' => null,
                     ]
                 );
                 $savedCount++;
@@ -96,7 +96,6 @@ class BomController extends Controller
             'raw_material_id' => 'required|exists:raw_materials,id',
             'required_quantity' => 'required|numeric|min:0.0001',
             'waste_percentage' => 'required|numeric|min:0',
-            'unit_rate' => 'nullable|numeric|min:0',
         ]);
 
         $bom = BillOfMaterial::updateOrCreate(
@@ -107,7 +106,7 @@ class BomController extends Controller
             [
                 'required_quantity' => $validated['required_quantity'],
                 'waste_percentage' => $validated['waste_percentage'],
-                'unit_rate' => ! empty($validated['unit_rate']) ? (float) $validated['unit_rate'] : null,
+                'unit_rate' => null,
             ]
         );
 
@@ -132,13 +131,12 @@ class BomController extends Controller
         $validated = $request->validate([
             'required_quantity' => 'required|numeric|min:0.0001',
             'waste_percentage' => 'required|numeric|min:0',
-            'unit_rate' => 'nullable|numeric|min:0',
         ]);
 
         $bom->update([
             'required_quantity' => $validated['required_quantity'],
             'waste_percentage' => $validated['waste_percentage'],
-            'unit_rate' => ! empty($validated['unit_rate']) ? (float) $validated['unit_rate'] : null,
+            'unit_rate' => null,
         ]);
 
         return response()->json([

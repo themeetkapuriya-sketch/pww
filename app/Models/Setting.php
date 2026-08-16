@@ -38,7 +38,14 @@ class Setting extends Model
      */
     public static function isStockEnabled(): bool
     {
-        return self::get('track_stock', 'true') === 'true';
+        // If Simplified Billing Mode is ON, Stock Management is strictly OFF
+        if (in_array(strtolower((string) self::get('simplified_billing_mode', 'false')), ['true', '1', 'yes', 'on'], true)) {
+            return false;
+        }
+
+        $val = self::get('track_stock', 'true');
+
+        return in_array(strtolower((string) $val), ['true', '1', 'yes', 'on'], true);
     }
 
     /**
