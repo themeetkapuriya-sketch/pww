@@ -31,7 +31,7 @@
     }
 @endphp
 
-<div id="{{ $elementId }}_wrapper" class="combobox-wrapper {{ $containerClass }}" data-combobox-id="{{ $elementId }}" data-allow-custom="{{ $allowCustom ? 'true' : 'false' }}">
+<div id="{{ $elementId }}_wrapper" class="combobox-wrapper {{ $containerClass }}" data-combobox-id="{{ $elementId }}" data-allow-custom="{{ $allowCustom ? 'true' : 'false' }}" data-required="{{ $required ? 'true' : 'false' }}">
     @if($label)
         <label class="block text-xs font-bold text-slate-600 uppercase mb-1">
             {!! $label !!}
@@ -51,7 +51,8 @@
                autocomplete="off"
                placeholder="{{ $placeholder }}"
                value="{{ $selectedLabel }}"
-               class="combobox-search-input {{ $inputClass }}">
+               class="combobox-search-input {{ $inputClass }}"
+               {{ $required ? 'data-required=true' : '' }}>
         
         <button type="button" 
                 id="{{ $elementId }}_clear" 

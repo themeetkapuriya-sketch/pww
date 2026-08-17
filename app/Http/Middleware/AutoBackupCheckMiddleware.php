@@ -63,10 +63,15 @@ class AutoBackupCheckMiddleware
         }
 
         if (Auth::check()) {
-            try {
-                app(BackupService::class)->ensureAutomaticBackupExists();
-            } catch (\Throwable $e) {
-                // Silently ignore background backup errors to preserve system availability
+            // Throttle backup verification check to at most once every 30 minutes for maximum request throughput
+            $cacheKey = 'pww_auto_backup_last_check';
+            if (! \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                try {
+                    app(BackupService::class)->ensureAutomaticBackupExists();
+                    \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addMinutes(30));
+                } catch (\Throwable $e) {
+                    // Silently ignore background backup errors to preserve system availability
+                }
             }
         }
     }

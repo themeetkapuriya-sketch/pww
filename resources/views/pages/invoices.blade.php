@@ -143,7 +143,7 @@
                 </div>
                 <button type="button" id="invoiceFormCloseBtn" onclick="cancelInvoiceForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
             </div>
-            <form id="customInvoiceForm" action="{{ route('invoice.generate') }}" method="POST" class="ajax-form space-y-4 flex-grow">
+            <form id="customInvoiceForm" action="{{ route('invoice.generate') }}" method="POST" class="ajax-form space-y-4 flex-grow" data-redirect="{{ route('invoices') }}">
                 @csrf
                 <input type="hidden" name="sales_order_id" id="salesOrderIdHidden" value="{{ $prefillOrder->id ?? '' }}">
                 <input type="hidden" name="invoice_id" id="invoiceIdHidden" value="">

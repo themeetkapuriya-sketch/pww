@@ -289,7 +289,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono font-extrabold text-slate-900">
                                     ₹{{ number_format($ord->total_amount, 2) }}</td>
-                                <td class="px-4 py-3 text-center whitespace-nowrap">
+                                <td class="px-4 py-3 text-center whitespace-nowrap order-status-cell">
                                     @php
                                         $hasStock = $ord->hasSufficientStock();
                                         $deficits = $ord->getStockDeficitDetails();
@@ -315,7 +315,7 @@
 
                                     @elseif ($ord->status === 'pending')
                                         <div class="inline-flex flex-col items-center space-y-1">
-                                            <button type="button" onclick="updateOrderStatus({{ $ord->id }}, 'in_production')"
+                                            <button type="button" onclick="updateOrderStatus({{ $ord->id }}, 'in_production', this)"
                                                 title="Click to start manufacturing run for this order"
                                                 class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer">
                                                 <span>▶ Start Production</span>
@@ -326,7 +326,7 @@
                                     @elseif ($ord->status === 'in_production')
                                         @if (!$trackStockOn || $hasStock)
                                             <div class="inline-flex flex-col items-center space-y-1">
-                                                <button type="button" onclick="updateOrderStatus({{ $ord->id }}, 'ready_for_dispatch')"
+                                                <button type="button" onclick="updateOrderStatus({{ $ord->id }}, 'ready_for_dispatch', this)"
                                                     title="{{ $trackStockOn ? 'Sufficient stock available! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch' }}"
                                                     class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer {{ $trackStockOn ? 'animate-pulse' : '' }}">
                                                     <span>📦 Mark Ready for Dispatch</span>
@@ -540,6 +540,7 @@
                                                 <th class="px-4 py-3">Product Name</th>
                                                 <th class="px-4 py-3 text-center">Ordered Qty</th>
                                                 <th class="px-4 py-3 text-right font-mono">Est. Cost / Unit</th>
+                                                <th class="px-4 py-3 text-right font-mono m-commercial-col hidden">Margin / Unit</th>
                                                 <th class="px-4 py-3 text-center m-stock-col">Live Warehouse Stock</th>
                                                 <th class="px-4 py-3 text-center m-stock-col">Stock Readiness</th>
                                                 <th class="px-4 py-3 text-right m-commercial-col hidden">Unit Price</th>
@@ -1020,50 +1021,67 @@
 
                             const $row = $(`#order-row-${id}`);
                             if ($row.length) {
-                                const $statusCell = $row.find('td:nth-child(6)');
-                                if (status === 'in_production') {
-                                    $statusCell.html(`
-                                <div class="inline-flex flex-col items-center space-y-1">
-                                    <button type="button" 
-                                            onclick="updateOrderStatus(${id}, 'ready_for_dispatch', this)"
-                                            title="Click to mark Ready for Dispatch"
-                                            class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer">
-                                        <span>📦 Mark Ready for Dispatch</span>
-                                    </button>
-                                    <span class="text-[9.5px] text-blue-600 font-semibold">Stage 2: In Production</span>
-                                </div>
-                            `);
+                                const $statusCell = $row.find('.order-status-cell').length ? $row.find('.order-status-cell') : $row.find('td:nth-child(7)');
+                                const actualStatus = res.status || status;
+                                const hasStock = res.has_stock !== undefined ? res.has_stock : true;
+                                const trackStockOn = res.track_stock !== undefined ? res.track_stock : true;
+                                const deficits = res.deficits || [];
+
+                                if (actualStatus === 'in_production') {
+                                    if (!trackStockOn || hasStock) {
+                                        $statusCell.html(`
+                                            <div class="inline-flex flex-col items-center space-y-1">
+                                                <button type="button" 
+                                                        onclick="updateOrderStatus(${id}, 'ready_for_dispatch', this)"
+                                                        title="${trackStockOn ? 'Sufficient stock available! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch'}"
+                                                        class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1 cursor-pointer ${trackStockOn ? 'animate-pulse' : ''}">
+                                                    <span>📦 Mark Ready for Dispatch</span>
+                                                </button>
+                                                <span class="text-[9.5px] text-blue-600 font-semibold">${trackStockOn ? 'Stock Ready' : 'Stage 2: In Production'}</span>
+                                            </div>
+                                        `);
+                                    } else {
+                                        const deficitTitle = deficits.map(d => `${d.product_name}: missing ${d.missing_quantity} pcs`).join('; ');
+                                        $statusCell.html(`
+                                            <div class="inline-flex flex-col items-center space-y-1" title="${deficitTitle}">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                                    ⏳ In Production (Awaiting Stock)
+                                                </span>
+                                                <a href="/production" class="text-[9.5px] text-amber-700 hover:underline font-bold">+ Log Batch in Production →</a>
+                                            </div>
+                                        `);
+                                    }
                                     window.updateStatCounter('#statOrdersPending', -1);
                                     window.updateStatCounter('#statOrdersInProduction', +1);
-                                } else if (status === 'ready_for_dispatch') {
+                                } else if (actualStatus === 'ready_for_dispatch') {
                                     $statusCell.html(`
-                                <div class="inline-flex flex-col items-center space-y-1">
-                                    <a href="/invoices?order_id=${id}" 
-                                       title="Stock is ready! Click to generate Tax Invoice & dispatch order"
-                                       class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1">
-                                        <span>🚀 Gen Invoice & Dispatch</span>
-                                    </a>
-                                    <span class="text-[9.5px] text-indigo-600 font-semibold">Stage 3: Ready for Dispatch</span>
-                                </div>
-                            `);
+                                        <div class="inline-flex flex-col items-center space-y-1">
+                                            <a href="/invoices?order_id=${id}" 
+                                               title="${trackStockOn ? 'Stock is ready! Click to generate Tax Invoice & dispatch order' : 'Click to generate Tax Invoice & dispatch order'}"
+                                               class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg shadow-2xs transition flex items-center space-x-1">
+                                                <span>🚀 Gen Invoice & Dispatch</span>
+                                            </a>
+                                            <span class="text-[9.5px] text-indigo-600 font-semibold">Stage 3: Ready for Dispatch</span>
+                                        </div>
+                                    `);
                                     window.updateStatCounter('#statOrdersInProduction', -1);
                                     window.updateStatCounter('#statOrdersReady', +1);
-                                } else if (status === 'dispatched' || status === 'completed') {
+                                } else if (actualStatus === 'dispatched' || actualStatus === 'completed') {
                                     $statusCell.html(`
-                                <div class="inline-flex flex-col items-center">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                        ✓ DISPATCHED
-                                    </span>
-                                </div>
-                            `);
+                                        <div class="inline-flex flex-col items-center">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                                ✓ DISPATCHED
+                                            </span>
+                                        </div>
+                                    `);
                                     window.updateStatCounter('#statOrdersReady', -1);
                                     window.updateStatCounter('#statOrdersCompleted', +1);
-                                } else if (status === 'cancelled') {
+                                } else if (actualStatus === 'cancelled') {
                                     $statusCell.html(`
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-                                    ✕ CANCELLED
-                                </span>
-                            `);
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                                            ✕ CANCELLED
+                                        </span>
+                                    `);
                                 }
                                 if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
                             } else if (window.loadPage) {
@@ -1384,9 +1402,16 @@
                         (data.items || []).forEach(item => {
                             const tr = document.createElement('tr');
                             tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors';
-                            const unitCost = item.unit_estimated_cost || 0;
-                            const unitPrice = (item.unit_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            const totalPrice = (item.total_price || (item.quantity * item.unit_price) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const unitCost = Number(item.unit_estimated_cost || 0);
+                            const unitPrice = Number(item.unit_price || 0);
+                            const marginPerUnit = unitPrice - unitCost;
+                            const marginSign = marginPerUnit > 0 ? '+' : (marginPerUnit < 0 ? '-' : '');
+                            const marginFormatted = marginSign + '₹' + Math.abs(marginPerUnit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const marginColor = marginPerUnit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+
+                            const unitCostFormatted = unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const unitPriceFormatted = unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            const totalPriceFormatted = (item.total_price || (item.quantity * item.unit_price) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                             tr.innerHTML = `
                         <td class="px-3.5 py-3">
@@ -1394,9 +1419,10 @@
                             ${item.sku ? `<span class="text-[10px] font-mono text-slate-400 dark:text-slate-500">SKU: ${item.sku}</span>` : ''}
                         </td>
                         <td class="px-3.5 py-3 text-center font-bold text-slate-900 dark:text-slate-100 font-mono">${item.quantity} ${item.billing_uom || 'Pcs'}</td>
-                        <td class="px-3.5 py-3 text-right font-mono text-amber-800 dark:text-amber-300 font-bold">₹${unitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td class="px-3.5 py-3 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold m-commercial-col">₹${unitPrice}</td>
-                        <td class="px-3.5 py-3 text-right font-mono font-black text-blue-600 dark:text-blue-400 m-commercial-col">₹${totalPrice}</td>
+                        <td class="px-3.5 py-3 text-right font-mono text-amber-800 dark:text-amber-300 font-bold">₹${unitCostFormatted}</td>
+                        <td class="px-3.5 py-3 text-right font-mono font-bold ${marginColor} m-commercial-col">${marginFormatted}</td>
+                        <td class="px-3.5 py-3 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold m-commercial-col">₹${unitPriceFormatted}</td>
+                        <td class="px-3.5 py-3 text-right font-mono font-black text-blue-600 dark:text-blue-400 m-commercial-col">₹${totalPriceFormatted}</td>
                     `;
                             fgTbody.appendChild(tr);
                         });

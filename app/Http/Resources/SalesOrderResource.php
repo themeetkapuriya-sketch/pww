@@ -38,6 +38,9 @@ class SalesOrderResource extends JsonResource
                 $product = $item->product;
                 $unitMfgCost = $product ? (float) $product->estimated_manufacturing_cost : 0.0;
                 $lineMfgCost = round($unitMfgCost * (float) $item->quantity, 2);
+                $unitPrice = (float) $item->unit_price;
+                $unitMargin = round($unitPrice - $unitMfgCost, 2);
+                $totalMargin = round($unitMargin * (float) $item->quantity, 2);
 
                 return [
                     'id' => $item->id,
@@ -46,10 +49,12 @@ class SalesOrderResource extends JsonResource
                     'sku' => $product ? $product->sku : '',
                     'billing_uom' => $item->billing_uom ?? 'Pcs',
                     'quantity' => (float) $item->quantity,
-                    'unit_price' => (float) $item->unit_price,
+                    'unit_price' => $unitPrice,
                     'total_price' => (float) $item->total_price,
                     'unit_estimated_cost' => $unitMfgCost,
                     'total_estimated_cost' => $lineMfgCost,
+                    'unit_margin' => $unitMargin,
+                    'total_margin' => $totalMargin,
                 ];
             })->values()->toArray() : [],
         ];

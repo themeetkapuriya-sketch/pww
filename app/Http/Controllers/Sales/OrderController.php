@@ -255,10 +255,17 @@ class OrderController extends Controller
             $message = "Order '{$order->order_number}' has required stock available & was automatically marked READY FOR DISPATCH!";
         }
 
+        $hasStock = $order->hasSufficientStock();
+        $deficits = $trackStock ? $order->getStockDeficitDetails() : [];
+
         return response()->json([
             'success' => true,
             'message' => $message,
             'data' => $order,
+            'status' => $order->status,
+            'has_stock' => $hasStock,
+            'track_stock' => $trackStock,
+            'deficits' => $deficits,
         ]);
     }
 

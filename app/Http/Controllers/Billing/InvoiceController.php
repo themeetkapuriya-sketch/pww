@@ -56,7 +56,10 @@ class InvoiceController extends Controller
 
         $prefillOrder = null;
         if ($request->has('order_id')) {
-            $prefillOrder = SalesOrder::with(['items.product', 'client', 'plant'])->find($request->input('order_id'));
+            $order = SalesOrder::with(['items.product', 'client', 'plant'])->find($request->input('order_id'));
+            if ($order && $order->status !== 'dispatched') {
+                $prefillOrder = $order;
+            }
         }
 
         $editInvoice = null;

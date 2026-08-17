@@ -816,13 +816,19 @@ document.addEventListener('DOMContentLoaded', () => {
             $form.find('input, select, textarea').each(function() {
                 clearInlineError($(this));
             });
+            $form.find('.combobox-wrapper').each(function() {
+                clearInlineError($(this).find('.combobox-search-input'));
+            });
             $form.find('.form-alert').addClass('hidden').html('');
 
             // Client-side validation check
             let hasErrors = false;
+
+            // 1. Validate standard inputs, selects, and textareas (skipping combobox search/hidden inputs)
             $form.find('input, select, textarea').each(function() {
                 const $input = $(this);
                 if ($input.is(':disabled') || $input.is(':hidden') || $input.closest('.hidden').length > 0 || $input.is(':submit') || $input.is(':button') || $input.attr('type') === 'hidden') return;
+                if ($input.hasClass('combobox-search-input')) return; // Handled in combobox validation below
 
                 const val = $input.val();
                 let errorMsg = '';
@@ -871,6 +877,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // 2. Validate Comboboxes (Select Client & Plant, Products, Categories etc.)
+            $form.find('.combobox-wrapper').each(function() {
+                const $wrap = $(this);
+                if ($wrap.is(':hidden') || $wrap.closest('.hidden').length > 0) return;
+
+                const $hiddenInp = $wrap.find('.combobox-hidden-input');
+                const $searchInp = $wrap.find('.combobox-search-input');
+                
+                const isRequired = $wrap.attr('data-required') === 'true' || 
+                                   $wrap.data('required') === true || 
+                                   $hiddenInp.prop('required') || 
+                                   $hiddenInp.attr('required') !== undefined || 
+                                   $searchInp.attr('data-required') === 'true' ||
+                                   $wrap.find('label span.text-rose-500').length > 0 ||
+                                   $wrap.closest('#directOrderClientContainer').length > 0;
+
+                const hiddenVal = $hiddenInp.val();
+                if (isRequired && (!hiddenVal || hiddenVal.toString().trim() === '')) {
+                    let labelText = '';
+                    const $label = $wrap.find('label').length ? $wrap.find('label').first() : $wrap.closest('div').find('label').first();
+                    if ($label.length) {
+                        labelText = $label.clone().children().remove().end().text().trim();
+                    }
+                    if (!labelText) {
+                        labelText = $searchInp.attr('placeholder') || 'an option';
+                    }
+                    labelText = labelText.replace(/[:*₹(]/g, '').trim();
+                    const errorMsg = `Please select ${labelText || 'an option'}.`;
+
+                    showInlineError($searchInp, errorMsg);
+                    hasErrors = true;
+                }
+            });
+
             if (hasErrors) {
                 // Focus first errored field
                 $form.find('.border-red-500').first().focus();
@@ -915,15 +955,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Trigger custom DOM event for modular component handlers
                     $form.trigger('ajax:success', [response]);
 
-                    // Auto-close specified or parent modal
+                    // 1. Auto-close specified or parent modal immediately (<10ms)
                     const customModalTarget = $form.attr('data-close-modal');
                     if (customModalTarget) {
                         $(customModalTarget).addClass('hidden');
                     }
-                    const $parentModal = $form.closest('.fixed.inset-0');
+                    const $parentModal = $form.closest('.fixed.inset-0, [id$="Modal"]');
                     if ($parentModal.length) {
                         $parentModal.addClass('hidden');
                     }
+
+                    // 2. Auto-close all inline form containers across all modules immediately
+                    const $inlineFormCard = $form.closest('#salesOrderFormCard, #orderFormContainer, #productionFormCard, #purchaseFormContainer, #invoiceFormContainer, #invoiceFormCard, #section-manual-builder, #rawMaterialFormCard, #productFormCard, #employeeFormCard, #expenseFormCard, #clientFormCard, #plantFormCard, .inline-form-card, [id$="FormCard"], [id$="FormContainer"]');
+                    if ($inlineFormCard.length) {
+                        $inlineFormCard.addClass('hidden');
+                    }
+                    $('#section-manual-builder').addClass('hidden');
+
+                    // 3. Reset toggle buttons to default closed label
+                    $('button[onclick*="toggleInlineForm"], button[onclick*="orderFormContainer"], button[onclick*="salesOrderFormCard"], button[onclick*="productionFormCard"], button[onclick*="purchaseFormContainer"], button[onclick*="invoiceFormContainer"], #toggleInvoiceFormBtn').each(function() {
+                        const origText = $(this).data('orig-text');
+                        if (origText) $(this).html(origText);
+                    });
 
                     if ($form.hasClass('no-reload') || $form.hasClass('no-refresh') || $form.hasClass('inplace-form') || $form.data('inplace') === true || ($form.attr('action') && $form.attr('action').includes('/settings/security'))) {
                         if (!$form.hasClass('no-reset')) {
@@ -936,22 +989,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         $form[0].reset();
                     }
 
-                    const inlineFormCard = $form.closest('#productionFormCard, #purchaseFormContainer, #invoiceFormContainer');
-                    if (inlineFormCard.length) {
-                        inlineFormCard.addClass('hidden');
-                    }
-
-                    // Target Specific Location Redirect Resolution
+                    // 4. Target Specific Location Background Data Table Refresh
                     let targetUrl = window.location.href;
-                    if (response && response.redirect) {
+                    if ($form.attr('id') === 'customInvoiceForm') {
+                        const invMode = $form.find('#invoiceModeInput').val();
+                        if (invMode === 'raw_material') {
+                            targetUrl = '/invoices?mode=raw_material';
+                        } else {
+                            targetUrl = '/invoices';
+                        }
+                    } else if (response && response.redirect) {
                         targetUrl = response.redirect;
                     } else if ($form.attr('data-redirect')) {
                         targetUrl = $form.attr('data-redirect');
-                    } else if ($form.attr('id') === 'customInvoiceForm') {
-                        const invMode = $form.find('#invoiceModeInput').val();
-                        if (invMode === 'raw_material') {
-                            targetUrl = window.location.pathname + '?mode=raw_material';
-                        }
                     }
                     window.clearPageCache();
                     await window.loadPage(targetUrl, true);
@@ -1003,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 
                                 const $comboWrap = $el.closest('.combobox-wrapper').length ? $el.closest('.combobox-wrapper') : $el.siblings('.combobox-wrapper');
                                 if ($el.length && ($el.is(':visible') || $comboWrap.length > 0)) {
-                                    const $targetEl = $comboWrap.length ? $comboWrap.find('input').first() : $el.first();
+                                    const $targetEl = $comboWrap.length ? $comboWrap.find('.combobox-search-input').first() : $el.first();
                                     showInlineError($targetEl, errorMsg);
                                     hasShownError = true;
                                 } else {
@@ -1050,13 +1100,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const isInline = $element.closest('.flex-row, .flex, table, tr, td, .billing-row, .item-row').length > 0 && 
                              ($element.attr('name') && ($element.attr('name').includes('[]') || $element.attr('name').includes('[')));
 
+            const isCombobox = $element.hasClass('combobox-search-input') || $element.closest('.combobox-wrapper').length > 0;
+
             if (isInline) {
                 // For inline fields, keep the layout 100% untouched. Store and use native tooltip title.
                 const originalTitle = $element.attr('title') || '';
                 $element.data('original-title', originalTitle);
                 $element.attr('title', message);
+            } else if (isCombobox) {
+                // For comboboxes, place the error label cleanly without breaking the relative container
+                const $errorLabel = $('<span class="val-error text-red-600 text-xs font-bold mb-1 block"></span>').text(message);
+                const $wrap = $element.closest('.combobox-wrapper');
+                if ($wrap.length) {
+                    $wrap.find('.val-error').remove();
+                    const $label = $wrap.find('label');
+                    if ($label.length) {
+                        $label.after($errorLabel);
+                    } else {
+                        $wrap.prepend($errorLabel);
+                    }
+                } else {
+                    $element.before($errorLabel);
+                }
             } else {
-                // Create error text label above input (Image 2 style)
+                // Create error text label above input
                 const $errorLabel = $('<span class="val-error text-red-600 text-xs font-bold mb-1 block"></span>').text(message);
 
                 const isTextInput = $element.is('textarea') || 
@@ -1084,10 +1151,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Clear error on user interaction (excluding focus to avoid clearing on initial focus focus)
+            // Clear error on user interaction (input, change, or combobox selection)
             $element.one('input change', function() {
                 clearInlineError($element);
             });
+            const $wrap = $element.closest('.combobox-wrapper');
+            if ($wrap.length) {
+                $wrap.find('.combobox-hidden-input').one('change', function() {
+                    clearInlineError($element);
+                });
+            }
         }
 
         function clearInlineError($element) {
@@ -1096,6 +1169,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (originalTitle) $element.attr('title', originalTitle);
                 else $element.removeAttr('title');
                 $element.removeData('original-title');
+            }
+
+            const $comboWrap = $element.closest('.combobox-wrapper');
+            if ($comboWrap.length) {
+                $comboWrap.find('.val-error').remove();
             }
 
             const $wrapper = $element.closest('.val-error-wrapper');
