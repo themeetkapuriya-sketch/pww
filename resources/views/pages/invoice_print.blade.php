@@ -157,7 +157,6 @@
             font-weight: 800;
             color: #0f172a;
             margin: 2px 0 0 0;
-            font-family: monospace;
         }
 
         /* 3-Column Metadata Matrix */
@@ -676,10 +675,10 @@
                         <div class="cell-body">
                             <span class="meta-value-bold">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</span><br>
                             {{ $sellerAddress }}<br>
-                            <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span><br>
+                            <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ \App\Models\Setting::get('gstin', '24PWWRK1234A1Z0') }}</span><br>
                             @php $msme = \App\Models\Setting::get('msme_number', 'UDYAM-GJ-24-0012345'); @endphp
                             @if(!empty($msme))
-                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">MSME: {{ $msme }}</span><br>
+                                <span style="font-weight: 700; color: #0f172a;">MSME: {{ $msme }}</span><br>
                             @endif
                             State: <span class="meta-value-bold">Gujarat (24)</span>
                         </div>
@@ -693,10 +692,10 @@
                             @endif
                             <br>
                             @if(!empty($invoice->custom_client_name))
-                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ !empty($invoice->custom_buyer_gstin) ? $invoice->custom_buyer_gstin : 'URP (Unregistered Buyer)' }}</span><br>
+                                <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ !empty($invoice->custom_buyer_gstin) ? $invoice->custom_buyer_gstin : 'URP (Unregistered Buyer)' }}</span><br>
                             @else
                                 {{ $plant->shipping_address ?? ($billedAddress ?? 'N/A') }}<br>
-                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">GSTIN: {{ $billedGst }}</span><br>
+                                <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ $billedGst }}</span><br>
                             @endif
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
@@ -706,7 +705,7 @@
                         <div class="cell-body">
                             Date: <span class="meta-value-bold">{{ \Carbon\Carbon::parse($invoice->invoice_date ?? $invoice->created_at)->format('d M Y') }}</span><br>
                             @if(!empty($invoice->vehicle_number))
-                                Vehicle No: <span class="meta-value-bold" style="font-family: monospace;">{{ $invoice->vehicle_number }}</span><br>
+                                Vehicle No: <span class="meta-value-bold">{{ $invoice->vehicle_number }}</span><br>
                             @endif
                             Place of Supply: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
@@ -822,11 +821,11 @@
                             </tr>
                             <tr>
                                 <td style="font-weight: 700; color: #64748b;">Account No:</td>
-                                <td style="font-weight: 800; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</td>
+                                <td style="font-weight: 800; color: #0f172a;">{{ \App\Models\Setting::get('bank_account_no', '33445566778') }}</td>
                             </tr>
                             <tr>
                                 <td style="font-weight: 700; color: #64748b;">IFSC Code:</td>
-                                <td style="font-weight: 800; color: #0f172a; font-family: monospace;">{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</td>
+                                <td style="font-weight: 800; color: #0f172a;">{{ \App\Models\Setting::get('bank_ifsc', 'SBIN0001234') }}</td>
                             </tr>
                         </table>
                     </td>

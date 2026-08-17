@@ -197,9 +197,6 @@ class OverviewController extends Controller
         $latestPurchases = Purchase::with('rawMaterial')->orderBy('purchase_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
         $latestExpenses = Expense::orderBy('expense_date', 'desc')->orderBy('id', 'desc')->take(5)->get();
         $lowStockMaterials = RawMaterial::whereColumn('current_stock', '<=', 'safety_threshold')->take(5)->get();
-        if ($lowStockMaterials->isEmpty()) {
-            $lowStockMaterials = RawMaterial::orderBy('current_stock', 'asc')->take(5)->get();
-        }
 
         return view('pages.overview', compact(
             'yearlyRevenue', 'yearlyTaxable', 'fyStartYear',

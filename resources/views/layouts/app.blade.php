@@ -1120,22 +1120,31 @@
                         const newBal = Math.max(0, prevBal - paidAmount);
 
                         $row.find('.inv-balance-cell').text('₹' + (window.formatIndianCurrency ? window.formatIndianCurrency(newBal.toFixed(2)) : newBal.toFixed(2)));
+                        
+                        let $statusCell = $row.find('.inv-status-cell, .status-badge-cell, td:has(button[onclick*="openInvoicePaymentModal"]), td:has(button[onclick*="payInvoiceRecord"]), td:has(.bg-emerald-100), td:has(.bg-amber-100), td:has(.bg-rose-100)');
+                        if (!$statusCell.length) {
+                            $statusCell = $row.find('td:nth-last-child(2)');
+                        }
+
                         if (newBal <= 0) {
-                            $row.find('.inv-status-cell, .status-badge-cell').html(`
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    Paid
+                            $statusCell.html(`
+                                <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                    RECEIVED
                                 </span>
                             `);
-                            $row.find('.pay-btn, button[onclick*="payInvoiceRecord"], button[onclick*="openInvoicePaymentModal"]').remove();
                             if (window.updateStatCounter) {
                                 window.updateStatCounter('#statUnpaidInvoices', -1);
                                 window.updateStatCounter('#statPaidInvoices', +1);
                             }
                         } else {
-                            $row.find('.inv-status-cell, .status-badge-cell').html(`
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
-                                    Partial
-                                </span>
+                            const invNo = $row.find('.inv-no-cell, td:nth-child(2)').text().trim();
+                            $statusCell.html(`
+                                <button type="button" 
+                                        onclick="openInvoicePaymentModal(${invId}, '${invNo}', ${newBal})"
+                                        title="Click to record next payment for this invoice"
+                                        class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition cursor-pointer shadow-2xs">
+                                    PARTIAL (₹${window.formatIndianCurrency ? window.formatIndianCurrency(newBal.toFixed(0)) : newBal.toFixed(0)} DUE)
+                                </button>
                             `);
                         }
                         if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);

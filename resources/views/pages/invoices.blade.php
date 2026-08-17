@@ -397,7 +397,7 @@
                                 @endif
                             </td>
                             <td class="px-2.5 py-2 text-right font-bold text-slate-800">₹{{ format_indian($inv->total_amount, 2) }}</td>
-                            <td class="px-2 py-2 text-center">
+                            <td class="px-2 py-2 text-center inv-status-cell">
                                 @if(($inv->payment_status ?? 'unpaid') === 'paid')
                                     <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                         RECEIVED
@@ -506,7 +506,7 @@
                             <td class="px-2.5 py-2 text-right text-slate-700">₹{{ format_indian($rmInv->total_taxable_value, 2) }}</td>
                             <td class="px-2.5 py-2 text-right text-slate-600">₹{{ format_indian($rmInv->total_tax, 2) }}</td>
                             <td class="px-2.5 py-2 text-right font-bold text-slate-800">₹{{ format_indian($rmInv->total_amount, 2) }}</td>
-                            <td class="px-2 py-2 text-center">
+                            <td class="px-2 py-2 text-center inv-status-cell">
                                 @if(($rmInv->payment_status ?? 'unpaid') === 'paid')
                                     <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                                         RECEIVED

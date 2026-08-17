@@ -1479,16 +1479,21 @@ document.addEventListener('DOMContentLoaded', () => {
                                 window.showToast('success', response.message || 'Invoice marked as paid!');
                                 const $row = $(`#row-inv-${id}, #invoice-row-${id}`);
                                 if ($row.length) {
-                                    $row.find('.inv-status-badge, .status-badge').html(`
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            Paid
+                                    let $statusCell = $row.find('.inv-status-cell, .status-badge-cell, .inv-status-badge, .status-badge, td:has(button[onclick*="payInvoiceRecord"]), td:has(button[onclick*="openInvoicePaymentModal"])');
+                                    if (!$statusCell.length) {
+                                        $statusCell = $row.find('td:nth-last-child(2)');
+                                    }
+                                    $statusCell.html(`
+                                        <span class="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                                            RECEIVED
                                         </span>
                                     `);
                                     $row.find('.inv-balance-cell').text('₹0.00');
-                                    $row.find('.pay-btn, button:contains("Pay")').remove();
                                     if (window.ERPTableHelper) window.ERPTableHelper.highlightRow($row);
-                                    window.updateStatCounter('#statUnpaidInvoices', -1);
-                                    window.updateStatCounter('#statPaidInvoices', +1);
+                                    if (typeof window.updateStatCounter === 'function') {
+                                        window.updateStatCounter('#statUnpaidInvoices', -1);
+                                        window.updateStatCounter('#statPaidInvoices', +1);
+                                    }
                                 } else if (typeof window.loadPage === 'function') {
                                     await window.loadPage(window.location.href);
                                 }

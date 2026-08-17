@@ -576,7 +576,10 @@
                         </div>
                     </div>
                 @empty
-                    <p class="text-xs text-slate-400 text-center py-4">All raw material inventory levels are healthy.</p>
+                    <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center justify-center space-x-2 text-emerald-700 text-xs font-semibold">
+                        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span>All raw material stock levels are optimal and healthy.</span>
+                    </div>
                 @endforelse
             </div>
         </div>
@@ -837,8 +840,8 @@ function submitDashboardPayForm(e) {
             const $payBtn = $(`#dash-pay-btn-${id}`);
             if ($payBtn.length) {
                 $payBtn.replaceWith(`
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        Paid
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        RECEIVED
                     </span>
                 `);
             }

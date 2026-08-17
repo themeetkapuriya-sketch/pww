@@ -37,16 +37,17 @@
                 <div class="text-right">
                     <div class="text-xs font-bold text-slate-900">₹{{ format_indian($inv->total_amount, 2) }}</div>
                     @if(($inv->payment_status ?? 'unpaid') === 'paid')
-                        <span class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-0.5 bg-emerald-100 text-emerald-700">
-                            PAID
+                        <span class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            RECEIVED
                         </span>
                     @else
                         <button type="button" 
+                                id="dash-pay-btn-{{ $inv->id }}"
                                 onclick="openDashboardPayModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->remaining_balance }})"
-                                class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-0.5 transition cursor-pointer border shadow-2xs 
+                                class="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-0.5 transition cursor-pointer border shadow-2xs 
                                 {{ $inv->payment_status === 'partially_paid' ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' : 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200' }}"
                                 title="Click to record payment directly from Dashboard">
-                            {{ $inv->payment_status === 'partially_paid' ? 'Partial (₹' . format_indian($inv->remaining_balance, 0) . ' Due)' : 'Pay (₹' . format_indian($inv->remaining_balance, 0) . ' Due)' }}
+                            {{ $inv->payment_status === 'partially_paid' ? 'PARTIAL (₹' . format_indian($inv->remaining_balance, 0) . ' DUE)' : 'DUE (₹' . format_indian($inv->remaining_balance, 0) . ')' }}
                         </button>
                     @endif
                 </div>

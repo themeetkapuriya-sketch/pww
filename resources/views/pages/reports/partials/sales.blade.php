@@ -84,7 +84,7 @@
                             <td class="px-4 py-3 text-right font-bold {{ $inv->remaining_balance > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
                                 ₹{{ number_format($inv->remaining_balance, 2) }}
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center inv-status-cell">
                                 @if(($inv->payment_status ?? 'unpaid') === 'paid')
                                     <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                                         PAID
