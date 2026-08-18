@@ -240,38 +240,42 @@
                     <div id="billingRowsContainer" class="space-y-2">
                         @if(!empty($prefillOrder) && $prefillOrder->items->isNotEmpty())
                             @foreach($prefillOrder->items as $it)
-                                <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                    <div class="flex-grow">
+                                <div class="billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                    <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                                         <x-combobox name="product_ids[]"
                                                     placeholder="Select product..."
                                                     :options="$invoiceProductOptions"
                                                     :value="'product_' . $it->product_id"
                                                     required />
                                     </div>
-                                    <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="Pcs" {{ strtolower($it->billing_uom ?? 'Pcs') === 'pcs' || strtolower($it->billing_uom ?? '') === 'piece' ? 'selected' : '' }}>Pcs</option>
-                                        <option value="Kg" {{ strtolower($it->billing_uom ?? '') === 'kg' ? 'selected' : '' }}>Kg</option>
-                                    </select>
-                                    <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                                    <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                                    <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                                        <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                            <option value="Pcs" {{ strtolower($it->billing_uom ?? 'Pcs') === 'pcs' || strtolower($it->billing_uom ?? '') === 'piece' ? 'selected' : '' }}>Pcs</option>
+                                            <option value="Kg" {{ strtolower($it->billing_uom ?? '') === 'kg' ? 'selected' : '' }}>Kg</option>
+                                        </select>
+                                        <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                        <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                        <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+                                    </div>
                                 </div>
                             @endforeach
                         @else
-                            <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                <div class="flex-grow">
+                            <div class="billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                                     <x-combobox name="product_ids[]"
                                                 placeholder="Select product..."
                                                 :options="$invoiceProductOptions"
                                                 required />
                                 </div>
-                                <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="Pcs">Pcs</option>
-                                    <option value="Kg">Kg</option>
-                                </select>
-                                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                                <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                                <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                                    <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                                        <option value="Pcs">Pcs</option>
+                                        <option value="Kg">Kg</option>
+                                    </select>
+                                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                                    <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -594,18 +598,20 @@
         const currentTpl = (modeInp && modeInp.value === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
         const row = document.createElement('div');
-        row.className = 'billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+        row.className = 'billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
         row.innerHTML = `
-            <div class="flex-grow">
+            <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                 ${currentTpl}
             </div>
-            <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="Pcs">Pcs</option>
-                <option value="Kg">Kg</option>
-            </select>
-            <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-            <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-            <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+            <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                    <option value="Pcs">Pcs</option>
+                    <option value="Kg">Kg</option>
+                </select>
+                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+            </div>
         `;
         billingRowsContainer.appendChild(row);
         recalculateCustomInvoice();
@@ -1095,17 +1101,19 @@
         const container = document.getElementById('billingRowsContainer');
         if (container) {
             container.innerHTML = `
-                <div class="billing-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <div class="flex-grow">
+                <div class="billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                         ${currentTpl}
                     </div>
-                    <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="Pcs">Pcs</option>
-                        <option value="Kg">Kg</option>
-                    </select>
-                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                    <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                        <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                            <option value="Pcs">Pcs</option>
+                            <option value="Kg">Kg</option>
+                        </select>
+                        <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                        <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                        <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+                    </div>
                 </div>
             `;
         }
@@ -1216,22 +1224,24 @@
                 const currentTpl = isRm ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
                 const row = document.createElement('div');
-                row.className = 'billing-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
+                row.className = 'billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
 
                 const qtyVal = (item.quantity !== null && item.quantity !== undefined) ? parseFloat(item.quantity) : '';
                 const priceVal = (item.unit_price !== null && item.unit_price !== undefined) ? (parseFloat(item.unit_price)).toFixed(2) : '';
 
                 row.innerHTML = `
-                    <div class="flex-grow">
+                    <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                         ${currentTpl}
                     </div>
-                    <select name="billing_uoms[]" class="billing-uom-select w-24 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <option value="Pcs">Pcs</option>
-                        <option value="Kg">Kg</option>
-                    </select>
-                    <input type="number" name="quantities[]" value="${qtyVal}" step="any" min="0.01" placeholder="Qty" class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
-                    <input type="number" name="unit_prices[]" value="${priceVal}" step="0.01" min="0" placeholder="Price" class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
-                    <button type="button" class="remove-billing-row-btn text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                    <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                        <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-amber-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center">
+                            <option value="Pcs">Pcs</option>
+                            <option value="Kg">Kg</option>
+                        </select>
+                        <input type="number" name="quantities[]" value="${qtyVal}" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
+                        <input type="number" name="unit_prices[]" value="${priceVal}" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
+                        <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+                    </div>
                 `;
                 let itemVal = item.key;
                 if (!itemVal) {

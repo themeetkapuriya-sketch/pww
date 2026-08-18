@@ -256,7 +256,7 @@
         </h3>
         
         <div class="overflow-x-auto w-full max-w-full">
-            <table class="erp-datatable min-w-full divide-y divide-slate-200 text-sm">
+            <table class="erp-datatable min-w-[1100px] w-full divide-y divide-slate-200 text-sm whitespace-nowrap no-responsive" id="purchasesLedgerTable" data-responsive="false">
                 <thead class="bg-[#EDF4FA] text-black divide-x divide-slate-200">
                     <tr>
                         <th class="px-4 py-3.5 text-center text-xs font-bold uppercase w-12">#</th>

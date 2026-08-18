@@ -123,24 +123,26 @@
 
                         <div id="orderRowsContainer" class="space-y-2">
                             <div
-                                class="order-row flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                <div class="flex-grow">
+                                class="order-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                                     <x-combobox name="product_ids[]" placeholder="Select product..."
                                         :options="$productOptions" required />
                                 </div>
-                                <select name="billing_uoms[]"
-                                    class="billing-uom-select w-20 shrink-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    onchange="updateRowUnitPrice(this)">
-                                    <option value="Pcs">Pcs</option>
-                                    <option value="Kg">Kg</option>
-                                </select>
-                                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required
-                                    class="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
-                                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)"
-                                    required
-                                    class="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
-                                <button type="button" onclick="removeOrderRow(this)"
-                                    class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                                <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
+                                    <select name="billing_uoms[]"
+                                        class="billing-uom-select col-span-3 sm:w-20 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                        onchange="updateRowUnitPrice(this)">
+                                        <option value="Pcs">Pcs</option>
+                                        <option value="Kg">Kg</option>
+                                    </select>
+                                    <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required
+                                        class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
+                                    <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price (₹)"
+                                        required
+                                        class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold">
+                                    <button type="button" onclick="removeOrderRow(this)"
+                                        class="col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
+                                </div>
                             </div>
                         </div>
                     </div>
