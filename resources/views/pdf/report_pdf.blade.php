@@ -192,7 +192,7 @@
                         $plantInfo = $isRawMaterial ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ');
                     @endphp
                     <tr>
-                        <td class="font-bold {{ $isRawMaterial ? '' : 'text-blue' }}">{{ $isRawMaterial ? 'NILL' : $inv->invoice_number }}</td>
+                        <td class="font-bold text-blue">{{ $inv->invoice_number }}</td>
                         <td>{{ $clientName }} ({{ $plantInfo }})</td>
                         <td>{{ \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y') }}</td>
                         <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>

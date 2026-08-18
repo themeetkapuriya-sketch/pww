@@ -49,6 +49,7 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::delete('/inventory/materials/{id}', [RawMaterialController::class, 'destroy'])->name('inventory.materials.delete');
     Route::post('/inventory/goods', [ProductController::class, 'store'])->name('inventory.goods.store');
     Route::put('/inventory/goods/{id}', [ProductController::class, 'update'])->name('inventory.goods.update');
+    Route::post('/inventory/goods/{id}/adjust', [ProductController::class, 'adjustStock'])->name('inventory.goods.adjust');
     Route::delete('/inventory/goods/{id}', [ProductController::class, 'destroy'])->name('inventory.goods.delete');
 
     // 3. Bill of Materials

@@ -6,10 +6,11 @@
 @php
     $productOptions = [];
     foreach ($finishedGoods as $good) {
+        $skuText = !empty($good->sku) ? ' (SKU: ' . $good->sku . ')' : '';
         $productOptions[] = [
             'value' => $good->id,
-            'label' => $good->product_name . ' (SKU: ' . $good->sku . ')',
-            'search' => strtolower($good->product_name . ' ' . $good->sku)
+            'label' => $good->product_name . $skuText,
+            'search' => strtolower($good->product_name . ' ' . ($good->sku ?? ''))
         ];
     }
 
@@ -170,7 +171,9 @@
                             <td class="px-6 py-4 text-slate-600 whitespace-nowrap">{{ $log->production_date ? $log->production_date->format('d M Y') : 'N/A' }}</td>
                             <td class="px-6 py-4 font-semibold text-slate-800">
                                 {{ $log->product->product_name ?? $log->finishedGood->product_name ?? 'N/A' }}
-                                <span class="block text-xs font-normal text-slate-400">SKU: {{ $log->product->sku ?? 'N/A' }}</span>
+                                @if(!empty($log->product->sku))
+                                    <span class="block text-xs font-normal text-slate-400">SKU: {{ $log->product->sku }}</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-right font-bold text-emerald-600 font-mono">+{{ number_format($log->quantity_manufactured) }} {{ $log->product->uom ?? 'pcs' }}</td>
                             <td class="px-6 py-4 text-right font-medium text-rose-500 font-mono">{{ number_format($log->quantity_rejected) }}</td>
@@ -208,7 +211,7 @@ function getProductsOptionsHtml() {
     return `
         <option value="">Select Product...</option>
         @foreach ($finishedGoods as $good)
-            <option value="{{ $good->id }}">{{ addslashes($good->product_name) }} (SKU: {{ addslashes($good->sku) }})</option>
+            <option value="{{ $good->id }}">{{ addslashes($good->product_name) }}{{ !empty($good->sku) ? ' (SKU: ' . addslashes($good->sku) . ')' : '' }}</option>
         @endforeach
     `;
 }

@@ -1,8 +1,11 @@
+@php
+    $hasGstTax = ((float)$invoice->cgst + (float)$invoice->sgst + (float)$invoice->igst) > 0.001;
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Tax Invoice - {{ $invoice->invoice_number }}</title>
+    <title>{{ $hasGstTax ? 'Tax Invoice' : 'Invoice' }} - {{ $invoice->invoice_number }}</title>
     <style>
         @font-face {
             font-family: 'Outfit';
@@ -426,7 +429,7 @@
             transform: translate(-50%, -50%);
             width: 100%;
             text-align: center;
-            opacity: 0.035;
+            opacity: 0.05;
             pointer-events: none;
             z-index: 0;
         }
@@ -617,7 +620,7 @@
                 <span style="font-weight: 800; font-size: 13px; color: #b45309;">Raw Material / Scrap Sale Voucher</span>
                 <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $invoice->custom_client_name ?? 'Buyer' }}</span>
             @else
-                <span style="font-weight: 800; font-size: 13px; color: #0f172a;">Tax Invoice #{{ $invoice->invoice_number }}</span>
+                <span style="font-weight: 800; font-size: 13px; color: #0f172a;">{{ $hasGstTax ? 'Tax Invoice' : 'Invoice' }} #{{ $invoice->invoice_number }}</span>
                 <span style="color: #64748b; font-size: 11px; margin-left: 8px;">| {{ $client->company_name ?? 'Client' }}</span>
             @endif
         </div>
@@ -657,10 +660,8 @@
                         </table>
                     </td>
                     <td style="width: 40%; text-align: right; vertical-align: top;">
-                        @if($invoice->invoice_mode === 'raw_material')
-                            <div class="tax-invoice-title" style="color: #d97706;">RAW MATERIAL SALE MEMO</div>
-                        @else
-                            <div class="tax-invoice-title">TAX INVOICE</div>
+                        <div class="tax-invoice-title">{{ $hasGstTax ? 'TAX INVOICE' : 'INVOICE' }}</div>
+                        @if($invoice->invoice_mode !== 'raw_material')
                             <div class="invoice-number">{{ $invoice->invoice_number }}</div>
                         @endif
                     </td>
@@ -687,15 +688,28 @@
                         <div class="cell-header">Billed To (Buyer)</div>
                         <div class="cell-body">
                             <span class="meta-value-bold" style="font-size: 12px;">{{ $client->company_name ?? ($invoice->custom_client_name ?? 'N/A') }}</span>
-                            @if($plant && !empty($plant->plant_name))
+                            @php
+                                $clientPlantsCount = ($client && $client->relationLoaded('plants')) 
+                                    ? $client->plants->count() 
+                                    : ($client ? $client->plants()->count() : 0);
+                            @endphp
+                            @if($clientPlantsCount > 1 && $plant && !empty($plant->plant_name))
                                 <span style="font-size: 11px; font-weight: 700; color: #475569;">({{ $plant->plant_name }})</span>
                             @endif
                             <br>
                             @if(!empty($invoice->custom_client_name))
-                                <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ !empty($invoice->custom_buyer_gstin) ? $invoice->custom_buyer_gstin : 'URP (Unregistered Buyer)' }}</span><br>
+                                @if(!empty($invoice->custom_buyer_gstin))
+                                    <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ $invoice->custom_buyer_gstin }}</span><br>
+                                @elseif($hasGstTax)
+                                    <span style="font-weight: 700; color: #0f172a;">GSTIN: URP (Unregistered Buyer)</span><br>
+                                @endif
                             @else
                                 {{ $plant->shipping_address ?? ($billedAddress ?? 'N/A') }}<br>
-                                <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ $billedGst }}</span><br>
+                                @if(!empty($billedGst) && $billedGst !== 'N/A')
+                                    <span style="font-weight: 700; color: #0f172a;">GSTIN: {{ $billedGst }}</span><br>
+                                @elseif($hasGstTax)
+                                    <span style="font-weight: 700; color: #0f172a;">GSTIN: N/A</span><br>
+                                @endif
                             @endif
                             State: <span class="meta-value-bold">{{ $pState }} ({{ $pCode }})</span>
                         </div>
@@ -832,44 +846,40 @@
                     <td class="totals-cell">
                         <table style="width: 100%; border-collapse: collapse; border: none; height: auto;">
                             <tr style="border-bottom: 1px dashed #cbd5e1;">
-                                <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">Taxable Subtotal:</td>
+                                <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">Subtotal:</td>
                                 <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->total_taxable_value, 2) }}</td>
                             </tr>
                             
-                            @php
-                                $taxableBase = (float)$invoice->total_taxable_value;
-                                if ($taxableBase > 0) {
-                                    $igstPct = round(($invoice->igst / $taxableBase) * 100, 1);
-                                    $cgstPct = round(($invoice->cgst / $taxableBase) * 100, 1);
-                                    $sgstPct = round(($invoice->sgst / $taxableBase) * 100, 1);
-                                } else {
-                                    $igstPct = 18;
-                                    $cgstPct = 9;
-                                    $sgstPct = 9;
-                                }
-                            @endphp
+                            @if ($hasGstTax)
+                                @php
+                                    $taxableBase = (float)$invoice->total_taxable_value;
+                                    $igstPct = ($taxableBase > 0) ? round(($invoice->igst / $taxableBase) * 100, 1) : 0;
+                                    $cgstPct = ($taxableBase > 0) ? round(($invoice->cgst / $taxableBase) * 100, 1) : 0;
+                                    $sgstPct = ($taxableBase > 0) ? round(($invoice->sgst / $taxableBase) * 100, 1) : 0;
+                                @endphp
 
-                            @if ($invoice->igst > 0)
-                                <tr style="border-bottom: 1px dashed #cbd5e1;">
-                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">IGST Total ({{ $igstPct }}%):</td>
-                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->igst, 2) }}</td>
-                                </tr>
-                            @else
-                                <tr style="border-bottom: 1px dashed #cbd5e1;">
-                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">CGST Total ({{ $cgstPct }}%):</td>
-                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->cgst, 2) }}</td>
-                                </tr>
-                                <tr style="border-bottom: 1px dashed #cbd5e1;">
-                                    <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">SGST Total ({{ $sgstPct }}%):</td>
-                                    <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->sgst, 2) }}</td>
-                                </tr>
+                                @if ($invoice->igst > 0)
+                                    <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                        <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">IGST Total ({{ $igstPct }}%):</td>
+                                        <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->igst, 2) }}</td>
+                                    </tr>
+                                @else
+                                    <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                        <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">CGST Total ({{ $cgstPct }}%):</td>
+                                        <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->cgst, 2) }}</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px dashed #cbd5e1;">
+                                        <td class="total-label" style="text-align: left; padding: 5px 2px; font-size: 11.5px; color: #334155; font-weight: 700; border: none;">SGST Total ({{ $sgstPct }}%):</td>
+                                        <td class="total-value" style="text-align: right; padding: 5px 2px; font-size: 11.5px; color: #0f172a; font-weight: 800; border: none;">{!! $rupee !!}{{ number_format($invoice->sgst, 2) }}</td>
+                                    </tr>
+                                @endif
                             @endif
                         </table>
 
                         <!-- Grand Total Table (styled to look like a box/capsule) -->
                         <table style="width: 100%; border-collapse: collapse; margin-top: 8px; background-color: #C8D1DD; border: 1px solid #475569; border-radius: 4px; height: auto;">
                             <tr>
-                                <td style="text-align: left; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0f172a; border: none;">Total Amount (Incl. Tax):</td>
+                                <td style="text-align: left; padding: 7px 12px; font-weight: 800; font-size: 11.5px; color: #0f172a; border: none;">{{ $hasGstTax ? 'Total Amount (Incl. Tax):' : 'Total Bill Amount:' }}</td>
                                 <td style="text-align: right; padding: 7px 12px; font-size: 15px; color: #0f172a; font-weight: 900; border: none;">{!! $rupee !!}{{ number_format($invoice->total_amount, 2) }}</td>
                             </tr>
                         </table>
@@ -945,7 +955,11 @@
                 </table>
     
                 <div class="computer-gen-notice">
-                    This is a computer-generated tax invoice • Issued under GST Rules, 2017
+                    @if($hasGstTax)
+                        This is a computer-generated tax invoice • Issued under GST Rules, 2017
+                    @else
+                        This is a computer-generated invoice
+                    @endif
                 </div>
             </div>
         </div>

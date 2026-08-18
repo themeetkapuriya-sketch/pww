@@ -129,16 +129,30 @@
                         Direct Invoice Itemizer
                     </h3>
 
-                    <!-- Invoice Mode Toggle Pills -->
-                    <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
-                        <button type="button" id="modeBtnFinishedGoods" onclick="switchInvoiceMode('finished_goods')"
-                                class="px-3 py-1.5 rounded-lg transition-all shadow-sm bg-blue-600 text-white font-bold">
-                            📦 Finished Goods Sale
-                        </button>
-                        <button type="button" id="modeBtnRawMaterial" onclick="switchInvoiceMode('raw_material')"
-                                class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium">
-                            🧱 Raw Material / Scrap Sale
-                        </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Invoice Mode Toggle Pills -->
+                        <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+                            <button type="button" id="modeBtnFinishedGoods" onclick="switchInvoiceMode('finished_goods')"
+                                    class="px-3 py-1.5 rounded-lg transition-all shadow-sm bg-blue-600 text-white font-bold">
+                                📦 Finished Goods
+                            </button>
+                            <button type="button" id="modeBtnRawMaterial" onclick="switchInvoiceMode('raw_material')"
+                                    class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium">
+                                🧱 Raw Material / Scrap
+                            </button>
+                        </div>
+
+                        <!-- Tax Mode Toggle Pills (With GST vs Without GST) -->
+                        <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+                            <button type="button" id="taxBtnWithGst" onclick="switchTaxMode('with_gst')"
+                                    class="px-3 py-1.5 rounded-lg transition-all shadow-sm bg-emerald-600 text-white font-bold">
+                                🏷️ Tax Invoice (With GST)
+                            </button>
+                            <button type="button" id="taxBtnWithoutGst" onclick="switchTaxMode('without_gst')"
+                                    class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium">
+                                📄 Invoice (Without GST)
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <button type="button" id="invoiceFormCloseBtn" onclick="cancelInvoiceForm()" class="text-xs font-bold text-slate-400 hover:text-slate-600">&times; Close</button>
@@ -148,6 +162,7 @@
                 <input type="hidden" name="sales_order_id" id="salesOrderIdHidden" value="{{ $prefillOrder->id ?? '' }}">
                 <input type="hidden" name="invoice_id" id="invoiceIdHidden" value="">
                 <input type="hidden" name="invoice_mode" id="invoiceModeInput" value="finished_goods">
+                <input type="hidden" name="tax_type" id="taxTypeInput" value="with_gst">
                 
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div id="invoiceNumberContainer" class="md:col-span-3">
@@ -198,8 +213,8 @@
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
                     </div>
                     <div id="vehicleNumberContainer" class="md:col-span-3">
-                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No. <span class="text-rose-500">*</span></label>
-                        <input type="text" name="vehicle_number" required placeholder="e.g. GJ-03-BW-1234"
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Delivery Vehicle No. <span id="vehicleNumberRequiredStar" class="text-rose-500">*</span></label>
+                        <input type="text" name="vehicle_number" id="vehicleNumberInput" required placeholder="e.g. GJ-03-BW-1234"
                                class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-mono uppercase">
                     </div>
                 </div>
@@ -294,6 +309,9 @@
                             <div id="igst-box" class="hidden">
                                 <span>IGST (18%): <strong class="text-slate-800 text-sm ml-1" id="live-igst">₹0.00</strong></span>
                             </div>
+                            <div id="no-gst-box" class="hidden">
+                                <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold border border-emerald-300 text-xs">✓ GST: Nil (0% Without Tax)</span>
+                            </div>
                             <div class="flex items-center space-x-2">
                                 <label class="inline-flex items-center cursor-pointer select-none text-slate-700 font-bold">
                                     <input type="checkbox" id="roundOffCheckbox" checked onchange="recalculateCustomInvoice()" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 mr-1.5">
@@ -302,7 +320,7 @@
                                 <span class="text-xs text-slate-500 italic" id="live-roundoff">(+₹0.00)</span>
                             </div>
                             <div class="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center space-x-2 shadow-xs ml-auto">
-                                <span class="text-xs uppercase font-bold tracking-wider">Grand Total (Inc. GST):</span>
+                                <span class="text-xs uppercase font-bold tracking-wider" id="live-total-label">Grand Total (Inc. GST):</span>
                                 <span class="text-base font-black font-mono" id="live-total">₹0.00</span>
                             </div>
                         </div>
@@ -748,12 +766,17 @@
 
         const isGujarat = state.toLowerCase().trim() === 'gujarat';
         const invMode = (document.getElementById('invoiceModeInput') ? document.getElementById('invoiceModeInput').value : 'finished_goods');
+        const taxMode = (document.getElementById('taxTypeInput') ? document.getElementById('taxTypeInput').value : 'with_gst');
         
         let cgst = 0.00;
         let sgst = 0.00;
         let igst = 0.00;
         
-        if (totalTaxable > 0) {
+        if (taxMode === 'without_gst') {
+            cgst = 0.00;
+            sgst = 0.00;
+            igst = 0.00;
+        } else if (totalTaxable > 0) {
             if (invMode === 'raw_material') {
                 const gstSelect = document.getElementById('rawMaterialGstRateSelect');
                 const rate = gstSelect ? parseFloat(gstSelect.value) : 18.00;
@@ -783,13 +806,24 @@
 
         const cgstSgstBox = document.getElementById('cgst-sgst-box');
         const igstBox = document.getElementById('igst-box');
+        const noGstBox = document.getElementById('no-gst-box');
+        const totalLabel = document.getElementById('live-total-label');
 
-        if (isGujarat) {
-            if (cgstSgstBox) cgstSgstBox.classList.remove('hidden');
-            if (igstBox) igstBox.classList.add('hidden');
-        } else {
+        if (taxMode === 'without_gst') {
             if (cgstSgstBox) cgstSgstBox.classList.add('hidden');
-            if (igstBox) igstBox.classList.remove('hidden');
+            if (igstBox) igstBox.classList.add('hidden');
+            if (noGstBox) noGstBox.classList.remove('hidden');
+            if (totalLabel) totalLabel.innerText = 'Grand Total:';
+        } else {
+            if (noGstBox) noGstBox.classList.add('hidden');
+            if (totalLabel) totalLabel.innerText = 'Grand Total (Inc. GST):';
+            if (isGujarat) {
+                if (cgstSgstBox) cgstSgstBox.classList.remove('hidden');
+                if (igstBox) igstBox.classList.add('hidden');
+            } else {
+                if (cgstSgstBox) cgstSgstBox.classList.add('hidden');
+                if (igstBox) igstBox.classList.remove('hidden');
+            }
         }
         
         // Update DOM
@@ -999,6 +1033,35 @@
         onGstRateSelectChange();
     };
 
+    window.switchTaxMode = function(mode) {
+        const btnWith = document.getElementById('taxBtnWithGst');
+        const btnWithout = document.getElementById('taxBtnWithoutGst');
+        const taxInp = document.getElementById('taxTypeInput');
+        const vehReq = document.getElementById('vehicleNumberRequiredStar');
+        const vehInput = document.getElementById('vehicleNumberInput') || document.querySelector('input[name="vehicle_number"]');
+
+        if (taxInp) taxInp.value = mode;
+
+        if (mode === 'without_gst') {
+            if (btnWith) btnWith.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium';
+            if (btnWithout) btnWithout.className = 'px-3 py-1.5 rounded-lg transition-all shadow-sm bg-emerald-600 text-white font-bold';
+            if (vehReq) vehReq.classList.add('hidden');
+            if (vehInput) vehInput.removeAttribute('required');
+        } else {
+            if (btnWith) btnWith.className = 'px-3 py-1.5 rounded-lg transition-all shadow-sm bg-emerald-600 text-white font-bold';
+            if (btnWithout) btnWithout.className = 'px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium';
+            const invMode = document.getElementById('invoiceModeInput') ? document.getElementById('invoiceModeInput').value : 'finished_goods';
+            if (invMode === 'finished_goods') {
+                if (vehReq) vehReq.classList.remove('hidden');
+                if (vehInput) vehInput.setAttribute('required', 'required');
+            }
+        }
+
+        if (typeof window.recalculateCustomInvoice === 'function') {
+            window.recalculateCustomInvoice();
+        }
+    };
+
     function setToggleButtonState(isOpen) {
         const btn = document.getElementById('toggleInvoiceFormBtn');
         if (!btn) return;
@@ -1094,6 +1157,7 @@
         let activeMode = 'finished_goods';
         try { activeMode = sessionStorage.getItem('pww_invoice_mode') || 'finished_goods'; } catch(e) {}
         switchInvoiceMode(activeMode);
+        switchTaxMode('with_gst');
 
         const currentTpl = (activeMode === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
@@ -1203,6 +1267,13 @@
                         }
                     }
                 }
+            }
+
+            const totalGst = (parseFloat(invoice.cgst) || 0) + (parseFloat(invoice.sgst) || 0) + (parseFloat(invoice.igst) || 0);
+            if (totalGst <= 0 && (invoice.custom_gst_rate === 0 || invoice.custom_gst_rate === '0' || invoice.custom_gst_rate === '0.00' || invoice.total_taxable_value == invoice.total_amount)) {
+                switchTaxMode('without_gst');
+            } else {
+                switchTaxMode('with_gst');
             }
 
             if (invoice.due_date) {

@@ -70,20 +70,26 @@
                         <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->total_taxable_value ?? ($invoice->total_amount - ($invoice->cgst + $invoice->sgst + $invoice->igst)), 2) }}</td>
                     </tr>
                     
-                    @if ($invoice->igst > 0)
-                        <tr>
-                            <td style="padding: 4px 0; color: #475569;">IGST (18%):</td>
-                            <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->igst, 2) }}</td>
-                        </tr>
-                    @else
-                        <tr>
-                            <td style="padding: 4px 0; color: #475569;">CGST (9%):</td>
-                            <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->cgst, 2) }}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 4px 0; color: #475569;">SGST (9%):</td>
-                            <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->sgst, 2) }}</td>
-                        </tr>
+                    @php
+                        $emailGst = (float)$invoice->cgst + (float)$invoice->sgst + (float)$invoice->igst;
+                    @endphp
+
+                    @if ($emailGst > 0.001)
+                        @if ($invoice->igst > 0)
+                            <tr>
+                                <td style="padding: 4px 0; color: #475569;">IGST (18%):</td>
+                                <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->igst, 2) }}</td>
+                            </tr>
+                        @else
+                            <tr>
+                                <td style="padding: 4px 0; color: #475569;">CGST (9%):</td>
+                                <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->cgst, 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 4px 0; color: #475569;">SGST (9%):</td>
+                                <td style="padding: 4px 0; text-align: right; color: #334155; font-weight: bold; font-family: 'DejaVu Sans', Arial, sans-serif;">&#8377;{{ number_format($invoice->sgst, 2) }}</td>
+                            </tr>
+                        @endif
                     @endif
 
                     <tr style="border-top: 1px solid #bfdbfe;">

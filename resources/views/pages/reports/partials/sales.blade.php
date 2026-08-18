@@ -63,11 +63,7 @@
                         @endphp
                         <tr class="hover:bg-slate-50/50 transition">
                             <td class="px-4 py-3 font-bold font-mono text-xs">
-                                @if($isRawMaterial)
-                                    <span class="text-amber-800 font-bold uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded border border-amber-200">NILL</span>
-                                @else
-                                    <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:underline">{{ $inv->invoice_number }}</a>
-                                @endif
+                                <a href="{{ route('invoice.preview', $inv->id) }}" class="text-blue-600 hover:underline">{{ $inv->invoice_number }}</a>
                             </td>
                             <td class="px-4 py-3 text-xs">
                                 <div class="font-bold text-slate-800">{{ $clientName }}</div>

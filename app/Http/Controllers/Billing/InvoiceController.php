@@ -95,10 +95,14 @@ class InvoiceController extends Controller
 
         $invoiceId = $request->input('invoice_id');
         $invMode = $request->input('invoice_mode', 'finished_goods');
+        $taxType = $request->input('tax_type', 'with_gst');
+        $isWithoutGst = ($taxType === 'without_gst') || ($request->input('gst_rate') === '0' || $request->input('gst_rate') === 0);
+        $isVehicleRequired = ($invMode !== 'raw_material' && ! $isWithoutGst);
 
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
             'invoice_mode' => 'nullable|string|in:finished_goods,raw_material',
+            'tax_type' => 'nullable|string|in:with_gst,without_gst',
             'invoice_number' => ($invMode === 'raw_material' ? 'nullable|string' : 'required|string|unique:invoices,invoice_number'.($invoiceId ? ','.$invoiceId : '')),
             'plant_id' => ($invMode === 'raw_material' ? 'nullable|exists:client_plants,id' : 'required|exists:client_plants,id'),
             'custom_client_name' => ($invMode === 'raw_material' ? 'required|string|max:255' : 'nullable|string|max:255'),
@@ -106,9 +110,9 @@ class InvoiceController extends Controller
             'gst_rate' => 'nullable|numeric|min:0|max:100',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
             'invoice_date' => 'nullable|date',
-            'vehicle_number' => ($invMode === 'raw_material'
-                ? ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']
-                : ['required', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']),
+            'vehicle_number' => ($isVehicleRequired
+                ? ['required', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']
+                : ['nullable', 'string', 'regex:/^[A-Z]{2}[ -]?[0-9O]{1,2}[ -]?[A-Z]{0,3}[ -]?[0-9O]{1,4}$|^[0-9O]{2}[ -]?BH[ -]?[0-9O]{1,4}[ -]?[A-Z]{1,2}$/i']),
             'due_date' => 'nullable|date',
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'required',
@@ -135,12 +139,12 @@ class InvoiceController extends Controller
         }
 
         try {
-            $invoice = DB::transaction(function () use ($validated, $request, $invoiceId, $invMode) {
+            $invoice = DB::transaction(function () use ($validated, $request, $invoiceId, $invMode, $isWithoutGst) {
                 $plantId = ! empty($validated['plant_id']) ? $validated['plant_id'] : null;
                 $plant = $plantId ? ClientPlant::find($plantId) : null;
                 $homeState = Setting::get('home_state', 'Gujarat');
                 $isHomeState = $plant ? (strcasecmp(trim($plant->state), trim($homeState)) === 0) : true;
-                $customGstRate = isset($validated['gst_rate']) ? (float) $validated['gst_rate'] : null;
+                $customGstRate = $isWithoutGst ? 0.00 : (isset($validated['gst_rate']) ? (float) $validated['gst_rate'] : null);
 
                 // Parse line items (Products vs Raw Materials)
                 $parsedItems = [];

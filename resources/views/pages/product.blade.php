@@ -140,16 +140,15 @@
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse ($finishedGoods as $good)
                         @php 
+                            $trackStock = (\App\Models\Setting::get('track_stock', 'true') === 'true');
                             $threshold = $good->safety_threshold ?? 10;
-                            $isLowStock = $good->current_stock <= $threshold && $threshold > 0;
+                            $isLowStock = $trackStock && ($good->current_stock <= $threshold && $threshold > 0);
                         @endphp
                         <tr class="hover:bg-slate-50 transition {{ $isLowStock ? 'bg-rose-50/40' : '' }}" id="row-good-{{ $good->id }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">
-                                {{ $good->product_name }}
-                                @if($isLowStock)
-                                    <span class="ml-1.5 px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold text-[10px] rounded">Low Stock</span>
-                                @endif
+                            <td class="px-6 py-4 font-semibold text-slate-800" id="name-cell-{{ $good->id }}">
+                                <span class="product-name-text">{{ $good->product_name }}</span>
+                                <span class="low-stock-badge ml-1.5 px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold text-[10px] rounded {{ $isLowStock ? '' : 'hidden' }}">Low Stock</span>
                             </td>
                             <td class="px-6 py-4 text-slate-600 font-medium text-xs">{{ $good->sku ?: '-' }}</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ $good->hsn_code ?? '-' }}</td>
@@ -157,7 +156,7 @@
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs">{{ number_format($good->unit_weight_kg, 3) }} kg</td>
                             <td class="px-6 py-4 text-center text-slate-600 font-mono text-xs font-semibold">{{ number_format($good->gst_rate, 0) }}%</td>
                             @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
-                                <td class="px-6 py-4 text-right font-bold text-blue-700 font-mono text-xs">{{ number_format($good->current_stock) }} {{ $good->uom }}</td>
+                                <td class="px-6 py-4 text-right font-bold text-blue-700 font-mono text-xs" id="stock-val-{{ $good->id }}">{{ number_format($good->current_stock) }} {{ $good->uom }}</td>
                             @endif
                             <td class="px-6 py-4 text-right text-slate-800 font-mono text-xs">
                                 <span class="font-bold">₹{{ number_format($good->selling_price, 2) }}</span>/pcs
@@ -175,6 +174,15 @@
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center space-x-1.5">
+                                    @if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+                                        <button type="button" 
+                                                id="btn-adjust-{{ $good->id }}"
+                                                onclick="openStockAdjustmentModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', {{ $good->current_stock }}, '{{ $good->uom }}')"
+                                                class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition duration-150 transform hover:scale-105"
+                                                title="Adjust Stock Quantity">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                                        </button>
+                                    @endif
                                     <button type="button" 
                                             onclick="openEditProductModal({{ $good->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($good->sku ?? '') }}', '{{ $good->hsn_code ?? '' }}', '{{ $good->uom }}', {{ $good->current_stock }}, {{ $good->selling_price }}, {{ $good->gst_rate }}, {{ $good->unit_weight_kg }}, {{ $good->price_per_kg ?? 'null' }}, {{ $good->safety_threshold ?? 10 }})"
                                             class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105"
@@ -325,5 +333,218 @@ function deleteProduct(id, name) {
         }
     );
 }
+
+@if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+function openStockAdjustmentModal(id, name, currentStock, uom) {
+    document.getElementById('adjustProductId').value = id;
+    document.getElementById('modalAdjustProductName').innerText = name;
+    document.getElementById('modalAdjustCurrentStock').innerText = `${currentStock} ${uom}`;
+    document.getElementById('modalAdjustUom').innerText = uom;
+    document.getElementById('adjustQuantityInput').value = currentStock;
+    
+    // Default to set_total
+    const radioSetTotal = document.querySelector('input[name="adjustment_type"][value="set_total"]');
+    if (radioSetTotal) radioSetTotal.checked = true;
+    updateAdjustmentTypeUI();
+
+    document.getElementById('stockAdjustmentModal').classList.remove('hidden');
+}
+
+function closeStockAdjustmentModal() {
+    document.getElementById('stockAdjustmentModal').classList.add('hidden');
+    document.getElementById('stockAdjustmentForm').reset();
+}
+
+function updateAdjustmentTypeUI() {
+    const selected = document.querySelector('input[name="adjustment_type"]:checked')?.value || 'set_total';
+    const label = document.getElementById('modalQtyLabel');
+    const input = document.getElementById('adjustQuantityInput');
+    
+    document.querySelectorAll('input[name="adjustment_type"]').forEach(radio => {
+        const parent = radio.closest('label');
+        if (radio.checked) {
+            parent.className = 'flex flex-col items-center justify-center p-2.5 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer text-center select-none text-xs font-bold text-blue-700 transition shadow-2xs';
+        } else {
+            parent.className = 'flex flex-col items-center justify-center p-2.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 text-center select-none text-xs font-bold text-slate-700 transition';
+        }
+    });
+
+    if (selected === 'set_total') {
+        if (label) label.innerText = 'New Total Stock Count';
+        if (input) input.placeholder = '0';
+    } else if (selected === 'add_stock') {
+        if (label) label.innerText = 'Quantity to Add (+)';
+        if (input) input.placeholder = 'e.g. 50';
+    } else if (selected === 'reduce_stock') {
+        if (label) label.innerText = 'Quantity to Deduct (-)';
+        if (input) input.placeholder = 'e.g. 20';
+    }
+}
+
+function submitStockAdjustment(e) {
+    e.preventDefault();
+    const id = document.getElementById('adjustProductId').value;
+    const form = document.getElementById('stockAdjustmentForm');
+    const formData = new FormData(form);
+    const $submitBtn = $(form).find('button[type="submit"]');
+
+    if (window.setButtonLoading) window.setButtonLoading($submitBtn, true, 'Updating...');
+
+    fetch(`/inventory/goods/${id}/adjust`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(({ status, body }) => {
+        if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
+        if (status === 200 && body.success) {
+            closeStockAdjustmentModal();
+            if (window.showToast) window.showToast('success', body.message);
+
+            const productId = body.product_id || id;
+            const newStock = body.new_stock;
+            const uom = body.uom || 'piece';
+            const threshold = body.safety_threshold !== undefined ? body.safety_threshold : 10;
+            const isLow = (newStock <= threshold && threshold > 0);
+
+            // 1. Update stock display in table cell
+            const stockCell = document.getElementById(`stock-val-${productId}`);
+            if (stockCell) {
+                stockCell.innerText = `${Number(newStock).toLocaleString()} ${uom}`;
+                stockCell.classList.add('bg-blue-50/80');
+                setTimeout(() => stockCell.classList.remove('bg-blue-50/80'), 1200);
+            }
+
+            // 2. Update Row Highlight & Low Stock badge
+            const row = document.getElementById(`row-good-${productId}`);
+            if (row) {
+                if (isLow) row.classList.add('bg-rose-50/40');
+                else row.classList.remove('bg-rose-50/40');
+            }
+
+            const nameCell = document.getElementById(`name-cell-${productId}`);
+            if (nameCell) {
+                const badge = nameCell.querySelector('.low-stock-badge');
+                if (badge) {
+                    if (isLow) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+            }
+
+            // 3. Update Adjust Button onclick handler with updated stock
+            const btn = document.getElementById(`btn-adjust-${productId}`);
+            if (btn) {
+                const prodNameSafe = (body.product_name || '').replace(/'/g, "\\'");
+                btn.setAttribute('onclick', `openStockAdjustmentModal(${productId}, '${prodNameSafe}', ${newStock}, '${uom}')`);
+            }
+        } else {
+            const msg = body.message || 'Failed to adjust stock.';
+            if (window.showToast) window.showToast('error', msg);
+            else alert(msg);
+        }
+    })
+    .catch(err => {
+        if (window.setButtonLoading) window.setButtonLoading($submitBtn, false);
+        if (window.showToast) window.showToast('error', 'Network error while adjusting stock.');
+        else alert('Network error while adjusting stock.');
+    });
+}
+@endif
 </script>
+
+@if(\App\Models\Setting::get('track_stock', 'true') === 'true')
+<!-- Stock Adjustment Modal -->
+<div id="stockAdjustmentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                    ⚡
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800">Adjust Product Stock</h3>
+                    <p class="text-xs text-slate-500 font-medium truncate max-w-[240px]" id="modalAdjustProductName">-</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeStockAdjustmentModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">&times;</button>
+        </div>
+
+        <form id="stockAdjustmentForm" onsubmit="submitStockAdjustment(event)" class="p-6 space-y-4">
+            @csrf
+            <input type="hidden" id="adjustProductId" name="product_id" value="">
+
+            <!-- Current Stock Display Box -->
+            <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+                <span class="font-bold text-blue-900">Current Recorded Stock:</span>
+                <span class="font-mono font-black text-sm text-blue-700" id="modalAdjustCurrentStock">0</span>
+            </div>
+
+            <!-- Adjustment Action Type -->
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1.5">Adjustment Mode</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="flex flex-col items-center justify-center p-2.5 border-2 border-blue-600 bg-blue-50/60 rounded-xl cursor-pointer text-center select-none text-xs font-bold text-blue-700 transition shadow-2xs">
+                        <input type="radio" name="adjustment_type" value="set_total" checked class="sr-only" onchange="updateAdjustmentTypeUI()">
+                        <span class="text-base mb-0.5">🎯</span>
+                        <span>Set Total</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 text-center select-none text-xs font-bold text-slate-700 transition">
+                        <input type="radio" name="adjustment_type" value="add_stock" class="sr-only" onchange="updateAdjustmentTypeUI()">
+                        <span class="text-base mb-0.5">➕</span>
+                        <span>Add (+)</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2.5 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 text-center select-none text-xs font-bold text-slate-700 transition">
+                        <input type="radio" name="adjustment_type" value="reduce_stock" class="sr-only" onchange="updateAdjustmentTypeUI()">
+                        <span class="text-base mb-0.5">➖</span>
+                        <span>Deduct (-)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Quantity Input -->
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1" id="modalQtyLabel">New Total Stock Count</label>
+                <div class="relative">
+                    <input type="number" id="adjustQuantityInput" name="quantity" min="0" required placeholder="0"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <span class="absolute right-3 top-2.5 text-xs font-bold text-slate-400" id="modalAdjustUom">piece</span>
+                </div>
+            </div>
+
+            <!-- Reason Dropdown -->
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Reason for Adjustment <span class="text-rose-500">*</span></label>
+                <select name="reason" id="adjustReasonSelect" required
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="Physical Count / Audit Correction">📋 Physical Count / Audit Correction</option>
+                    <option value="Damaged in Warehouse / Scrapped">💥 Damaged in Warehouse / Scrapped</option>
+                    <option value="Sample / Trial Dispatch">🚚 Sample / Trial Dispatch</option>
+                    <option value="Initial Opening Stock Setup">📦 Initial Opening Stock Setup</option>
+                    <option value="Other / Manual Correction">✏️ Other / Manual Correction</option>
+                </select>
+            </div>
+
+            <!-- Remarks / Notes (Optional) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Remarks / Notes (Optional)</label>
+                <input type="text" name="notes" placeholder="e.g. Counted during monthly warehouse audit"
+                       class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeStockAdjustmentModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" id="submitAdjustStockBtn" class="btn-primary py-2.5 px-5 text-xs font-bold shadow-xs">
+                    Confirm Stock Update
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endsection

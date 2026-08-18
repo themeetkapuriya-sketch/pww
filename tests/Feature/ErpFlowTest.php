@@ -933,9 +933,19 @@ class ErpFlowTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('PWW-PRINTTEST-999');
         $response->assertSee('Balaji Wafers');
-        $response->assertSee('Rajkot plant');
         $response->assertSee('Special Rack X');
         $response->assertSee('SRX-99');
+        // Single plant client does not show redundant plant name
+        $response->assertDontSee('(Rajkot plant)');
+
+        // Adding a 2nd plant makes it multi-plant, which then shows the plant name
+        ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Baroda plant',
+            'state' => 'Gujarat',
+        ]);
+        $responseMulti = $this->actingAs($user)->get(route('invoice.print', $invoice->id));
+        $responseMulti->assertSee('(Rajkot plant)');
     }
 
     /**
@@ -1431,5 +1441,118 @@ class ErpFlowTest extends TestCase
         $this->assertEquals('PWW/25-26/999', $json['billLists'][0]['docNo']);
         $this->assertEquals('24ABCDE1234F1Z5', $json['billLists'][0]['toGstin']);
         $this->assertEquals(11800.00, $json['billLists'][0]['totInvValue']);
+    }
+
+    public function test_without_gst_invoice_creation_and_print_rendering()
+    {
+        $admin = User::create([
+            'name' => 'Bill Admin',
+            'email' => 'bill_admin@test.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+            'status' => 'approved',
+            'is_active' => true,
+        ]);
+
+        $client = Client::create([
+            'company_name' => 'Local Cash Buyer',
+            'client_email' => 'cash@local.com',
+        ]);
+
+        $plant = ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Rajkot Shop',
+            'opening_balance' => 0,
+            'state' => 'Gujarat',
+        ]);
+
+        $product = Product::create([
+            'product_name' => 'Mild Steel Bracket',
+            'selling_price' => 250.00,
+            'gst_rate' => 18.00,
+            'current_stock' => 100,
+        ]);
+
+        // 1. Generate Invoice with tax_type = without_gst (no vehicle number needed)
+        $response = $this->actingAs($admin)->postJson(route('invoice.generate'), [
+            'invoice_number' => 'PWW/26-27/NOGST-01',
+            'plant_id' => $plant->id,
+            'invoice_mode' => 'finished_goods',
+            'tax_type' => 'without_gst',
+            'invoice_date' => now()->toDateString(),
+            'vehicle_number' => '', // optional for without_gst
+            'product_ids' => ['product_'.$product->id],
+            'quantities' => [10],
+            'unit_prices' => [250.00],
+            'billing_uoms' => ['Pcs'],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $invoice = Invoice::where('invoice_number', 'PWW/26-27/NOGST-01')->first();
+        $this->assertNotNull($invoice);
+        $this->assertEquals(2500.00, (float)$invoice->total_taxable_value);
+        $this->assertEquals(0.00, (float)$invoice->cgst);
+        $this->assertEquals(0.00, (float)$invoice->sgst);
+        $this->assertEquals(0.00, (float)$invoice->igst);
+        $this->assertEquals(2500.00, (float)$invoice->total_amount);
+
+        // 2. Render print view - should print 'INVOICE' not 'TAX INVOICE'
+        $printResponse = $this->actingAs($admin)->get(route('invoice.print', $invoice->id));
+        $printResponse->assertStatus(200);
+        $printResponse->assertSee('INVOICE');
+        $printResponse->assertDontSee('TAX INVOICE');
+    }
+
+    public function test_product_stock_adjustment_endpoint()
+    {
+        $admin = User::create([
+            'name' => 'Inventory Manager',
+            'email' => 'inv_mgr_'.uniqid().'@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+            'status' => 'approved',
+            'is_active' => true,
+        ]);
+
+        $product = Product::create([
+            'product_name' => 'Stock Test Frame',
+            'hsn_code' => '73269099',
+            'selling_price' => 500.00,
+            'current_stock' => 50,
+            'uom' => 'piece',
+        ]);
+
+        // 1. Set total to 120
+        $res1 = $this->actingAs($admin)->postJson(route('inventory.goods.adjust', $product->id), [
+            'adjustment_type' => 'set_total',
+            'quantity' => 120,
+            'reason' => 'Physical Count / Audit Correction',
+            'notes' => 'Verified on rack 3',
+        ]);
+        $res1->assertStatus(200);
+        $res1->assertJson(['success' => true, 'new_stock' => 120]);
+        $this->assertEquals(120, $product->fresh()->current_stock);
+
+        // 2. Add 30 pcs
+        $res2 = $this->actingAs($admin)->postJson(route('inventory.goods.adjust', $product->id), [
+            'adjustment_type' => 'add_stock',
+            'quantity' => 30,
+            'reason' => 'Sample / Trial Dispatch',
+        ]);
+        $res2->assertStatus(200);
+        $res2->assertJson(['success' => true, 'new_stock' => 150]);
+        $this->assertEquals(150, $product->fresh()->current_stock);
+
+        // 3. Deduct 50 pcs
+        $res3 = $this->actingAs($admin)->postJson(route('inventory.goods.adjust', $product->id), [
+            'adjustment_type' => 'reduce_stock',
+            'quantity' => 50,
+            'reason' => 'Damaged in Warehouse / Scrapped',
+        ]);
+        $res3->assertStatus(200);
+        $res3->assertJson(['success' => true, 'new_stock' => 100]);
+        $this->assertEquals(100, $product->fresh()->current_stock);
     }
 }

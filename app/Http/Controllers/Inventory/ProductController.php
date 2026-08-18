@@ -150,4 +150,58 @@ class ProductController extends Controller
             'message' => "Product '{$name}' deleted successfully!",
         ]);
     }
+
+    /**
+     * Adjust Finished Good Product Stock (AJAX).
+     */
+    public function adjustStock(Request $request, $id)
+    {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
+            return $res;
+        }
+
+        $product = Product::findOrFail($id);
+
+        $validated = $request->validate([
+            'adjustment_type' => 'required|string|in:set_total,add_stock,reduce_stock',
+            'quantity' => 'required|integer|min:0',
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $oldStock = (int) $product->current_stock;
+        $newStock = $oldStock;
+        $qty = (int) $validated['quantity'];
+
+        if ($validated['adjustment_type'] === 'set_total') {
+            $newStock = $qty;
+        } elseif ($validated['adjustment_type'] === 'add_stock') {
+            $newStock = $oldStock + $qty;
+        } elseif ($validated['adjustment_type'] === 'reduce_stock') {
+            $newStock = max(0, $oldStock - $qty);
+        }
+
+        $product->update(['current_stock' => $newStock]);
+
+        $diff = $newStock - $oldStock;
+        $sign = $diff >= 0 ? "+{$diff}" : "{$diff}";
+        $reasonText = $validated['reason'];
+        $notesText = ! empty($validated['notes']) ? " ({$validated['notes']})" : '';
+
+        AuditLogService::log(
+            'Inventory',
+            'adjusted',
+            "Stock adjusted for '{$product->product_name}': {$oldStock} -> {$newStock} {$product->uom} ({$sign}) due to {$reasonText}{$notesText}"
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Stock for '{$product->product_name}' updated successfully to {$newStock} {$product->uom}!",
+            'new_stock' => $newStock,
+            'product_id' => $product->id,
+            'product_name' => $product->product_name,
+            'uom' => $product->uom,
+            'safety_threshold' => (int) ($product->safety_threshold ?? 10),
+        ]);
+    }
 }
