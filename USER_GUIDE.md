@@ -64,6 +64,16 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
    - **Min Stock Alert**: Low stock alert warning threshold (e.g., `10`). Set `0` to disable alerts.
 4. Click **Save Product**.
 
+#### ⚡ Quick Stock Adjustment (Page: `Products`)
+*(Available when Stock Management is enabled in Settings)*
+1. In the Products Catalog table, click the **⚡ Adjust Stock** button (blue icon) on any product row.
+2. Select your **Adjustment Mode**:
+   - 🎯 **Set Total**: Overwrite recorded stock to a specific number (e.g. set to `0` or `120`).
+   - ➕ **Add (+)**: Add quantity to existing stock.
+   - ➖ **Deduct (-)**: Deduct quantity from existing stock.
+3. Select an audit reason (e.g., *Physical Count / Audit Correction*, *Damaged in Warehouse*, *Sample Dispatch*).
+4. Click **Confirm Stock Update** to update the quantity in real time without reloading the page.
+
 #### Step 2.3: Define Product BOM Formula & Cost Simulator (Page: `Bill of Materials (BOM)`)
 *This links finished products to raw materials so stock auto-deducts when production is logged and computes live manufacturing costs.*
 1. Click **Bill of Materials (BOM)** in the sidebar.
@@ -118,20 +128,25 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 5. **Print Job Card**: Click the **Job Card** button next to any order to view and print the A4 Factory Job Card / Work Order. This card displays the client, shipping destination, finished goods availability, and calculated raw material requirements (MRP) for production.
 6. **Stock Check & Auto-Promote**: The system automatically checks inventory. If the required finished goods are in stock, the order status will auto-promote to `READY FOR DISPATCH`!
 
-#### Step 4.3: Generate a GST Tax Invoice (Page: `Invoice Ledger`)
+#### Step 4.3: Generate Invoice (With GST or Without GST) (Page: `Invoice Ledger`)
 1. Click **Invoice Ledger** in the sidebar.
 2. Click **+ Direct Invoice Itemizer**.
-3. Select **Client** and **Shipping Plant Site**.
-4. Enter **Transport Vehicle Number** (e.g., `GJ06AB1234`).
+3. **Select Invoice Tax Mode**:
+   - **`[ 🏷️ Tax Invoice (With GST) ]`** *(Default)*: Enforces Transport Vehicle Number and automatically computes:
+     - **Intra-State (Gujarat `24`)**: 9% CGST + 9% SGST.
+     - **Inter-State (Outside Gujarat)**: 18% IGST.
+   - **`[ 📄 Invoice (Without GST) ]`**: Resets all GST taxes to ₹0.00 (Total = Taxable Subtotal), makes vehicle number optional, and marks bill as non-tax invoice.
+4. Select **Client** and **Shipping Plant Site**.
 5. Add line items: Select product, enter quantity and unit price.
-6. The system automatically computes:
-   - **Intra-State (Gujarat `24`)**: 9% CGST + 9% SGST.
-   - **Inter-State (Outside Gujarat)**: 18% IGST.
-7. Click **Generate & Save Invoice**.
+6. Click **Generate & Save Invoice**.
 
 #### Step 4.4: Collect Payment & Print Invoice
 - Click **Record Payment** (green button) on any unpaid invoice row to enter payment mode (`NEFT/RTGS`, `UPI`, `Cheque`, `Cash`) and received amount.
-- Click **Print / PDF** (blue button) to view, download, or print the formatted GST Tax Invoice.
+- Click **Print / PDF** (blue button) to view, download, or print the formatted invoice:
+  - **With GST Invoices**: Prints **`TAX INVOICE`** header with CGST/SGST/IGST breakdown.
+  - **Without GST Invoices**: Prints clean **`INVOICE`** header without redundant 0% tax rows.
+  - **Business Authenticity**: Praful Welding Works' Business GSTIN is always displayed, with an anti-forgery 5% opacity watermark.
+  - **Single-Plant Buyer Formatting**: Redundant plant names in parentheses are hidden for single-plant clients.
 
 
 ---

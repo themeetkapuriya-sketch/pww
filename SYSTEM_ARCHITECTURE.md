@@ -118,10 +118,11 @@ The system is built to operate **100% offline without internet** on local client
    - Public registration is completely disabled. User creation is strictly controlled via `SettingsController`.
    - Super Admin (`pww@gmail.com`) account status is enforced at the Model & Service layer to prevent accidental deactivation (`is_super_admin = 1`).
    - Any deactivated user is caught by middleware and safely routed to the unified glassmorphic `/account-deactivated` screen.
-4. **1-Click Simplified Billing Mode Architecture**:
+4. **1-Click Simplified Billing Mode & Dual Invoicing Architecture**:
    - Master toggle key `simplified_billing_mode` in `settings` table.
    - When enabled, `SettingsController` forces `track_stock` to `false` and automatically hides manufacturing/production/BOM/inventory/payroll modules from sidebar navigation.
-   - Front-end AJAX controller (`window.toggleSimplifiedBillingModeAjax`) performs instant DOM updates without full page reloads.
+   - **Dual Invoicing Mode**: Invoice builder supports 1-click toggling between `with_gst` (standard 9%+9% or 18% tax calculation) and `without_gst` (0% tax calculation, optional vehicle validation, and clean `INVOICE` header on prints).
+   - **Real-time Stock Adjustment**: Products page includes an in-place modal (`POST /inventory/goods/{id}/adjust`) allowing `set_total`, `add_stock`, or `reduce_stock` with audit log traceability and zero page reload.
 
 5. **Automated Background Backup & Off-Site Catch-Up Engine**:
    - `AutoBackupCheckMiddleware` checks execution schedules on authenticated user requests.
@@ -129,8 +130,9 @@ The system is built to operate **100% offline without internet** on local client
    - If a new backup is created, it writes SQL dumps to `storage/app/backups/`, triggers an email attachment via `Mail::raw()` if `auto_email_backup` is enabled, and flashes `auto_download_backup_url`.
    - The front-end JavaScript engine in `app.blade.php` automatically initiates a browser download into the local PC `Downloads` folder.
 
-6. **Hotkeys & Visual Dark Theme Engine**:
+6. **Hotkeys, Printing & Visual Dark Theme Engine**:
    - `app-core.js` intercepts global keyboard events (`Alt+I`, `Alt+P`, `Alt+E`, `Alt+R`, `Alt+S`, `Alt+H`) for rapid SPA navigation.
+   - **Print Architecture**: `invoice_print.blade.php` dynamically standardizes headers (`TAX INVOICE` vs `INVOICE`), formats single-plant client names, renders a 5% opacity anti-counterfeit watermark, and enforces seller GSTIN visibility on all documents.
    - Inline theme script in `app.blade.php` reads `localStorage.getItem('theme')` before DOM paint to prevent light flashes, applying `.dark` classes for high-contrast dark slate styling (`#0f172a` & `#1e293b`).
 
 ---

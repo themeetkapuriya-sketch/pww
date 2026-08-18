@@ -53,6 +53,7 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/inventory/goods` | `POST` | `ProductController@store` | Inline | `inventory.goods.store` | JSON (200 / 422) |
 | `/inventory/goods/{id}` | `PUT` | `ProductController@update` | Inline | `inventory.goods.update` | JSON (200 / 422) |
+| `/inventory/goods/{id}/adjust` | `POST` | `ProductController@adjustStock` | Inline | `inventory.goods.adjust` | JSON (200 / 422) |
 | `/inventory/goods/{id}` | `DELETE` | `ProductController@destroy` | - | `inventory.goods.delete` | JSON (200) |
 
 #### 📐 Bill of Materials (`BomController`)

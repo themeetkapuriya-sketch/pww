@@ -3,7 +3,7 @@
 ![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=flat-square&logo=php)
 ![Laravel Version](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.x-38B2AC?style=flat-square&logo=tailwind-css)
-![Test Status](https://img.shields.io/badge/Tests-29%20Passed%20(222%20Assertions)-brightgreen?style=flat-square)
+![Test Status](https://img.shields.io/badge/Tests-31%20Passed%20(243%20Assertions)-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-Proprietary-blue?style=flat-square)
 
 **Praful Welding Works ERP** is a custom-engineered Enterprise Resource Planning platform built for industrial welding, metal fabrication, and rack manufacturing operations. The platform integrates real-time inventory tracking, Bill of Materials (BOM) auto-deduction engines, regional Indian GST compliance, piece-rate employee payroll, and financial audit reporting into a modern Single-Page Application (SPA) experience.
@@ -15,10 +15,10 @@
 - 📊 **Dashboard & Financial Intelligence**: Real-time KPI metrics, monthly turnover, net profit margins, and low-stock alerts.
 - ⚙️ **Production Logging & Auto-Stock Deduction**: Log daily rack/product manufacturing output with automated Bill of Materials (BOM) raw material deduction and 1-click `+ Produce` pipeline shortcuts.
 - 🧱 **Raw Materials Inventory & Centralized Master Rate**: Live stock level tracking, direct Master Purchase Rate (`₹ / unit`) configuration with automatic fallback to live **Weighted-Average Purchase Cost** (`🔄 Auto Avg`), responsive horizontal-scroll audit ledger, and safety threshold alerts.
-- 📦 **Products Catalog**: Optional SKU management, HSN classification, dual-UOM per-piece/per-kg pricing structures, customizable GST tax brackets, and minimum stock safety alert thresholds.
+- 📦 **Products Catalog & Stock Adjustment**: Optional SKU management, HSN classification, dual-UOM per-piece/per-kg pricing structures, customizable GST tax brackets, minimum stock safety alert thresholds, and dedicated **⚡ Real-Time Stock Adjustment Modal** (`Set Total`, `Add (+)`, `Deduct (-)`) with zero page reloads.
 - 📐 **Bill of Materials (BOM) & Real-Time Cost Simulator**: Dynamic product composition mapping connecting finished goods to exact raw material quantities, universally inheriting the centralized raw material master rates with live line cost and gross margin indicators (🟢 Healthy $\ge 25\%$, 🟡 Normal $10-24.9\%$, 🔴 Risk $<10\%$).
 - 🛒 **Sales Orders & Dispatch**: Client order tracking, multi-plant shipping destinations, real-time warehouse deficit tracking, and automated order status lifecycle management (`In Production` $\rightarrow$ `Ready to Dispatch`).
-- 🧾 **Tax Invoice Ledger**: Multi-state Indian GST invoicing (CGST + SGST vs IGST), transport vehicle logging, PDF invoice generation, and thermal/A4 printing.
+- 🧾 **Dual Tax Invoicing Engine & Standardized Printing**: 1-click toggle between **Tax Invoices (With GST)** and **Invoices (Without GST / 0% Tax)**, transport vehicle logging, standardized document headers (`TAX INVOICE` vs `INVOICE`), seller business GSTIN display, single-plant client formatting, and 5% opacity anti-counterfeit watermarks.
 - 🛍️ **Purchase Ledger**: Raw material procurement logging with auto-replenishment of stock levels.
 - 💸 **Expense Ledger & GST Credit (ITC)**: Operational overhead tracking, vendor GST expense logging, and Eligible Input Tax Credit (ITC) reconciliation.
 - 💵 **Salary Advances & Payroll Deductions**: Worker salary advance payouts with payment methods (Cash, Bank, UPI) and automatic deduction against monthly salary disbursals.
@@ -49,7 +49,7 @@
 - **Frontend Architecture**: Blade Templates, Tailwind CSS v4, jQuery SPA Navigation, SweetAlert2, DataTables (with Royal Blue Pill Pagination), TomSelect
 - **Offline Assets**: Pre-bundled local vendor libraries (`public/vendor/`) and Vite compiled CSS bundle
 - **PDF Engine**: Dompdf / Custom HTML Canvas PDF rendering
-- **Testing Suite**: Automated Test Suite (29 Test Suites, 222 Assertions 100% Green)
+- **Testing Suite**: Automated Test Suite (31 Test Suites, 243 Assertions 100% Green)
 
 ---
 
