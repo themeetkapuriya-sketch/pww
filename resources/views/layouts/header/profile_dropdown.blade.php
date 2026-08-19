@@ -11,7 +11,7 @@
 
     <!-- Hover / Click Dropdown Card (Positioned directly below the avatar button) -->
     <div id="headerUserProfileCard" 
-         class="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 space-y-3 hidden group-hover:block transition-all duration-200 z-50">
+         class="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-64 max-w-[calc(100vw-1.5rem)] sm:max-w-none bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-4 space-y-3 hidden group-hover:block transition-all duration-200 z-50">
         
         <!-- User Info Header -->
         <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">

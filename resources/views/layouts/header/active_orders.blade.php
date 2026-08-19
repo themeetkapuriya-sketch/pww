@@ -41,7 +41,7 @@
 
     <!-- Dropdown Card -->
     <div id="headerActiveOrdersCard" 
-         class="absolute right-0 top-full mt-2 w-84 sm:w-[430px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 space-y-3 hidden transition-all duration-200 z-50 max-h-[85vh] overflow-y-auto">
+         class="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-[430px] max-w-[calc(100vw-1.5rem)] sm:max-w-none bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-4 space-y-3 hidden transition-all duration-200 z-50 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
             <div class="flex items-center space-x-2">
                 <span class="p-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
