@@ -301,16 +301,4 @@ class OrderController extends Controller
 
         return new SalesOrderResource($order);
     }
-
-    /**
-     * Display printable Factory Job Card / Work Order (A4 view).
-     */
-    public function showJobCard($id)
-    {
-        $order = SalesOrder::with(['client', 'plant', 'items.product.billOfMaterials.rawMaterial'])->findOrFail($id);
-        $mrpData = $order->calculateRawMaterialRequirements();
-        $fgStatus = $order->getFinishedGoodsStockStatus();
-
-        return view('pages.orders.job_card', compact('order', 'mrpData', 'fgStatus'));
-    }
 }

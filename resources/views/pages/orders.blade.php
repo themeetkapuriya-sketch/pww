@@ -519,6 +519,18 @@
                                 </div>
                             </div>
 
+                            <!-- Order Notes / Special Instructions Box (Visible only when notes exist) -->
+                            <div id="mOrderNotesWrapper"
+                                class="hidden p-3.5 bg-amber-50/70 dark:bg-amber-950/40 rounded-2xl border border-amber-200/80 dark:border-amber-800/60 text-xs shadow-2xs space-y-1">
+                                <div class="flex items-center space-x-1.5 text-amber-800 dark:text-amber-300 font-bold text-[11px] uppercase tracking-wider">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    <span>Order Notes / Instructions</span>
+                                </div>
+                                <p id="mOrderNotes" class="text-xs text-slate-700 dark:text-slate-200 font-medium whitespace-pre-line pl-5"></p>
+                            </div>
+
                             <!-- Ordered Items & Stock Allocation Section -->
                             <div
                                 class="space-y-3 bg-white dark:bg-slate-800/70 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/70 shadow-2xs">
@@ -1126,34 +1138,6 @@
                     }
                 }
 
-                function convertOrderToChallan(id, orderNumber, btn) {
-                    window.confirmDelete(
-                        'Generate Delivery Challan?',
-                        `Are you sure you want to generate a Delivery Challan for Sales Order '${orderNumber}'?`,
-                        function () {
-                            const $btn = btn ? $(btn) : null;
-                            if ($btn && window.setButtonLoading) window.setButtonLoading($btn, true, 'Converting...');
-                            const token = $('meta[name="csrf-token"]').attr('content') || '';
-                            $.ajax({
-                                url: `/orders/${id}/convert-to-challan`,
-                                method: 'POST',
-                                data: { _token: token },
-                                success: async function (res) {
-                                    if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
-                                    if (window.showToast) window.showToast('success', res.message);
-                                    if (window.loadPage) await window.loadPage(window.location.href);
-                                },
-                                error: function (xhr) {
-                                    if ($btn && window.setButtonLoading) window.setButtonLoading($btn, false);
-                                    const msg = xhr.responseJSON?.message || 'Failed to convert order to Delivery Challan.';
-                                    if (window.showToast) window.showToast('error', msg);
-                                    else alert(msg);
-                                }
-                            });
-                        }
-                    );
-                }
-
                 function deleteOrder(id, orderNumber) {
                     window.confirmDelete(
                         'Delete Sales Order?',
@@ -1285,6 +1269,19 @@
                     if (poEl) poEl.textContent = data.po_number || 'N/A';
                     document.getElementById('mClientName').textContent = (data.client_name || 'N/A') + (data.plant_name ? ' (' + data.plant_name + ')' : '');
                     document.getElementById('mDeliveryDate').textContent = data.delivery_date || data.order_date || 'N/A';
+
+                    // Order Notes / Special Instructions
+                    const notesWrapper = document.getElementById('mOrderNotesWrapper');
+                    const notesEl = document.getElementById('mOrderNotes');
+                    if (notesWrapper && notesEl) {
+                        if (data.notes && String(data.notes).trim() !== '') {
+                            notesEl.textContent = String(data.notes).trim();
+                            notesWrapper.classList.remove('hidden');
+                        } else {
+                            notesEl.textContent = '';
+                            notesWrapper.classList.add('hidden');
+                        }
+                    }
 
                     // Est Production Cost & Profit Margin
                     const costSummary = data.estimated_cost_summary || {};

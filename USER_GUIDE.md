@@ -124,9 +124,7 @@ Welcome to the **Praful Welding Works ERP User Guide**. This manual is designed 
 1. Go to **Sales Orders** in the sidebar.
 2. Click **+ Create Sales Order**.
 3. Select **Client**, **Delivery Plant**, and fill in the PO Number, Order Date, and Target Delivery Date.
-4. Add products, select UOM, specify quantity and unit price, and click **Save Sales Order**.
-5. **Print Job Card**: Click the **Job Card** button next to any order to view and print the A4 Factory Job Card / Work Order. This card displays the client, shipping destination, finished goods availability, and calculated raw material requirements (MRP) for production.
-6. **Stock Check & Auto-Promote**: The system automatically checks inventory. If the required finished goods are in stock, the order status will auto-promote to `READY FOR DISPATCH`!
+5. **Stock Check & Auto-Promote**: The system automatically checks inventory. If the required finished goods are in stock, the order status will auto-promote to `READY FOR DISPATCH`!
 
 #### Step 4.3: Generate Invoice (With GST or Without GST) (Page: `Invoice Ledger`)
 1. Click **Invoice Ledger** in the sidebar.

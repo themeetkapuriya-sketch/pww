@@ -78,11 +78,9 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     // 5.5 Sales Orders / Order Management
     Route::get('/orders', [OrderController::class, 'orders'])->name('orders');
     Route::get('/orders/{id}/details', [OrderController::class, 'orderDetails'])->name('orders.details');
-    Route::get('/orders/{id}/job-card', [OrderController::class, 'showJobCard'])->name('orders.jobCard');
     Route::post('/orders', [OrderController::class, 'storeOrder'])->name('orders.store');
     Route::put('/orders/{id}', [OrderController::class, 'updateOrder'])->name('orders.update');
     Route::patch('/orders/{id}/status', [OrderController::class, 'updateOrderStatus'])->name('orders.updateStatus');
-    Route::post('/orders/{id}/convert-to-challan', [OrderController::class, 'convertOrderToChallan'])->name('orders.convertToChallan');
     Route::delete('/orders/{id}', [OrderController::class, 'deleteOrder'])->name('orders.delete');
 
     // 6. Invoices & Billing Page

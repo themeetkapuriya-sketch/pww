@@ -149,6 +149,14 @@
                             @endforeach
                         </div>
 
+                        <!-- Order Notes (Visible only if available) -->
+                        @if(!empty(trim($order->notes ?? '')))
+                            <div class="px-2.5 py-1.5 bg-amber-50/80 dark:bg-amber-950/40 rounded-lg border border-amber-200/70 dark:border-amber-800/50 text-[10.5px] text-amber-900 dark:text-amber-200 flex items-start space-x-1.5 shadow-2xs">
+                                <span class="shrink-0 text-xs">📝</span>
+                                <span class="italic font-medium line-clamp-2" title="{{ $order->notes }}">{{ $order->notes }}</span>
+                            </div>
+                        @endif
+
                         <!-- Delivery Date & Quick Action -->
                         <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1">
                             <span>

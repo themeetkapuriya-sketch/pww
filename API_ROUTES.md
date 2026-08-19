@@ -83,7 +83,6 @@ All ERP routes are protected behind the `auth` middleware authentication gate (`
 | `/orders/{id}` | `PUT` | `OrderController@updateOrder` | Inline | `orders.update` | JSON (200 / 422) |
 | `/orders/{id}/status` | `PATCH` | `OrderController@updateOrderStatus` | Inline | `orders.updateStatus` | JSON (200 / 422) |
 | `/orders/{id}/details` | `GET` | `OrderController@orderDetails` | - | `orders.details` | JSON/HTML |
-| `/orders/{id}/job-card` | `GET` | `OrderController@showJobCard` | - | `orders.jobCard` | HTML View / PDF |
 
 #### 🧾 Invoices & Payments (`InvoiceController`)
 | URI | Method | Handler | Form Request Validator | Route Name | Response |
