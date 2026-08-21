@@ -40,7 +40,7 @@ class ClientController extends Controller
 
         switch ($period) {
             case 'all':
-                $startDate = '2026-04-01';
+                $startDate = '2000-01-01';
                 $endDate = Carbon::now()->toDateString();
                 break;
             case 'month':
@@ -130,15 +130,17 @@ class ClientController extends Controller
             ], 422);
         }
 
+        $shouldCreatePlant = $request->boolean('create_primary_plant', true);
+        $clientOpeningBalance = $shouldCreatePlant ? 0.00 : (float) ($validated['opening_balance'] ?? 0);
+
         $clientData = [
             'company_name' => $validated['company_name'],
             'client_email' => $validated['client_email'],
             'gst_number' => $validated['gst_number'],
             'corporate_address' => $validated['corporate_address'],
-            'opening_balance' => (float) ($validated['opening_balance'] ?? 0),
+            'opening_balance' => $clientOpeningBalance,
         ];
 
-        $shouldCreatePlant = $request->boolean('create_primary_plant', true);
         if ($shouldCreatePlant && ! empty($validated['state'])) {
             $plantState = $validated['state'];
             $expectedCode = self::getGstStateCode($plantState);
@@ -152,10 +154,9 @@ class ClientController extends Controller
         }
 
         $client = null;
-        DB::transaction(function () use ($validated, $clientData, $request, &$client) {
+        DB::transaction(function () use ($validated, $clientData, $shouldCreatePlant, &$client) {
             $client = Client::create($clientData);
 
-            $shouldCreatePlant = $request->boolean('create_primary_plant', true);
             if ($shouldCreatePlant) {
                 $plantName = ! empty($validated['plant_name']) ? $validated['plant_name'] : ($validated['company_name'].' Main Plant');
                 $state = ! empty($validated['state']) ? $validated['state'] : 'Gujarat';

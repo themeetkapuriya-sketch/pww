@@ -52,7 +52,7 @@ class User extends Authenticatable
      */
     public function isPending(): bool
     {
-        return false;
+        return $this->status === 'pending' || $this->role === 'pending';
     }
 
     /**

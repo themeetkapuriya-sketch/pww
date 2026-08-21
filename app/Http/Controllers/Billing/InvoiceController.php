@@ -320,6 +320,15 @@ class InvoiceController extends Controller
                     ]);
                 }
 
+                // Check if linked sales order already had its stock deducted upon dispatch
+                $skipProductStockDeduction = false;
+                if (! empty($validated['sales_order_id'])) {
+                    $linkedOrder = SalesOrder::find($validated['sales_order_id']);
+                    if ($linkedOrder && in_array($linkedOrder->status, ['dispatched', 'completed'])) {
+                        $skipProductStockDeduction = true;
+                    }
+                }
+
                 foreach ($parsedItems as $idx => $itemData) {
                     $qty = (float) $validated['quantities'][$idx];
                     $buom = $request->input("billing_uoms.{$idx}") ?: $itemData['default_uom'];
@@ -342,7 +351,7 @@ class InvoiceController extends Controller
                             if ($rm) {
                                 $rm->decrement('current_stock', $qty);
                             }
-                        } elseif (! empty($itemData['product_id'])) {
+                        } elseif (! empty($itemData['product_id']) && ! $skipProductStockDeduction) {
                             $product = Product::find($itemData['product_id']);
                             if ($product) {
                                 $product->decrement('current_stock', $qty);

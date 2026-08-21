@@ -42,12 +42,16 @@ class FinancialService
         $margin = $revenue > 0 ? round(($netProfit / $revenue) * 100, 2) : 0.00;
 
         // Outstanding Receivables
-        $invoices = Invoice::all();
-        $outstandingReceivables = round($invoices->sum(fn ($inv) => $inv->remaining_balance), 2);
+        $outstandingReceivables = (float) (Invoice::where('payment_status', '!=', 'paid')
+            ->selectRaw('SUM(CASE WHEN total_amount > paid_amount THEN total_amount - paid_amount ELSE 0 END) as due')
+            ->value('due') ?? 0.00);
+        $outstandingReceivables = round($outstandingReceivables, 2);
 
-        // Outstanding Payables
-        $purchases = Purchase::where('payment_status', 'unpaid')->get();
-        $outstandingPayables = round($purchases->sum('total_amount'), 2);
+        // Outstanding Payables (unpaid & partially paid)
+        $outstandingPayables = (float) (Purchase::where('payment_status', '!=', 'paid')
+            ->selectRaw('SUM(CASE WHEN total_amount > paid_amount THEN total_amount - paid_amount ELSE 0 END) as due')
+            ->value('due') ?? 0.00);
+        $outstandingPayables = round($outstandingPayables, 2);
 
         // Payments Collections
         $bankCollections = round(Payment::where('payment_method', '!=', 'cash')->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->sum('amount'), 2);
@@ -80,7 +84,7 @@ class FinancialService
         $client = Client::with('plants')->findOrFail($clientId);
         $selectedPlant = $plantId ? ClientPlant::where('client_id', $clientId)->find($plantId) : null;
 
-        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::parse('2026-04-01')->startOfDay();
+        $start = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::parse('2000-01-01')->startOfDay();
         $end = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         // 1. Calculate opening balance prior to $start date

@@ -1,4 +1,10 @@
 @if(request()->header('X-PWW-SPA') === '1')
+    <script>
+        // Self-Healing Guard: If browser ever renders this partial without the main application layout shell, reload full page immediately
+        if (typeof window.loadPage !== 'function' && window.location.pathname !== '/login') {
+            window.location.replace(window.location.href);
+        }
+    </script>
     <title>@yield('title', 'PWW ERP') - Praful Welding Works</title>
     <div id="spa-header-content" class="hidden">
         @include('layouts.header')
@@ -35,6 +41,7 @@
         window.AppConfig = Object.freeze({
             baseUrl: "{{ url('/') }}",
             csrfToken: "{{ csrf_token() }}",
+            sessionTimeoutMinutes: {{ (int) \App\Models\Setting::get('session_timeout_minutes', '120') }},
             routes: {
                 toggleUserStatus: "{{ url('/settings/users/:id/toggle-status') }}",
                 deleteUser: "{{ url('/settings/users/:id') }}",

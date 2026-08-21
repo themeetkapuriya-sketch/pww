@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const url = new URL(href, window.location.href);
                 if (url.origin === window.location.origin && !url.pathname.includes('/print') && !url.pathname.includes('/download') && !url.pathname.includes('/export')) {
-                    fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } })
+                    fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' }, cache: 'no-store' })
                         .then(r => r.ok ? r.text() : null)
                         .then(html => { if (html) pageCache.set(url.href, html); })
                         .catch(() => {});
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         !url.pathname.includes('/print') && 
                         !url.pathname.includes('/download') && 
                         !url.pathname.includes('/export')) {
-                        fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } })
+                        fetch(url.href, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' }, cache: 'no-store' })
                             .then(r => r.ok ? r.text() : null)
                             .then(html => { if (html) pageCache.set(url.href, html); })
                             .catch(() => {});
@@ -562,13 +562,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setTimeout(prewarmSidebarCache, 800);
 
+        // Client-Side Session Inactivity Watcher (Auto-redirects smoothly when session timeout is reached)
+        (function initSessionInactivityWatcher() {
+            const timeoutMins = (window.AppConfig && window.AppConfig.sessionTimeoutMinutes) ? parseInt(window.AppConfig.sessionTimeoutMinutes, 10) : 120;
+            const timeoutMs = Math.max(15, timeoutMins) * 60 * 1000;
+            let lastActiveTime = Date.now();
+
+            function updateActivity() {
+                lastActiveTime = Date.now();
+            }
+
+            ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evt => {
+                window.addEventListener(evt, updateActivity, { passive: true });
+            });
+
+            function checkInactivity() {
+                if (window.location.pathname === '/login') return;
+                const idleDuration = Date.now() - lastActiveTime;
+                if (idleDuration >= timeoutMs) {
+                    if (typeof window.clearPageCache === 'function') {
+                        window.clearPageCache();
+                    }
+                    window.location.replace('/login');
+                }
+            }
+
+            // Check every 20 seconds
+            setInterval(checkInactivity, 20000);
+
+            // Check instantly on tab visibility change or window focus
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    checkInactivity();
+                }
+            });
+            window.addEventListener('focus', checkInactivity);
+        })();
+
         // Expose loadPage to window so it can be called elsewhere
         window.loadPage = async function(url, skipCache = false, preserveScroll = null) {
             if (skipCache) {
                 pageCache.clear();
             }
             if (!$mainContent.length) {
-                window.location.href = url;
+                window.location.replace(url);
                 return;
             }
 
@@ -586,21 +623,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!skipCache && pageCache.has(url)) {
                     htmlText = pageCache.get(url);
                 } else {
-                    const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' } });
+                    const response = await fetch(url, { 
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-PWW-SPA': '1' },
+                        cache: 'no-store'
+                    });
                     
                     // Handle session timeout / unauthorized / CSRF expiration
                     if (response.status === 401 || response.status === 419) {
-                        window.location.href = '/login';
+                        pageCache.clear();
+                        window.location.replace('/login');
                         return;
                     }
 
                     if (response.redirected && response.url && response.url.includes('/login')) {
-                        window.location.href = '/login';
+                        pageCache.clear();
+                        window.location.replace('/login');
                         return;
                     }
 
                     if (!response.ok) {
-                        window.location.href = url;
+                        pageCache.clear();
+                        window.location.replace('/login');
                         return;
                     }
 
@@ -608,7 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // If response is the login page (unauthenticated redirect), perform clean full-page redirect to login
                     if (htmlText.includes('<title>PWW ERP - Secure Authentication</title>') || (htmlText.includes('name="email"') && htmlText.includes('name="password"') && !htmlText.includes('id="page-content"'))) {
-                        window.location.href = '/login';
+                        pageCache.clear();
+                        window.location.replace('/login');
                         return;
                     }
                 }
@@ -617,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newContent = doc.getElementById('page-content');
                 
                 if (!newContent) {
+                    pageCache.clear();
                     window.location.replace('/login');
                     return;
                 }

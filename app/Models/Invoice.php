@@ -65,7 +65,7 @@ class Invoice extends Model
      */
     public function scopePartial($query)
     {
-        return $query->where('payment_status', 'partial');
+        return $query->where('payment_status', 'partially_paid');
     }
 
     /**

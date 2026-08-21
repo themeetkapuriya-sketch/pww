@@ -237,9 +237,12 @@ class OrderController extends Controller
         $order->update(['status' => $requestedStatus]);
 
         if ($trackStock && in_array($requestedStatus, ['dispatched', 'completed'])) {
-            foreach ($order->items as $item) {
-                if ($item->product) {
-                    $item->product->decrement('current_stock', $item->quantity);
+            $alreadyInvoiced = \App\Models\Invoice::where('sales_order_id', $order->id)->exists();
+            if (! $alreadyInvoiced) {
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $item->product->decrement('current_stock', $item->quantity);
+                    }
                 }
             }
         }

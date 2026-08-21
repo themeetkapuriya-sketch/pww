@@ -31,14 +31,34 @@ use Throwable;
 class SettingsController extends Controller
 {
     /**
-     * Display Unified System Settings Hub page.
+     * Check if current user has administrative permissions.
      */
-    public function index()
+    private function authorizeAdmin(?Request $request = null)
     {
         $user = Auth::user();
         $userRole = strtolower(trim($user->role ?? ''));
         if (! $user || (! RolePermissionService::userHasPermission($user, 'backups_settings_manage') && ! in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']))) {
+            $req = $request ?: request();
+            if ($req->expectsJson() || $req->ajax() || $req->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access Denied: Apart from Admin and Super Admin, no one has access to System Settings.',
+                ], 403);
+            }
+
             return redirect()->route('overview')->with('error', 'Access Denied: Apart from Admin and Super Admin, no one has access to System Settings.');
+        }
+
+        return null;
+    }
+
+    /**
+     * Display Unified System Settings Hub page.
+     */
+    public function index()
+    {
+        if ($res = $this->authorizeAdmin()) {
+            return $res;
         }
 
         $rawUsers = User::orderByRaw("CASE WHEN role = 'super_admin' THEN 0 ELSE 1 END")
@@ -628,12 +648,14 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'msme_number'], ['value' => strtoupper($request->msme_number ?? '')]);
 
             if ($request->hasFile('logo')) {
+                File::ensureDirectoryExists(public_path('uploads'));
                 $filename = 'logo_'.time().'.'.$request->file('logo')->getClientOriginalExtension();
                 $request->file('logo')->move(public_path('uploads'), $filename);
                 Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'uploads/'.$filename]);
             }
 
             if ($request->hasFile('signature')) {
+                File::ensureDirectoryExists(public_path('uploads'));
                 $filename = 'signature_'.time().'.'.$request->file('signature')->getClientOriginalExtension();
                 $request->file('signature')->move(public_path('uploads'), $filename);
                 Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'uploads/'.$filename]);
@@ -1178,84 +1200,6 @@ class SettingsController extends Controller
             AuditLogService::log('Settings', 'deleted', "Deleted expense category key '{$key}'");
 
             return $this->respond($request, true, 'Expense category deleted successfully!');
-        }
-    }
-
-    /**
-     * Trigger instant manual database SQL backup creation.
-     */
-    public function triggerManualBackup()
-    {
-        $req = request();
-        try {
-            $backupService = app(BackupService::class);
-            $sqlContent = $backupService->generateFullSqlDump();
-            $filename = 'manual_backup_'.date('Ymd_His').'.sql';
-            $filePath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.$filename;
-
-            File::put($filePath, $sqlContent);
-
-            return $this->respond($req, true, "Manual database backup created successfully! Saved as '{$filename}'.");
-        } catch (Throwable $e) {
-            Log::error('Manual backup failed: '.$e->getMessage());
-
-            return $this->respond($req, false, 'Failed to generate backup. Please try again.');
-        }
-    }
-
-    /**
-     * Download a stored database SQL backup file.
-     */
-    public function downloadBackup($filename)
-    {
-        $req = request();
-        try {
-            $backupService = app(BackupService::class);
-            $filePath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
-
-            if (! File::exists($filePath)) {
-                return $this->respond($req, false, 'Requested backup file does not exist on server.');
-            }
-
-            return response()->download($filePath, basename($filename));
-        } catch (Throwable $e) {
-            Log::error('Backup download failed: '.$e->getMessage());
-
-            return $this->respond($req, false, 'Failed to download backup. Please try again.');
-        }
-    }
-
-    /**
-     * Restore database from an uploaded or existing SQL backup file.
-     */
-    public function restoreBackup(Request $request)
-    {
-        $request->validate([
-            'backup_file' => 'nullable|file|mimes:sql,txt|max:51200',
-            'filename' => 'nullable|string',
-        ]);
-
-        try {
-            $backupService = app(BackupService::class);
-            $targetPath = null;
-
-            if ($request->hasFile('backup_file')) {
-                $targetPath = $request->file('backup_file')->getRealPath();
-            } elseif ($request->filled('filename')) {
-                $targetPath = $backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($request->filename);
-            }
-
-            if (! $targetPath || ! File::exists($targetPath)) {
-                return $this->respond($request, false, 'Please select or upload a valid SQL backup file to restore.');
-            }
-
-            $backupService->restoreFromSqlFile($targetPath);
-
-            return $this->respond($request, true, 'Database restored successfully! A safety snapshot was automatically recorded before restoring.');
-        } catch (Throwable $e) {
-            Log::error('Restore failed: '.$e->getMessage());
-
-            return $this->respond($request, false, 'Failed to restore database. Please try again.');
         }
     }
 }

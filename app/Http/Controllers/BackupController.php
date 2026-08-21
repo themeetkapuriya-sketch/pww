@@ -19,10 +19,33 @@ class BackupController extends Controller
     }
 
     /**
+     * Check if current user has administrative permissions for backups.
+     */
+    private function authorizeAdmin(?Request $request = null)
+    {
+        $user = auth()->user();
+        $userRole = strtolower(trim($user->role ?? ''));
+        if (! $user || (! \App\Services\RolePermissionService::userHasPermission($user, 'backups_settings_manage') && ! in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']))) {
+            $req = $request ?: request();
+            if ($req->expectsJson() || $req->ajax() || $req->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access Denied: Database backup and restore operations are restricted to Administrators.',
+                ], 403);
+            }
+            abort(403, 'Access Denied: Database backup and restore operations are restricted to Administrators.');
+        }
+
+        return null;
+    }
+
+    /**
      * Display the Backup & Restore Dashboard page.
      */
     public function index()
     {
+        $this->authorizeAdmin();
+
         // Ensure automatic backup catch-up check runs when accessing dashboard
         $this->backupService->ensureAutomaticBackupExists();
 
@@ -53,8 +76,12 @@ class BackupController extends Controller
     /**
      * Get JSON list of stored local backups for AJAX table updates.
      */
-    public function listJson()
+    public function listJson(Request $request)
     {
+        if ($res = $this->authorizeAdmin($request)) {
+            return $res;
+        }
+
         $backups = $this->backupService->listLocalBackups();
 
         return response()->json([
@@ -67,8 +94,11 @@ class BackupController extends Controller
     /**
      * Download Full Database SQL Backup.
      */
-    public function downloadFull()
+    public function downloadFull(Request $request)
     {
+        if ($res = $this->authorizeAdmin($request)) {
+            return $res;
+        }
         try {
             $sqlContent = $this->backupService->generateFullSqlDump();
             $filename = 'pww_full_backup_'.Carbon::now()->format('Ymd_His').'.sql';
@@ -93,6 +123,10 @@ class BackupController extends Controller
      */
     public function downloadFiltered(Request $request)
     {
+        if ($res = $this->authorizeAdmin($request)) {
+            return $res;
+        }
+
         $request->validate([
             'period_type' => 'required|string|in:current_month,specific_month,financial_year,custom,all_time',
             'month' => 'nullable|string',
@@ -133,6 +167,10 @@ class BackupController extends Controller
      */
     public function restore(Request $request)
     {
+        if ($res = $this->authorizeAdmin($request)) {
+            return $res;
+        }
+
         $request->validate([
             'backup_file' => 'required|file|mimes:sql,txt,plain|max:51200', // max 50MB
         ]);
@@ -143,9 +181,27 @@ class BackupController extends Controller
 
             $this->backupService->restoreFromSqlFile($tempPath);
 
-            return back()->with('success', 'Database restored successfully! A safety snapshot of your previous state was automatically saved before restoration.');
+            $message = 'Database restored successfully! A safety snapshot of your previous state was automatically saved before restoration.';
+
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                ]);
+            }
+
+            return back()->with('success', $message);
         } catch (Throwable $e) {
             Log::error('Database Restore Failed: '.$e->getMessage());
+
+            $errorMsg = 'Database restoration failed: '.$e->getMessage();
+
+            if ($request->wantsJson() || $request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMsg,
+                ], 500);
+            }
 
             return back()->with('error', 'Database restoration failed. Please try again.');
         }
@@ -156,6 +212,8 @@ class BackupController extends Controller
      */
     public function downloadFile(string $filename)
     {
+        $this->authorizeAdmin();
+
         $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
 
         if (! File::exists($filePath)) {
@@ -170,6 +228,9 @@ class BackupController extends Controller
      */
     public function deleteFile(Request $request, string $filename)
     {
+        if ($res = $this->authorizeAdmin($request)) {
+            return $res;
+        }
         $filePath = $this->backupService->getBackupDirectory().DIRECTORY_SEPARATOR.basename($filename);
 
         if (File::exists($filePath)) {

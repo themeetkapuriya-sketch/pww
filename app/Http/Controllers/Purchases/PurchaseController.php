@@ -250,11 +250,47 @@ class PurchaseController extends Controller
 
         try {
             $purchase = Purchase::findOrFail($id);
+            $oldRmId = $purchase->purchase_type === 'raw_material' ? $purchase->raw_material_id : null;
+            $oldQty = (float) $purchase->quantity;
+
             $purchase->update($validated);
 
-            if ($purchase->purchase_type === 'raw_material' && $purchase->raw_material_id) {
+            $trackStock = Setting::isStockEnabled();
+            $newRmId = $purchase->purchase_type === 'raw_material' ? $purchase->raw_material_id : null;
+            $newQty = (float) $purchase->quantity;
+
+            if ($trackStock) {
+                if ($oldRmId && $newRmId && $oldRmId == $newRmId) {
+                    $qtyDiff = $newQty - $oldQty;
+                    if ($qtyDiff != 0) {
+                        $mat = RawMaterial::find($newRmId);
+                        if ($mat) {
+                            $mat->current_stock = max(0, (float) $mat->current_stock + $qtyDiff);
+                            $mat->save();
+                        }
+                    }
+                } else {
+                    if ($oldRmId) {
+                        $oldMat = RawMaterial::find($oldRmId);
+                        if ($oldMat) {
+                            $oldMat->current_stock = max(0, (float) $oldMat->current_stock - $oldQty);
+                            $oldMat->save();
+                            $oldMat->recalculateAveragePurchasePrice();
+                        }
+                    }
+                    if ($newRmId) {
+                        $newMat = RawMaterial::find($newRmId);
+                        if ($newMat) {
+                            $newMat->current_stock = max(0, (float) $newMat->current_stock + $newQty);
+                            $newMat->save();
+                        }
+                    }
+                }
+            }
+
+            if ($newRmId) {
                 /** @var RawMaterial|null $material */
-                $material = RawMaterial::find($purchase->raw_material_id);
+                $material = RawMaterial::find($newRmId);
                 if ($material) {
                     $material->recalculateAveragePurchasePrice();
                 }
@@ -271,6 +307,7 @@ class PurchaseController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update purchase. Please try again.',
+                'errors' => ['error' => [$e->getMessage()]],
             ], 500);
         }
     }
@@ -288,13 +325,19 @@ class PurchaseController extends Controller
             $purchase = Purchase::findOrFail($id);
             $matId = $purchase->raw_material_id;
             $isRm = $purchase->purchase_type === 'raw_material';
+            $purchasedQty = (float) $purchase->quantity;
             $item = $purchase->item_name ?? 'Purchase Bill';
             $purchase->delete();
 
+            $trackStock = Setting::isStockEnabled();
             if ($isRm && $matId) {
                 /** @var RawMaterial|null $material */
                 $material = RawMaterial::find($matId);
                 if ($material) {
+                    if ($trackStock) {
+                        $material->current_stock = max(0, (float) $material->current_stock - $purchasedQty);
+                        $material->save();
+                    }
                     $material->recalculateAveragePurchasePrice();
                 }
             }

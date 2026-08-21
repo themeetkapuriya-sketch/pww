@@ -72,6 +72,15 @@ class ProfileController extends Controller
      */
     public function updateBusinessSettings(Request $request)
     {
+        $user = auth()->user();
+        $userRole = strtolower(trim($user->role ?? ''));
+        if (! $user || (! \App\Services\RolePermissionService::userHasPermission($user, 'backups_settings_manage') && ! in_array($userRole, ['super_admin', 'admin', 'administrator', 'owner', 'master']))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access Denied: Apart from Admin and Super Admin, no one can modify business settings and bank profiles.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'business_name' => 'required|string|max:255',
             'business_subtitle' => 'required|string|max:255',
@@ -129,6 +138,7 @@ class ProfileController extends Controller
             Setting::set('terms_and_conditions', $request->input('terms_and_conditions', "1. All disputes are subject to Rajkot jurisdiction.\n2. Interest @18% p.a. charged on overdue payments after due date.\n3. Goods once dispatched/sold cannot be returned or exchanged."));
 
             if ($request->hasFile('logo')) {
+                \Illuminate\Support\Facades\File::ensureDirectoryExists(public_path('uploads'));
                 $file = $request->file('logo');
                 $filename = 'logo_'.time().'.'.$file->getClientOriginalExtension();
                 $file->move(public_path('uploads'), $filename);
@@ -136,6 +146,7 @@ class ProfileController extends Controller
             }
 
             if ($request->hasFile('signature')) {
+                \Illuminate\Support\Facades\File::ensureDirectoryExists(public_path('uploads'));
                 $file = $request->file('signature');
                 $filename = 'signature_'.time().'.'.$file->getClientOriginalExtension();
                 $file->move(public_path('uploads'), $filename);

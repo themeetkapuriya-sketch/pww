@@ -12,6 +12,7 @@ use App\Services\PayrollService;
 use App\Services\RolePermissionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
@@ -250,10 +251,6 @@ class EmployeeController extends Controller
             for ($d = 1; $d <= $limitDay; $d++) {
                 $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
 
-                if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
-                    continue;
-                }
-
                 if ($staffAttendanceRecords->has($dateStr)) {
                     $status = $staffAttendanceRecords->get($dateStr)->status;
                     if ($status === 'present') {
@@ -262,6 +259,10 @@ class EmployeeController extends Controller
                         $daysPresent += 0.5;
                     }
                 } else {
+                    // Skip unrecorded auto-present days prior to employee registration
+                    if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
+                        continue;
+                    }
                     $daysPresent += 1.0;
                 }
             }
@@ -485,10 +486,6 @@ class EmployeeController extends Controller
                 for ($d = 1; $d <= $limitDay; $d++) {
                     $dateStr = sprintf('%s-%02d', $month, $d);
 
-                    if ($staffCreatedDate && $dateStr < $staffCreatedDate && $month === substr($staffCreatedDate, 0, 7)) {
-                        continue;
-                    }
-
                     if ($staffRecords->has($dateStr)) {
                         $status = $staffRecords->get($dateStr)->status;
                         if ($status === 'present') {
@@ -497,6 +494,10 @@ class EmployeeController extends Controller
                             $payableDays += 0.5;
                         }
                     } else {
+                        // Skip unrecorded auto-present days prior to employee registration
+                        if ($staffCreatedDate && $dateStr < $staffCreatedDate && $month === substr($staffCreatedDate, 0, 7)) {
+                            continue;
+                        }
                         $payableDays += 1.0;
                     }
                 }
@@ -552,141 +553,162 @@ class EmployeeController extends Controller
         }
 
         try {
-            $staff = StaffProfile::findOrFail($validated['staff_profile_id']);
-            $daysPresent = (float) ($validated['days_present'] ?? 0);
-            $paymentStatus = $validated['payment_status'];
-            $paymentDate = $validated['payment_date'] ?? now()->toDateString();
-            $paymentMethod = $validated['payment_method'] ?? 'Cash';
-            $advanceDeduction = round((float) ($validated['advance_deduction'] ?? 0), 2);
+            $paymentRecord = DB::transaction(function () use ($validated, $request) {
+                $staff = StaffProfile::findOrFail($validated['staff_profile_id']);
+                $daysPresent = (float) ($validated['days_present'] ?? 0);
+                $paymentStatus = $validated['payment_status'];
+                $paymentDate = $validated['payment_date'] ?? now()->toDateString();
+                $paymentMethod = $validated['payment_method'] ?? 'Cash';
+                $advanceDeduction = round((float) ($validated['advance_deduction'] ?? 0), 2);
 
-            $rate = $staff->wage_type === 'per-day' ? (float) $staff->piece_rate_per_unit : (float) $staff->monthly_salary;
+                $rate = $staff->wage_type === 'per-day' ? (float) $staff->piece_rate_per_unit : (float) $staff->monthly_salary;
 
-            if ($request->filled('total_salary')) {
-                $totalSalary = round((float) $request->input('total_salary'), 2);
-            } else {
-                if ($staff->wage_type === 'per-day') {
-                    $totalSalary = round(($daysPresent * $rate) - $advanceDeduction, 2);
+                if ($request->filled('total_salary')) {
+                    $totalSalary = round((float) $request->input('total_salary'), 2);
                 } else {
-                    $totalSalary = round($rate - $advanceDeduction, 2);
+                    if ($staff->wage_type === 'per-day') {
+                        $totalSalary = round(($daysPresent * $rate) - $advanceDeduction, 2);
+                    } else {
+                        $totalSalary = round($rate - $advanceDeduction, 2);
+                    }
                 }
-            }
-            if ($totalSalary < 0) {
-                $totalSalary = 0;
-            }
-
-            // Check if payment already exists
-            $payment = SalaryPayment::where('staff_profile_id', $staff->id)
-                ->where('month_year', $validated['month_year'])
-                ->first();
-
-            $expenseId = $payment ? $payment->expense_id : null;
-
-            // If marking as PAID, create/update linked Expense entry in Expenses Ledger
-            if ($paymentStatus === 'paid') {
-                $expenseNotes = "Salary payment for {$staff->full_name} ({$validated['month_year']}) via {$paymentMethod}";
-                if ($advanceDeduction > 0) {
-                    $expenseNotes .= ' (Net ₹'.number_format($totalSalary, 2).' after ₹'.number_format($advanceDeduction, 2).' advance deduction)';
+                if ($totalSalary < 0) {
+                    $totalSalary = 0;
                 }
 
-                if ($expenseId) {
-                    /** @var Expense|null $expense */
-                    $expense = Expense::find($expenseId);
-                    if ($expense) {
-                        $expense->update([
+                // Check if payment already exists
+                $payment = SalaryPayment::where('staff_profile_id', $staff->id)
+                    ->where('month_year', $validated['month_year'])
+                    ->first();
+
+                $expenseId = $payment ? $payment->expense_id : null;
+
+                // Reset any previously deducted advances for this payment to allow clean re-reconciliation
+                if ($payment) {
+                    SalaryAdvance::where('salary_payment_id', $payment->id)->update([
+                        'status' => 'pending',
+                        'salary_payment_id' => null,
+                    ]);
+                    SalaryAdvance::where('staff_profile_id', $staff->id)
+                        ->where('notes', 'like', "%({$validated['month_year']})%")
+                        ->whereNull('expense_id')
+                        ->delete();
+                }
+
+                // If marking as PAID, create/update linked Expense entry in Expenses Ledger
+                if ($paymentStatus === 'paid') {
+                    $expenseNotes = "Salary payment for {$staff->full_name} ({$validated['month_year']}) via {$paymentMethod}";
+                    if ($advanceDeduction > 0) {
+                        $expenseNotes .= ' (Net ₹'.number_format($totalSalary, 2).' after ₹'.number_format($advanceDeduction, 2).' advance deduction)';
+                    }
+
+                    if ($expenseId) {
+                        /** @var Expense|null $expense */
+                        $expense = Expense::find($expenseId);
+                        if ($expense) {
+                            $expense->update([
+                                'expense_date' => $paymentDate,
+                                'amount' => $totalSalary,
+                                'description' => $expenseNotes,
+                            ]);
+                        }
+                    }
+
+                    if (! $expenseId) {
+                        $expense = Expense::create([
                             'expense_date' => $paymentDate,
+                            'expense_category' => 'Employee Salary / Payroll',
                             'amount' => $totalSalary,
                             'description' => $expenseNotes,
                         ]);
+                        $expenseId = $expense->id;
                     }
                 }
 
-                if (! $expenseId) {
-                    $expense = Expense::create([
-                        'expense_date' => $paymentDate,
-                        'expense_category' => 'Employee Salary / Payroll',
-                        'amount' => $totalSalary,
-                        'description' => $expenseNotes,
-                    ]);
-                    $expenseId = $expense->id;
-                }
-            }
+                $paymentRec = SalaryPayment::updateOrCreate(
+                    [
+                        'staff_profile_id' => $staff->id,
+                        'month_year' => $validated['month_year'],
+                    ],
+                    [
+                        'wage_type' => $staff->wage_type,
+                        'rate_amount' => $rate,
+                        'days_present' => $daysPresent,
+                        'total_salary' => $totalSalary,
+                        'advance_deduction' => $advanceDeduction,
+                        'status' => $paymentStatus,
+                        'payment_date' => $paymentDate,
+                        'payment_method' => $paymentMethod,
+                        'expense_id' => $expenseId,
+                        'notes' => $validated['notes'] ?? null,
+                    ]
+                );
 
-            $paymentRecord = SalaryPayment::updateOrCreate(
-                [
-                    'staff_profile_id' => $staff->id,
-                    'month_year' => $validated['month_year'],
-                ],
-                [
-                    'wage_type' => $staff->wage_type,
-                    'rate_amount' => $rate,
-                    'days_present' => $daysPresent,
-                    'total_salary' => $totalSalary,
-                    'advance_deduction' => $advanceDeduction,
-                    'status' => $paymentStatus,
-                    'payment_date' => $paymentDate,
-                    'payment_method' => $paymentMethod,
-                    'expense_id' => $expenseId,
-                    'notes' => $validated['notes'] ?? null,
-                ]
-            );
+                // Reconcile pending advances with Carry Forward support
+                if ($paymentStatus === 'paid' && $advanceDeduction > 0) {
+                    $remainingDeduction = $advanceDeduction;
 
-            // Reconcile pending advances with Carry Forward support
-            if ($paymentStatus === 'paid' && $advanceDeduction > 0) {
-                $remainingDeduction = $advanceDeduction;
+                    /** @var \Illuminate\Database\Eloquent\Collection<int, SalaryAdvance> $pendingAdvancesToDeduct */
+                    $pendingAdvancesToDeduct = SalaryAdvance::where('staff_profile_id', $staff->id)
+                        ->where('status', 'pending')
+                        ->orderBy('advance_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->get();
 
-                /** @var \Illuminate\Database\Eloquent\Collection<int, SalaryAdvance> $pendingAdvancesToDeduct */
-                $pendingAdvancesToDeduct = SalaryAdvance::where('staff_profile_id', $staff->id)
-                    ->where('status', 'pending')
-                    ->orderBy('advance_date', 'asc')
-                    ->orderBy('id', 'asc')
-                    ->get();
+                    /** @var SalaryAdvance $adv */
+                    foreach ($pendingAdvancesToDeduct as $adv) {
+                        if ($remainingDeduction <= 0) {
+                            break;
+                        }
 
-                /** @var SalaryAdvance $adv */
-                foreach ($pendingAdvancesToDeduct as $adv) {
-                    if ($remainingDeduction <= 0) {
-                        break;
-                    }
+                        $advAmount = (float) $adv->amount;
 
-                    $advAmount = (float) $adv->amount;
+                        if ($remainingDeduction >= $advAmount) {
+                            $adv->update([
+                                'status' => 'deducted',
+                                'salary_payment_id' => $paymentRec->id,
+                            ]);
+                            $remainingDeduction -= $advAmount;
+                        } else {
+                            // Partial deduction from this advance record:
+                            $unpaidCarryover = round($advAmount - $remainingDeduction, 2);
 
-                    if ($remainingDeduction >= $advAmount) {
-                        $adv->update([
-                            'status' => 'deducted',
-                            'salary_payment_id' => $paymentRecord->id,
-                        ]);
-                        $remainingDeduction -= $advAmount;
-                    } else {
-                        // Partial deduction from this advance record:
-                        $unpaidCarryover = round($advAmount - $remainingDeduction, 2);
+                            $adv->update([
+                                'amount' => $remainingDeduction,
+                                'status' => 'deducted',
+                                'salary_payment_id' => $paymentRec->id,
+                                'notes' => trim(($adv->notes ? $adv->notes . ' | ' : '') . "Deducted ₹{$remainingDeduction} in {$validated['month_year']}"),
+                            ]);
 
-                        $adv->update([
-                            'amount' => $remainingDeduction,
-                            'status' => 'deducted',
-                            'salary_payment_id' => $paymentRecord->id,
-                            'notes' => trim(($adv->notes ? $adv->notes . ' | ' : '') . "Deducted ₹{$remainingDeduction} in {$validated['month_year']}"),
-                        ]);
+                            // Create carry forward pending advance balance for next month
+                            SalaryAdvance::create([
+                                'staff_profile_id' => $staff->id,
+                                'advance_date' => $adv->advance_date,
+                                'amount' => $unpaidCarryover,
+                                'payment_method' => $adv->payment_method ?? 'Cash',
+                                'status' => 'pending',
+                                'expense_id' => null, // Expense was already logged when advance cash was disbursed
+                                'notes' => "Carry forward advance balance from {$adv->advance_date} ({$validated['month_year']})",
+                            ]);
 
-                        // Create carry forward pending advance balance for next month
-                        SalaryAdvance::create([
-                            'staff_profile_id' => $staff->id,
-                            'advance_date' => $adv->advance_date,
-                            'amount' => $unpaidCarryover,
-                            'payment_method' => $adv->payment_method ?? 'Cash',
-                            'status' => 'pending',
-                            'expense_id' => null, // Expense was already logged when advance cash was disbursed
-                            'notes' => "Carry forward advance balance from {$adv->advance_date} ({$validated['month_year']})",
-                        ]);
-
-                        $remainingDeduction = 0;
+                            $remainingDeduction = 0;
+                        }
                     }
                 }
-            }
+
+                return $paymentRec;
+            });
+
+            $staff = StaffProfile::find($validated['staff_profile_id']);
+            $staffName = $staff ? $staff->full_name : 'Employee';
+            $paymentStatus = $validated['payment_status'];
+            $totalSalary = (float) $paymentRecord->total_salary;
 
             return response()->json([
                 'success' => true,
                 'message' => $paymentStatus === 'paid'
-                    ? 'Salary of ₹'.number_format($totalSalary, 2)." paid for '{$staff->full_name}' and posted to Expenses Ledger!"
-                    : "Salary payment record updated as PENDING for '{$staff->full_name}'.",
+                    ? 'Salary of ₹'.number_format($totalSalary, 2)." paid for '{$staffName}' and posted to Expenses Ledger!"
+                    : "Salary payment record updated as PENDING for '{$staffName}'.",
                 'data' => $paymentRecord,
                 'redirect' => route('employees', ['month' => $validated['month_year'], 'tab' => 'payment']),
             ]);
@@ -723,14 +745,29 @@ class EmployeeController extends Controller
                 ], 422);
             }
 
-            if ($payment->expense_id) {
-                Expense::where('id', $payment->expense_id)->delete();
-            }
-            $payment->delete();
+            DB::transaction(function () use ($payment) {
+                if ($payment->expense_id) {
+                    Expense::where('id', $payment->expense_id)->delete();
+                }
+
+                // Revert deducted advances back to pending when the salary payment is deleted
+                SalaryAdvance::where('salary_payment_id', $payment->id)->update([
+                    'status' => 'pending',
+                    'salary_payment_id' => null,
+                ]);
+
+                // Also delete any carryover advance balance generated during this salary payment
+                SalaryAdvance::where('staff_profile_id', $payment->staff_profile_id)
+                    ->where('notes', 'like', "%({$payment->month_year})%")
+                    ->whereNull('expense_id')
+                    ->delete();
+
+                $payment->delete();
+            });
 
             return response()->json([
                 'success' => true,
-                'message' => 'Salary payment record and linked expense deleted successfully!',
+                'message' => 'Salary payment record, linked expense, and advance deductions reverted successfully!',
                 'redirect' => route('employees', ['month' => $month, 'tab' => 'payment']),
             ]);
         } catch (Throwable $e) {
@@ -854,37 +891,6 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Disburse payroll (AJAX legacy endpoint).
-     */
-    public function payPayroll(Request $request): Response
-    {
-        if ($res = RolePermissionService::authorizeAction($request, 'action_update')) {
-            return $res;
-        }
-
-        $validated = $request->validate([
-            'labor_log_ids' => 'required|array|min:1',
-            'labor_log_ids.*' => 'required|exists:labor_logs,id',
-        ]);
-
-        try {
-            $count = $this->payrollService->markWagesAsPaid($validated['labor_log_ids']);
-
-            return response()->json([
-                'success' => true,
-                'message' => "Successfully paid compiled wages for {$count} logged runs!",
-            ]);
-        } catch (Throwable $e) {
-            Log::error('Failed to pay payroll: '.$e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'errors' => ['Failed to process payroll payment. Please try again.'],
-            ], 500);
-        }
-    }
-
-    /**
      * Helper to compute monthly attendance summary for staff profiles.
      */
     private function computeMonthlyAttendance($staffProfiles, string $selectedMonth, int $limitDay, int $daysInMonth): array
@@ -913,11 +919,6 @@ class EmployeeController extends Controller
                 for ($d = 1; $d <= $limitDay; $d++) {
                     $dateStr = sprintf('%s-%02d', $selectedMonth, $d);
 
-                    // Skip days prior to employee profile creation if created in the selected month
-                    if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
-                        continue;
-                    }
-
                     if ($staffRecords->has($dateStr)) {
                         $status = $staffRecords->get($dateStr)->status;
                         if ($status === 'present') {
@@ -926,6 +927,10 @@ class EmployeeController extends Controller
                             $payableDays += 0.5;
                         }
                     } else {
+                        // Skip unrecorded auto-present days prior to employee registration
+                        if ($staffCreatedDate && $dateStr < $staffCreatedDate && $selectedMonth === substr($staffCreatedDate, 0, 7)) {
+                            continue;
+                        }
                         // Unrecorded day -> Auto-count as Present (1.0) & track missing date
                         $payableDays += 1.0;
                         $missingDates[] = Carbon::parse($dateStr)->format('d M');

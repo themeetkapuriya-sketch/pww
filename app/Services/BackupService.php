@@ -17,10 +17,31 @@ class BackupService
 
     public function __construct()
     {
-        $this->backupDirectory = env('BACKUP_PATH', storage_path('app/backups'));
-        if (! File::exists($this->backupDirectory)) {
-            File::makeDirectory($this->backupDirectory, 0755, true);
+        $customPath = env('BACKUP_PATH');
+        $resolvedPath = storage_path('app/backups');
+
+        if (! empty($customPath)) {
+            try {
+                if (! File::exists($customPath)) {
+                    File::makeDirectory($customPath, 0755, true);
+                }
+                if (File::isDirectory($customPath) && is_writable($customPath)) {
+                    $resolvedPath = $customPath;
+                }
+            } catch (Throwable $e) {
+                Log::warning("Custom BACKUP_PATH ({$customPath}) inaccessible: ".$e->getMessage().". Falling back to default storage/app/backups");
+            }
         }
+
+        if (! File::exists($resolvedPath)) {
+            try {
+                File::makeDirectory($resolvedPath, 0755, true);
+            } catch (Throwable $e) {
+                Log::error('Could not create default backup directory: '.$e->getMessage());
+            }
+        }
+
+        $this->backupDirectory = $resolvedPath;
     }
 
     /**
@@ -273,7 +294,7 @@ class BackupService
             $daysOfWeek = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
             $targetDayIndex = $daysOfWeek[$dayName] ?? 3;
 
-            $thisWeekTarget = $now->copy()->startOfWeek(Carbon::SUNDAY)->addDays($targetDayIndex)->setTime($targetHour, $targetMin, 0);
+            $thisWeekTarget = $now->copy()->startOfWeek(0)->addDays($targetDayIndex)->setTime($targetHour, $targetMin, 0);
             $targetDate = $now->greaterThanOrEqualTo($thisWeekTarget) ? $thisWeekTarget : $thisWeekTarget->copy()->subWeek();
             $filename = 'auto_backup_weekly_'.$targetDate->format('Y_m_d').'.sql';
         } else {

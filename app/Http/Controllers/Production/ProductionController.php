@@ -232,16 +232,29 @@ class ProductionController extends Controller
             'production_date' => 'required|date',
         ]);
 
-        // Adjust finished product stock difference (only if stock management is enabled)
+        // Adjust finished product stock & raw material consumption difference (only if stock management is enabled)
         $trackStock = Setting::isStockEnabled();
         if ($trackStock && $log->product_id == $validated['product_id']) {
             $diff = $validated['quantity_manufactured'] - $log->quantity_manufactured;
             if ($diff != 0) {
                 /** @var Product|null $product */
-                $product = Product::find($validated['product_id']);
+                $product = Product::with('billOfMaterials.rawMaterial')->find($validated['product_id']);
                 if ($product) {
                     $product->current_stock = max(0, $product->current_stock + $diff);
                     $product->save();
+
+                    // If manufactured more ($diff > 0), deduct extra raw materials; if less ($diff < 0), refund raw materials
+                    foreach ($product->billOfMaterials as $bom) {
+                        if ($bom->rawMaterial) {
+                            $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
+                            $rawMaterialDelta = $diff * $bom->required_quantity * $wasteMultiplier;
+                            if ($rawMaterialDelta > 0) {
+                                $bom->rawMaterial->decrement('current_stock', $rawMaterialDelta);
+                            } else {
+                                $bom->rawMaterial->increment('current_stock', abs($rawMaterialDelta));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -267,14 +280,23 @@ class ProductionController extends Controller
         $log = ProductionLog::findOrFail($id);
         $batchId = $log->id;
 
-        // Deduct manufactured qty from product stock upon deletion (only if stock management is enabled)
+        // Deduct manufactured qty from product stock & restore consumed BOM raw materials upon deletion
         $trackStock = Setting::isStockEnabled();
         if ($trackStock) {
             /** @var Product|null $product */
-            $product = Product::find($log->product_id);
+            $product = Product::with('billOfMaterials.rawMaterial')->find($log->product_id);
             if ($product) {
                 $product->current_stock = max(0, $product->current_stock - $log->quantity_manufactured);
                 $product->save();
+
+                // Restore consumed raw materials back to inventory
+                foreach ($product->billOfMaterials as $bom) {
+                    if ($bom->rawMaterial) {
+                        $wasteMultiplier = 1 + ($bom->waste_percentage / 100);
+                        $consumedQty = $log->quantity_manufactured * $bom->required_quantity * $wasteMultiplier;
+                        $bom->rawMaterial->increment('current_stock', $consumedQty);
+                    }
+                }
             }
         }
 

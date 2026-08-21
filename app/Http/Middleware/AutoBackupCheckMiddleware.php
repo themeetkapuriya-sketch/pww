@@ -34,7 +34,7 @@ class AutoBackupCheckMiddleware
                 Auth::logout();
                 Session::flush();
 
-                if ($request->expectsJson() || $request->ajax() || $request->hasHeader('X-PWW-SPA')) {
+                if ($request->expectsJson() || $request->ajax() || $request->hasHeader('X-PWW-SPA') || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                     return response()->json([
                         'success' => false,
                         'message' => 'Session expired due to inactivity. Please log in again.',
@@ -48,7 +48,20 @@ class AutoBackupCheckMiddleware
             Session::put('last_activity_time', $currentTime);
         }
 
-        return $next($request);
+        /** @var Response $response */
+        $response = $next($request);
+
+        // Prevent browsers from caching SPA partial responses or serving stale partial HTML on full-page navigations
+        if ($request->hasHeader('X-PWW-SPA') || $request->ajax() || $request->expectsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            $response->headers->set('Vary', 'X-PWW-SPA, X-Requested-With, Accept');
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+            $response->headers->set('Pragma', 'no-cache');
+        } else {
+            $response->headers->set('Vary', 'X-PWW-SPA, X-Requested-With');
+            $response->headers->set('Cache-Control', 'no-cache, private, must-revalidate');
+        }
+
+        return $response;
     }
 
     /**

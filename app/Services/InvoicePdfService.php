@@ -78,6 +78,7 @@ class InvoicePdfService
             ->dismissDialogs()
             ->waitUntil('domcontentloaded')
             ->setOption('protocolTimeout', 60000)
+            ->setNodeModulePath(base_path('node_modules'))
             ->setOption('args', [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -91,14 +92,50 @@ class InvoicePdfService
             ]);
 
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $nodeBinary = 'C:\\Program Files\\nodejs\\node.exe';
-            $npmBinary = 'C:\\Program Files\\nodejs\\npm.cmd';
-
-            if (file_exists($nodeBinary)) {
-                $browsershot->setNodeBinary($nodeBinary);
+            // 1. Auto-discover Node.js executable on Windows
+            $nodeCandidates = array_filter([
+                env('NODE_BINARY'),
+                'C:\\Program Files\\nodejs\\node.exe',
+                'C:\\Program Files (x86)\\nodejs\\node.exe',
+                getenv('LOCALAPPDATA') ? getenv('LOCALAPPDATA').'\\Programs\\nodejs\\node.exe' : null,
+                getenv('APPDATA') ? getenv('APPDATA').'\\npm\\node.exe' : null,
+            ]);
+            foreach ($nodeCandidates as $nodePath) {
+                if (file_exists($nodePath)) {
+                    $browsershot->setNodeBinary($nodePath);
+                    break;
+                }
             }
-            if (file_exists($npmBinary)) {
-                $browsershot->setNpmBinary($npmBinary);
+
+            // 2. Auto-discover NPM executable on Windows
+            $npmCandidates = array_filter([
+                env('NPM_BINARY'),
+                'C:\\Program Files\\nodejs\\npm.cmd',
+                'C:\\Program Files (x86)\\nodejs\\npm.cmd',
+                getenv('LOCALAPPDATA') ? getenv('LOCALAPPDATA').'\\Programs\\nodejs\\npm.cmd' : null,
+                getenv('APPDATA') ? getenv('APPDATA').'\\npm\\npm.cmd' : null,
+            ]);
+            foreach ($npmCandidates as $npmPath) {
+                if (file_exists($npmPath)) {
+                    $browsershot->setNpmBinary($npmPath);
+                    break;
+                }
+            }
+
+            // 3. Auto-discover native Windows Chrome/Edge browser for 100% offline reliability
+            $chromeCandidates = array_filter([
+                env('CHROME_PATH'),
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                getenv('LOCALAPPDATA') ? getenv('LOCALAPPDATA').'\\Google\\Chrome\\Application\\chrome.exe' : null,
+                'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+                'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            ]);
+            foreach ($chromeCandidates as $chromePath) {
+                if (file_exists($chromePath)) {
+                    $browsershot->setChromePath($chromePath);
+                    break;
+                }
             }
         }
 
