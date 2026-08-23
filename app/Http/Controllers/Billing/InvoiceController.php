@@ -37,8 +37,7 @@ class InvoiceController extends Controller
      */
     public function invoices(Request $request)
     {
-        $invoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])->orderBy('created_at', 'desc')->paginate(50);
-        $finishedGoodsInvoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])
+                $finishedGoodsInvoices = Invoice::with(['plant.client', 'items.product', 'items.rawMaterial'])
             ->where(function ($q) {
                 $q->where('invoice_mode', 'finished_goods')->orWhereNull('invoice_mode');
             })
@@ -69,7 +68,6 @@ class InvoiceController extends Controller
         }
 
         return view('pages.invoices', compact(
-            'invoices',
             'finishedGoodsInvoices',
             'rawMaterialInvoices',
             'finishedGoods',

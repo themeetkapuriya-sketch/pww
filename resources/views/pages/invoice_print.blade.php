@@ -601,13 +601,20 @@
         $amountInWords = numberToWordsIndianTaxInvoice($invoice->total_amount);
 
         $logoPath = \App\Models\Setting::get('logo_path', 'logo.jpg');
-        $fullLogoPath = public_path($logoPath);
+        $hasLogo = false;
         $logoSrc = '';
-        if (file_exists($fullLogoPath) && is_file($fullLogoPath)) {
-            $logoData = base64_encode(file_get_contents($fullLogoPath));
-            $logoSrc = 'data:image/' . pathinfo($fullLogoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
-        } else {
-            $logoSrc = asset($logoPath);
+        if ($logoPath && $logoPath !== 'none') {
+            $fullLogoPath = public_path($logoPath);
+            if (file_exists($fullLogoPath) && is_file($fullLogoPath)) {
+                $ext = strtolower(pathinfo($fullLogoPath, PATHINFO_EXTENSION));
+                $mime = ($ext === 'svg') ? 'image/svg+xml' : ($ext === 'jpg' ? 'image/jpeg' : 'image/' . $ext);
+                $logoData = base64_encode(file_get_contents($fullLogoPath));
+                $logoSrc = 'data:' . $mime . ';base64,' . $logoData;
+                $hasLogo = true;
+            } elseif (!empty($logoPath) && file_exists(public_path('logo.jpg'))) {
+                $logoSrc = asset('logo.jpg');
+                $hasLogo = true;
+            }
         }
     @endphp
 
@@ -635,7 +642,7 @@
     <div class="invoice-box">
         <!-- Subtle Background Watermark -->
         <div class="watermark-container">
-            @if(!empty($logoSrc))
+            @if($hasLogo && !empty($logoSrc))
                 <img src="{{ $logoSrc }}" class="watermark-img" alt="Watermark Logo"><br>
             @endif
             <div class="watermark-text">{{ \App\Models\Setting::get('business_name', 'PRAFUL WELDING WORKS') }}</div>
@@ -648,9 +655,11 @@
                     <td style="width: 60%;">
                         <table style="border-collapse: collapse;">
                             <tr>
-                                <td style="vertical-align: middle;">
-                                    <img src="{{ $logoSrc }}" alt="Logo" class="header-logo">
-                                </td>
+                                @if($hasLogo && !empty($logoSrc))
+                                    <td style="vertical-align: middle; padding-right: 10px;">
+                                        <img src="{{ $logoSrc }}" alt="Logo" class="header-logo">
+                                    </td>
+                                @endif
                                 <td style="vertical-align: middle;">
                                     <h1 class="business-title">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h1>
                                     @php $bizMobile = \App\Models\Setting::get('business_mobile', ''); @endphp
@@ -753,7 +762,7 @@
                                 $pGood = $item->finishedGood ?? $item->product ?? null;
                                 
                                 $pName = $item->item_name ?? ($isRaw ? ($rawMat->material_name ?? 'Raw Material') : ($pGood->product_name ?? 'Product'));
-                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (!empty($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A'));
+                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (!empty($item->sku) ? $item->sku : ($pGood->sku ?? ''));
                                 $pHsn = $isRaw ? '72040000' : ($pGood->hsn_code ?? '73089090');
                                 $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pGst = $isRaw ? 18.00 : ($pGood->gst_rate ?? 18.00);
@@ -767,7 +776,9 @@
                                 <td style="text-align: center; font-weight: 700; color: #475569;">{{ $index + 1 }}</td>
                                 <td>
                                     <div class="item-name">{{ $pName }}</div>
-                                    <div class="item-sku">{{ $pSku }}</div>
+                                    @if(!empty($pSku) && $pSku !== 'N/A')
+                                        <div class="item-sku">{{ $pSku }}</div>
+                                    @endif
                                 </td>
                                 <td style="text-align: center;">
                                     <span class="hsn-text">{{ $pHsn }}</span>
@@ -926,9 +937,17 @@
                                             $sigPath = \App\Models\Setting::get('signature_path');
                                             $hasSig = false;
                                             $sigSrc = '';
-                                            if ($sigPath) {
+
+                                            // If signature is NOT explicitly set to 'none' and has a path
+                                            if ($sigPath && $sigPath !== 'none') {
                                                 $fullSigPath = public_path($sigPath);
-                                                if (file_exists($fullSigPath) && is_file($fullSigPath)) {
+                                                if (! file_exists($fullSigPath)) {
+                                                    $sigFiles = glob(public_path('uploads/signature_*.*'));
+                                                    if (! empty($sigFiles)) {
+                                                        $fullSigPath = end($sigFiles);
+                                                    }
+                                                }
+                                                if ($fullSigPath && file_exists($fullSigPath) && is_file($fullSigPath)) {
                                                     $ext = strtolower(pathinfo($fullSigPath, PATHINFO_EXTENSION));
                                                     $mime = ($ext === 'svg') ? 'image/svg+xml' : ($ext === 'jpg' ? 'image/jpeg' : 'image/' . $ext);
                                                     $sigData = base64_encode(file_get_contents($fullSigPath));

@@ -626,6 +626,11 @@ class SettingsController extends Controller
             'msme_number' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'signature' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+        ], [
+            'logo.max' => 'The logo field must not be greater than 2 MB.',
+            'logo.image' => 'The logo field must be a valid image file (JPEG, PNG, JPG, SVG).',
+            'signature.max' => 'The signature field must not be greater than 2 MB.',
+            'signature.image' => 'The signature field must be a valid image file (JPEG, PNG, JPG, SVG).',
         ]);
 
         try {
@@ -647,14 +652,18 @@ class SettingsController extends Controller
             Setting::updateOrCreate(['key' => 'gstin'], ['value' => strtoupper($request->gstin ?? '')]);
             Setting::updateOrCreate(['key' => 'msme_number'], ['value' => strtoupper($request->msme_number ?? '')]);
 
-            if ($request->hasFile('logo')) {
+            if ($request->boolean('remove_logo')) {
+                Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'none']);
+            } elseif ($request->hasFile('logo')) {
                 File::ensureDirectoryExists(public_path('uploads'));
                 $filename = 'logo_'.time().'.'.$request->file('logo')->getClientOriginalExtension();
                 $request->file('logo')->move(public_path('uploads'), $filename);
                 Setting::updateOrCreate(['key' => 'logo_path'], ['value' => 'uploads/'.$filename]);
             }
 
-            if ($request->hasFile('signature')) {
+            if ($request->boolean('remove_signature')) {
+                Setting::updateOrCreate(['key' => 'signature_path'], ['value' => 'none']);
+            } elseif ($request->hasFile('signature')) {
                 File::ensureDirectoryExists(public_path('uploads'));
                 $filename = 'signature_'.time().'.'.$request->file('signature')->getClientOriginalExtension();
                 $request->file('signature')->move(public_path('uploads'), $filename);
@@ -663,7 +672,19 @@ class SettingsController extends Controller
 
             AuditLogService::log('Settings', 'updated', "Updated business profile and company branding ('{$request->business_name}')");
 
-            return $this->respond($request, true, 'Business profile & branding updated successfully!');
+            $currentLogo = Setting::get('logo_path', 'logo.jpg');
+            $hasActiveLogo = $currentLogo && $currentLogo !== 'none' && file_exists(public_path($currentLogo));
+            $currentSig = Setting::get('signature_path');
+            $hasActiveSig = $currentSig && $currentSig !== 'none' && file_exists(public_path($currentSig));
+
+            return $this->respond($request, true, 'Business profile & branding updated successfully!', [
+                'data' => [
+                    'logo_url' => $hasActiveLogo ? asset($currentLogo) : null,
+                    'has_logo' => $hasActiveLogo,
+                    'signature_url' => $hasActiveSig ? asset($currentSig) : null,
+                    'has_signature' => $hasActiveSig,
+                ],
+            ]);
         } catch (Throwable $e) {
             Log::error('Failed to update business profile: '.$e->getMessage());
 

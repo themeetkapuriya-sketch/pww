@@ -247,7 +247,7 @@
                 <div class="border-t border-slate-200 pt-4">
                     <div class="flex items-center justify-between mb-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase">Billing Line Items</label>
-                        <button type="button" id="addBillingRowBtn" class="text-blue-600 hover:text-blue-700 text-xs font-bold flex items-center">
+                        <button type="button" id="addBillingRowBtn" onclick="window.addInvoiceBillingRow(event)" class="text-blue-600 hover:text-blue-700 text-xs font-bold flex items-center cursor-pointer">
                             + Add Row
                         </button>
                     </div>
@@ -597,43 +597,59 @@
 (function() {
     // Dynamic builder rows & Live Tax Calculations
     var billingRowsContainer = document.getElementById('billingRowsContainer');
-    var addBillingRowBtn = document.getElementById('addBillingRowBtn');
     var manualPlantSelect = document.getElementById('manualPlantSelect');
     
-    if (!billingRowsContainer || !addBillingRowBtn) return;
+    if (!billingRowsContainer) return;
 
     window.rawInvoiceComboboxTpl = @json($invoiceComboboxHtml);
     window.rawMaterialComboboxTpl = @json($rawMaterialComboboxHtml);
 
-    // Add Row (prevent double-fire with flag)
-    var _addRowPending = false;
-    addBillingRowBtn.addEventListener('click', function(e) {
-        if (_addRowPending) return;
-        _addRowPending = true;
-        setTimeout(function() { _addRowPending = false; }, 300);
+    // Bulletproof single-row adder with timestamp debounce to prevent double-firing
+    let _lastInvoiceAddRowTime = 0;
+    window.addInvoiceBillingRow = function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const now = Date.now();
+        if (now - _lastInvoiceAddRowTime < 350) return;
+        _lastInvoiceAddRowTime = now;
+
+        const container = document.getElementById('billingRowsContainer');
+        if (!container) return;
 
         const modeInp = document.getElementById('invoiceModeInput');
         const currentTpl = (modeInp && modeInp.value === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
 
+        const isEditMode = Boolean(
+            (document.getElementById('invoiceIdHidden') && document.getElementById('invoiceIdHidden').value) ||
+            (document.getElementById('invoiceFormCard') && document.getElementById('invoiceFormCard').classList.contains('border-amber-300'))
+        );
+
+        const rowBgClass = isEditMode ? 'bg-amber-50/50 border-amber-200' : 'bg-slate-50 border-slate-200';
+        const inputBorderClass = isEditMode ? 'border-amber-200 focus:ring-amber-500' : 'border-slate-200 focus:ring-blue-500';
+
         const row = document.createElement('div');
-        row.className = 'billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+        row.className = `billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 ${rowBgClass} p-2.5 rounded-xl border`;
         row.innerHTML = `
             <div class="w-full sm:w-auto flex-grow min-w-0 sm:min-w-[200px]">
                 ${currentTpl}
             </div>
             <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
-                <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border ${inputBorderClass} rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 text-center">
                     <option value="Pcs">Pcs</option>
                     <option value="Kg">Kg</option>
                 </select>
-                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
-                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
+                <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border ${inputBorderClass} rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 text-slate-900 font-bold" required>
+                <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border ${inputBorderClass} rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 text-slate-900 font-bold" required>
                 <button type="button" class="remove-billing-row-btn col-span-1 sm:w-auto text-rose-500 hover:text-rose-600 font-bold p-1 text-sm flex items-center justify-center">✕</button>
             </div>
         `;
-        billingRowsContainer.appendChild(row);
-        recalculateCustomInvoice();
-    });
+        container.appendChild(row);
+        if (typeof window.recalculateCustomInvoice === 'function') {
+            window.recalculateCustomInvoice();
+        }
+    };
 
     function ensureAndSelectUom(uomSelect, rawUom) {
         if (!uomSelect || !rawUom) return;
@@ -869,9 +885,6 @@
     window.erpInvoicesMap = window.erpInvoicesMap || {};
     @php
         $allInvoicesToRegister = collect();
-        if (isset($invoices)) {
-            $allInvoicesToRegister = $allInvoicesToRegister->concat($invoices instanceof \Illuminate\Pagination\LengthAwarePaginator ? $invoices->items() : $invoices);
-        }
         if (isset($finishedGoodsInvoices)) {
             $allInvoicesToRegister = $allInvoicesToRegister->concat($finishedGoodsInvoices instanceof \Illuminate\Pagination\LengthAwarePaginator ? $finishedGoodsInvoices->items() : $finishedGoodsInvoices);
         }
@@ -918,6 +931,11 @@
             due_date: @json($dueDate),
             client_id: @json($inv->client_id),
             plant_id: @json($invPlantId),
+            cgst: @json((float)($inv->cgst ?? 0)),
+            sgst: @json((float)($inv->sgst ?? 0)),
+            igst: @json((float)($inv->igst ?? 0)),
+            total_taxable_value: @json((float)($inv->total_taxable_value ?? 0)),
+            total_amount: @json((float)($inv->total_amount ?? 0)),
             items: @json($itemsArray)
         };
     @endforeach
@@ -1270,7 +1288,11 @@
             }
 
             const totalGst = (parseFloat(invoice.cgst) || 0) + (parseFloat(invoice.sgst) || 0) + (parseFloat(invoice.igst) || 0);
-            if (totalGst <= 0 && (invoice.custom_gst_rate === 0 || invoice.custom_gst_rate === '0' || invoice.custom_gst_rate === '0.00' || invoice.total_taxable_value == invoice.total_amount)) {
+            const totalTaxable = parseFloat(invoice.total_taxable_value) || 0;
+            const totalAmount = parseFloat(invoice.total_amount) || 0;
+            const isZeroGstRate = (invoice.custom_gst_rate !== null && invoice.custom_gst_rate !== undefined && (parseFloat(invoice.custom_gst_rate) === 0));
+
+            if (totalGst <= 0 && (isZeroGstRate || (totalTaxable > 0 && Math.abs(totalTaxable - totalAmount) < 0.01))) {
                 switchTaxMode('without_gst');
             } else {
                 switchTaxMode('with_gst');

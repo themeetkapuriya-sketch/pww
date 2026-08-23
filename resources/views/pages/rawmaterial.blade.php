@@ -187,7 +187,7 @@
                         @php 
                             $isLow = $mat->current_stock < $mat->safety_threshold; 
                             $catInfo = $mat->category_info;
-                            $hasPurchases = $mat->purchases()->where('purchase_type', 'raw_material')->exists();
+                            $isAutoAvg = $mat->is_auto_avg;
                         @endphp
                         <tr class="hover:bg-slate-50 transition mat-row" id="row-mat-{{ $mat->id }}" data-category="{{ $mat->material_category ?: 'other' }}">
                             <td class="px-4 py-4 text-center font-bold text-slate-500">{{ $loop->iteration }}</td>
@@ -209,12 +209,12 @@
                             <td class="px-6 py-4 text-right font-medium whitespace-nowrap">
                                 <span class="text-slate-800 font-bold">₹{{ number_format((float)($mat->average_purchase_price ?? 0), 2) }}</span>
                                 <span class="text-[11px] text-slate-400 font-normal">/ {{ $mat->unit }}</span>
-                                @if($hasPurchases)
+                                @if($isAutoAvg)
                                     <span class="text-[9.5px] text-emerald-700 font-bold tracking-wider inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Calculated from Purchase ledger entries">
                                         🔄 Auto Avg
                                     </span>
                                 @else
-                                    <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Master Standard Rate">
+                                    <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Custom Fixed Master Rate">
                                         🔒 Master Rate
                                     </span>
                                 @endif

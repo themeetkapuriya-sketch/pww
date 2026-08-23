@@ -357,11 +357,20 @@ function addInlineFieldError($input, message) {
     
     $wrapper.find('.field-error-text').remove();
     
+    let formattedMessage = message;
+    if (typeof formattedMessage === 'string') {
+        // Convert any '2048 kilobytes' or similar into '2 MB'
+        formattedMessage = formattedMessage.replace(/(\d+)\s*kilobytes/gi, function(match, kb) {
+            const mb = parseInt(kb) / 1024;
+            return (mb % 1 === 0 ? mb : mb.toFixed(1)) + ' MB';
+        });
+    }
+    
     const errorHtml = `<p class="field-error-text text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
         <svg class="w-3.5 h-3.5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <span>${message}</span>
+        <span>${formattedMessage}</span>
     </p>`;
     $wrapper.append(errorHtml);
 }
@@ -520,6 +529,38 @@ window.handleBusinessProfileSubmit = function(e) {
             errs.push({ name: 'gstin', message: 'GSTIN Number must be exactly 15 characters.' });
         }
         return errs;
+    }, function($f, res) {
+        if (res && res.data) {
+            if (res.data.logo_url && res.data.has_logo) {
+                $('#businessLogoPreviewImg').attr('src', res.data.logo_url).removeClass('hidden');
+                $('#businessLogoBlankPlaceholder').addClass('hidden');
+                $('#removeLogoWrapper').removeClass('hidden');
+                // Sync Sidebar Live
+                $('#sidebarLogoImg').attr('src', res.data.logo_url).removeClass('hidden');
+                $('#sidebarLogoAvatar').addClass('hidden');
+            } else if (!res.data.has_logo) {
+                $('#businessLogoPreviewImg').addClass('hidden');
+                $('#businessLogoBlankPlaceholder').removeClass('hidden');
+                $('#removeLogoWrapper').addClass('hidden');
+                // Sync Sidebar Live to Monogram
+                $('#sidebarLogoImg').addClass('hidden');
+                $('#sidebarLogoAvatar').removeClass('hidden');
+            }
+
+            if (res.data.signature_url && res.data.has_signature) {
+                $('#businessSigPreviewImg').attr('src', res.data.signature_url).removeClass('hidden');
+                $('#businessSigBlankPlaceholder').addClass('hidden');
+                $('#removeSigWrapper').removeClass('hidden');
+            } else if (!res.data.has_signature) {
+                $('#businessSigPreviewImg').addClass('hidden');
+                $('#businessSigBlankPlaceholder').removeClass('hidden');
+                $('#removeSigWrapper').addClass('hidden');
+            }
+        }
+        // Reset file inputs cleanly so chosen file text is cleared
+        $f.find('input[type="file"]').val('');
+        $('#removeLogoCheckbox').prop('checked', false);
+        $('#removeSignatureCheckbox').prop('checked', false);
     });
 };
 

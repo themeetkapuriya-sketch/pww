@@ -18,7 +18,7 @@ class RawMaterialController extends Controller
     public function index(Request $request)
     {
         $selectedCategory = $request->query('category', 'all');
-        $query = RawMaterial::with('latestPurchase')->orderByDesc('id');
+        $query = RawMaterial::with(['latestPurchase', 'purchases'])->orderByDesc('id');
 
         if ($selectedCategory && $selectedCategory !== 'all') {
             $query->where('material_category', $selectedCategory);

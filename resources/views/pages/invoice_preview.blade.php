@@ -29,7 +29,13 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-slate-100 gap-6">
                 <!-- Business Identity -->
                 <div class="flex items-center space-x-4">
-                    <img class="h-12 w-12 object-contain rounded-xl border border-slate-100 p-1 bg-white shadow-2xs" src="{{ asset(\App\Models\Setting::get('logo_path', 'logo.jpg')) }}" alt="Company Logo">
+                    @php
+                        $prevLogo = \App\Models\Setting::get('logo_path', 'logo.jpg');
+                        $hasPrevLogo = $prevLogo && $prevLogo !== 'none' && (file_exists(public_path($prevLogo)) || file_exists(public_path('logo.jpg')));
+                    @endphp
+                    @if($hasPrevLogo)
+                        <img class="h-12 w-12 object-contain rounded-xl border border-slate-100 p-1 bg-white shadow-2xs" src="{{ asset($prevLogo) }}" alt="Company Logo">
+                    @endif
                     <div>
                         <h2 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">{{ \App\Models\Setting::get('business_name', 'Praful Welding Works') }}</h2>
                         @php $bizMobile = \App\Models\Setting::get('business_mobile', ''); @endphp
@@ -142,7 +148,7 @@
                                 $pGood = $item->finishedGood ?? $item->product ?? null;
                                 
                                 $pName = $item->item_name ?? ($isRaw ? ($rawMat->material_name ?? 'Raw Material') : ($pGood->product_name ?? 'Product'));
-                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (isset($item->sku) ? $item->sku : ($pGood->sku ?? 'N/A'));
+                                $pSku = $isRaw ? ('RM-' . ($item->raw_material_id ?? '0')) : (!empty($item->sku) ? $item->sku : ($pGood->sku ?? ''));
                                 $pUom = $item->billing_uom ?? ($isRaw ? ($rawMat->unit ?? 'kg') : ($pGood->uom ?? 'piece'));
                                 $pTotal = isset($item->total) ? $item->total : ($item->total_price ?? ($item->quantity * $item->unit_price));
 
@@ -151,7 +157,7 @@
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition">
                                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ $pName }}</td>
-                                <td class="py-3.5 px-4 text-center text-xs font-mono text-slate-500">{{ $pSku }}</td>
+                                <td class="py-3.5 px-4 text-center text-xs font-mono text-slate-500">{{ (!empty($pSku) && $pSku !== 'N/A') ? $pSku : '' }}</td>
                                 <td class="py-3.5 px-4 text-right">₹{{ number_format($item->unit_price, 2) }}</td>
                                 <td class="py-3.5 px-4 text-right font-bold text-slate-800">
                                     <div>{{ $qtyFormatted }}</div>

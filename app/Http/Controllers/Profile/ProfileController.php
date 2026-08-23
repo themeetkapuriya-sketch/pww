@@ -106,6 +106,8 @@ class ProfileController extends Controller
             'bank_ifsc.size' => 'IFSC Code must be exactly 11 characters long.',
             'bank_account_no.min' => 'Bank Account Number must be at least 9 digits.',
             'bank_account_no.max' => 'Bank Account Number cannot exceed 18 characters.',
+            'logo.max' => 'The logo field must not be greater than 2 MB.',
+            'signature.max' => 'The signature field must not be greater than 2 MB.',
         ]);
 
         $validated['gstin'] = strtoupper(trim($validated['gstin']));

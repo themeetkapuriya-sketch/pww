@@ -149,6 +149,36 @@ class RawMaterial extends Model
     }
 
     /**
+     * Check if the current average purchase price matches the weighted purchase average or is a custom manual master rate.
+     */
+    public function getIsAutoAvgAttribute(): bool
+    {
+        $purchases = $this->relationLoaded('purchases')
+            ? $this->purchases->where('purchase_type', 'raw_material')
+            : $this->purchases()->where('purchase_type', 'raw_material')->get();
+
+        $totalQty = 0.0;
+        $totalCost = 0.0;
+
+        foreach ($purchases as $p) {
+            $qty = (float) ($p->quantity ?? 0);
+            $amount = (float) ($p->total_amount ?? 0);
+            if ($qty > 0 && $amount > 0) {
+                $totalQty += $qty;
+                $totalCost += $amount;
+            }
+        }
+
+        if ($totalQty > 0) {
+            $weightedAvg = round($totalCost / $totalQty, 2);
+
+            return abs((float) $this->average_purchase_price - $weightedAvg) < 0.01;
+        }
+
+        return false;
+    }
+
+    /**
      * Recalculate and update the weighted average purchase rate based on all logged purchases.
      */
     public function recalculateAveragePurchasePrice(): float

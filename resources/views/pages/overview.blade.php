@@ -474,7 +474,7 @@
             </div>
             <div class="space-y-2">
                 @forelse($recentOrders as $order)
-                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
+                    <div id="dash-order-card-{{ $order->id }}" class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between hover:bg-white transition">
                         <div>
                             <div class="text-xs font-black text-slate-800">#{{ $order->order_number }}</div>
                             <div class="text-[11px] font-medium text-slate-500 truncate max-w-[180px]">
@@ -491,37 +491,39 @@
                                 $trackStockEnabled = (\App\Models\Setting::get('track_stock', 'true') === 'true');
                             @endphp
 
-                            @if ($order->status === 'pending')
-                                <button type="button" 
-                                        onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'in_production')"
-                                        title="Click to start manufacturing order"
-                                        class="mt-1 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer">
-                                    <span>▶ Start Production</span>
-                                </button>
-                            @elseif ($order->status === 'in_production')
-                                @if (!$trackStockEnabled || $ordHasStock)
+                            <div class="dash-order-action-cell mt-1" id="dash-order-action-{{ $order->id }}">
+                                @if ($order->status === 'pending')
                                     <button type="button" 
-                                            onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'ready_for_dispatch')"
-                                            title="{{ $trackStockEnabled ? 'Stock ready! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch' }}"
-                                            class="mt-1 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer {{ $trackStockEnabled ? 'animate-pulse' : '' }}">
-                                        <span>📦 Mark Ready</span>
+                                            onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'in_production', this)"
+                                            title="Click to start manufacturing order"
+                                            class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer">
+                                        <span>▶ Start Production</span>
                                     </button>
+                                @elseif ($order->status === 'in_production')
+                                    @if (!$trackStockEnabled || $ordHasStock)
+                                        <button type="button" 
+                                                onclick="updateOrderStatusFromDashboard({{ $order->id }}, 'ready_for_dispatch', this)"
+                                                title="{{ $trackStockEnabled ? 'Stock ready! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch' }}"
+                                                class="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer {{ $trackStockEnabled ? 'animate-pulse' : '' }}">
+                                            <span>📦 Mark Ready</span>
+                                        </button>
+                                    @else
+                                        <span class="inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                            ⏳ Awaiting Stock
+                                        </span>
+                                    @endif
+                                @elseif ($order->status === 'ready_for_dispatch')
+                                    <a href="{{ route('invoices', ['order_id' => $order->id]) }}" 
+                                       title="Stock ready! Click to generate Tax Invoice & dispatch"
+                                       class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1">
+                                        <span>🚀 Gen Invoice</span>
+                                    </a>
                                 @else
-                                    <span class="inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mt-1">
-                                        ⏳ Awaiting Stock
+                                    <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        ✓ {{ strtoupper($order->status) }}
                                     </span>
                                 @endif
-                            @elseif ($order->status === 'ready_for_dispatch')
-                                <a href="{{ route('invoices', ['order_id' => $order->id]) }}" 
-                                   title="Stock ready! Click to generate Tax Invoice & dispatch"
-                                   class="mt-1 px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1">
-                                    <span>🚀 Gen Invoice</span>
-                                </a>
-                            @else
-                                <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 mt-1">
-                                    ✓ {{ strtoupper($order->status) }}
-                                </span>
-                            @endif
+                            </div>
                         </div>
                     </div>
                 @empty
@@ -920,7 +922,11 @@ function submitDashboardPayForm(e) {
     </div>
 </div>
 <script>
-    function updateOrderStatusFromDashboard(id, status) {
+    function updateOrderStatusFromDashboard(id, status, btnEl) {
+        const $btn = btnEl ? $(btnEl) : null;
+        if ($btn) {
+            $btn.prop('disabled', true).addClass('opacity-50 pointer-events-none');
+        }
         const token = $('meta[name="csrf-token"]').attr('content') || '';
         $.ajax({
             url: `/orders/${id}/status`,
@@ -928,17 +934,61 @@ function submitDashboardPayForm(e) {
             data: { status: status, _token: token },
             success: function(res) {
                 if (window.showToast) window.showToast('success', res.message || 'Status updated!');
-                const $orderCard = $(`#dash-order-card-${id}`);
-                if ($orderCard.length) {
-                    $orderCard.find('.order-status-badge').html(`
-                        <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 mt-1">
-                            ✓ ${status.toUpperCase().replace('_', ' ')}
-                        </span>
-                    `);
+
+                const actualStatus = res.status || status;
+                const hasStock = res.has_stock !== undefined ? res.has_stock : true;
+                const trackStockEnabled = res.track_stock !== undefined ? res.track_stock : true;
+
+                const $actionCell = $(`#dash-order-action-${id}`);
+                if ($actionCell.length) {
+                    if (actualStatus === 'pending') {
+                        $actionCell.html(`
+                            <button type="button" 
+                                    onclick="updateOrderStatusFromDashboard(${id}, 'in_production', this)"
+                                    title="Click to start manufacturing order"
+                                    class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer">
+                                <span>▶ Start Production</span>
+                            </button>
+                        `);
+                    } else if (actualStatus === 'in_production') {
+                        if (!trackStockEnabled || hasStock) {
+                            $actionCell.html(`
+                                <button type="button" 
+                                        onclick="updateOrderStatusFromDashboard(${id}, 'ready_for_dispatch', this)"
+                                        title="${trackStockEnabled ? 'Stock ready! Click to mark Ready for Dispatch' : 'Click to mark Ready for Dispatch'}"
+                                        class="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1 cursor-pointer ${trackStockEnabled ? 'animate-pulse' : ''}">
+                                    <span>📦 Mark Ready</span>
+                                </button>
+                            `);
+                        } else {
+                            $actionCell.html(`
+                                <span class="inline-block text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                    ⏳ Awaiting Stock
+                                </span>
+                            `);
+                        }
+                    } else if (actualStatus === 'ready_for_dispatch') {
+                        $actionCell.html(`
+                            <a href="/invoices?order_id=${id}" 
+                               title="Stock ready! Click to generate Tax Invoice & dispatch"
+                               class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9.5px] font-extrabold rounded-md shadow-2xs transition inline-flex items-center space-x-1">
+                                <span>🚀 Gen Invoice</span>
+                            </a>
+                        `);
+                    } else {
+                        $actionCell.html(`
+                            <span class="inline-block text-[9.5px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                ✓ ${actualStatus.toUpperCase().replace('_', ' ')}
+                            </span>
+                        `);
+                    }
                 }
                 if (window.clearPageCache) window.clearPageCache();
             },
             error: function(xhr) {
+                if ($btn) {
+                    $btn.prop('disabled', false).removeClass('opacity-50 pointer-events-none');
+                }
                 const msg = xhr.responseJSON?.message || 'Failed to update order status.';
                 if (window.showToast) {
                     window.showToast('error', msg);
