@@ -13,7 +13,7 @@ class EwayBillService
      */
     public static function generateJsonPayload(Invoice $invoice): array
     {
-        $invoice->loadMissing(['plant.client', 'items.product', 'salesOrder']);
+        $invoice->loadMissing(['plant.client', 'items.product', 'items.rawMaterial', 'salesOrder']);
 
         $businessGstin = Setting::get('gstin', Setting::get('business_gstin', '24AFHPV5264M1ZU'));
         $businessName = Setting::get('business_name', 'Praful Welding Works');
@@ -25,7 +25,7 @@ class EwayBillService
         $client = $plant ? $plant->client : null;
 
         $toGstin = $plant->gst_number ?? ($client->gst_number ?? 'URP');
-        $toName = $client->company_name ?? ($plant->plant_name ?? 'Client Customer');
+        $toName = $client->company_name ?? ($plant->plant_name ?? ($invoice->custom_client_name ?? 'Client Customer'));
         $toAddr = $plant->shipping_address ?? ($client->corporate_address ?? 'Client Office');
         $toPlace = $plant->state ?? ($client->city ?? 'Gujarat');
         $toPin = (int) preg_replace('/[^0-9]/', '', $plant->pincode ?? ($client->pincode ?? '360001')) ?: 360001;
@@ -34,7 +34,7 @@ class EwayBillService
         $toStateCode = (int) (preg_match('/^[0-9]{2}/', $toGstin, $m) ? $m[0] : 24);
 
         $isInterstate = ($fromStateCode !== $toStateCode);
-        $gstRate = (float) Setting::get('default_gst_rate', '18.00');
+        $defaultGstRate = (float) Setting::get('default_gst_rate', '18.00');
 
         $docDate = $invoice->invoice_date
             ? Carbon::parse($invoice->invoice_date)->format('d/m/Y')
@@ -44,20 +44,28 @@ class EwayBillService
         if ($invoice->items && $invoice->items->count() > 0) {
             foreach ($invoice->items as $item) {
                 $product = $item->product;
+                $rawMaterial = $item->rawMaterial;
                 $hsn = (int) preg_replace('/[^0-9]/', '', $product->hsn_code ?? '7314') ?: 7314;
                 $qty = (float) $item->quantity;
                 $taxable = (float) $item->total_price;
 
-                $cgstRate = $isInterstate ? 0.00 : round($gstRate / 2, 2);
-                $sgstRate = $isInterstate ? 0.00 : round($gstRate / 2, 2);
-                $igstRate = $isInterstate ? $gstRate : 0.00;
+                $itemGstRate = $invoice->custom_gst_rate !== null
+                    ? (float) $invoice->custom_gst_rate
+                    : (float) ($product->gst_rate ?? $defaultGstRate);
+
+                $cgstRate = $isInterstate ? 0.00 : round($itemGstRate / 2, 2);
+                $sgstRate = $isInterstate ? 0.00 : round($itemGstRate / 2, 2);
+                $igstRate = $isInterstate ? $itemGstRate : 0.00;
+
+                $itemName = $item->item_name ?: ($product->product_name ?? ($rawMaterial->material_name ?? 'Welded Item'));
+                $uom = strtoupper($item->billing_uom ?? ($product->uom ?? 'NOS'));
 
                 $itemList[] = [
-                    'productName' => substr($product->product_name ?? 'Welded Mesh Item', 0, 100),
-                    'productDesc' => substr($product->description ?? 'Welded Wire Mesh', 0, 100),
+                    'productName' => substr($itemName, 0, 100),
+                    'productDesc' => substr($product->description ?? $itemName, 0, 100),
                     'hsnCode' => $hsn,
                     'quantity' => $qty,
-                    'qtyUnit' => 'NOS',
+                    'qtyUnit' => $uom === 'KG' ? 'KGS' : ($uom === 'PIECE' || $uom === 'PCS' ? 'NOS' : substr($uom, 0, 3)),
                     'taxableAmount' => $taxable,
                     'cgstRate' => $cgstRate,
                     'sgstRate' => $sgstRate,
@@ -68,9 +76,10 @@ class EwayBillService
             }
         } else {
             $taxable = (float) $invoice->total_taxable_value;
-            $cgstRate = $isInterstate ? 0.00 : round($gstRate / 2, 2);
-            $sgstRate = $isInterstate ? 0.00 : round($gstRate / 2, 2);
-            $igstRate = $isInterstate ? $gstRate : 0.00;
+            $fallbackGstRate = $invoice->custom_gst_rate !== null ? (float) $invoice->custom_gst_rate : $defaultGstRate;
+            $cgstRate = $isInterstate ? 0.00 : round($fallbackGstRate / 2, 2);
+            $sgstRate = $isInterstate ? 0.00 : round($fallbackGstRate / 2, 2);
+            $igstRate = $isInterstate ? $fallbackGstRate : 0.00;
 
             $itemList[] = [
                 'productName' => 'Welded Wire Mesh Products',

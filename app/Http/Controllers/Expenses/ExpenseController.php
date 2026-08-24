@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Expenses;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
+use App\Models\SalaryAdvance;
+use App\Models\SalaryPayment;
 use App\Services\AuditLogService;
 use App\Services\RolePermissionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseController extends Controller
 {
@@ -147,7 +150,12 @@ class ExpenseController extends Controller
 
             $cat = str_replace('_', ' ', $expense->expense_category);
             $amt = $expense->amount;
-            $expense->delete();
+
+            DB::transaction(function () use ($expense) {
+                SalaryPayment::where('expense_id', $expense->id)->update(['expense_id' => null]);
+                SalaryAdvance::where('expense_id', $expense->id)->update(['expense_id' => null]);
+                $expense->delete();
+            });
 
             AuditLogService::log('Expenses', 'deleted', "Deleted expense record '{$cat}' (Amount: ₹".number_format($amt, 2).')');
 

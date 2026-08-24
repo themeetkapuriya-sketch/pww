@@ -159,21 +159,21 @@ class OverviewController extends Controller
             $chartExpenseData[] = round($expVal, 2);
         }
 
-        // Top 5 Client Plants Revenue Breakdown (Plant-Wise)
+        // Top 5 Client Plants Revenue Breakdown (Plant-Wise & Direct Sales)
         $topClientsData = DB::table('invoices')
-            ->join('client_plants', 'invoices.plant_id', '=', 'client_plants.id')
-            ->join('clients', 'client_plants.client_id', '=', 'clients.id')
+            ->leftJoin('client_plants', 'invoices.plant_id', '=', 'client_plants.id')
+            ->leftJoin('clients', 'client_plants.client_id', '=', 'clients.id')
             ->select(
-                'clients.company_name',
+                DB::raw("COALESCE(clients.company_name, invoices.custom_client_name, 'Direct Sales') as customer_name"),
                 'client_plants.plant_name',
                 DB::raw('SUM(invoices.total_amount) as sales')
             )
-            ->groupBy('client_plants.id', 'clients.company_name', 'client_plants.plant_name')
+            ->groupBy(DB::raw("COALESCE(clients.company_name, invoices.custom_client_name, 'Direct Sales')"), 'client_plants.plant_name')
             ->orderByDesc('sales')
             ->take(5)
             ->get()
             ->map(function ($item) {
-                $displayName = $item->company_name;
+                $displayName = $item->customer_name;
                 if (! empty($item->plant_name)) {
                     $displayName .= ' ('.$item->plant_name.')';
                 }

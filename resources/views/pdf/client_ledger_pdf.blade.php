@@ -189,7 +189,7 @@
                     @if(!empty($selected_plant))
                         <div style="color: #2563eb; font-weight: bold; margin-top: 2px;">Factory Plant: {{ $selected_plant->plant_name }}</div>
                         <div style="color: #475569; margin-top: 1px;">{{ $selected_plant->shipping_address ?? $client->corporate_address }}</div>
-                        <div style="margin-top: 2px;">Plant GSTIN: <strong class="font-mono">{{ $selected_plant->gstin ?? $client->gst_number ?? 'N/A' }}</strong></div>
+                        <div style="margin-top: 2px;">Plant GSTIN: <strong class="font-mono">{{ $selected_plant->gst_number ?? $client->gst_number ?? 'N/A' }}</strong></div>
                     @else
                         <div style="color: #475569; margin-top: 2px;">{{ $client->corporate_address ?? 'N/A' }}</div>
                         <div style="margin-top: 2px;">GSTIN: <strong class="font-mono">{{ $client->gst_number ?? 'N/A' }}</strong></div>

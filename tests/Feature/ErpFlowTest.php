@@ -1853,4 +1853,413 @@ class ErpFlowTest extends TestCase
         $webRes = $this->get(route('activity-logs'));
         $webRes->assertRedirect(route('login'));
     }
+
+    /**
+     * Test Global Search API Endpoint with Multi-Category Grouping.
+     */
+    public function test_global_search_endpoint_returns_categorized_results(): void
+    {
+        // 1. Guest request should redirect to login
+        $guestRes = $this->get(route('global.search', ['q' => 'Invoice']));
+        $guestRes->assertRedirect(route('login'));
+
+        $admin = User::create([
+            'name' => 'Search Tester',
+            'email' => 'search_tester@pww.com',
+            'password' => bcrypt('password123'),
+            'role' => 'super_admin',
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+
+        // 2. Empty query returns empty set
+        $emptyRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => '']));
+        $emptyRes->assertStatus(200)
+            ->assertJson(['success' => true, 'total' => 0, 'results' => []]);
+
+        // 3. Navigation shortcuts search
+        $navRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => 'Attendance']));
+        $navRes->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['results' => ['Navigation & Pages']]);
+
+        // 4. Create entities and test deep multi-category search
+        $client = Client::create(['company_name' => 'Global Search Client Ltd', 'client_email' => 'search@client.com', 'gst_number' => '24GSCLL1234A1Z1']);
+        $plant = ClientPlant::create(['client_id' => $client->id, 'plant_name' => 'Main Facility', 'opening_balance' => 0, 'state' => 'Gujarat']);
+        $product = Product::create(['product_name' => 'Welded Flange Bracket', 'selling_price' => 450.00, 'gst_rate' => 18.00, 'current_stock' => 80]);
+        $invoice = Invoice::create([
+            'invoice_number' => 'PWW/26-27/SRCH-99',
+            'plant_id' => $plant->id,
+            'invoice_mode' => 'finished_goods',
+            'tax_type' => 'regular',
+            'taxable_amount' => 1000.00,
+            'cgst' => 90.00,
+            'sgst' => 90.00,
+            'igst' => 0.00,
+            'total_amount' => 1180.00,
+            'payment_status' => 'unpaid',
+            'vehicle_number' => 'GJ03AA1234',
+        ]);
+
+        // Search by Invoice Doc No
+        $invRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => 'SRCH-99']));
+        $invRes->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonFragment(['title' => 'PWW/26-27/SRCH-99 — Global Search Client Ltd (Main Facility)']);
+
+        // Search by Client Company Name
+        $clientRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => 'Global Search Client']));
+        $clientRes->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonFragment(['title' => 'Global Search Client Ltd']);
+
+        // Search by Product Name
+        $prodRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => 'Welded Flange']));
+        $prodRes->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonFragment(['title' => 'Welded Flange Bracket']);
+
+        // 5. Test Disabling Global Search Module via Settings
+        $toggleRes = $this->actingAs($admin)->postJson(route('settings.modules'), [
+            'module_global_search' => 'false'
+        ]);
+        $toggleRes->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('false', Setting::get('module_global_search'));
+
+        // When disabled, header should not include search and search endpoint returns disabled
+        $disabledSearchRes = $this->actingAs($admin)->getJson(route('global.search', ['q' => 'Welded Flange']));
+        $disabledSearchRes->assertStatus(200)
+            ->assertJson([
+                'success' => false,
+                'total' => 0,
+                'results' => []
+            ]);
+
+        $overviewRes = $this->actingAs($admin)->get(route('overview'));
+        $overviewRes->assertStatus(200);
+        $overviewRes->assertDontSee('id="globalSearchInput"', false);
+
+        // Re-enable for subsequent tests
+        Setting::set('module_global_search', 'true');
+    }
+
+    /**
+     * Test Route-Level Page Permissions Enforcement (SEC-001).
+     */
+    public function test_route_level_page_permissions_enforced(): void
+    {
+        // Create a restricted custom user who lacks reports and invoices permissions
+        $restrictedUser = User::factory()->create([
+            'role' => 'custom',
+            'status' => 'active',
+            'is_active' => true,
+            'permissions' => ['page_overview'],
+        ]);
+
+        // Accessing allowed page succeeds
+        $resAllowed = $this->actingAs($restrictedUser)->get(route('overview'));
+        $resAllowed->assertStatus(200);
+
+        // Accessing forbidden reports route via web redirects to overview with error message
+        $resReports = $this->actingAs($restrictedUser)->get(route('reports'));
+        $resReports->assertRedirect(route('overview'));
+        $resReports->assertSessionHas('error');
+
+        // Accessing forbidden invoices route via JSON returns 403 Forbidden
+        $resInvoices = $this->actingAs($restrictedUser)->getJson(route('invoices'));
+        $resInvoices->assertStatus(403);
+    }
+
+    /**
+     * Test Super Admin Role Escalation Guard (SEC-002).
+     */
+    public function test_super_admin_role_escalation_guard(): void
+    {
+        $superAdmin = User::factory()->create(['role' => 'super_admin', 'status' => 'active', 'is_active' => true]);
+        $standardAdmin = User::factory()->create(['role' => 'admin', 'status' => 'active', 'is_active' => true]);
+        $targetStaff = User::factory()->create(['role' => 'staff', 'status' => 'active', 'is_active' => true]);
+
+        // Standard admin tries to promote a staff user to super_admin -> should be rejected
+        $promoteRes = $this->actingAs($standardAdmin)->putJson(route('settings.users.update', $targetStaff->id), [
+            'name' => 'Target Staff',
+            'email' => $targetStaff->email,
+            'role' => 'super_admin',
+        ]);
+        $promoteRes->assertStatus(422)->assertJson(['success' => false]);
+        $this->assertEquals('staff', $targetStaff->fresh()->role);
+
+        // Standard admin tries to demote the super_admin account -> should be rejected
+        $demoteRes = $this->actingAs($standardAdmin)->putJson(route('settings.users.update', $superAdmin->id), [
+            'name' => 'Super Owner',
+            'email' => $superAdmin->email,
+            'role' => 'staff',
+        ]);
+        $demoteRes->assertStatus(422)->assertJson(['success' => false]);
+        $this->assertEquals('super_admin', $superAdmin->fresh()->role);
+    }
+
+    /**
+     * Test storePlant Authorization Guard (SEC-004).
+     */
+    public function test_store_plant_permission_guard(): void
+    {
+        $client = Client::create(['company_name' => 'Plant Test Client', 'gst_number' => '24AAAAB1111A1Z5']);
+
+        // User with no insert permission
+        $viewOnlyUser = User::factory()->create([
+            'role' => 'view_only',
+            'status' => 'active',
+            'is_active' => true,
+            'permissions' => [
+                'page_clients' => true,
+                'action_insert' => false,
+            ],
+        ]);
+
+        $res = $this->actingAs($viewOnlyUser)->postJson(route('clients.plants.store'), [
+            'client_id' => $client->id,
+            'plant_name' => 'Unauthorized Plant',
+            'state' => 'Gujarat',
+            'shipping_address' => 'Test Address, Rajkot',
+        ]);
+        $res->assertStatus(403);
+    }
+
+    /**
+     * Test GSTR-1 CSV and Blade Views Client GST Number (BUG-001, BUG-002, BUG-003).
+     */
+    public function test_gstr1_csv_and_views_output_client_gst_number(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $client = Client::create([
+            'company_name' => 'GST Test Enterprises',
+            'gst_number' => '24ABCDE1234F1Z5',
+        ]);
+        $plant = ClientPlant::create([
+            'client_id' => $client->id,
+            'plant_name' => 'Sanand Plant',
+            'gst_number' => '24ABCDE1234F1Z5',
+            'state' => 'Gujarat',
+        ]);
+
+        $invoice = Invoice::create([
+            'plant_id' => $plant->id,
+            'invoice_number' => 'PWW/26-27/GST-01',
+            'invoice_date' => '2026-08-15',
+            'total_taxable_value' => 10000.00,
+            'cgst' => 900.00,
+            'sgst' => 900.00,
+            'igst' => 0.00,
+            'total_amount' => 11800.00,
+            'payment_status' => 'paid',
+            'paid_amount' => 11800.00,
+        ]);
+
+        // Test GSTR-1 CSV export contains real GSTIN
+        $csvResponse = $this->actingAs($admin)->get(route('reports.export', [
+            'report_type' => 'gst',
+            'gst_type' => 'gstr1',
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-31',
+        ]));
+        $csvResponse->assertStatus(200);
+
+        ob_start();
+        $csvResponse->sendContent();
+        $content = ob_get_clean();
+
+        $this->assertStringContainsString('24ABCDE1234F1Z5', $content);
+        $this->assertStringContainsString('GST Test Enterprises', $content);
+    }
+
+    /**
+     * Test E-Way Bill Dynamic GST Rates (BUG-004).
+     */
+    public function test_eway_bill_dynamic_gst_rates(): void
+    {
+        $product12 = Product::create([
+            'product_name' => '12% Special Mesh',
+            'gst_rate' => 12.00,
+            'hsn_code' => '7314',
+            'selling_price' => 500.00,
+        ]);
+
+        $client = Client::create(['company_name' => 'EWay Client', 'gst_number' => '24AAAAB1111A1Z5']);
+        $plant = ClientPlant::create(['client_id' => $client->id, 'plant_name' => 'Main', 'gst_number' => '24AAAAB1111A1Z5', 'state' => 'Gujarat']);
+
+        $invoice = Invoice::create([
+            'plant_id' => $plant->id,
+            'invoice_number' => 'PWW/26-27/EWAY-12',
+            'invoice_date' => '2026-08-20',
+            'total_taxable_value' => 5000.00,
+            'cgst' => 300.00,
+            'sgst' => 300.00,
+            'igst' => 0.00,
+            'total_amount' => 5600.00,
+        ]);
+
+        InvoiceItem::create([
+            'invoice_id' => $invoice->id,
+            'item_type' => 'product',
+            'product_id' => $product12->id,
+            'item_name' => $product12->product_name,
+            'quantity' => 10,
+            'unit_price' => 500.00,
+            'total_price' => 5000.00,
+        ]);
+
+        $payload = \App\Services\EwayBillService::generateJsonPayload($invoice);
+        $items = $payload['billLists'][0]['itemList'];
+
+        $this->assertCount(1, $items);
+        $this->assertEquals(6.0, $items[0]['cgstRate']);
+        $this->assertEquals(6.0, $items[0]['sgstRate']);
+        $this->assertEquals(0.0, $items[0]['igstRate']);
+    }
+
+    /**
+     * Test Purchase Deletion Locked FY Check & Transaction Cleanup (BUG-005 & BUG-007).
+     */
+    public function test_purchase_deletion_locked_fy_check_and_transaction(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        // Lock FY 2025-26
+        Setting::set('locked_financial_years', json_encode(['2025-26']));
+
+        $lockedPurchase = Purchase::create([
+            'vendor_name' => 'Historical Vendor Ltd',
+            'item_name' => 'Historical Steel Rods',
+            'purchase_type' => 'raw_material',
+            'total_amount' => 5000.00,
+            'gst_rate' => 18.00,
+            'gst_amount' => 762.71,
+            'purchase_date' => '2025-06-15',
+            'payment_status' => 'paid',
+        ]);
+
+        // Attempting to delete purchase from locked FY should return 422
+        $delLockedRes = $this->actingAs($admin)->deleteJson(route('purchases.delete', $lockedPurchase->id));
+        $delLockedRes->assertStatus(422)
+            ->assertJson(['success' => false]);
+        $this->assertNotNull(Purchase::find($lockedPurchase->id));
+
+        // Unlock for clean state
+        Setting::set('locked_financial_years', json_encode([]));
+
+        // Create unlocked purchase with payment
+        $unlockedPurchase = Purchase::create([
+            'vendor_name' => 'Current Vendor Ltd',
+            'item_name' => 'Current Steel Rods',
+            'purchase_type' => 'others',
+            'total_amount' => 3000.00,
+            'gst_rate' => 18.00,
+            'gst_amount' => 457.63,
+            'purchase_date' => '2026-08-10',
+            'payment_status' => 'paid',
+        ]);
+
+        $payment = \App\Models\Payment::create([
+            'payment_number' => \App\Models\Payment::generatePaymentNumber('paid'),
+            'payment_type' => 'paid',
+            'purchase_id' => $unlockedPurchase->id,
+            'amount' => 3000.00,
+            'payment_date' => '2026-08-10',
+        ]);
+
+        $delUnlockedRes = $this->actingAs($admin)->deleteJson(route('purchases.delete', $unlockedPurchase->id));
+        $delUnlockedRes->assertStatus(200)->assertJson(['success' => true]);
+
+        $this->assertNull(Purchase::find($unlockedPurchase->id));
+        $this->assertNull(\App\Models\Payment::find($payment->id));
+    }
+
+    /**
+     * Test Product Deletion Safeguard with History (BUG-006).
+     */
+    public function test_product_deletion_safeguard_with_history(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $product = Product::create([
+            'product_name' => 'Critical Protected Product',
+            'hsn_code' => '7314',
+            'selling_price' => 100.00,
+        ]);
+
+        // Add a production log
+        ProductionLog::create([
+            'product_id' => $product->id,
+            'quantity_manufactured' => 50,
+            'quantity_rejected' => 0,
+            'recorded_by' => $admin->id,
+            'production_date' => '2026-08-20',
+        ]);
+
+        // Attempting to delete product with production history should be blocked with 422
+        $delRes = $this->actingAs($admin)->deleteJson(route('inventory.goods.delete', $product->id));
+        $delRes->assertStatus(422)
+            ->assertJson(['success' => false]);
+        $this->assertNotNull(Product::find($product->id));
+    }
+
+    /**
+     * Test Overview Top Clients Includes Direct Sales (BUG-008).
+     */
+    public function test_overview_top_clients_with_direct_sales(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        // Create direct raw material sale with null plant_id
+        $directInv = Invoice::create([
+            'plant_id' => null,
+            'invoice_mode' => 'raw_material',
+            'custom_client_name' => 'Direct Retail Buyer',
+            'invoice_number' => 'PWW/26-27/RMS-999',
+            'invoice_date' => '2026-08-22',
+            'total_taxable_value' => 50000.00,
+            'total_amount' => 59000.00,
+            'payment_status' => 'paid',
+        ]);
+
+        $overviewRes = $this->actingAs($admin)->get(route('overview'));
+        $overviewRes->assertStatus(200);
+        $overviewRes->assertSee('Direct Retail Buyer');
+    }
+
+    /**
+     * Test Expense Deletion Cleans Up Salary Links (BUG-011).
+     */
+    public function test_expense_deletion_cleans_salary_links(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $staff = StaffProfile::create([
+            'full_name' => 'Salary Staff Profile',
+            'wage_type' => 'fixed',
+            'monthly_salary' => 15000.00,
+            'is_active' => true,
+        ]);
+
+        $expense = Expense::create([
+            'expense_category' => 'Employee Salary / Payroll',
+            'amount' => 15000.00,
+            'expense_date' => '2026-08-20',
+            'description' => 'Salary payout test',
+        ]);
+
+        $payment = SalaryPayment::create([
+            'staff_profile_id' => $staff->id,
+            'month_year' => '2026-08',
+            'total_salary' => 15000.00,
+            'status' => 'paid',
+            'expense_id' => $expense->id,
+        ]);
+
+        $delExpRes = $this->actingAs($admin)->deleteJson(route('expense.delete', $expense->id));
+        $delExpRes->assertStatus(200)->assertJson(['success' => true]);
+
+        $this->assertNull(Expense::find($expense->id));
+        $this->assertNull($payment->fresh()->expense_id);
+    }
 }
+
+

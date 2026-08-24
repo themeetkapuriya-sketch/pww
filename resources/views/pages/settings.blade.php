@@ -3,6 +3,21 @@
 @section('title', 'System Settings & User Access')
 
 @section('content')
+@php
+    $reqTab = request('tab', 'profile');
+    $reqSub = request('sub');
+    $subTabKeys = ['serials', 'financial', 'email', 'categories', 'security'];
+    if (in_array($reqTab, $subTabKeys)) {
+        $activeMainTab = 'other';
+        $activeSubTab = $reqTab;
+    } elseif ($reqTab === 'other') {
+        $activeMainTab = 'other';
+        $activeSubTab = in_array($reqSub, $subTabKeys) ? $reqSub : 'serials';
+    } else {
+        $activeMainTab = in_array($reqTab, ['profile', 'bank', 'users', 'modules']) ? $reqTab : 'profile';
+        $activeSubTab = null;
+    }
+@endphp
 <div class="space-y-6">
     <!-- Header Section -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
@@ -20,28 +35,28 @@
 
     <!-- Navigation Tabs -->
     <div class="bg-white rounded-2xl p-2 border border-slate-200/80 shadow-sm flex flex-wrap gap-2">
-        <button onclick="switchSettingsTab('profile')" id="tabBtn-profile" class="tab-btn active-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
+        <button onclick="switchSettingsTab('profile')" id="tabBtn-profile" class="tab-btn {{ $activeMainTab === 'profile' ? 'active-tab-btn' : 'text-slate-600 hover:bg-slate-50' }} flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             <span>Business Profile</span>
         </button>
 
-        <button onclick="switchSettingsTab('bank')" id="tabBtn-bank" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+        <button onclick="switchSettingsTab('bank')" id="tabBtn-bank" class="tab-btn {{ $activeMainTab === 'bank' ? 'active-tab-btn' : 'text-slate-600 hover:bg-slate-50' }} flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
             <span>Bank & Billing</span>
         </button>
 
-        <button onclick="switchSettingsTab('users')" id="tabBtn-users" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+        <button onclick="switchSettingsTab('users')" id="tabBtn-users" class="tab-btn {{ $activeMainTab === 'users' ? 'active-tab-btn' : 'text-slate-600 hover:bg-slate-50' }} flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
             <span>User Roles</span>
         </button>
 
-        <button onclick="switchSettingsTab('modules')" id="tabBtn-modules" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+        <button onclick="switchSettingsTab('modules')" id="tabBtn-modules" class="tab-btn {{ $activeMainTab === 'modules' ? 'active-tab-btn' : 'text-slate-600 hover:bg-slate-50' }} flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
             </svg>
@@ -50,11 +65,21 @@
 
         <!-- TAB 5: Other Settings Dropdown Menu Button -->
         <div class="relative inline-block text-left" id="otherSettingsDropdownWrapper">
-            <button onclick="toggleOtherSettingsDropdown(event)" id="tabBtn-other" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+            <button onclick="toggleOtherSettingsDropdown(event)" id="tabBtn-other" class="tab-btn {{ $activeMainTab === 'other' ? 'active-tab-btn' : 'text-slate-600 hover:bg-slate-50' }} flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
                 <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 </svg>
-                <span id="otherSettingsTabLabel">Other Settings</span>
+                @php
+                    $subLabelsMap = [
+                        'serials' => 'Auto Serial & Prefixes',
+                        'financial' => 'Tax & Financial',
+                        'email' => 'Email (SMTP)',
+                        'categories' => 'Purchase & Expense Categories',
+                        'security' => 'Security & Backups'
+                    ];
+                    $currentOtherLabel = $activeMainTab === 'other' && isset($subLabelsMap[$activeSubTab]) ? $subLabelsMap[$activeSubTab] : 'Other Settings';
+                @endphp
+                <span id="otherSettingsTabLabel">{{ $currentOtherLabel }}</span>
                 <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -62,35 +87,35 @@
 
             <!-- Dropdown Menu Popup -->
             <div id="otherSettingsDropdownMenu" class="hidden absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200/90 dark:border-slate-700 p-1.5 z-50">
-                <button type="button" onclick="selectOtherSettingsSub('serials')" id="otherOpt-serials" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
+                <button type="button" onclick="selectOtherSettingsSub('serials')" id="otherOpt-serials" class="other-opt-btn {{ $activeSubTab === 'serials' ? 'active-sub-tab-btn bg-blue-50 text-blue-700' : '' }} w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
                     <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                     </svg>
                     <span class="whitespace-nowrap">Auto Serial & Prefixes</span>
                 </button>
 
-                <button type="button" onclick="selectOtherSettingsSub('financial')" id="otherOpt-financial" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
+                <button type="button" onclick="selectOtherSettingsSub('financial')" id="otherOpt-financial" class="other-opt-btn {{ $activeSubTab === 'financial' ? 'active-sub-tab-btn bg-blue-50 text-blue-700' : '' }} w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
                     <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span class="whitespace-nowrap">Tax & Financial</span>
                 </button>
 
-                <button type="button" onclick="selectOtherSettingsSub('email')" id="otherOpt-email" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
+                <button type="button" onclick="selectOtherSettingsSub('email')" id="otherOpt-email" class="other-opt-btn {{ $activeSubTab === 'email' ? 'active-sub-tab-btn bg-blue-50 text-blue-700' : '' }} w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
                     <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     <span class="whitespace-nowrap">Email (SMTP)</span>
                 </button>
 
-                <button type="button" onclick="selectOtherSettingsSub('categories')" id="otherOpt-categories" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
+                <button type="button" onclick="selectOtherSettingsSub('categories')" id="otherOpt-categories" class="other-opt-btn {{ $activeSubTab === 'categories' ? 'active-sub-tab-btn bg-blue-50 text-blue-700' : '' }} w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
                     <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                     <span class="whitespace-nowrap">Purchase & Expense Categories</span>
                 </button>
 
-                <button type="button" onclick="selectOtherSettingsSub('security')" id="otherOpt-security" class="other-opt-btn w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
+                <button type="button" onclick="selectOtherSettingsSub('security')" id="otherOpt-security" class="other-opt-btn {{ $activeSubTab === 'security' ? 'active-sub-tab-btn bg-blue-50 text-blue-700' : '' }} w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 hover:text-blue-700 dark:hover:text-blue-400 transition rounded-xl cursor-pointer">
                     <svg class="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
@@ -107,7 +132,7 @@
     @include('pages.settings.partials.modules')
 
     <!-- TAB 5: Other System Settings Partial Container -->
-    <div id="settingsTab-other" class="tab-content hidden space-y-6">
+    <div id="settingsTab-other" class="tab-content {{ $activeMainTab === 'other' ? '' : 'hidden' }} space-y-6">
         @include('pages.settings.partials.serials')
         @include('pages.settings.partials.financial')
         @include('pages.settings.partials.email')
@@ -209,12 +234,17 @@
 
 <script>
 // --- Navigation Tab Switching ---
+const OTHER_SUB_TABS = ['serials', 'financial', 'email', 'categories', 'security'];
+
 window.switchSettingsTab = function(tabKey) {
+    if (OTHER_SUB_TABS.includes(tabKey)) {
+        selectOtherSettingsSub(tabKey);
+        return;
+    }
+
     document.querySelectorAll('.tab-content').forEach(el => {
-        if (!el.classList.contains('hidden')) {
-            el.style.opacity = '0';
-            setTimeout(() => el.classList.add('hidden'), 120);
-        }
+        el.classList.add('hidden');
+        el.style.opacity = '0';
     });
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active-tab-btn');
@@ -224,16 +254,10 @@ window.switchSettingsTab = function(tabKey) {
     const targetTab = document.getElementById(`settingsTab-${tabKey}`);
     const targetBtn = document.getElementById(`tabBtn-${tabKey}`);
 
-    setTimeout(() => {
-        if (targetTab) {
-            targetTab.classList.remove('hidden');
-            targetTab.style.opacity = '0';
-            setTimeout(() => {
-                targetTab.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
-                targetTab.style.opacity = '1';
-            }, 20);
-        }
-    }, 130);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+        targetTab.style.opacity = '1';
+    }
 
     if (targetBtn) {
         targetBtn.classList.add('active-tab-btn');
@@ -250,6 +274,9 @@ window.switchSettingsTab = function(tabKey) {
     try {
         const url = new URL(window.location);
         url.searchParams.set('tab', tabKey);
+        if (tabKey !== 'other') {
+            url.searchParams.delete('sub');
+        }
         window.history.replaceState({}, '', url);
     } catch(e) {}
 };
@@ -261,24 +288,38 @@ window.toggleOtherSettingsDropdown = function(e) {
 };
 
 window.selectOtherSettingsSub = function(subKey) {
-    document.querySelectorAll('.sub-tab-content').forEach(el => {
-        if (!el.classList.contains('hidden')) {
-            el.style.opacity = '0';
-            setTimeout(() => el.classList.add('hidden'), 120);
-        }
+    // 1. Show container #settingsTab-other and activate #tabBtn-other
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.style.opacity = '0';
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active-tab-btn');
+        btn.classList.add('text-slate-600');
     });
 
-    setTimeout(() => {
-        const targetSub = document.getElementById(`subTab-${subKey}`);
-        if (targetSub) {
-            targetSub.classList.remove('hidden');
-            targetSub.style.opacity = '0';
-            setTimeout(() => {
-                targetSub.style.transition = 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
-                targetSub.style.opacity = '1';
-            }, 20);
-        }
-    }, 130);
+    const otherContainer = document.getElementById('settingsTab-other');
+    const otherBtn = document.getElementById('tabBtn-other');
+    if (otherContainer) {
+        otherContainer.classList.remove('hidden');
+        otherContainer.style.opacity = '1';
+    }
+    if (otherBtn) {
+        otherBtn.classList.add('active-tab-btn');
+        otherBtn.classList.remove('text-slate-600');
+    }
+
+    // 2. Hide all subTabs and show the selected subTab
+    document.querySelectorAll('.sub-tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.style.opacity = '0';
+    });
+
+    const targetSub = document.getElementById(`subTab-${subKey}`);
+    if (targetSub) {
+        targetSub.classList.remove('hidden');
+        targetSub.style.opacity = '1';
+    }
 
     const menu = document.getElementById('otherSettingsDropdownMenu');
     if (menu) menu.classList.add('hidden');
@@ -294,15 +335,26 @@ window.selectOtherSettingsSub = function(subKey) {
     const labelEl = document.getElementById('otherSettingsTabLabel');
     if (labelEl && subLabels[subKey]) labelEl.innerText = subLabels[subKey];
 
-    switchSettingsTab('other');
+    // Highlight the sub-tab option in the dropdown
+    document.querySelectorAll('.other-opt-btn').forEach(btn => {
+        btn.classList.remove('active-sub-tab-btn', 'bg-blue-50', 'text-blue-700');
+    });
+    const targetOptBtn = document.getElementById(`otherOpt-${subKey}`);
+    if (targetOptBtn) {
+        targetOptBtn.classList.add('active-sub-tab-btn', 'bg-blue-50', 'text-blue-700');
+    }
+
     if (subKey === 'serials') {
-        setTimeout(window.updateSerialPreview, 50);
+        setTimeout(function() {
+            if (typeof window.updateSerialPreview === 'function') {
+                window.updateSerialPreview();
+            }
+        }, 50);
     }
 
     try {
         const url = new URL(window.location);
-        url.searchParams.set('tab', 'other');
-        url.searchParams.set('sub', subKey);
+        url.searchParams.set('tab', subKey);
         window.history.replaceState({}, '', url);
     } catch(e) {}
 };

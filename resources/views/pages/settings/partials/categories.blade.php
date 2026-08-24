@@ -4,7 +4,7 @@
     $expenseCategoriesList = \App\Services\CategoryService::getExpenseCategories();
     $materialCategoriesList = \App\Services\CategoryService::getMaterialCategories();
 @endphp
-<div id="subTab-categories" class="sub-tab-content hidden space-y-6">
+<div id="subTab-categories" class="sub-tab-content {{ ($activeSubTab ?? 'serials') === 'categories' ? '' : 'hidden' }} space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- 1. Purchase Categories Manager -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">

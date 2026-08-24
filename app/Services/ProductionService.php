@@ -92,10 +92,10 @@ class ProductionService
 
                 $staffProfile = StaffProfile::findOrFail($labor['staff_profile_id']);
 
-                // Calculate payout if wage_type is piece-rate
+                // Calculate payout if piece rate is configured
                 $payout = 0.00;
-                if ($staffProfile->wage_type === 'per-day') {
-                    $payout = $labor['units_completed'] * ($staffProfile->piece_rate_per_unit ?? 0.00);
+                if (! empty($staffProfile->piece_rate_per_unit) && (float) $staffProfile->piece_rate_per_unit > 0) {
+                    $payout = round($labor['units_completed'] * (float) $staffProfile->piece_rate_per_unit, 2);
                 }
 
                 LaborLog::create([

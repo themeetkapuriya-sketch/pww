@@ -1,5 +1,5 @@
 <!-- TAB 4: Active ERP Modules Partial -->
-<div id="settingsTab-modules" class="tab-content hidden space-y-6">
+<div id="settingsTab-modules" class="tab-content {{ ($activeMainTab ?? 'profile') === 'modules' ? '' : 'hidden' }} space-y-6">
     <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
         <style>
             .erp-toggle-input {
@@ -279,8 +279,22 @@
                         </span>
                         <span class="text-[11px] text-slate-600 font-medium">Track Unpaid / Partial / Paid statuses and Mark Paid actions. Turn OFF to auto-mark all new Invoices as PAID instantly upon creation.</span>
                     </div>
-                    <label class="inline-flex items-center cursor-pointer select-none">
+                    <label class="inline-flex items-center cursor-pointer select-none shrink-0 ml-4">
                         <input type="checkbox" name="track_payments" value="true" {{ ($modules['track_payments'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
+                        <span class="erp-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Global Spotlight Search Bar (Ctrl + K) -->
+                <div class="p-4 rounded-xl border border-sky-200/80 bg-sky-50/40 flex items-center justify-between col-span-1 md:col-span-3">
+                    <div>
+                        <span class="block text-sm font-bold text-sky-900 flex items-center gap-1.5">
+                            🔍 Global Spotlight Search Bar (Ctrl + K / Quick Search)
+                        </span>
+                        <span class="text-[11px] text-slate-600 font-medium">Enables the fast global command search bar in the top navigation header to search invoices, clients, products, purchase bills, and settings with keyboard shortcuts. Turn OFF if you prefer a minimal header without search.</span>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer select-none shrink-0 ml-4">
+                        <input type="checkbox" name="module_global_search" value="true" {{ ($modules['module_global_search'] ?? true) ? 'checked' : '' }} class="erp-toggle-input" onchange="saveModuleToggleAjax(this)">
                         <span class="erp-toggle-slider"></span>
                     </label>
                 </div>

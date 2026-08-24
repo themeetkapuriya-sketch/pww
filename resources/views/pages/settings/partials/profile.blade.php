@@ -1,5 +1,5 @@
 <!-- TAB 1: Business Profile & Branding Partial -->
-<div id="settingsTab-profile" class="tab-content space-y-6">
+<div id="settingsTab-profile" class="tab-content {{ ($activeMainTab ?? 'profile') === 'profile' ? '' : 'hidden' }} space-y-6">
     <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
         <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Business Information & Official Branding</h2>
 

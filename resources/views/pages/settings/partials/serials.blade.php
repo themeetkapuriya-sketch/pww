@@ -1,5 +1,5 @@
 <!-- Sub Content 1: Auto-Increment Serial & Prefixes Partial -->
-<div id="subTab-serials" class="sub-tab-content space-y-6">
+<div id="subTab-serials" class="sub-tab-content {{ ($activeSubTab ?? 'serials') === 'serials' ? '' : 'hidden' }} space-y-6">
     <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
         <div>
             <h2 class="text-lg font-bold text-slate-800">Auto Increment Serial Reset & Document Prefixes</h2>

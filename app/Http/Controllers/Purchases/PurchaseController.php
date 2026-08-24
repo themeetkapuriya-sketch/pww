@@ -323,24 +323,43 @@ class PurchaseController extends Controller
 
         try {
             $purchase = Purchase::findOrFail($id);
-            $matId = $purchase->raw_material_id;
-            $isRm = $purchase->purchase_type === 'raw_material';
-            $purchasedQty = (float) $purchase->quantity;
-            $item = $purchase->item_name ?? 'Purchase Bill';
-            $purchase->delete();
 
-            $trackStock = Setting::isStockEnabled();
-            if ($isRm && $matId) {
-                /** @var RawMaterial|null $material */
-                $material = RawMaterial::find($matId);
-                if ($material) {
-                    if ($trackStock) {
-                        $material->current_stock = max(0, (float) $material->current_stock - $purchasedQty);
-                        $material->save();
-                    }
-                    $material->recalculateAveragePurchasePrice();
-                }
+            if (\App\Services\FinancialYearService::isFinancialYearLocked($purchase->purchase_date)) {
+                $fy = \App\Services\FinancialYearService::getFinancialYearForDate($purchase->purchase_date);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "Financial Year {$fy} is LOCKED for tax audit compliance. Deleting purchases from locked periods is disabled.",
+                    'errors' => ["Financial Year {$fy} is locked."],
+                ], 422);
             }
+
+            $item = $purchase->item_name ?? 'Purchase Bill';
+
+            DB::transaction(function () use ($purchase) {
+                Payment::where('purchase_id', $purchase->id)->delete();
+
+                $matId = $purchase->raw_material_id;
+                $isRm = $purchase->purchase_type === 'raw_material';
+                $purchasedQty = (float) $purchase->quantity;
+
+                $purchase->delete();
+
+                $trackStock = Setting::isStockEnabled();
+                if ($isRm && $matId) {
+                    /** @var RawMaterial|null $material */
+                    $material = RawMaterial::find($matId);
+                    if ($material) {
+                        if ($trackStock) {
+                            $material->current_stock = max(0, (float) $material->current_stock - $purchasedQty);
+                            $material->save();
+                        }
+                        $material->recalculateAveragePurchasePrice();
+                    }
+                }
+            });
+
+            AuditLogService::log('Purchases', 'deleted', "Deleted purchase record '{$item}'");
 
             return response()->json([
                 'success' => true,

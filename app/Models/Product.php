@@ -79,6 +79,14 @@ class Product extends Model
     }
 
     /**
+     * Get the sales order items for this product.
+     */
+    public function salesOrderItems()
+    {
+        return $this->hasMany(SalesOrderItem::class, 'product_id');
+    }
+
+    /**
      * Calculate estimated raw material cost per product unit from BOM.
      */
     public function getEstimatedManufacturingCostAttribute(): float

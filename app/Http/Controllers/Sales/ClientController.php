@@ -237,6 +237,10 @@ class ClientController extends Controller
      */
     public function storePlant(Request $request)
     {
+        if ($res = RolePermissionService::authorizeAction($request, 'action_insert')) {
+            return $res;
+        }
+
         $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'plant_name' => 'required|string|max:255',

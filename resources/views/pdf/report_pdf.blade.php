@@ -342,8 +342,8 @@
                     @forelse($invoices as $inv)
                         <tr>
                             <td class="font-bold text-blue">{{ $inv->invoice_number }}</td>
-                            <td>{{ $inv->plant->client->gstin ?? 'URP / Retail' }}</td>
-                            <td>{{ $inv->plant->client->company_name ?? 'N/A' }}</td>
+                            <td>{{ $inv->plant->gst_number ?? $inv->plant->client->gst_number ?? ($inv->custom_buyer_gstin ?? 'URP / Retail') }}</td>
+                            <td>{{ $inv->plant->client->company_name ?? ($inv->custom_client_name ?? 'N/A') }}</td>
                             <td class="text-right">₹{{ format_indian($inv->total_taxable_value, 2) }}</td>
                             <td class="text-right">₹{{ format_indian($inv->cgst, 2) }}</td>
                             <td class="text-right">₹{{ format_indian($inv->sgst, 2) }}</td>

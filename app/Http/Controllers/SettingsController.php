@@ -86,6 +86,7 @@ class SettingsController extends Controller
             'module_reports' => Setting::get('module_reports', 'true') === 'true',
             'module_backups' => Setting::get('module_backups', 'true') === 'true',
             'module_activity_logs' => Setting::get('module_activity_logs', 'true') === 'true',
+            'module_global_search' => Setting::get('module_global_search', 'true') === 'true',
             'track_stock' => Setting::get('track_stock', 'true') === 'true',
             'track_payments' => Setting::get('track_payments', 'true') === 'true',
         ];
@@ -136,6 +137,7 @@ class SettingsController extends Controller
                 'module_reports',
                 'module_backups',
                 'module_activity_logs',
+                'module_global_search',
                 'track_stock',
                 'track_payments',
             ];
@@ -223,6 +225,12 @@ class SettingsController extends Controller
 
         try {
             $roleKey = $validated['role'];
+            $currentUser = auth()->user();
+
+            if ($roleKey === 'super_admin' && $currentUser?->role !== 'super_admin') {
+                return $this->respond($request, false, 'Unauthorized: Only Super Admin can create Super Admin accounts.');
+            }
+
             $status = $validated['status'] ?? ($roleKey === 'pending' ? 'pending' : 'active');
             $isActive = $validated['is_active'] ?? ($status === 'active' && $roleKey !== 'pending');
 
@@ -246,7 +254,7 @@ class SettingsController extends Controller
         } catch (Throwable $e) {
             Log::error('Failed to create user account: '.$e->getMessage());
 
-            return $this->respond($request, false, 'Failed to create user. Please try again.');
+            return $this->respond($request, false, 'Failed to create user account. Please try again.');
         }
     }
 
@@ -317,6 +325,7 @@ class SettingsController extends Controller
     public function updateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $currentUser = auth()->user();
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -326,6 +335,16 @@ class SettingsController extends Controller
             'status' => 'nullable|in:active,pending,inactive',
             'permissions' => 'nullable|array',
         ]);
+
+        // Prevent non-super-admins from modifying an existing Super Admin account
+        if ($user->role === 'super_admin' && $currentUser?->role !== 'super_admin') {
+            return $this->respond($request, false, 'Unauthorized: Only a Super Admin can modify a Super Admin account.');
+        }
+
+        // Prevent non-super-admins from promoting anyone to Super Admin
+        if ($validated['role'] === 'super_admin' && $currentUser?->role !== 'super_admin') {
+            return $this->respond($request, false, 'Unauthorized: Only Super Admin can promote users to Super Admin.');
+        }
 
         try {
             $permissions = $validated['role'] === 'custom'

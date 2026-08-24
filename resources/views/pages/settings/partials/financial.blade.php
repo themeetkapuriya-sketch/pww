@@ -1,5 +1,5 @@
 <!-- Sub Content 2: Tax & Financial Settings Partial -->
-<div id="subTab-financial" class="sub-tab-content hidden space-y-6">
+<div id="subTab-financial" class="sub-tab-content {{ ($activeSubTab ?? 'serials') === 'financial' ? '' : 'hidden' }} space-y-6">
     <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-6">
         <div>
             <h2 class="text-lg font-bold text-slate-800">Tax & Financial Settings</h2>

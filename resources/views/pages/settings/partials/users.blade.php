@@ -1,5 +1,5 @@
 <!-- TAB 3: User Access & Role Permissions Partial -->
-<div id="settingsTab-users" class="tab-content hidden space-y-6">
+<div id="settingsTab-users" class="tab-content {{ ($activeMainTab ?? 'profile') === 'users' ? '' : 'hidden' }} space-y-6">
 
     <!-- INLINE FORM: Add / Edit System User (Collapsible Card placed ABOVE Table) -->
     <div id="createUserFormCard" class="hidden bg-white rounded-2xl shadow-md border-2 border-blue-500/30 p-6 transition-all duration-300 space-y-4">

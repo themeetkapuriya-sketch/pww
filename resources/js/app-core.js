@@ -737,6 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 applySidebarState(localStorage.getItem('sidebar_pinned') !== 'false');
                 executeScripts($('#page-content')[0]);
                 window.initErpDataTables();
+                initGlobalSearch();
                 if (window.ERPComboboxManager) {
                     document.querySelectorAll('.combobox-wrapper').forEach(w => window.ERPComboboxManager.syncDisplay(w));
                 }
@@ -1815,12 +1816,391 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+    // Global Command Search Engine (Ctrl + K / Quick Search Bar) - Fully Persistent Delegated Architecture
+    let globalSearchState = {
+        searchTimeout: null,
+        currentActiveIndex: -1,
+        totalItemsCount: 0,
+        currentXhr: null,
+        lastQueriedText: '',
+        initialized: false
+    };
+
+    function getSearchElements() {
+        return {
+            $container: $('#globalSearchContainer'),
+            $input: $('#globalSearchInput'),
+            $card: $('#globalSearchResultsCard'),
+            $list: $('#globalSearchResultsList'),
+            $spinner: $('#globalSearchSpinner'),
+            $clearBtn: $('#globalSearchClearBtn'),
+            $kbdBadge: $('#globalSearchKbdBadge'),
+            $summary: $('#globalSearchSummaryText'),
+        };
+    }
+
+    function closeSearchDropdown() {
+        const { $card } = getSearchElements();
+        $card.addClass('hidden');
+        globalSearchState.currentActiveIndex = -1;
+    }
+
+    function navigateSearchResults(direction) {
+        const { $list } = getSearchElements();
+        const $items = $list.find('.search-result-item');
+        globalSearchState.totalItemsCount = $items.length;
+        if (!globalSearchState.totalItemsCount) return;
+
+        globalSearchState.currentActiveIndex += direction;
+        if (globalSearchState.currentActiveIndex >= globalSearchState.totalItemsCount) globalSearchState.currentActiveIndex = 0;
+        if (globalSearchState.currentActiveIndex < 0) globalSearchState.currentActiveIndex = globalSearchState.totalItemsCount - 1;
+
+        $items.removeClass('active bg-blue-50/90 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 ring-1 ring-blue-400');
+        const $target = $items.eq(globalSearchState.currentActiveIndex);
+        $target.addClass('active bg-blue-50/90 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 ring-1 ring-blue-400');
+
+        // Auto-scroll target into view
+        const containerTop = $list.scrollTop();
+        const containerHeight = $list.height();
+        const elemTop = $target.position().top + containerTop;
+        const elemHeight = $target.outerHeight();
+
+        if (elemTop < containerTop) {
+            $list.scrollTop(elemTop);
+        } else if (elemTop + elemHeight > containerTop + containerHeight) {
+            $list.scrollTop(elemTop + elemHeight - containerHeight);
+        }
+    }
+
+    function performGlobalSearch(query) {
+        const { $card, $list, $spinner, $summary } = getSearchElements();
+        if (globalSearchState.currentXhr) {
+            globalSearchState.currentXhr.abort();
+            globalSearchState.currentXhr = null;
+        }
+
+        globalSearchState.lastQueriedText = query;
+        const baseUrl = (window.AppConfig && window.AppConfig.baseUrl) ? window.AppConfig.baseUrl : '';
+        const searchUrl = baseUrl.replace(/\/+$/, '') + '/global-search';
+
+        $spinner.removeClass('hidden');
+
+        globalSearchState.currentXhr = $.ajax({
+            url: searchUrl,
+            type: 'GET',
+            data: { q: query },
+            dataType: 'json',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function(res) {
+                globalSearchState.currentXhr = null;
+                $spinner.addClass('hidden');
+                if (res && res.success) {
+                    renderGlobalSearchResults(query, res.results, res.total || 0);
+                }
+            },
+            error: function(err) {
+                globalSearchState.currentXhr = null;
+                if (err.statusText !== 'abort') {
+                    $spinner.addClass('hidden');
+                }
+            }
+        });
+    }
+
+    function getSearchCategoryIcon(cat) {
+        if (cat.includes('Invoice')) return `<span class="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">📄</span>`;
+        if (cat.includes('Order')) return `<span class="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">📋</span>`;
+        if (cat.includes('Client')) return `<span class="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">🏢</span>`;
+        if (cat.includes('Inventory') || cat.includes('Catalog')) return `<span class="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400">📦</span>`;
+        if (cat.includes('Purchase')) return `<span class="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400">🛒</span>`;
+        if (cat.includes('Expense')) return `<span class="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400">💸</span>`;
+        if (cat.includes('Staff') || cat.includes('Payroll')) return `<span class="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400">👤</span>`;
+        return `<span class="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400">⚡</span>`;
+    }
+
+    function getSearchBadgeClass(cat) {
+        if (cat.includes('Invoice')) return 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+        if (cat.includes('Order')) return 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+        if (cat.includes('Client')) return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+        if (cat.includes('Inventory')) return 'bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+        if (cat.includes('Purchase')) return 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800';
+        if (cat.includes('Expense')) return 'bg-orange-50 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200 dark:border-orange-800';
+        if (cat.includes('Staff')) return 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600';
+    }
+
+    function highlightSearchMatch(text, query) {
+        if (!text || !query) return text || '';
+        const tokens = query.toString().trim().split(/[\s,#]+/).filter(t => t.length > 0);
+        if (!tokens.length) return text;
+        const pattern = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        const reg = new RegExp(`(${pattern})`, 'gi');
+        return text.toString().replace(reg, '<mark class="bg-amber-200/90 dark:bg-amber-800/90 text-slate-900 dark:text-white px-0.5 rounded font-bold">$1</mark>');
+    }
+
+    function renderGlobalSearchResults(query, results, total) {
+        const { $card, $list, $summary } = getSearchElements();
+        $list.empty();
+        globalSearchState.currentActiveIndex = -1;
+
+        if (!total || Object.keys(results).length === 0) {
+            $summary.text(`0 results for "${query}"`);
+            $list.html(`
+                <div class="py-8 px-4 text-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700/60 text-slate-400 flex items-center justify-center mx-auto mb-2 text-xl">🔍</div>
+                    <p class="text-xs font-bold text-slate-700 dark:text-slate-200">No matching records found for "${query}"</p>
+                    <p class="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">Try searching by invoice doc number, client name, city/plant, vehicle number, or raw material.</p>
+                </div>
+            `);
+            $card.removeClass('hidden');
+            return;
+        }
+
+        $summary.text(`${total} record${total > 1 ? 's' : ''} found`);
+
+        let globalItemIndex = 0;
+
+        Object.keys(results).forEach(category => {
+            const items = results[category];
+            if (!items || !items.length) return;
+
+            const $group = $(`
+                <div class="pt-2 first:pt-0">
+                    <div class="px-2 pb-1.5 flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">${category}</span>
+                        <span class="text-[10px] font-bold text-slate-400">${items.length}</span>
+                    </div>
+                    <div class="space-y-1 group-items"></div>
+                </div>
+            `);
+
+            const $itemsContainer = $group.find('.group-items');
+
+            items.forEach(item => {
+                const iconHtml = getSearchCategoryIcon(category);
+                const badgeClass = getSearchBadgeClass(category);
+                const highlightedTitle = highlightSearchMatch(item.title, query);
+                const highlightedSubtitle = highlightSearchMatch(item.subtitle, query);
+
+                let printActionHtml = '';
+                if (item.print_url) {
+                    printActionHtml = `
+                        <a href="${item.print_url}" target="_blank" onclick="event.stopPropagation();" title="Quick Print Invoice" class="p-1 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-300 transition shrink-0 ml-1 text-xs cursor-pointer">
+                            🖨️
+                        </a>
+                    `;
+                }
+
+                const $item = $(`
+                    <div class="search-result-item p-2 rounded-xl hover:bg-blue-50/70 dark:hover:bg-slate-700/60 cursor-pointer transition flex items-center justify-between gap-3 group" data-index="${globalItemIndex}" data-url="${item.url}">
+                        <div class="flex items-center space-x-2.5 min-w-0 flex-1">
+                            <div class="shrink-0 text-base">${iconHtml}</div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${highlightedTitle}</div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${highlightedSubtitle}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center shrink-0 space-x-1.5">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border ${badgeClass}">${item.badge}</span>
+                            ${printActionHtml}
+                        </div>
+                    </div>
+                `);
+
+                $itemsContainer.append($item);
+                globalItemIndex++;
+            });
+
+            $list.append($group);
+        });
+
+        $card.removeClass('hidden');
+    }
+
+    function initGlobalSearch() {
+        // Reset input visual states
+        const { $input, $card, $clearBtn, $kbdBadge, $spinner } = getSearchElements();
+        if ($input.length) {
+            const currentVal = $.trim($input.val());
+            if (currentVal.length > 0) {
+                $clearBtn.removeClass('hidden');
+                $kbdBadge.addClass('hidden');
+            } else {
+                $clearBtn.addClass('hidden');
+                $kbdBadge.removeClass('hidden');
+            }
+        }
+
+        if (globalSearchState.initialized) return;
+        globalSearchState.initialized = true;
+
+        // Delegated Keydown Listener for Ctrl+K, Cmd+K, Slash, ArrowDown, ArrowUp, Enter, Escape
+        $(document).on('keydown.globalSearch', function(e) {
+            const { $input, $card, $list } = getSearchElements();
+            if (!$input.length) return;
+
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const isCtrlK = (isMac ? e.metaKey : e.ctrlKey) && (e.key === 'k' || e.key === 'K');
+            const isSlash = (e.key === '/') && !$(e.target).is('input, select, textarea, [contenteditable="true"]');
+
+            if (isCtrlK || isSlash) {
+                e.preventDefault();
+                e.stopPropagation();
+                $input.focus().select();
+                const query = $.trim($input.val());
+                if (query.length >= 1) {
+                    $card.removeClass('hidden');
+                    if (globalSearchState.lastQueriedText !== query) {
+                        performGlobalSearch(query);
+                    }
+                }
+            }
+
+            // Keyboard navigation when dropdown is visible
+            if (!$card.hasClass('hidden')) {
+                if (e.key === 'Escape') {
+                    closeSearchDropdown();
+                    $input.blur();
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navigateSearchResults(1);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navigateSearchResults(-1);
+                } else if (e.key === 'Enter') {
+                    const $active = $list.find('.search-result-item.active');
+                    if ($active.length) {
+                        e.preventDefault();
+                        $active.trigger('click');
+                    }
+                }
+            }
+        });
+
+        // Delegated Input & Keyup handler for Typing
+        $(document).on('input.globalSearch keyup.globalSearch', '#globalSearchInput', function(e) {
+            if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) return;
+
+            const { $card, $spinner, $clearBtn, $kbdBadge } = getSearchElements();
+            const query = $.trim($(this).val());
+
+            if (query.length > 0) {
+                $clearBtn.removeClass('hidden');
+                $kbdBadge.addClass('hidden');
+            } else {
+                $clearBtn.addClass('hidden');
+                $kbdBadge.removeClass('hidden');
+            }
+
+            if (query.length < 1) {
+                if (globalSearchState.currentXhr) {
+                    globalSearchState.currentXhr.abort();
+                    globalSearchState.currentXhr = null;
+                }
+                $card.addClass('hidden');
+                $spinner.addClass('hidden');
+                clearTimeout(globalSearchState.searchTimeout);
+                globalSearchState.lastQueriedText = '';
+                return;
+            }
+
+            $spinner.removeClass('hidden');
+            clearTimeout(globalSearchState.searchTimeout);
+
+            globalSearchState.searchTimeout = setTimeout(function() {
+                performGlobalSearch(query);
+            }, 180);
+        });
+
+        // Delegated Focus & Click on input
+        $(document).on('focus.globalSearch click.globalSearch', '#globalSearchInput', function() {
+            const { $card, $list } = getSearchElements();
+            const query = $.trim($(this).val());
+            if (query.length >= 1) {
+                $card.removeClass('hidden');
+                if (globalSearchState.lastQueriedText !== query || $list.children().length === 0) {
+                    performGlobalSearch(query);
+                }
+            }
+        });
+
+        // Delegated Clear Button
+        $(document).on('click.globalSearch', '#globalSearchClearBtn', function() {
+            const { $input, $clearBtn, $kbdBadge, $card, $spinner } = getSearchElements();
+            if (globalSearchState.currentXhr) {
+                globalSearchState.currentXhr.abort();
+                globalSearchState.currentXhr = null;
+            }
+            $input.val('').focus();
+            $clearBtn.addClass('hidden');
+            $kbdBadge.removeClass('hidden');
+            $card.addClass('hidden');
+            $spinner.addClass('hidden');
+            globalSearchState.lastQueriedText = '';
+        });
+
+        // Delegated Search Item Click
+        $(document).on('click.globalSearch', '.search-result-item', function(e) {
+            if ($(e.target).closest('a[target="_blank"]').length) return;
+            const targetUrl = $(this).data('url');
+            if (targetUrl) {
+                const { $input, $clearBtn, $kbdBadge } = getSearchElements();
+                closeSearchDropdown();
+                $input.val('');
+                $clearBtn.addClass('hidden');
+                $kbdBadge.removeClass('hidden');
+                globalSearchState.lastQueriedText = '';
+
+                try {
+                    const targetUrlObj = new URL(targetUrl, window.location.origin);
+                    const isSamePage = targetUrlObj.pathname.replace(/\/+$/, '') === window.location.pathname.replace(/\/+$/, '');
+                    const targetTab = targetUrlObj.searchParams.get('tab');
+                    const targetSub = targetUrlObj.searchParams.get('sub');
+
+                    // If user is already on Settings page and clicks a settings tab result, switch immediately in-place!
+                    if (isSamePage && targetUrlObj.pathname.includes('/settings') && typeof window.switchSettingsTab === 'function') {
+                        if (targetSub) {
+                            window.selectOtherSettingsSub(targetSub);
+                        } else if (targetTab) {
+                            window.switchSettingsTab(targetTab);
+                        }
+                        history.pushState(null, '', targetUrl);
+                        return;
+                    }
+
+                    // If user is already on Employees page and clicks a payroll tab result, switch immediately in-place!
+                    if (isSamePage && targetUrlObj.pathname.includes('/employees') && typeof window.switchEmpTab === 'function') {
+                        if (targetTab) {
+                            window.switchEmpTab(targetTab);
+                        }
+                        history.pushState(null, '', targetUrl);
+                        return;
+                    }
+                } catch(err) {}
+
+                if (typeof window.loadPage === 'function') {
+                    window.loadPage(targetUrl);
+                } else {
+                    window.location.href = targetUrl;
+                }
+            }
+        });
+
+        // Delegated Click Outside to Close Dropdown
+        $(document).on('click.globalSearchOutside', function(e) {
+            if (!$(e.target).closest('#globalSearchContainer').length) {
+                closeSearchDropdown();
+            }
+        });
+    }
+
         window.initThemeEngine();
 
-        // Run initial forms setup, DataTables, and modal teleport on DOM ready
+        // Run initial forms setup, DataTables, Global Search, and modal teleport on DOM ready
         initializeForms();
         window.initErpDataTables();
         initGlobalModalTeleport();
+        initGlobalSearch();
         $(document).ajaxComplete(function(event, xhr, settings) {
             if (xhr && (xhr.status === 401 || xhr.status === 419)) {
                 window.location.href = '/login';

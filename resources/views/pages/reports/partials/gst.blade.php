@@ -78,8 +78,8 @@
                         @forelse ($invoices as $inv)
                             <tr class="hover:bg-slate-50 transition">
                                 <td class="px-3 py-2.5 font-bold text-blue-600 font-mono">{{ $inv->invoice_number }}</td>
-                                <td class="px-3 py-2.5 font-mono text-slate-700">{{ $inv->plant->client->gstin ?? 'URP / Retail' }}</td>
-                                <td class="px-3 py-2.5 text-slate-800 font-semibold">{{ $inv->plant->client->company_name ?? 'N/A' }}</td>
+                                <td class="px-3 py-2.5 font-mono text-slate-700">{{ $inv->plant->gst_number ?? $inv->plant->client->gst_number ?? ($inv->custom_buyer_gstin ?? 'URP / Retail') }}</td>
+                                <td class="px-3 py-2.5 text-slate-800 font-semibold">{{ $inv->plant->client->company_name ?? ($inv->custom_client_name ?? 'N/A') }}</td>
                                 <td class="px-3 py-2.5 text-slate-500">{{ \Carbon\Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y') }}</td>
                                 <td class="px-3 py-2.5 text-right text-slate-700 font-medium">₹{{ number_format($inv->total_taxable_value, 2) }}</td>
                                 <td class="px-3 py-2.5 text-right text-slate-500">₹{{ number_format($inv->cgst, 2) }}</td>

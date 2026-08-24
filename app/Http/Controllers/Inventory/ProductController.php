@@ -140,6 +140,16 @@ class ProductController extends Controller
         }
 
         $good = Product::findOrFail($id);
+
+        $hasHistory = $good->salesOrderItems()->exists() || $good->productionLogs()->exists();
+        if ($hasHistory) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cannot delete '{$good->product_name}' because it has linked sales orders or manufacturing production records. Deactivate or archive it instead.",
+                'errors' => ['product' => ["Cannot delete product with linked sales orders or production records."]],
+            ], 422);
+        }
+
         $name = $good->product_name;
         $good->delete();
 

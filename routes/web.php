@@ -15,6 +15,7 @@ use App\Http\Controllers\Purchases\PurchaseController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Sales\ClientController;
 use App\Http\Controllers\Sales\OrderController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Middleware\AutoBackupCheckMiddleware;
 use Illuminate\Http\Request;
@@ -29,12 +30,15 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
         return redirect()->route('overview');
     });
 
+    // 0. Global Command Search (Ctrl + K)
+    Route::get('/global-search', [SearchController::class, 'globalSearch'])->name('global.search');
+
     // 1. Dashboard Overview
-    Route::get('/overview', [OverviewController::class, 'overview'])->name('overview');
+    Route::get('/overview', [OverviewController::class, 'overview'])->name('overview')->middleware('permission:page_overview');
 
     // 2. Raw Materials & Products Catalog Management
-    Route::get('/rawmaterial', [RawMaterialController::class, 'index'])->name('rawmaterial');
-    Route::get('/product', [ProductController::class, 'index'])->name('product');
+    Route::get('/rawmaterial', [RawMaterialController::class, 'index'])->name('rawmaterial')->middleware('permission:page_rawmaterial');
+    Route::get('/product', [ProductController::class, 'index'])->name('product')->middleware('permission:page_product');
     Route::get('/inventory', function (Request $request) {
         if ($request->input('tab') === 'materials') {
             return redirect()->route('rawmaterial');
@@ -53,19 +57,19 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::delete('/inventory/goods/{id}', [ProductController::class, 'destroy'])->name('inventory.goods.delete');
 
     // 3. Bill of Materials
-    Route::get('/bom', [BomController::class, 'bom'])->name('bom');
+    Route::get('/bom', [BomController::class, 'bom'])->name('bom')->middleware('permission:page_bom');
     Route::post('/bom', [BomController::class, 'storeBom'])->name('bom.store');
     Route::put('/bom/{id}', [BomController::class, 'updateBom'])->name('bom.update');
     Route::delete('/bom/{id}', [BomController::class, 'deleteBom'])->name('bom.delete');
 
     // 4. Production Logs
-    Route::get('/production', [ProductionController::class, 'production'])->name('production');
+    Route::get('/production', [ProductionController::class, 'production'])->name('production')->middleware('permission:page_production');
     Route::post('/production', [ProductionController::class, 'logProduction'])->name('production.store');
     Route::put('/production/{id}', [ProductionController::class, 'updateProductionLog'])->name('production.update');
     Route::delete('/production/{id}', [ProductionController::class, 'deleteProductionLog'])->name('production.delete');
 
     // 5. Clients & Plants
-    Route::get('/clients', [ClientController::class, 'clients'])->name('clients');
+    Route::get('/clients', [ClientController::class, 'clients'])->name('clients')->middleware('permission:page_clients');
     Route::post('/clients', [ClientController::class, 'storeClient'])->name('clients.store');
     Route::put('/clients/{id}', [ClientController::class, 'updateClient'])->name('clients.update');
     Route::delete('/clients/{id}', [ClientController::class, 'deleteClient'])->name('clients.delete');
@@ -76,7 +80,7 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::get('/clients/{id}/ledger/pdf', [ClientController::class, 'downloadClientLedgerPdf'])->name('clients.ledger.pdf');
 
     // 5.5 Sales Orders / Order Management
-    Route::get('/orders', [OrderController::class, 'orders'])->name('orders');
+    Route::get('/orders', [OrderController::class, 'orders'])->name('orders')->middleware('permission:page_orders');
     Route::get('/orders/{id}/details', [OrderController::class, 'orderDetails'])->name('orders.details');
     Route::post('/orders', [OrderController::class, 'storeOrder'])->name('orders.store');
     Route::put('/orders/{id}', [OrderController::class, 'updateOrder'])->name('orders.update');
@@ -84,7 +88,7 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::delete('/orders/{id}', [OrderController::class, 'deleteOrder'])->name('orders.delete');
 
     // 6. Invoices & Billing Page
-    Route::get('/invoices', [InvoiceController::class, 'invoices'])->name('invoices');
+    Route::get('/invoices', [InvoiceController::class, 'invoices'])->name('invoices')->middleware('permission:page_invoices');
     Route::post('/invoices/generate', [InvoiceController::class, 'generateCustomInvoice'])->name('invoice.generate');
     Route::post('/invoices/{id}/pay', [InvoiceController::class, 'payInvoice'])->name('invoice.pay');
     Route::post('/invoices/{id}/record-payment', [InvoiceController::class, 'recordInvoicePayment'])->name('invoice.record-payment');
@@ -96,14 +100,14 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::delete('/invoices/{id}', [InvoiceController::class, 'deleteInvoice'])->name('invoice.delete');
 
     // 7. Purchase Ledger (Raw Materials, Machinery, Tools)
-    Route::get('/purchases', [PurchaseController::class, 'purchases'])->name('purchases');
+    Route::get('/purchases', [PurchaseController::class, 'purchases'])->name('purchases')->middleware('permission:page_purchases');
     Route::post('/purchases', [PurchaseController::class, 'storePurchase'])->name('purchases.store');
     Route::put('/purchases/{id}', [PurchaseController::class, 'updatePurchase'])->name('purchases.update');
     Route::delete('/purchases/{id}', [PurchaseController::class, 'deletePurchase'])->name('purchases.delete');
     Route::post('/purchases/{id}/record-payment', [PurchaseController::class, 'recordPurchasePayment'])->name('purchases.record-payment');
 
     // 8. Employees Directory & Attendance / Payroll
-    Route::get('/employees', [EmployeeController::class, 'employees'])->name('employees');
+    Route::get('/employees', [EmployeeController::class, 'employees'])->name('employees')->middleware('permission:page_employees');
     Route::post('/employees', [EmployeeController::class, 'storeEmployee'])->name('employees.store');
     Route::get('/employees/{id}/statement', [EmployeeController::class, 'getEmployeeStatement'])->name('employees.statement');
     Route::put('/employees/{id}', [EmployeeController::class, 'updateEmployee'])->name('employees.update');
@@ -117,13 +121,13 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
     Route::delete('/employees/advance/{id}', [EmployeeController::class, 'deleteAdvance'])->name('employees.advance.delete');
 
     // 9. Operational Expenses
-    Route::get('/expenses', [ExpenseController::class, 'expenses'])->name('expenses');
+    Route::get('/expenses', [ExpenseController::class, 'expenses'])->name('expenses')->middleware('permission:page_expenses');
     Route::post('/expenses', [ExpenseController::class, 'logExpense'])->name('expense.store');
     Route::put('/expenses/{id}', [ExpenseController::class, 'updateExpense'])->name('expense.update');
     Route::delete('/expenses/{id}', [ExpenseController::class, 'deleteExpense'])->name('expense.delete');
 
     // 10. Reports & Export
-    Route::get('/reports', [ReportController::class, 'reports'])->name('reports');
+    Route::get('/reports', [ReportController::class, 'reports'])->name('reports')->middleware('permission:page_reports');
     Route::get('/reports/export', [ReportController::class, 'exportCsv'])->name('reports.export');
     Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
 
@@ -174,10 +178,12 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
         Route::post('/settings/categories/delete', [SettingsController::class, 'deleteCategory'])->name('settings.categories.delete');
         Route::post('/settings/resync-cache', [SettingsController::class, 'resyncCache'])->name('settings.resync');
         Route::post('/settings/prune-system', [SettingsController::class, 'pruneSystemLogs'])->name('settings.prune');
-    });
 
-    // 14. Super-Admin User Activity Audit Logs
-    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
-    Route::get('/activity-logs/export', [ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
-    Route::post('/activity-logs/clear', [ActivityLogController::class, 'clearLogs'])->name('activity-logs.clear');
+        // 14. Super-Admin User Activity Audit Logs
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
+        Route::get('/activity-logs/export', [ActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
+        Route::post('/activity-logs/clear', [ActivityLogController::class, 'clearLogs'])->name('activity-logs.clear');
+    });
 });
+
+

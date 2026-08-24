@@ -332,7 +332,7 @@ class ReportController extends Controller
                         $isRm = ($inv->invoice_mode === 'raw_material' || str_starts_with($inv->invoice_number, 'RMS-'));
                         fputcsv($handle, [
                             $isRm ? 'NILL' : $inv->invoice_number,
-                            $isRm ? ($inv->custom_buyer_gstin ?? 'URP / Retail') : ($inv->plant->client->gstin ?? 'URP / Retail'),
+                            $isRm ? ($inv->custom_buyer_gstin ?? 'URP / Retail') : ($inv->plant->gst_number ?? $inv->plant->client->gst_number ?? 'URP / Retail'),
                             $isRm ? ($inv->custom_client_name ?? 'Direct Buyer') : ($inv->plant->client->company_name ?? 'N/A'),
                             $isRm ? 'Raw Material Sale' : ($inv->plant->plant_name ?? 'HQ'),
                             Carbon::parse($inv->invoice_date ?? $inv->created_at)->format('d/m/Y'),
