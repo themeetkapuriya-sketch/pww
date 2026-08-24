@@ -52,21 +52,12 @@
 
             <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit)</label>
-                    <input type="text" id="good_uom" name="uom" list="product_uom_list" placeholder="e.g. piece, set, kg" value="piece" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                    <datalist id="product_uom_list">
-                        <option value="piece">Pieces (pcs)</option>
-                        <option value="nos">Numbers (nos)</option>
-                        <option value="set">Sets (set)</option>
-                        <option value="box">Boxes (box)</option>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">UOM (Unit) <span class="text-rose-500">*</span></label>
+                    <select id="good_uom" name="uom" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium cursor-pointer">
+                        <option value="pcs" selected>Pieces (pcs)</option>
                         <option value="kg">Kilograms (kg)</option>
-                        <option value="meter">Meters (m)</option>
-                        <option value="bundle">Bundles (bdl)</option>
-                        <option value="pair">Pairs (pr)</option>
-                        <option value="packet">Packets (pkt)</option>
-                        <option value="carton">Cartons (ctn)</option>
-                    </datalist>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Weight (Kg/Pcs)</label>
@@ -243,7 +234,8 @@ function resetProductForm() {
     document.getElementById('good_name').value = '';
     document.getElementById('good_sku').value = '';
     document.getElementById('good_hsn').value = '';
-    document.getElementById('good_uom').value = 'piece';
+    const goodUomEl = document.getElementById('good_uom');
+    if (goodUomEl && goodUomEl.options.length) goodUomEl.selectedIndex = 0;
     if (document.getElementById('good_unit_weight_kg')) document.getElementById('good_unit_weight_kg').value = '0.000';
     document.getElementById('good_price').value = '';
     if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = '';
@@ -291,7 +283,24 @@ function openEditProductModal(id, name, sku, hsn, uom, stock, price, gstRate = 1
     document.getElementById('good_name').value = name;
     document.getElementById('good_sku').value = sku || '';
     document.getElementById('good_hsn').value = hsn;
-    document.getElementById('good_uom').value = uom;
+    const goodUomEl = document.getElementById('good_uom');
+    if (goodUomEl && uom) {
+        let found = false;
+        for (let i = 0; i < goodUomEl.options.length; i++) {
+            if (goodUomEl.options[i].value.toLowerCase() === String(uom).toLowerCase()) {
+                goodUomEl.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const opt = document.createElement('option');
+            opt.value = uom;
+            opt.textContent = uom;
+            goodUomEl.appendChild(opt);
+            goodUomEl.value = uom;
+        }
+    }
     if (document.getElementById('good_unit_weight_kg')) document.getElementById('good_unit_weight_kg').value = parseFloat(unitWeight).toFixed(3);
     document.getElementById('good_price').value = price;
     if (document.getElementById('good_price_per_kg')) document.getElementById('good_price_per_kg').value = (pricePerKg !== '' && pricePerKg !== null && pricePerKg !== undefined) ? parseFloat(pricePerKg).toFixed(2) : '';

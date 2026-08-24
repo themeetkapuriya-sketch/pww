@@ -132,7 +132,7 @@
                                     <select name="billing_uoms[]"
                                         class="billing-uom-select col-span-3 sm:w-20 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                         onchange="updateRowUnitPrice(this)">
-                                        <option value="Pcs">Pcs</option>
+                                        <option value="Pcs" selected>Pcs</option>
                                         <option value="Kg">Kg</option>
                                     </select>
                                     <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" required
@@ -986,10 +986,6 @@
                             const row = document.createElement('div');
                             row.className = 'order-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
 
-                            row.innerHTML = `
-                        <div class="flex-grow">
-                            ${window.rawOrderComboboxTpl}
-                        </div>
                         <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateRowUnitPrice(this)">
                             <option value="Pcs">Pcs</option>
                             <option value="Kg">Kg</option>

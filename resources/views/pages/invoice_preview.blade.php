@@ -163,7 +163,7 @@
                                     <div>{{ $qtyFormatted }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 text-center font-bold text-slate-600 uppercase">
-                                    {{ $pUom }}
+                                    {{ \App\Services\UnitService::mapToUqc($pUom) }}
                                 </td>
                                 <td class="py-3.5 px-4 text-right font-extrabold text-slate-900">₹{{ number_format($pTotal, 2) }}</td>
                             </tr>

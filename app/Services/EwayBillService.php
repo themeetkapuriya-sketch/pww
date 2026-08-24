@@ -65,7 +65,7 @@ class EwayBillService
                     'productDesc' => substr($product->description ?? $itemName, 0, 100),
                     'hsnCode' => $hsn,
                     'quantity' => $qty,
-                    'qtyUnit' => $uom === 'KG' ? 'KGS' : ($uom === 'PIECE' || $uom === 'PCS' ? 'NOS' : substr($uom, 0, 3)),
+                    'qtyUnit' => \App\Services\UnitService::mapToUqc($item->billing_uom ?? ($product->uom ?? 'NOS')),
                     'taxableAmount' => $taxable,
                     'cgstRate' => $cgstRate,
                     'sgstRate' => $sgstRate,

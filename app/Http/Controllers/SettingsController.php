@@ -12,6 +12,7 @@ use App\Services\AuditLogService;
 use App\Services\BackupService;
 use App\Services\CategoryService;
 use App\Services\RolePermissionService;
+use App\Services\UnitService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
@@ -1241,5 +1242,117 @@ class SettingsController extends Controller
 
             return $this->respond($request, true, 'Expense category deleted successfully!');
         }
+    }
+
+    /**
+     * Store a New Custom Measurement Unit (UOM).
+     */
+    public function storeUnit(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'symbol' => 'required|string|max:20',
+            'uqc' => 'nullable|string|max:10',
+            'type' => 'nullable|string|in:count,weight,length,volume,packaging,area',
+            'precision' => 'nullable|integer|min:0|max:4',
+        ]);
+
+        $name = trim($validated['name']);
+        $symbol = trim(strtolower($validated['symbol']));
+        $key = Str::slug($symbol, '_');
+        $uqc = strtoupper(trim($validated['uqc'] ?? 'NOS'));
+        $type = $validated['type'] ?? 'count';
+        $precision = isset($validated['precision']) ? (int) $validated['precision'] : ($type === 'weight' ? 4 : 0);
+
+        $units = UnitService::getUnits();
+        foreach ($units as $u) {
+            if ($u['key'] === $key || strtolower($u['symbol']) === $symbol) {
+                return $this->respond($request, false, "Measurement unit with symbol '{$symbol}' already exists!");
+            }
+        }
+
+        $newUnit = [
+            'key' => $key,
+            'name' => $name,
+            'symbol' => $symbol,
+            'uqc' => $uqc,
+            'type' => $type,
+            'precision' => $precision,
+            'protected' => false,
+        ];
+
+        $units[] = $newUnit;
+        UnitService::saveUnits($units);
+        AuditLogService::log('Settings', 'created', "Created new measurement unit '{$name}' ({$symbol})");
+
+        return $this->respond($request, true, "Measurement unit '{$name}' ({$symbol}) created successfully!", [
+            'unit' => $newUnit,
+        ]);
+    }
+
+    /**
+     * Update an Existing Measurement Unit (UOM).
+     */
+    public function updateUnit(Request $request)
+    {
+        $validated = $request->validate([
+            'key' => 'required|string',
+            'name' => 'required|string|max:100',
+            'symbol' => 'required|string|max:20',
+            'uqc' => 'nullable|string|max:10',
+            'type' => 'nullable|string|in:count,weight,length,volume,packaging,area',
+            'precision' => 'nullable|integer|min:0|max:4',
+        ]);
+
+        $key = $validated['key'];
+        $name = trim($validated['name']);
+        $symbol = trim(strtolower($validated['symbol']));
+        $uqc = strtoupper(trim($validated['uqc'] ?? 'NOS'));
+        $type = $validated['type'] ?? 'count';
+        $precision = isset($validated['precision']) ? (int) $validated['precision'] : ($type === 'weight' ? 4 : 0);
+
+        $units = UnitService::getUnits();
+        $updated = false;
+
+        foreach ($units as &$u) {
+            if ($u['key'] === $key) {
+                $u['name'] = $name;
+                $u['symbol'] = $symbol;
+                $u['uqc'] = $uqc;
+                $u['type'] = $type;
+                $u['precision'] = $precision;
+                $updated = true;
+                break;
+            }
+        }
+
+        if ($updated) {
+            UnitService::saveUnits($units);
+            AuditLogService::log('Settings', 'updated', "Updated measurement unit '{$name}' ({$symbol})");
+
+            return $this->respond($request, true, "Measurement unit '{$name}' updated successfully!");
+        }
+
+        return $this->respond($request, false, 'Measurement unit not found.');
+    }
+
+    /**
+     * Delete a Measurement Unit (Enforces System Protection Rules).
+     */
+    public function deleteUnit(Request $request)
+    {
+        $key = strtolower(trim($request->input('key')));
+
+        // MANDATORY SYSTEM UNIT PROTECTION RULES
+        if (in_array($key, ['kg', 'pcs', 'nos'], true)) {
+            return $this->respond($request, false, "Cannot delete core system unit '{$key}'! It is protected and required for inventory and billing.");
+        }
+
+        $units = UnitService::getUnits();
+        $filtered = array_values(array_filter($units, fn ($u) => $u['key'] !== $key));
+        UnitService::saveUnits($filtered);
+        AuditLogService::log('Settings', 'deleted', "Deleted measurement unit key '{$key}'");
+
+        return $this->respond($request, true, 'Measurement unit deleted successfully!');
     }
 }

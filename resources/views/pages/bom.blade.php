@@ -99,7 +99,7 @@
                                         required />
                         </div>
                         <div class="w-full md:w-32 shrink-0">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Master Rate</label>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Rate (₹ / unit)</label>
                             <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
                         </div>
                         <div class="w-full md:w-28">
@@ -244,7 +244,7 @@
                         </div>
 
                         <button type="button" 
-                                onclick="editFullProductBom({{ $good->id }}, '{{ addslashes($good->product_name) }}', {{ json_encode($good->billOfMaterials->map(fn($b) => ['raw_material_id' => (string)$b->raw_material_id, 'required_quantity' => $b->required_quantity, 'waste_percentage' => $b->waste_percentage, 'unit_rate' => $b->unit_rate])) }})"
+                                onclick="editFullProductBom({{ $good->id }}, '{{ addslashes($good->product_name) }}', {{ json_encode($good->billOfMaterials->map(fn($b) => ['raw_material_id' => (string)$b->raw_material_id, 'required_quantity' => (float)$b->required_quantity, 'waste_percentage' => (float)$b->waste_percentage, 'unit_rate' => $b->unit_rate])) }})"
                                 class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 px-3.5 rounded-xl shadow-xs transition duration-150 flex items-center gap-1.5 cursor-pointer shrink-0 ml-1"
                                 title="Edit Product Formula">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -289,19 +289,42 @@
                                         <td class="px-4 py-3 text-right font-medium">
                                             <span class="text-slate-800 font-bold">₹{{ number_format($rate, 2) }}</span>
                                             <span class="text-[11px] text-slate-400 font-normal">/ {{ $material->unit }}</span>
-                                            <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Live Master Material Price">
-                                                📦 Master Rate
-                                            </span>
+                                            @if($material->is_auto_avg)
+                                                <span class="text-[9.5px] text-emerald-700 font-bold tracking-wider inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Calculated from Purchase ledger entries">
+                                                    🔄 Auto Avg
+                                                </span>
+                                            @else
+                                                <span class="text-[9.5px] text-blue-700 font-bold tracking-wider inline-flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 mt-0.5 ml-auto w-fit" title="Custom Fixed Master Rate">
+                                                    🔒 Master Rate
+                                                </span>
+                                            @endif
                                         </td>
-                                        <td class="px-4 py-3 text-right text-slate-700 font-medium">{{ number_format($bom->required_quantity, 4) }} {{ $material->unit }}</td>
-                                        <td class="px-4 py-3 text-right text-rose-600 font-semibold">+{{ number_format($bom->waste_percentage, 1) }}%</td>
-                                        <td class="px-4 py-3 text-right font-medium text-slate-800">{{ number_format($netConsumption, 4) }} {{ $material->unit }}</td>
+                                        @php
+                                            $qtyClean = (float)$bom->required_quantity;
+                                            $formattedQty = rtrim(rtrim(number_format($qtyClean, 4), '0'), '.');
+                                            $netClean = (float)$netConsumption;
+                                            $formattedNet = rtrim(rtrim(number_format($netClean, 4), '0'), '.');
+                                            $isKg = strtolower($material->unit ?? '') === 'kg';
+                                        @endphp
+                                        <td class="px-4 py-3 text-right font-medium whitespace-nowrap">
+                                            <span class="text-slate-800 font-bold">{{ $formattedQty }} {{ $material->unit }}</span>
+                                            @if($isKg && $qtyClean < 1 && $qtyClean > 0)
+                                                <span class="block text-[10px] text-emerald-600 font-bold font-mono">({{ round($qtyClean * 1000, 2) }} g)</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-right text-rose-600 font-semibold">+{{ (float)$bom->waste_percentage }}%</td>
+                                        <td class="px-4 py-3 text-right font-medium text-slate-800 whitespace-nowrap">
+                                            <span class="text-slate-800 font-bold">{{ $formattedNet }} {{ $material->unit }}</span>
+                                            @if($isKg && $netClean < 1 && $netClean > 0)
+                                                <span class="block text-[10px] text-slate-400 font-medium font-mono">({{ round($netClean * 1000, 2) }} g)</span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3 text-right font-bold text-slate-900">₹{{ number_format($lineCost, 2) }}</td>
                                         <td class="px-4 py-3 text-center">
                                             <div class="flex items-center justify-center space-x-1.5">
                                                 <button type="button" 
                                                         title="Edit Component Quantity & Waste"
-                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($material->material_name) }}', '{{ $bom->required_quantity }}', '{{ $bom->waste_percentage }}')"
+                                                        onclick="openEditBomModal({{ $bom->id }}, '{{ addslashes($good->product_name) }}', '{{ addslashes($material->material_name) }}', '{{ (float)$bom->required_quantity }}', '{{ (float)$bom->waste_percentage }}')"
                                                         class="w-7 h-7 p-1 inline-flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition duration-150 transform hover:scale-105">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                 </button>
@@ -353,7 +376,7 @@
                         required />
         </div>
         <div class="w-full md:w-32 shrink-0">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Master Rate</label>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Rate (₹ / unit)</label>
             <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
         </div>
         <div class="w-full md:w-28">
@@ -436,7 +459,7 @@
                         required />
         </div>
         <div class="w-full md:w-32 shrink-0">
-            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Master Rate</label>
+            <label class="block text-[10px] font-bold text-amber-900 uppercase mb-1">Rate (₹ / unit)</label>
             <div class="bom-rate-display h-[38px] px-2.5 bg-white border border-amber-200 rounded-lg flex items-center justify-end font-bold text-xs text-slate-700">₹0.00</div>
         </div>
         <div class="w-full md:w-28">
@@ -589,8 +612,8 @@ function addEditBomRowWithData(matId, reqQty, waste) {
         const qtyInput = clone.querySelector('.bom-qty-input');
         const wasteInput = clone.querySelector('.bom-waste-input');
         
-        if (qtyInput) qtyInput.value = reqQty;
-        if (wasteInput) wasteInput.value = waste;
+        if (qtyInput) qtyInput.value = parseFloat(reqQty) || reqQty;
+        if (wasteInput) wasteInput.value = parseFloat(waste) || waste;
 
         container.appendChild(clone);
         const newlyAdded = container.lastElementChild;
@@ -656,8 +679,8 @@ function openEditBomModal(id, productName, materialName, reqQty, waste) {
         form.action = `/bom/${id}`;
         if (prodText) prodText.innerText = productName;
         if (matText) matText.innerText = materialName;
-        if (inputQty) inputQty.value = reqQty;
-        if (inputWaste) inputWaste.value = waste;
+        if (inputQty) inputQty.value = parseFloat(reqQty) || reqQty;
+        if (inputWaste) inputWaste.value = parseFloat(waste) || waste;
 
         card.classList.remove('hidden');
     }

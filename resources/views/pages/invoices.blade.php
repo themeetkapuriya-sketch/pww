@@ -265,8 +265,11 @@
                                     </div>
                                     <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
                                         <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                            <option value="Pcs" {{ strtolower($it->billing_uom ?? 'Pcs') === 'pcs' || strtolower($it->billing_uom ?? '') === 'piece' ? 'selected' : '' }}>Pcs</option>
-                                            <option value="Kg" {{ strtolower($it->billing_uom ?? '') === 'kg' ? 'selected' : '' }}>Kg</option>
+                                            @php
+                                                $currUom = strtolower($it->billing_uom ?? 'Pcs');
+                                            @endphp
+                                            <option value="Pcs" {{ $currUom !== 'kg' ? 'selected' : '' }}>Pcs</option>
+                                            <option value="Kg" {{ $currUom === 'kg' ? 'selected' : '' }}>Kg</option>
                                         </select>
                                         <input type="number" name="quantities[]" step="any" min="0.01" value="{{ (float)$it->quantity }}" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                                         <input type="number" name="unit_prices[]" step="0.01" min="0" value="{{ number_format((float)str_replace(',', '', $it->unit_price), 2, '.', '') }}" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
@@ -284,7 +287,7 @@
                                 </div>
                                 <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
                                     <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                                        <option value="Pcs">Pcs</option>
+                                        <option value="Pcs" selected>Pcs</option>
                                         <option value="Kg">Kg</option>
                                     </select>
                                     <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
@@ -603,6 +606,9 @@
 
     window.rawInvoiceComboboxTpl = @json($invoiceComboboxHtml);
     window.rawMaterialComboboxTpl = @json($rawMaterialComboboxHtml);
+    window.fgUnitsOptionsHtml = '<option value="Pcs" selected>Pcs</option><option value="Kg">Kg</option>';
+    window.allUnitsOptions = @json(array_map(fn($u) => $u['symbol'], \App\Services\UnitService::getUnits()));
+    window.allUnitsOptionsHtml = window.allUnitsOptions.map(sym => `<option value="${sym}">${sym}</option>`).join('');
 
     // Bulletproof single-row adder with timestamp debounce to prevent double-firing
     let _lastInvoiceAddRowTime = 0;
@@ -619,7 +625,9 @@
         if (!container) return;
 
         const modeInp = document.getElementById('invoiceModeInput');
-        const currentTpl = (modeInp && modeInp.value === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
+        const isRmMode = Boolean(modeInp && modeInp.value === 'raw_material');
+        const currentTpl = isRmMode ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
+        const currentUnitsHtml = isRmMode ? window.allUnitsOptionsHtml : window.fgUnitsOptionsHtml;
 
         const isEditMode = Boolean(
             (document.getElementById('invoiceIdHidden') && document.getElementById('invoiceIdHidden').value) ||
@@ -637,8 +645,7 @@
             </div>
             <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
                 <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border ${inputBorderClass} rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 text-center">
-                    <option value="Pcs">Pcs</option>
-                    <option value="Kg">Kg</option>
+                    ${currentUnitsHtml}
                 </select>
                 <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border ${inputBorderClass} rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 text-slate-900 font-bold" required>
                 <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border ${inputBorderClass} rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 text-slate-900 font-bold" required>
@@ -654,10 +661,17 @@
     function ensureAndSelectUom(uomSelect, rawUom) {
         if (!uomSelect || !rawUom) return;
         let formattedUom = rawUom.trim();
-        if (formattedUom.toLowerCase() === 'kilogram' || formattedUom.toLowerCase() === 'kg') {
-            formattedUom = 'Kg';
-        } else if (formattedUom.toLowerCase() === 'piece' || formattedUom.toLowerCase() === 'pcs') {
-            formattedUom = 'Pcs';
+        const lower = formattedUom.toLowerCase();
+        if (lower === 'kilogram' || lower === 'kg' || lower === 'kgs') {
+            formattedUom = 'kg';
+        } else if (lower === 'piece' || lower === 'pcs' || lower === 'pc') {
+            formattedUom = 'pcs';
+        } else if (lower === 'number' || lower === 'numbers' || lower === 'nos' || lower === 'no') {
+            formattedUom = 'nos';
+        } else if (lower === 'meter' || lower === 'meters' || lower === 'mtr') {
+            formattedUom = 'mtr';
+        } else if (lower === 'liter' || lower === 'liters' || lower === 'ltr' || lower === 'litre') {
+            formattedUom = 'ltr';
         }
 
         let found = false;
@@ -1002,6 +1016,7 @@
         }
 
         const targetTpl = (mode === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
+        const targetUnitsHtml = (mode === 'raw_material') ? window.allUnitsOptionsHtml : window.fgUnitsOptionsHtml;
 
         const container = document.getElementById('billingRowsContainer');
         if (container) {
@@ -1010,6 +1025,12 @@
                 const hiddenInput = row.querySelector('.combobox-hidden-input');
                 if (flexGrow && (!hiddenInput || !hiddenInput.value)) {
                     flexGrow.innerHTML = targetTpl;
+                }
+                const uomSelect = row.querySelector('.billing-uom-select');
+                if (uomSelect) {
+                    const prevVal = uomSelect.value;
+                    uomSelect.innerHTML = targetUnitsHtml;
+                    if (prevVal) uomSelect.value = prevVal;
                 }
             });
         }
@@ -1178,6 +1199,7 @@
         switchTaxMode('with_gst');
 
         const currentTpl = (activeMode === 'raw_material') ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
+        const currentUnitsHtml = (activeMode === 'raw_material') ? window.allUnitsOptionsHtml : window.fgUnitsOptionsHtml;
 
         // Reset billing rows to single clean empty row from template
         const container = document.getElementById('billingRowsContainer');
@@ -1189,8 +1211,7 @@
                     </div>
                     <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
                         <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-slate-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                            <option value="Pcs">Pcs</option>
-                            <option value="Kg">Kg</option>
+                            ${currentUnitsHtml}
                         </select>
                         <input type="number" name="quantities[]" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
                         <input type="number" name="unit_prices[]" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-slate-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 font-bold" required>
@@ -1315,6 +1336,7 @@
             invoice.items.forEach(item => {
                 const isRm = (item.item_type === 'raw_material') || (invoice.invoice_mode === 'raw_material');
                 const currentTpl = isRm ? window.rawMaterialComboboxTpl : window.rawInvoiceComboboxTpl;
+                const currentUnitsHtml = isRm ? window.allUnitsOptionsHtml : window.fgUnitsOptionsHtml;
 
                 const row = document.createElement('div');
                 row.className = 'billing-row flex flex-wrap sm:flex-nowrap items-center gap-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
@@ -1328,8 +1350,7 @@
                     </div>
                     <div class="grid grid-cols-12 gap-1.5 w-full sm:flex sm:items-center sm:w-auto shrink-0">
                         <select name="billing_uoms[]" class="billing-uom-select col-span-3 sm:w-24 bg-white border border-amber-200 rounded-xl py-2 px-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center">
-                            <option value="Pcs">Pcs</option>
-                            <option value="Kg">Kg</option>
+                            ${currentUnitsHtml}
                         </select>
                         <input type="number" name="quantities[]" value="${qtyVal}" step="any" min="0.01" placeholder="Qty" class="col-span-4 sm:w-20 min-w-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>
                         <input type="number" name="unit_prices[]" value="${priceVal}" step="0.01" min="0" placeholder="Price" class="col-span-4 sm:w-28 min-w-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold" required>

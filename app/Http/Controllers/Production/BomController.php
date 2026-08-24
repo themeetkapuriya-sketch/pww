@@ -16,8 +16,8 @@ class BomController extends Controller
      */
     public function bom()
     {
-        $finishedGoods = Product::with('billOfMaterials.rawMaterial')->orderByDesc('id')->get();
-        $rawMaterials = RawMaterial::orderByDesc('id')->get();
+        $finishedGoods = Product::with('billOfMaterials.rawMaterial.purchases')->orderByDesc('id')->get();
+        $rawMaterials = RawMaterial::with('purchases')->orderByDesc('id')->get();
 
         return view('pages.bom', compact('finishedGoods', 'rawMaterials'));
     }

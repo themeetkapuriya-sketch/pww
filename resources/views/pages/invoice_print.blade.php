@@ -742,9 +742,9 @@
                     <thead>
                         <tr>
                             <th style="text-align: center; width: 4%;">#</th>
-                            <th style="text-align: left; width: 38%;">DESCRIPTION OF GOODS</th>
+                            <th style="text-align: left; width: 43%;">DESCRIPTION OF GOODS</th>
                             <th style="text-align: center; width: 11%;">HSN/SAC</th>
-                            <th style="text-align: right; width: 13%;">QTY</th>
+                            <th style="text-align: right; width: 8%;">QTY</th>
                             <th style="text-align: right; width: 12%;">RATE ({!! $rupee !!})</th>
                             <th style="text-align: center; width: 7%;">per</th>
                             <th style="text-align: right; width: 15%;">AMOUNT ({!! $rupee !!})</th>
@@ -788,7 +788,7 @@
                                 </td>
                                 <td style="text-align: right; font-weight: 600;">{!! $rupee !!}{{ number_format($item->unit_price, 2) }}</td>
                                 <td style="text-align: center; font-weight: 700; color: #334155; text-transform: uppercase;">
-                                    {{ strtoupper($pUom) }}
+                                    {{ \App\Services\UnitService::mapToUqc($pUom) }}
                                 </td>
                                 <td style="text-align: right; font-weight: 800; color: #0f172a;">{!! $rupee !!}{{ number_format($pTotal, 2) }}</td>
                             </tr>

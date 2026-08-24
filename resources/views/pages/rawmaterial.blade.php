@@ -52,25 +52,14 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Measurement Unit (UOM) <span class="text-rose-500">*</span></label>
-                    <input type="text" id="mat_unit" name="unit" list="raw_material_uom_list" placeholder="e.g. kg, meter, piece, roll, sq ft" required
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
-                    <datalist id="raw_material_uom_list">
-                        <option value="kg">Kilograms (kg)</option>
-                        <option value="gram">Grams (g)</option>
-                        <option value="tonne">Metric Tonne (MT)</option>
-                        <option value="liter">Liters (L)</option>
-                        <option value="meter">Meters (m)</option>
-                        <option value="feet">Feet (ft)</option>
-                        <option value="sq ft">Square Feet (sq ft)</option>
-                        <option value="piece">Pieces (pcs)</option>
-                        <option value="nos">Numbers (nos)</option>
-                        <option value="packet">Packets (pkt)</option>
-                        <option value="box">Boxes (box)</option>
-                        <option value="bundle">Bundles (bdl)</option>
-                        <option value="roll">Rolls (roll)</option>
-                        <option value="bag">Bags (bag)</option>
-                        <option value="sheet">Sheets (sht)</option>
-                    </datalist>
+                    <select id="mat_unit" name="unit" required
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium cursor-pointer">
+                        @foreach(\App\Services\UnitService::getUnits() as $u)
+                            <option value="{{ $u['symbol'] }}" {{ strtolower($u['symbol']) === 'kg' ? 'selected' : '' }}>
+                                {{ $u['name'] }} ({{ $u['symbol'] }})
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
 
@@ -453,7 +442,8 @@ function resetMaterialForm() {
     document.getElementById('mat_name').value = '';
     document.getElementById('mat_category').value = '';
     document.getElementById('mat_spec').value = '';
-    document.getElementById('mat_unit').value = 'kg';
+    const matUnitEl = document.getElementById('mat_unit');
+    if (matUnitEl && matUnitEl.options.length) matUnitEl.selectedIndex = 0;
     document.getElementById('mat_threshold').value = '';
     if (document.getElementById('mat_price')) document.getElementById('mat_price').value = '';
     if (document.getElementById('mat_stock')) document.getElementById('mat_stock').value = '';
@@ -512,7 +502,24 @@ function openEditMaterialModal(id, name, category, spec, unit, threshold, price)
     document.getElementById('mat_name').value = name;
     document.getElementById('mat_category').value = category || '';
     document.getElementById('mat_spec').value = spec || '';
-    document.getElementById('mat_unit').value = unit;
+    const matUnitEl = document.getElementById('mat_unit');
+    if (matUnitEl && unit) {
+        let found = false;
+        for (let i = 0; i < matUnitEl.options.length; i++) {
+            if (matUnitEl.options[i].value.toLowerCase() === String(unit).toLowerCase()) {
+                matUnitEl.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const opt = document.createElement('option');
+            opt.value = unit;
+            opt.textContent = unit;
+            matUnitEl.appendChild(opt);
+            matUnitEl.value = unit;
+        }
+    }
     document.getElementById('mat_threshold').value = threshold;
     if (document.getElementById('mat_price')) {
         document.getElementById('mat_price').value = (price && parseFloat(price) > 0) ? parseFloat(price).toFixed(2) : '';

@@ -2260,6 +2260,56 @@ class ErpFlowTest extends TestCase
         $this->assertNull(Expense::find($expense->id));
         $this->assertNull($payment->fresh()->expense_id);
     }
+
+    public function test_measurement_units_crud_and_uqc_mapping()
+    {
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'is_active' => true,
+        ]);
+
+        // 1. Initial default units & GST UQC resolution
+        $units = \App\Services\UnitService::getUnits();
+        $this->assertNotEmpty($units);
+        $this->assertEquals('KGS', \App\Services\UnitService::mapToUqc('kg'));
+        $this->assertEquals('NOS', \App\Services\UnitService::mapToUqc('pcs'));
+        $this->assertEquals('MTR', \App\Services\UnitService::mapToUqc('meter'));
+
+        // 2. Store custom measurement unit
+        $storeRes = $this->actingAs($admin)->postJson(route('settings.units.store'), [
+            'name' => 'Industrial Drum',
+            'symbol' => 'drum',
+            'uqc' => 'DRM',
+            'type' => 'volume',
+            'precision' => 2,
+        ]);
+        $storeRes->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertEquals('DRM', \App\Services\UnitService::mapToUqc('drum'));
+
+        // 3. Update measurement unit
+        $updateRes = $this->actingAs($admin)->postJson(route('settings.units.update'), [
+            'key' => 'drum',
+            'name' => 'Large Steel Drum',
+            'symbol' => 'drum',
+            'uqc' => 'DRM',
+            'type' => 'packaging',
+            'precision' => 0,
+        ]);
+        $updateRes->assertStatus(200)->assertJson(['success' => true]);
+
+        // 4. Protection on core system units
+        $delCoreRes = $this->actingAs($admin)->postJson(route('settings.units.delete'), [
+            'key' => 'kg',
+        ]);
+        $delCoreRes->assertStatus(422)->assertJson(['success' => false]);
+
+        // 5. Delete custom unit
+        $delCustomRes = $this->actingAs($admin)->postJson(route('settings.units.delete'), [
+            'key' => 'drum',
+        ]);
+        $delCustomRes->assertStatus(200)->assertJson(['success' => true]);
+    }
 }
+
 
 

@@ -131,7 +131,9 @@
         html.dark .bg-gray-100,
         html.dark .bg-gray-200,
         html.dark [class*="bg-slate-50"],
-        html.dark [class*="bg-slate-100"] {
+        html.dark [class*="bg-slate-100"],
+        html.dark [class*="bg-gray-50"],
+        html.dark [class*="bg-gray-100"] {
             background-color: #1e293b !important;
             border-color: #334155 !important;
             color: #f8fafc !important;
@@ -158,7 +160,8 @@
         /* Dropdowns & TomSelect Options */
         html.dark .ts-dropdown,
         html.dark .ts-dropdown .ts-dropdown-content,
-        html.dark .combobox-dropdown {
+        html.dark .combobox-dropdown,
+        html.dark #otherSettingsDropdownMenu {
             background-color: #1e293b !important;
             color: #f8fafc !important;
             border-color: #475569 !important;
@@ -180,6 +183,7 @@
             color: #60a5fa !important;
         }
 
+        html.dark .other-opt-btn.active-sub-tab-btn,
         html.dark .other-opt-btn.bg-blue-50 {
             background-color: #1e3a8a !important;
             color: #93c5fd !important;
@@ -202,21 +206,103 @@
             color: #ffffff !important;
         }
 
-        /* Badges & Pills (Vehicle Numbers, Badges, etc.) */
-        html.dark .bg-slate-100,
-        html.dark .bg-slate-200,
-        html.dark .bg-blue-50,
-        html.dark .bg-emerald-50,
-        html.dark .bg-indigo-50,
-        html.dark .bg-purple-50 {
-            background-color: #334155 !important;
-            border-color: #475569 !important;
-            color: #f8fafc !important;
+        /* Specific Setting Sub-Page Colored Cards & Badges in Dark Mode */
+        html.dark [class*="bg-blue-50"],
+        html.dark #track_stock_card {
+            background-color: rgba(30, 58, 138, 0.25) !important;
+            border-color: rgba(59, 130, 246, 0.35) !important;
         }
 
-        html.dark .text-blue-700, html.dark .text-blue-800, html.dark .text-blue-900,
-        html.dark .text-indigo-700, html.dark .text-indigo-800, html.dark .text-indigo-900 {
+        html.dark [class*="bg-emerald-50"] {
+            background-color: rgba(6, 78, 59, 0.25) !important;
+            border-color: rgba(16, 185, 129, 0.35) !important;
+        }
+
+        html.dark [class*="bg-sky-50"] {
+            background-color: rgba(12, 74, 110, 0.25) !important;
+            border-color: rgba(14, 165, 233, 0.35) !important;
+        }
+
+        html.dark [class*="bg-amber-50"] {
+            background-color: rgba(120, 53, 15, 0.25) !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
+        }
+
+        html.dark [class*="bg-purple-50"],
+        html.dark [class*="bg-indigo-50"] {
+            background-color: rgba(49, 46, 129, 0.25) !important;
+            border-color: rgba(99, 102, 241, 0.35) !important;
+        }
+
+        html.dark [class*="bg-slate-200"] {
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #cbd5e1 !important;
+        }
+
+        /* Text Contrast for Colored Highlights in Dark Mode */
+        html.dark .text-blue-900,
+        html.dark .text-blue-800,
+        html.dark .text-blue-700 {
             color: #93c5fd !important;
+        }
+
+        html.dark .text-emerald-900,
+        html.dark .text-emerald-800,
+        html.dark .text-emerald-700 {
+            color: #6ee7b7 !important;
+        }
+
+        html.dark .text-sky-900,
+        html.dark .text-sky-800,
+        html.dark .text-sky-700 {
+            color: #7dd3fc !important;
+        }
+
+        html.dark .text-amber-900,
+        html.dark .text-amber-800,
+        html.dark .text-amber-700 {
+            color: #fde68a !important;
+        }
+
+        html.dark .text-indigo-900,
+        html.dark .text-indigo-800,
+        html.dark .text-indigo-700 {
+            color: #c7d2fe !important;
+        }
+
+        /* Email Service Provider Radio Cards in Dark Mode */
+        html.dark #emailSettingsForm label[onclick*="applyEmailPreset"] {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+        }
+        html.dark #emailSettingsForm label[onclick*="applyEmailPreset"]:hover {
+            border-color: #3b82f6 !important;
+        }
+
+        /* Category Action Buttons in Dark Mode */
+        html.dark .cat-edit-btn {
+            background-color: rgba(37, 99, 235, 0.2) !important;
+            color: #60a5fa !important;
+            border-color: rgba(59, 130, 246, 0.35) !important;
+        }
+        html.dark .cat-del-btn {
+            background-color: rgba(225, 29, 72, 0.2) !important;
+            color: #f87171 !important;
+            border-color: rgba(239, 68, 68, 0.35) !important;
+        }
+
+        /* Tab Buttons in Settings Page */
+        html.dark .tab-btn.active-tab-btn {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+        html.dark .tab-btn:not(.active-tab-btn) {
+            color: #cbd5e1 !important;
+        }
+        html.dark .tab-btn:not(.active-tab-btn):hover {
+            background-color: #334155 !important;
+            color: #ffffff !important;
         }
 
         /* DataTables Full Dark Mode Styling */

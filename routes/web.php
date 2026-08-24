@@ -176,6 +176,9 @@ Route::middleware(['auth', AutoBackupCheckMiddleware::class])->group(function ()
         Route::post('/settings/categories/store', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
         Route::post('/settings/categories/update', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
         Route::post('/settings/categories/delete', [SettingsController::class, 'deleteCategory'])->name('settings.categories.delete');
+        Route::post('/settings/units/store', [SettingsController::class, 'storeUnit'])->name('settings.units.store');
+        Route::post('/settings/units/update', [SettingsController::class, 'updateUnit'])->name('settings.units.update');
+        Route::post('/settings/units/delete', [SettingsController::class, 'deleteUnit'])->name('settings.units.delete');
         Route::post('/settings/resync-cache', [SettingsController::class, 'resyncCache'])->name('settings.resync');
         Route::post('/settings/prune-system', [SettingsController::class, 'pruneSystemLogs'])->name('settings.prune');
 
