@@ -319,30 +319,30 @@
 
     <!-- Quick Attendance Sheet Modal -->
     <div id="quickAttendanceModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-4xl w-full shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-4xl w-full shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4 max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
                 <div>
-                    <h3 class="text-base font-black text-slate-800 flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 text-sm">📅</span>
+                    <h3 class="text-base font-black text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-800 text-sm">📅</span>
                         Today's Quick Attendance Sheet
                     </h3>
-                    <p class="text-xs text-slate-500 font-medium pl-10">Mark daily attendance for factory employees for <span class="font-bold text-slate-700">{{ \Carbon\Carbon::parse($todayDate)->format('d M, Y (l)') }}</span></p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium pl-10">Mark daily attendance for factory employees for <span class="font-bold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($todayDate)->format('d M, Y (l)') }}</span></p>
                 </div>
-                <button type="button" onclick="closeQuickAttendanceModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl cursor-pointer">&times;</button>
+                <button type="button" onclick="closeQuickAttendanceModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-xl cursor-pointer">&times;</button>
             </div>
 
             <div class="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
-                <div class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
-                    <span class="text-xs font-bold text-slate-700">Attendance Summary:</span>
+                <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Attendance Summary:</span>
                     @php
                         $pCount = $todayAttendance->where('status', 'present')->count();
                         $hdCount = $todayAttendance->where('status', 'half_day')->count();
                         $aCount = $todayAttendance->where('status', 'absent')->count();
                     @endphp
                     <div class="flex items-center gap-1.5 text-[11px] font-extrabold">
-                        <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">{{ $pCount }} Present</span>
-                        <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">{{ $hdCount }} Half Day</span>
-                        <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">{{ $aCount }} Absent</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">{{ $pCount }} Present</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs">{{ $hdCount }} Half Day</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs">{{ $aCount }} Absent</span>
                     </div>
                 </div>
 
@@ -355,43 +355,43 @@
                                 @php
                                     $currentAtt = $todayAttendance[$staff->id]->status ?? 'present';
                                 @endphp
-                                <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between hover:bg-slate-100/60 transition group">
+                                <div class="p-3 bg-slate-50/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between hover:bg-slate-100/60 dark:hover:bg-slate-750 transition group">
                                     <div class="space-y-0.5">
-                                        <div class="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                                            <span class="group-hover:text-indigo-600 transition">{{ $staff->full_name }}</span>
-                                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-slate-200/80 text-slate-700">
+                                        <div class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                            <span class="group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">{{ $staff->full_name }}</span>
+                                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
                                                 {{ $staff->wage_type === 'per-day' ? '₹' . format_indian($staff->piece_rate_per_unit, 0) . '/day' : 'Fixed ₹' . format_indian($staff->monthly_salary, 0) }}
                                             </span>
                                         </div>
-                                        <div class="text-[10px] text-slate-500 font-medium">Role: {{ $staff->designation ?? 'Staff Member' }}</div>
+                                        <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Role: {{ $staff->designation ?? 'Staff Member' }}</div>
                                     </div>
 
-                                    <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+                                    <div class="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
                                         <label class="cursor-pointer">
-                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="present" {{ $currentAtt === 'present' ? 'checked' : '' }} class="peer sr-only">
-                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-emerald-600 peer-checked:text-white transition inline-block shadow-2xs" title="Present (Full Day 1.0)">P</span>
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="present" {{ $currentAtt === 'present' ? 'checked' : '' }} class="quick-att-input sr-only">
+                                            <span class="quick-att-option quick-att-p px-2.5 py-1 rounded-lg text-[10px] font-black transition inline-block shadow-2xs" title="Present (Full Day 1.0)">P</span>
                                         </label>
                                         <label class="cursor-pointer">
-                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="half_day" {{ $currentAtt === 'half_day' ? 'checked' : '' }} class="peer sr-only">
-                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-amber-500 peer-checked:text-white transition inline-block shadow-2xs" title="Half Day (0.5)">HD</span>
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="half_day" {{ $currentAtt === 'half_day' ? 'checked' : '' }} class="quick-att-input sr-only">
+                                            <span class="quick-att-option quick-att-hd px-2.5 py-1 rounded-lg text-[10px] font-black transition inline-block shadow-2xs" title="Half Day (0.5)">HD</span>
                                         </label>
                                         <label class="cursor-pointer">
-                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="absent" {{ $currentAtt === 'absent' ? 'checked' : '' }} class="peer sr-only">
-                                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black text-slate-500 peer-checked:bg-rose-500 peer-checked:text-white transition inline-block shadow-2xs" title="Absent (0.0)">A</span>
+                                            <input type="radio" name="attendance[{{ $staff->id }}]" value="absent" {{ $currentAtt === 'absent' ? 'checked' : '' }} class="quick-att-input sr-only">
+                                            <span class="quick-att-option quick-att-a px-2.5 py-1 rounded-lg text-[10px] font-black transition inline-block shadow-2xs" title="Absent (0.0)">A</span>
                                         </label>
                                     </div>
                                 </div>
                             @endforeach
                         </div>
 
-                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
-                            <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span> P = Present (1.0)
                                 <span class="w-2 h-2 rounded-full bg-amber-500"></span> HD = Half Day (0.5)
                                 <span class="w-2 h-2 rounded-full bg-rose-500"></span> A = Absent (0.0)
                             </span>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="closeQuickAttendanceModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">Cancel</button>
+                                <button type="button" onclick="closeQuickAttendanceModal()" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white">Cancel</button>
                                 <button type="submit" id="saveQuickAttBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-xs transition flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -402,7 +402,7 @@
                         </div>
                     </form>
                 @else
-                    <div class="p-5 bg-slate-50 rounded-2xl text-center border border-slate-100 text-xs text-slate-500 font-medium space-y-2">
+                    <div class="p-5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl text-center border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 font-medium space-y-2">
                         <p>No active staff members registered in payroll directory.</p>
                         <a href="{{ route('employees') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-indigo-700 transition">
                             + Add Employee Profile

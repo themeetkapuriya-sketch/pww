@@ -356,7 +356,7 @@ $indianStates = [
                                     </button>
                                 </div>
                             @else
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                                     @foreach ($c->plants as $p)
                                         @php
                                             $gstStateCodesMap = [

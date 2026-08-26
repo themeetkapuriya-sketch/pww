@@ -156,37 +156,191 @@ html.dark .text-slate-600 {
 }
 
 /* Specific Setting Sub-Page Colored Cards & Badges in Dark Mode */
-html.dark [class*="bg-blue-50"],
+html.dark .bg-blue-50,
+html.dark .bg-blue-50\/50,
+html.dark .bg-blue-50\/80,
 html.dark #track_stock_card {
     background-color: rgba(30, 58, 138, 0.25) !important;
     border-color: rgba(59, 130, 246, 0.35) !important;
 }
 
-html.dark [class*="bg-emerald-50"] {
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50,
+html.dark .bg-emerald-50\/80 {
     background-color: rgba(6, 78, 59, 0.25) !important;
     border-color: rgba(16, 185, 129, 0.35) !important;
 }
 
-html.dark [class*="bg-sky-50"] {
+html.dark .bg-sky-50,
+html.dark .bg-sky-50\/50,
+html.dark .bg-sky-50\/80 {
     background-color: rgba(12, 74, 110, 0.25) !important;
     border-color: rgba(14, 165, 233, 0.35) !important;
 }
 
-html.dark [class*="bg-amber-50"] {
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/50,
+html.dark .bg-amber-50\/80 {
     background-color: rgba(120, 53, 15, 0.25) !important;
     border-color: rgba(245, 158, 11, 0.35) !important;
 }
 
-html.dark [class*="bg-purple-50"],
-html.dark [class*="bg-indigo-50"] {
+html.dark .bg-purple-50,
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-50\/50,
+html.dark .bg-indigo-50\/80 {
     background-color: rgba(49, 46, 129, 0.25) !important;
     border-color: rgba(99, 102, 241, 0.35) !important;
 }
 
-html.dark [class*="bg-slate-200"] {
+html.dark .bg-slate-200 {
     background-color: #334155 !important;
     border-color: #475569 !important;
     color: #cbd5e1 !important;
+}
+
+/* =========================================================
+   UNIVERSAL ACTION BUTTONS (IDENTICAL IN LIGHT & DARK MODE ACROSS ALL PAGES)
+   ========================================================= */
+.w-7.h-7.bg-emerald-500,
+html.dark .w-7.h-7.bg-emerald-500,
+html.dark a.w-7.h-7.bg-emerald-500,
+html.dark button.w-7.h-7.bg-emerald-500,
+html.dark span.w-7.h-7.bg-emerald-500 {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-emerald-500:hover,
+html.dark .w-7.h-7.bg-emerald-500:hover,
+html.dark a.w-7.h-7.bg-emerald-500:hover,
+html.dark button.w-7.h-7.bg-emerald-500:hover {
+    background-color: #059669 !important;
+}
+
+.w-7.h-7.bg-sky-500,
+html.dark .w-7.h-7.bg-sky-500,
+html.dark a.w-7.h-7.bg-sky-500,
+html.dark button.w-7.h-7.bg-sky-500,
+html.dark span.w-7.h-7.bg-sky-500 {
+    background-color: #0ea5e9 !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-sky-500:hover,
+html.dark .w-7.h-7.bg-sky-500:hover,
+html.dark a.w-7.h-7.bg-sky-500:hover,
+html.dark button.w-7.h-7.bg-sky-500:hover {
+    background-color: #0284c7 !important;
+}
+
+.w-7.h-7.bg-indigo-600,
+html.dark .w-7.h-7.bg-indigo-600,
+html.dark a.w-7.h-7.bg-indigo-600,
+html.dark button.w-7.h-7.bg-indigo-600,
+html.dark span.w-7.h-7.bg-indigo-600 {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-indigo-600:hover,
+html.dark .w-7.h-7.bg-indigo-600:hover,
+html.dark a.w-7.h-7.bg-indigo-600:hover,
+html.dark button.w-7.h-7.bg-indigo-600:hover {
+    background-color: #4338ca !important;
+}
+
+.w-7.h-7.bg-amber-500,
+html.dark .w-7.h-7.bg-amber-500,
+html.dark a.w-7.h-7.bg-amber-500,
+html.dark button.w-7.h-7.bg-amber-500,
+html.dark span.w-7.h-7.bg-amber-500 {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-amber-500:hover,
+html.dark .w-7.h-7.bg-amber-500:hover,
+html.dark a.w-7.h-7.bg-amber-500:hover,
+html.dark button.w-7.h-7.bg-amber-500:hover {
+    background-color: #d97706 !important;
+}
+
+.w-7.h-7.bg-rose-500,
+html.dark .w-7.h-7.bg-rose-500,
+html.dark a.w-7.h-7.bg-rose-500,
+html.dark button.w-7.h-7.bg-rose-500,
+html.dark span.w-7.h-7.bg-rose-500 {
+    background-color: #f43f5e !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-rose-500:hover,
+html.dark .w-7.h-7.bg-rose-500:hover,
+html.dark a.w-7.h-7.bg-rose-500:hover,
+html.dark button.w-7.h-7.bg-rose-500:hover {
+    background-color: #e11d48 !important;
+}
+
+.w-7.h-7.bg-blue-600,
+html.dark .w-7.h-7.bg-blue-600,
+html.dark a.w-7.h-7.bg-blue-600,
+html.dark button.w-7.h-7.bg-blue-600,
+html.dark span.w-7.h-7.bg-blue-600 {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-blue-600:hover,
+html.dark .w-7.h-7.bg-blue-600:hover,
+html.dark a.w-7.h-7.bg-blue-600:hover,
+html.dark button.w-7.h-7.bg-blue-600:hover {
+    background-color: #1d4ed8 !important;
+}
+
+.w-7.h-7.bg-teal-600,
+html.dark .w-7.h-7.bg-teal-600,
+html.dark a.w-7.h-7.bg-teal-600,
+html.dark button.w-7.h-7.bg-teal-600,
+html.dark span.w-7.h-7.bg-teal-600 {
+    background-color: #0d9488 !important;
+    color: #ffffff !important;
+}
+.w-7.h-7.bg-teal-600:hover,
+html.dark .w-7.h-7.bg-teal-600:hover,
+html.dark a.w-7.h-7.bg-teal-600:hover,
+html.dark button.w-7.h-7.bg-teal-600:hover {
+    background-color: #0f766e !important;
+}
+
+/* Ensure pure white SVG icons inside all action buttons in both light & dark mode */
+.w-7.h-7 svg,
+html.dark .w-7.h-7 svg {
+    color: #ffffff !important;
+    stroke: currentColor !important;
+    fill: none !important;
+}
+
+/* Quick & Daily Attendance Radio Badges (Clean transparent unchecked state in both modes) */
+.quick-att-option,
+html.dark .quick-att-option {
+    background-color: transparent !important;
+    color: #64748b !important;
+}
+html.dark .quick-att-option {
+    color: #94a3b8 !important;
+}
+
+.quick-att-input:checked + .quick-att-p,
+html.dark .quick-att-input:checked + .quick-att-p {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.quick-att-input:checked + .quick-att-hd,
+html.dark .quick-att-input:checked + .quick-att-hd {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+}
+
+.quick-att-input:checked + .quick-att-a,
+html.dark .quick-att-input:checked + .quick-att-a {
+    background-color: #f43f5e !important;
+    color: #ffffff !important;
 }
 
 /* Text Contrast for Colored Highlights in Dark Mode */

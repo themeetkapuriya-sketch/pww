@@ -768,9 +768,13 @@
                             }
                         }
                     }
-                    if (e.target && e.target.name === 'product_ids[]') {
+                    if (e.target && (e.target.name === 'product_ids[]' || e.target.name === 'billing_uoms[]' || e.target.classList.contains('billing-uom-select'))) {
                         updateRowUnitPrice(e.target);
                     }
+                });
+
+                $(document).on('change', 'input[name="product_ids[]"], select[name="product_ids[]"], select[name="billing_uoms[]"], .billing-uom-select', function() {
+                    updateRowUnitPrice(this);
                 });
 
                 function updateRowUnitPrice(elem) {
@@ -805,7 +809,9 @@
                     } else if (!hiddenProd.value) {
                         priceInput.value = '';
                     }
+                    priceInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
+                window.updateRowUnitPrice = updateRowUnitPrice;
 
                 function removeOrderRow(btn) {
                     const container = document.getElementById('orderRowsContainer');
@@ -985,22 +991,31 @@
                         ord.items.forEach(it => {
                             const row = document.createElement('div');
                             row.className = 'order-row flex items-center space-x-2 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200';
-
-                        <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateRowUnitPrice(this)">
-                            <option value="Pcs">Pcs</option>
-                            <option value="Kg">Kg</option>
-                        </select>
-                        <input type="number" name="quantities[]" value="${parseFloat(it.quantity)}" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
-                        <input type="number" name="unit_prices[]" value="${parseFloat(it.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
-                        <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
-                    `;
+                            row.innerHTML = `
+                                <div class="flex-grow min-w-[200px]">
+                                    ${window.rawOrderComboboxTpl || ''}
+                                </div>
+                                <select name="billing_uoms[]" class="billing-uom-select w-20 shrink-0 bg-white border border-amber-200 rounded-xl py-2 px-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateRowUnitPrice(this)">
+                                    <option value="Pcs">Pcs</option>
+                                    <option value="Kg">Kg</option>
+                                </select>
+                                <input type="number" name="quantities[]" value="${parseFloat(it.quantity)}" step="any" min="0.01" placeholder="Qty" required class="w-20 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
+                                <input type="number" name="unit_prices[]" value="${parseFloat(it.unit_price).toFixed(2)}" step="0.01" min="0" placeholder="Price (₹)" required class="w-28 bg-white border border-amber-200 rounded-xl py-2 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 font-bold">
+                                <button type="button" onclick="removeOrderRow(this)" class="text-rose-500 hover:text-rose-600 font-bold px-2 text-sm">✕</button>
+                            `;
                             if (row.querySelector('select[name="billing_uoms[]"]')) {
                                 row.querySelector('select[name="billing_uoms[]"]').value = it.billing_uom || 'Pcs';
                             }
 
                             const prodInp = row.querySelector('.combobox-hidden-input');
+                            const searchInp = row.querySelector('.combobox-search-input');
+                            const clearBtn = row.querySelector('.combobox-clear-btn');
                             if (prodInp) {
                                 prodInp.value = it.product_id;
+                            }
+                            if (searchInp && it.product_name) {
+                                searchInp.value = it.product_name;
+                                if (clearBtn) clearBtn.classList.remove('hidden');
                             }
 
                             rowsContainer.appendChild(row);
@@ -1541,12 +1556,6 @@
                             actionsContainer.innerHTML += `
                         <a href="/production" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5">
                             ⚙️ Log Production
-                        </a>
-                    `;
-                        } else if (!isStockOn && window.moduleInvoicesEnabled && data.status !== 'cancelled') {
-                            actionsContainer.innerHTML += `
-                        <a href="/invoices?create_from_order=${data.id}&client_id=${data.client_id}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5">
-                            📄 Invoices Hub
                         </a>
                     `;
                         }

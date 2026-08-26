@@ -16,10 +16,16 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'name' => $this->product_name,
+            'product_name' => $this->product_name,
+            'sku' => $this->sku,
             'hsn_code' => $this->hsn_code,
-            'unit_price' => (float) $this->unit_price,
-            'unit' => $this->unit,
+            'unit_price' => (float) ($this->selling_price ?? 0),
+            'selling_price' => (float) ($this->selling_price ?? 0),
+            'price_per_kg' => (float) ($this->price_per_kg ?? 0),
+            'unit_weight_kg' => (float) ($this->unit_weight_kg ?? 0),
+            'uom' => $this->uom ?? 'piece',
+            'unit' => $this->uom ?? 'piece',
             'current_stock' => (float) ($this->current_stock ?? 0),
         ];
     }

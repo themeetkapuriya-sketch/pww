@@ -35,8 +35,7 @@ class OrderController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(20)->appends($request->query());
         $clients = Client::with('plants')->orderBy('company_name')->get();
-        $rawFinishedGoods = Product::orderBy('product_name')->get();
-        $finishedGoods = ProductResource::collection($rawFinishedGoods);
+        $finishedGoods = Product::orderBy('product_name')->get();
 
         $stats = [
             'total' => SalesOrder::count(),

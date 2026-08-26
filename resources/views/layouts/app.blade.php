@@ -1481,15 +1481,19 @@
                 const allowCustom = wrapper.dataset.allowCustom === 'true';
 
                 if (!hiddenInput || !searchInput) return;
-                const val = hiddenInput.value;
-                const matchedOpt = options.find(o => o.dataset.value === val);
+                const val = (hiddenInput.value !== undefined && hiddenInput.value !== null) ? String(hiddenInput.value).trim() : '';
+                if (!val) {
+                    if (!searchInput.value && clearBtn) clearBtn.classList.add('hidden');
+                    return;
+                }
+                const matchedOpt = options.find(o => String(o.dataset.value).trim() === val);
                 if (matchedOpt) {
                     searchInput.value = matchedOpt.dataset.label;
                     if (clearBtn) clearBtn.classList.remove('hidden');
                 } else if (allowCustom && val) {
                     searchInput.value = val;
                     if (clearBtn) clearBtn.classList.remove('hidden');
-                } else {
+                } else if (!searchInput.value) {
                     searchInput.value = '';
                     if (clearBtn) clearBtn.classList.add('hidden');
                 }
